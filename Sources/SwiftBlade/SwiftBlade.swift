@@ -3,7 +3,7 @@ import os
 import Alamofire
 
 public class SwiftBlade: NSObject {
-    private let API_BASE_URL = "https://rest.ci.bladewallet.io/openapi/v7"
+    private let API_BASE_URL = "https://rest.prod.bladewallet.io/openapi/v7"
     
     public static let shared = SwiftBlade()
     
