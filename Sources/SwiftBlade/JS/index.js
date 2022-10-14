@@ -34,11 +34,11 @@ export class SDK {
 
     /**
      * Transfer Hbars from current account to a receiver
-     * 
-     * @param {string} accountId 
-     * @param {string} accountPrivateKey 
-     * @param {string} receiverID 
-     * @param {number} amount 
+     *
+     * @param {string} accountId
+     * @param {string} accountPrivateKey
+     * @param {string} receiverID
+     * @param {number} amount
      */
     static transferHbars(accountId, accountPrivateKey, receiverID, amount, completionKey) {
         const client = SDK.#getClient();
@@ -47,6 +47,31 @@ export class SDK {
         new TransferTransaction()
             .addHbarTransfer(receiverID, amount)
             .addHbarTransfer(accountId, -1 * amount)
+            .execute(client).then(data => {
+                SDK.#sendMessageToNative(completionKey, data)
+            }).catch(error => {
+                SDK.#sendMessageToNative(completionKey, null, error)
+            })
+    }
+    
+    
+    /**
+     * Transfer tokens from current account to a receiver
+     *
+     * @param {string} tokenId
+     * @param {string} accountId
+     * @param {string} accountPrivateKey
+     * @param {string} receiverID
+     * @param {number} amount
+     * @param {string} completionKey
+     */
+    static transferTokens(tokenId, accountId, accountPrivateKey, receiverID, amount, completionKey) {
+        const client = SDK.#getClient();
+        client.setOperator(accountId, accountPrivateKey)
+    
+        new TransferTransaction()
+            .addTokenTransfer(tokenId, receiverID, amount)
+            .addTokenTransfer(tokenId, accountId, -1 * amount)
             .execute(client).then(data => {
                 SDK.#sendMessageToNative(completionKey, data)
             }).catch(error => {
@@ -79,7 +104,7 @@ export class SDK {
      * Get public/private keys by seed phrase
      * 
      * @param {string} mnemonic 
-     * @param {string} completionKey 
+     * @param {string} completionKey
      */
     static getKeysFromMnemonic(mnemonic, completionKey) {
         //TODO support all the different type of private keys
