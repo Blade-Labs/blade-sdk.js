@@ -1,4 +1,4 @@
-import { Client, AccountBalanceQuery, TransferTransaction, Mnemonic, PrivateKey } from "@hashgraph/sdk";
+import { Client, AccountBalanceQuery, TransferTransaction, Mnemonic, PrivateKey, Transaction } from "@hashgraph/sdk";
 import { Buffer } from "buffer";
 
 export class SDK {
@@ -108,13 +108,13 @@ export class SDK {
      */
     static getKeysFromMnemonic(mnemonic, completionKey) {
         //TODO support all the different type of private keys
-        Mnemonic.fromString(mnemonic).then(function (mnemonicObj) {
+        Mnemonic.fromString(mnemonic).then(mnemonicObj => {
             //TODO check which type of keys to be used
-            mnemonicObj.toEcdsaPrivateKey().then(function (privateKey) {
+            mnemonicObj.toEcdsaPrivateKey().then(privateKey => {
                 var publicKey = privateKey.publicKey;
                 SDK.#sendMessageToNative(completionKey, {
                     privateKey: privateKey.toStringDer(),
-                    publicKey: publicKey.toBytesDer()
+                    publicKey: publicKey.toStringDer()
                 })
             }).catch((error) => {
                 SDK.#sendMessageToNative(completionKey, null, error)    
@@ -132,7 +132,6 @@ export class SDK {
      * @param {string} completionKey 
      */
     static sign(messageString, privateKey, completionKey) {
-        debugger
         try {
             const key = PrivateKey.fromString(privateKey)
             const signed = key.sign(Buffer.from(messageString, 'base64'))
@@ -143,6 +142,34 @@ export class SDK {
         } catch (error) {
             SDK.#sendMessageToNative(completionKey, null, error)
         }
+    }
+    
+    /**
+     * Execute token association transaction
+     * 
+     * @param {string} transactionBytes
+     * @param {string} accountId
+     * @param {string} privateKey
+     * @param {string} completionKey
+     */
+    static doTokenAutoAssociate(transactionBytes, accountId, privateKey, completionKey) {
+        const client = SDK.#getClient();
+        client.setOperator(accountId, privateKey);
+        
+        const buffer = Buffer.from(transactionBytes, "base64");
+        const tx = Transaction.fromBytes(buffer);
+        tx.signWithOperator(client).then(() => {
+            tx.execute(client).then(response => {
+                const txid = response.transactionId.toString();
+                SDK.#sendMessageToNative(completionKey, {
+                    txid: txid
+                })
+            }).catch((error) => {
+                SDK.#sendMessageToNative(completionKey, null, error)
+            })
+        }).catch((error) => {
+            SDK.#sendMessageToNative(completionKey, null, error)
+        })
     }
 
     /**

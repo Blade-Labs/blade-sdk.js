@@ -11,11 +11,12 @@ public class SwiftBlade: NSObject {
     private var webViewInitialized = false    
     private var deferCompletions: [String: (_ result: Data?, _ error: Error?) -> Void] = [:]
     private var initCompletion: (() -> Void)?
+    private var completionId: Int = 0
 
     private var apiKey: String? = nil
     private let uuid = UUID().uuidString
-    private var network: HederaNetwork?
-    private var completionId: Int = 0
+    private var network: HederaNetwork = .TESTNET
+    private var dAppCode: String?
     
     // MARK: - It's init time 🎬
     /// Initialization of Swift blade
@@ -24,7 +25,7 @@ public class SwiftBlade: NSObject {
     ///   - apiKey: api key given by Blade tea
     ///   - network: .TESTNET or .MAINNET
     ///   - completion: completion closure that will be executed after webview is fully loaded and rendered.
-    public func initialize(apiKey: String, network: HederaNetwork , completion: @escaping () -> Void = { }) {
+    public func initialize(apiKey: String, dAppCode: String, network: HederaNetwork , completion: @escaping () -> Void = { }) {
         guard !webViewInitialized else {
             print("Error while doing double init of SwiftBlade")
             fatalError()
@@ -32,6 +33,7 @@ public class SwiftBlade: NSObject {
         // Setting up all required properties
         self.initCompletion = completion
         self.apiKey = apiKey
+        self.dAppCode = dAppCode
         self.network = network
         
         // Setting up and loading webview
@@ -52,6 +54,10 @@ public class SwiftBlade: NSObject {
     public func getBalance(_ id: String, completion: @escaping (_ result: BalanceDataResponse?, _ error: Error?) -> Void) {
         let completionKey = getCompletionKey("getBalance");
         deferCompletion(forKey: completionKey) { (data, error) in
+            if (error != nil) {
+                print(error!)
+                completion(nil, error)
+            }
             do {
                 let response = try JSONDecoder().decode(BalanceResponse.self, from: data!)
                 completion(response.data, nil)
@@ -74,6 +80,10 @@ public class SwiftBlade: NSObject {
     public func transferHbars(accountId: String, accountPrivateKey: String, receiverId: String, amount: Int, completion: @escaping (_ result: TransferDataResponse?, _ error: Error?) -> Void) {
         let completionKey = getCompletionKey("transferHbars");
         deferCompletion(forKey: completionKey) { (data, error) in
+            if (error != nil) {
+                print(error!)
+                completion(nil, error)
+            }
             do {
                 let response = try JSONDecoder().decode(TransferResponse.self, from: data!)
                 completion(response.data, nil)
@@ -99,6 +109,10 @@ public class SwiftBlade: NSObject {
     public func transferTokens(tokenId: String, accountId: String, accountPrivateKey: String, receiverId: String, amount: Int, completion: @escaping (_ result: TransferDataResponse?, _ error: Error?) -> Void) {
         let completionKey = getCompletionKey("transferTokens");
         deferCompletion(forKey: completionKey) { (data, error) in
+            if (error != nil) {
+                print(error!)
+                completion(nil, error)
+            }
             do {
                 let response = try JSONDecoder().decode(TransferResponse.self, from: data!)
                 completion(response.data, nil)
@@ -119,6 +133,10 @@ public class SwiftBlade: NSObject {
         // Step 1. Generate mnemonice and public / private key
         let completionKey = getCompletionKey("generateKeys");
         deferCompletion(forKey: completionKey) { (data, error) in
+            if (error != nil) {
+                print(error!)
+                completion(nil, error)
+            }
             do {
                 var result = try JSONDecoder().decode(CreatedAccountResponse.self, from: data!)
                 self.createAccountAPICall(account: result.data) { (apiResult, error) in
@@ -145,6 +163,10 @@ public class SwiftBlade: NSObject {
     public func getKeysFromMnemonic (menmonic: String, completion: @escaping (_ result: PrivateKeyDataResponse?, _ error: Error?) -> Void) {
         let completionKey = getCompletionKey("getKeysFromMnemonic");
         deferCompletion(forKey: completionKey) { (data, error) in
+            if (error != nil) {
+                print(error!)
+                completion(nil, error)
+            }
             do {
                 let response = try JSONDecoder().decode(PrivateKeyResponse.self, from: data!)
                 completion(response.data, nil)
@@ -153,7 +175,7 @@ public class SwiftBlade: NSObject {
                 completion(nil, error)
             }
         }
-        executeJS("JSWrapper.SDK.getPrivateKeyStringFromMnemonic('\(menmonic)', '\(completionKey)')")
+        executeJS("JSWrapper.SDK.getKeysFromMnemonic('\(menmonic)', '\(completionKey)')")
     }
     
     /// Sign message with private key
@@ -165,6 +187,10 @@ public class SwiftBlade: NSObject {
     public func sign (messageString: String, privateKey: String, completion: @escaping (_ result: SignMessageDataResponse?, _ error: Error?) -> Void) {
         let completionKey = getCompletionKey("sign");
         deferCompletion(forKey: completionKey) { (data, error) in
+            if (error != nil) {
+                print(error!)
+                completion(nil, error)
+            }
             do {
                 let response = try JSONDecoder().decode(SignMessageResponse.self, from: data!)
                 completion(response.data, nil)
@@ -201,22 +227,37 @@ public class SwiftBlade: NSObject {
     private func createAccountAPICall(account: CreatedAccountDataResponse, completion: @escaping (_ result: AccountAPIResponse?, _ error: Error?) -> Void) {
         let params: Parameters = [
             "publicKey": account.publicKey,
+            "autoAssociatePresetToken": true
         ]
         let headers: HTTPHeaders = [
             "X-SDK-TOKEN": self.apiKey!,
-            "X-NETWORK": self.network!.rawValue,
-            "X-FINGERPRINT": self.uuid
+            "X-NETWORK": self.network.rawValue,
+            "X-FINGERPRINT": self.uuid,
+            "X-DAPP-CODE": self.dAppCode!
         ]
         
         AF.request(self.API_BASE_URL + "/accounts", method: .post, parameters: params, encoding: JSONEncoding.default, headers: headers).responseDecodable(of: AccountAPIResponse.self) { (response) in
             switch response.result {
             case let .success(data):
-                completion(data, nil)
+                self.doTokenAutoAssociate(account: account, apiData: data, completion: completion)
             case let .failure(error):
                 completion(nil, error)
             }
-                
         }
+    }
+    
+    private func doTokenAutoAssociate (account: CreatedAccountDataResponse, apiData: AccountAPIResponse, completion: @escaping (_ result: AccountAPIResponse?, _ error: Error?) -> Void) {
+        let transactionBytes = apiData.transactionBytes
+        
+        let completionKey = getCompletionKey("doTokenAutoAssociate");
+        deferCompletion(forKey: completionKey) { (data, error) in
+            if (error != nil) {
+                print(error!)
+                completion(nil, error)
+            }
+            completion(apiData, nil)
+        }
+        executeJS("JSWrapper.SDK.doTokenAutoAssociate('\(transactionBytes)', '\(apiData.id)', '\(account.privateKey)', '\(completionKey)')")
     }
     
     private func getCompletionKey(_ tag: String = "") -> String {
@@ -256,7 +297,7 @@ extension SwiftBlade: WKNavigationDelegate {
         webViewInitialized = true
         
         // Call setNetwork and initCompletion after that
-        try? self.setNetwork(self.network!.rawValue)
+        try? self.setNetwork(self.network.rawValue)
     }
 }
 
@@ -288,7 +329,9 @@ struct TransferResponse: Codable {
 
 struct AccountAPIResponse: Codable {
     var id: String
-    var publicKey: String
+    var network: String
+    var associationPresetTokenStatus: String
+    var transactionBytes: String
 }
 
 struct SignMessageResponse: Codable {
