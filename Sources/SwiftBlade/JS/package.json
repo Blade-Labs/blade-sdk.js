@@ -16,6 +16,7 @@
   "license": "ISC",
   "dependencies": {
     "@hashgraph/sdk": "^2.18.1",
+    "bignumber.js": "^9.0.2",
     "buffer": "^6.0.3"
   },
   "devDependencies": {
