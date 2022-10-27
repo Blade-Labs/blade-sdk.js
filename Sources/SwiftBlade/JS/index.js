@@ -119,7 +119,7 @@ export class SDK {
             .setContractId(contractId)
             .setGas(gas)
             .setFunction(functionName, functionParams)
-            ;
+        ;
 
         contractFunc
             .freezeWith(client)
@@ -131,7 +131,14 @@ export class SDK {
                 return executedTx.getReceipt(client)
             })
             .then(txReceipt => {
-                SDK.#sendMessageToNative(completionKey, JSON.stringify(txReceipt));
+                const result = {
+                    status: txReceipt.status?.toString(),
+                    contractId: txReceipt.contractId?.toString(),
+                    topicSequenceNumber: txReceipt.topicSequenceNumber?.toString(),
+                    totalSupply: txReceipt.totalSupply?.toString(),
+                    serial: txReceipt.serial?.map(value => value.toString())
+                }
+                SDK.#sendMessageToNative(completionKey, result);
             })
             .catch(error => {
                 SDK.#sendMessageToNative(completionKey, null, error)

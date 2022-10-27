@@ -216,17 +216,15 @@ public class SwiftBlade: NSObject {
     ///   - accountId: sender
     ///   - accountPrivateKey: sender's private key to sign transfer transaction
     ///   - gas: amount
-    ///   - completion: result with TransferDataResponse type
-    public func contractCallFunction(contractId: String, functionName: String, params: ContractFunctionParameters, accountId: String, accountPrivateKey: String, gas: Int, completion: @escaping (_ result: TestResponse?, _ error: Error?) -> Void) {
+    ///   - completion: result with TransactionReceipt type
+    public func contractCallFunction(contractId: String, functionName: String, params: ContractFunctionParameters, accountId: String, accountPrivateKey: String, gas: Int, completion: @escaping (_ result: TransactionReceipt?, _ error: Error?) -> Void) {
         let completionKey = getCompletionKey("contractCallFunction");
         let paramsEncoded = params.encode();
 
         deferCompletion(forKey: completionKey) { (data, error) in
             do {
-                let response = try JSONDecoder().decode(TestResponse.self, from: data!)
-
-                print(response)
-                completion(response, nil)
+                let response = try JSONDecoder().decode(TransactionReceiptResponse.self, from: data!)
+                completion(response.data, nil)
             } catch {
                 print(error)
                 completion(nil, error)
@@ -234,6 +232,7 @@ public class SwiftBlade: NSObject {
         }
 
         let script = "JSWrapper.SDK.contractCallFunction('\(contractId)', '\(functionName)', '\(paramsEncoded)', '\(accountId)', '\(accountPrivateKey)', '\(gas)', '\(completionKey)')"
+    
         executeJS(script)
     }
     
@@ -473,11 +472,19 @@ public struct ContractFunctionParameter: Encodable {
     public var value: String
 }
 
-struct SigData {
-    public var v: UInt8
-    public var r: [UInt8] // bytes32
-    public var s: [UInt8] // bytes32
+struct TransactionReceiptResponse: Codable {
+    var completionKey: String
+    var data: TransactionReceipt
 }
+
+public struct TransactionReceipt: Codable {
+    public var status: String
+    public var contractId: String?
+    public var topicSequenceNumber: String?
+    public var totalSupply: String?
+    public var serials: [String]?
+}
+
 
 public struct TestResponse: Codable {
     public var completionKey: String
