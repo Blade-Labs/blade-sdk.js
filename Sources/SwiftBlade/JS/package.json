@@ -15,6 +15,7 @@
   "author": "Blade",
   "license": "ISC",
   "dependencies": {
+    "@hashgraph/hethers": "^1.2.2",
     "@hashgraph/sdk": "^2.18.1",
     "buffer": "^6.0.3"
   },

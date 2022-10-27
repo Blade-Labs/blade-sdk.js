@@ -1,5 +1,6 @@
 import { Client, AccountBalanceQuery, TransferTransaction, Mnemonic, PrivateKey, Transaction } from "@hashgraph/sdk";
 import { Buffer } from "buffer";
+import { hethers } from '@hashgraph/hethers';
 
 export class SDK {
 
@@ -26,7 +27,7 @@ export class SDK {
         new AccountBalanceQuery()
             .setAccountId(accountId)
             .execute(client).then(data => {
-                SDK.#sendMessageToNative(completionKey, data)
+                SDK.#sendMessageToNative(completionKey, SDK.#processBalanceData(data))
             }).catch(error => {
                 SDK.#sendMessageToNative(completionKey, null, error)
             })
@@ -143,6 +144,24 @@ export class SDK {
             SDK.#sendMessageToNative(completionKey, null, error)
         }
     }
+
+    /**
+     * Sign message with hethers lib (signedTypeData)
+     * 
+     * @param {string} messageString 
+     * @param {string} privateKey 
+     * @param {string} completionKey 
+     */
+    static hethersSign(messageString, privateKey, completionKey) {
+        const wallet = new hethers.Wallet(privateKey);
+        wallet.signMessage(messageString).then(signedMessage => {
+            SDK.#sendMessageToNative(completionKey, {
+                signedMessage: signedMessage
+            })
+        }).catch((error) => {
+            SDK.#sendMessageToNative(completionKey, null, error)    
+        })
+    }
     
     /**
      * Execute token association transaction
@@ -201,6 +220,31 @@ export class SDK {
                 } 
             }
             window.webkit.messageHandlers.bladeMessageHandler.postMessage(JSON.stringify(responseObject));
+        }
+    }
+
+    /**
+     * Object to parse balance response
+     * 
+     * @param {JSON} data 
+     * @returns {JSON}
+     */
+    static #processBalanceData(data) {
+        const hbars = data.hbars.toBigNumber().toNumber();
+        var tokens = []
+        const dataJson = data.toJSON()
+        dataJson.tokens.forEach(token => {
+            var balance = Number(token.balance)
+            const tokenDecimals = Number(token.decimals)
+            if (tokenDecimals) balance = balance / (10 * tokenDecimals)
+            tokens.push({
+                tokenId: token.tokenId,
+                balance: balance
+            })
+        });
+        return {
+            hbars: hbars,
+            tokens: tokens
         }
     }
 };

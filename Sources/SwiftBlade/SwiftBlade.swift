@@ -183,7 +183,7 @@ public class SwiftBlade: NSObject {
     /// - Parameters:
     ///   - messageString: message in base64 string
     ///   - privateKey: private key string
-    ///   - completion: resilt with SignMessageDataResponse type
+    ///   - completion: result with SignMessageDataResponse type
     public func sign (messageString: String, privateKey: String, completion: @escaping (_ result: SignMessageDataResponse?, _ error: Error?) -> Void) {
         let completionKey = getCompletionKey("sign");
         deferCompletion(forKey: completionKey) { (data, error) in
@@ -200,6 +200,30 @@ public class SwiftBlade: NSObject {
             }
         }
         executeJS("JSWrapper.SDK.sign('\(messageString)', '\(privateKey)', '\(completionKey)')")
+    }
+    
+    /// Sign message with private key
+    ///
+    /// - Parameters:
+    ///   - messageString: message in base64 string
+    ///   - privateKey: private key string
+    ///   - completion: result with SignMessageDataResponse type
+    public func hethersSign (messageString: String, privateKey: String, completion: @escaping (_ result: SignMessageDataResponse?, _ error: Error?) -> Void) {
+        let completionKey = getCompletionKey("hethersSign");
+        deferCompletion(forKey: completionKey) { (data, error) in
+            if (error != nil) {
+                print(error!)
+                completion(nil, error)
+            }
+            do {
+                let response = try JSONDecoder().decode(SignMessageResponse.self, from: data!)
+                completion(response.data, nil)
+            } catch let error as NSError {
+                print(error)
+                completion(nil, error)
+            }
+        }
+        executeJS("JSWrapper.SDK.hethersSign('\(messageString)', '\(privateKey)', '\(completionKey)')")
     }
     
     // MARK: - Private methods 🔒
@@ -347,13 +371,12 @@ public struct CreatedAccountDataResponse: Codable {
 }
 
 public struct BalanceDataResponse: Codable {
-    public var hbars: String
+    public var hbars: Double
     public var tokens: [BalanceDataResponseToken]
 }
 
 public struct BalanceDataResponseToken: Codable {
-    public var balance: String
-    public var decimals: Int
+    public var balance: Double
     public var tokenId: String
 }
 
