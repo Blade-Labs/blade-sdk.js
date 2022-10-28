@@ -15,14 +15,20 @@ let package = Package(
     dependencies: [
         // Dependencies declare other packages that this package depends on.
         // .package(url: /* package url */, from: "1.0.0"),
-        .package(url: "https://github.com/Alamofire/Alamofire.git", .upToNextMajor(from: "5.6.1"))
+        .package(url: "https://github.com/Alamofire/Alamofire.git", .upToNextMajor(from: "5.6.1")),
+        .package(url: "https://github.com/Boilertalk/Web3.swift.git", from: "0.6.0")
     ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
         // Targets can depend on other targets in this package, and on products in packages this package depends on.
         .target(
             name: "SwiftBlade",
-            dependencies: ["Alamofire"],
+            dependencies: [
+                "Alamofire",
+                .product(name: "Web3", package: "Web3.swift"),
+                .product(name: "Web3PromiseKit", package: "Web3.swift"),
+                .product(name: "Web3ContractABI", package: "Web3.swift"),
+            ],
             exclude: ["JS/node_modules", "JS/package.json", "JS/package-lock.json", "JS/webpack.config.js", "JS/index.js", "JS/dist/JSWrapper.bundle.js.LICENSE.txt"],
             resources: [
               .process("JS/index.html"),
