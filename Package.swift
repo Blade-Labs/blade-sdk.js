@@ -25,9 +25,7 @@ let package = Package(
             name: "SwiftBlade",
             dependencies: [
                 "Alamofire",
-                .product(name: "Web3", package: "Web3.swift"),
-                .product(name: "Web3PromiseKit", package: "Web3.swift"),
-                .product(name: "Web3ContractABI", package: "Web3.swift"),
+                .product(name: "Web3", package: "Web3.swift")
             ],
             exclude: ["JS/node_modules", "JS/package.json", "JS/package-lock.json", "JS/webpack.config.js", "JS/index.js", "JS/dist/JSWrapper.bundle.js.LICENSE.txt"],
             resources: [

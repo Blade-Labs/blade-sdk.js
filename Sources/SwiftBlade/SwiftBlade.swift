@@ -327,12 +327,6 @@ public class SwiftBlade: NSObject {
 public class ContractFunctionParameters: NSObject {
     private var params: [ContractFunctionParameter] = []
 
-//    uint32, tuple(bytes r,s,v), tuple(r,s,v)
-//    uint256
-//    uint64
-//    int64
-//    address
-    
     public func addAddress(value: String) -> ContractFunctionParameters {
         params.append(ContractFunctionParameter(type: "address", value: value));
         return self;
@@ -361,13 +355,6 @@ public class ContractFunctionParameters: NSObject {
 
     public func addUInt256(value: BigUInt) -> ContractFunctionParameters {
             params.append(ContractFunctionParameter(type: "uint256", value: String(value)));
-
-//        do {
-//            let encodedValue = try JSONEncoder().encode(value).base64EncodedString();
-//            params.append(ContractFunctionParameter(type: "uint256", value: encodedValue));
-//        } catch let error {
-//            print(error)
-//        }
         return self;
     }
     
@@ -375,7 +362,6 @@ public class ContractFunctionParameters: NSObject {
         do {
             let jsonData = try JSONEncoder().encode(params)
             if let res = String(data: jsonData, encoding: .utf8) {
-//                print(res);
                 return res;
             }
         } catch let error {
@@ -506,12 +492,6 @@ public struct TransactionReceipt: Codable {
     public var topicSequenceNumber: String?
     public var totalSupply: String?
     public var serials: [String]?
-}
-
-
-public struct TestResponse: Codable {
-    public var completionKey: String
-    public var data: String
 }
 
 // MARK: - SwiftBlade errors
