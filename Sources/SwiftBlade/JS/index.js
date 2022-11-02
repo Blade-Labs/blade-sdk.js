@@ -8,8 +8,12 @@ import {
     ContractFunctionParameters, AccountId, ContractExecuteTransaction
 } from "@hashgraph/sdk";
 import { Buffer } from "buffer";
-import BigNumber from "bignumber.js";
 import { hethers } from '@hashgraph/hethers';
+
+const ApiUrls = {
+    "mainnet": "https://rest.prod.bladewallet.io/openapi/v7",
+    "testnet": "https://rest.ci.bladewallet.io/openapi/v7"
+};
 
 export class SDK {
 
@@ -72,10 +76,11 @@ export class SDK {
      * @param {string} paramsEncoded
      * @param {string} accountId
      * @param {string} accountPrivateKey
-     * @param {number} gas
+     * @param {string} apiKey
+     * @param {string} dAppCode
      * @param {string} completionKey
      */
-    static contractCallFunction(contractId, functionIdentifier, paramsEncoded, accountId, accountPrivateKey, gas, completionKey) {
+    static async contractCallFunction(contractId, functionIdentifier, paramsEncoded, accountId, accountPrivateKey, apiKey, dAppCode, completionKey) {
         const client = SDK.#getClient();
         client.setOperator(accountId, accountPrivateKey);
 
@@ -153,9 +158,8 @@ export class SDK {
             return {types, values};
         }
 
-
         const {types, values} = parseContractFunctionParams(paramsEncoded);
-        console.log(types, values);
+        // console.log(types, values);
 
         const abiCoder = new hethers.utils.AbiCoder();
         const encodedBytes0x = abiCoder.encode(types, values);
@@ -168,32 +172,29 @@ export class SDK {
         }
 
         const encodedBytes = encodedBytes0x.split("0x")[1];
+        const paramBytes = fromHexString(`${functionIdentifier}${encodedBytes}`);
 
-        console.log("sim",
-            Buffer.from(
-                fromHexString(`${functionIdentifier}${encodedBytes}`)
-            ).toString('hex')
-        );
+        const url = `${ApiUrls[SDK.NETWORK]}/smart/contract/sign`;
+        const options = {
+            method: "POST",
+            headers: new Headers({
+                "X-NETWORK": SDK.NETWORK.toUpperCase(),
+                "X-DAPP-CODE": dAppCode,
+                "X-SDK-TOKEN": apiKey,
+                "Content-Type": "application/json"
+            }),
+            body: JSON.stringify({
+                functionParametersHash: Buffer.from(paramBytes).toString('base64'),
+                contractId: contractId,
+                functionName: functionIdentifier
+            })
+        };
 
+        const {transactionBytes} = await (await fetch(url, options)).json();
+        const buffer = Buffer.from(transactionBytes, "base64");
+        const transaction = Transaction.fromBytes(buffer);
 
-
-        return;
-
-
-
-
-        const frozenTx = contractFunc.freezeWith(client);
-
-        const txBytes = frozenTx.toBytes();
-
-        const unFrozenTx = Transaction.fromBytes(txBytes);
-
-        // console.log(frozenTx instanceof Transaction && frozenTx.toBytes());
-
-        // debugger;
-
-        unFrozenTx
-            // .freezeWith(client)
+        transaction
             .sign(PrivateKey.fromString(accountPrivateKey))
             .then(signTx => {
                 return signTx.execute(client);

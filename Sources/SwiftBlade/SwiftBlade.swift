@@ -231,7 +231,7 @@ public class SwiftBlade: NSObject {
             }
         }
 
-        let script = "JSWrapper.SDK.contractCallFunction('\(contractId)', '\(functionIdentifier)', '\(paramsEncoded)', '\(accountId)', '\(accountPrivateKey)', '\(gas)', '\(completionKey)')"
+        let script = "JSWrapper.SDK.contractCallFunction('\(contractId)', '\(functionIdentifier)', '\(paramsEncoded)', '\(accountId)', '\(accountPrivateKey)', '\(self.apiKey!)', '\(self.dAppCode!)', '\(completionKey)')"
     
         executeJS(script)
     }
