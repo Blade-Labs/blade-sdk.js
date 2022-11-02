@@ -217,7 +217,7 @@ public class SwiftBlade: NSObject {
     ///   - accountPrivateKey: sender's private key to sign transfer transaction
     ///   - gas: amount
     ///   - completion: result with TransactionReceipt type
-    public func contractCallFunction(contractId: String, functionName: String, params: ContractFunctionParameters, accountId: String, accountPrivateKey: String, gas: Int, completion: @escaping (_ result: TransactionReceipt?, _ error: Error?) -> Void) {
+    public func contractCallFunction(contractId: String, functionIdentifier: String, params: ContractFunctionParameters, accountId: String, accountPrivateKey: String, gas: Int, completion: @escaping (_ result: TransactionReceipt?, _ error: Error?) -> Void) {
         let completionKey = getCompletionKey("contractCallFunction");
         let paramsEncoded = params.encode();
 
@@ -231,7 +231,7 @@ public class SwiftBlade: NSObject {
             }
         }
 
-        let script = "JSWrapper.SDK.contractCallFunction('\(contractId)', '\(functionName)', '\(paramsEncoded)', '\(accountId)', '\(accountPrivateKey)', '\(gas)', '\(completionKey)')"
+        let script = "JSWrapper.SDK.contractCallFunction('\(contractId)', '\(functionIdentifier)', '\(paramsEncoded)', '\(accountId)', '\(accountPrivateKey)', '\(gas)', '\(completionKey)')"
     
         executeJS(script)
     }
@@ -328,36 +328,65 @@ public class ContractFunctionParameters: NSObject {
     private var params: [ContractFunctionParameter] = []
 
     public func addAddress(value: String) -> ContractFunctionParameters {
-        params.append(ContractFunctionParameter(type: "address", value: value));
+        params.append(ContractFunctionParameter(type: "address", value: [value]));
+        return self;
+    }
+    
+    public func addAddressArray(value: [String]) -> ContractFunctionParameters {
+        params.append(ContractFunctionParameter(type: "address[]", value: value));
         return self;
     }
     
     public func addBytes32(value: [UInt8]) -> ContractFunctionParameters {
         do {
             let encodedValue = try JSONEncoder().encode(value).base64EncodedString();
-            params.append(ContractFunctionParameter(type: "bytes32", value: encodedValue));
+            params.append(ContractFunctionParameter(type: "bytes32", value: [encodedValue]));
         } catch let error {
             print(error)
         }
-  
+        return self
+    }
+    
+    public func addUInt8(value: UInt8) -> ContractFunctionParameters {
+        params.append(ContractFunctionParameter(type: "uint8", value: [String(value)]));
         return self
     }
     
     public func addUInt64(value: UInt64) -> ContractFunctionParameters {
-        params.append(ContractFunctionParameter(type: "uint64", value: String(value)));
+        params.append(ContractFunctionParameter(type: "uint64", value: [String(value)]));
+        return self
+    }
+    
+    public func addUInt64Array(value: [UInt64]) -> ContractFunctionParameters {
+        params.append(ContractFunctionParameter(type: "uint64[]", value: value.map{ String($0)} ));
         return self
     }
     
     public func addInt64(value: Int64) -> ContractFunctionParameters {
-        params.append(ContractFunctionParameter(type: "int64", value: String(value)));
+        params.append(ContractFunctionParameter(type: "int64", value: [String(value)]));
         return self
     }
 
     public func addUInt256(value: BigUInt) -> ContractFunctionParameters {
-            params.append(ContractFunctionParameter(type: "uint256", value: String(value)));
+        params.append(ContractFunctionParameter(type: "uint256", value: [String(value)]));
         return self;
     }
     
+    public func addUInt256Array(value: [BigUInt]) -> ContractFunctionParameters {
+        params.append(ContractFunctionParameter(type: "uint256[]", value: value.map{ String($0)} ));
+        return self;
+    }
+    
+    public func addTuple(value: ContractFunctionParameters) -> ContractFunctionParameters {
+        params.append(ContractFunctionParameter(type: "tuple", value: [value.encode()]));
+        return self;
+    }
+    
+    public func addTupleArray(value: [ContractFunctionParameters]) -> ContractFunctionParameters {
+        params.append(ContractFunctionParameter(type: "tuple[]", value: value.map{$0.encode()}));
+        return self;
+    }
+
     public func encode() -> String {
         do {
             let jsonData = try JSONEncoder().encode(params)
@@ -478,7 +507,7 @@ public struct SignMessageDataResponse: Codable {
 
 public struct ContractFunctionParameter: Encodable {
     public var type: String
-    public var value: String
+    public var value: [String] = []
 }
 
 struct TransactionReceiptResponse: Codable {

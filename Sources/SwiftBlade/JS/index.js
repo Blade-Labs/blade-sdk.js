@@ -68,62 +68,132 @@ export class SDK {
      * Contract function call
      *
      * @param {string} contractId
-     * @param {string} functionName
+     * @param {string} functionIdentifier
      * @param {string} paramsEncoded
      * @param {string} accountId
      * @param {string} accountPrivateKey
      * @param {number} gas
      * @param {string} completionKey
      */
-    static contractCallFunction(contractId, functionName, paramsEncoded, accountId, accountPrivateKey, gas, completionKey) {
+    static contractCallFunction(contractId, functionIdentifier, paramsEncoded, accountId, accountPrivateKey, gas, completionKey) {
         const client = SDK.#getClient();
         client.setOperator(accountId, accountPrivateKey);
 
-        const encodedParams = JSON.parse(paramsEncoded);
-        const functionParams = new ContractFunctionParameters();
-        encodedParams.forEach(param => {
-            switch (param?.type) {
-                case "address": {
-                    // "0.0.48619523"
-                    const solidityAddress = AccountId.fromString(param.value).toSolidityAddress()
-                    functionParams.addAddress(solidityAddress);
-                } break;
-                case "bytes32": {
-                    // "WzAsMSwyLDMsNCw1LDYsNyw4LDksMTAsMTEsMTIsMTMsMTQsMTUsMTYsMTcsMTgsMTksMjAsMjEsMjIsMjMsMjQsMjUsMjYsMjcsMjgsMjksMzAsMzFd"
-                    // base64 decode -> json parse -> data
-                    functionParams.addBytes32(Uint8Array.from(JSON.parse(atob(param.value))));
-                } break;
-                case "int64": {
-                    // "18446744073709551615"
-                    functionParams.addInt64(BigNumber(param.value));
-                } break;
-                case "uint64": {
-                    // "18446744073709551615"
-                    functionParams.addUint64(BigNumber(param.value));
-                } break;
-                case "uint256": {
-                    // "1780731860627700044960722568376592200742329637303199754547598369979440671"
-                    functionParams.addUint256(BigNumber(param.value));
-                } break;
-                default: {
-                    const error = {
-                        name: "SwiftBlade JS",
-                        reason: `Type "${param?.type}" not implemented on JS`
-                    };
-                    SDK.#sendMessageToNative(completionKey, null, error);
-                    throw error;
-                } break;
+        const parseContractFunctionParams = (paramsEncoded) => {
+            const types = [];
+            const values = [];
+            const paramsData = JSON.parse(paramsEncoded);
+
+            paramsData.forEach(param => {
+                switch (param?.type) {
+                    case "address": {
+                        // ["0.0.48619523"]
+                        const solidityAddress = AccountId.fromString(param.value[0]).toSolidityAddress()
+
+                        types.push(param.type);
+                        values.push(solidityAddress);
+                    } break;
+
+                    case "address[]": {
+                        // ["0.0.48619523", "0.0.4861934333"]
+
+                        const solidityAddresses = param.value.map(address => {
+                            return AccountId.fromString(address).toSolidityAddress()
+                        })
+
+                        types.push(param.type);
+                        values.push(solidityAddresses);
+                    } break;
+
+                    case "bytes32": {
+                        // "WzAsMSwyLDMsNCw1LDYsNyw4LDksMTAsMTEsMTIsMTMsMTQsMTUsMTYsMTcsMTgsMTksMjAsMjEsMjIsMjMsMjQsMjUsMjYsMjcsMjgsMjksMzAsMzFd"
+                        // base64 decode -> json parse -> data
+                        types.push(param.type);
+                        values.push(Uint8Array.from(JSON.parse(atob(param.value[0]))));
+                    } break;
+                    case "uint8":
+                    case "int64":
+                    case "uint64":
+                    case "uint256": {
+                        types.push(param.type);
+                        values.push(param.value[0]);
+                    } break;
+                    case "uint64[]":
+                    case "uint256[]": {
+                        types.push(param.type);
+                        values.push(param.value);
+                    } break;
+
+                    case "tuple": {
+                        const result = parseContractFunctionParams(param.value[0]);
+
+                        types.push(`tuple(${result.types})`);
+                        values.push(result.values);
+                    } break;
+
+                    case "tuple[]": {
+                        const result = param.value.map(value => {
+                            return parseContractFunctionParams(value)
+                        });
+
+                        types.push(`tuple[](${result[0].types})`);
+                        values.push(result.map(({values}) => values));
+                    } break;
+                    default: {
+                        const error = {
+                            name: "SwiftBlade JS",
+                            reason: `Type "${param?.type}" not implemented on JS`
+                        };
+                        SDK.#sendMessageToNative(completionKey, null, error);
+                        throw error;
+                    } break;
+                }
+            });
+
+            return {types, values};
+        }
+
+
+        const {types, values} = parseContractFunctionParams(paramsEncoded);
+        console.log(types, values);
+
+        const abiCoder = new hethers.utils.AbiCoder();
+        const encodedBytes0x = abiCoder.encode(types, values);
+
+        const fromHexString = (hexString) => {
+            if (!hexString || hexString.length < 2) {
+                return Uint8Array.from([]);
             }
-        })
+            return Uint8Array.from(hexString.match(/.{1,2}/g).map((byte) => parseInt(byte, 16)));
+        }
 
-        const contractFunc = new ContractExecuteTransaction()
-            .setContractId(contractId)
-            .setGas(gas)
-            .setFunction(functionName, functionParams)
-        ;
+        const encodedBytes = encodedBytes0x.split("0x")[1];
 
-        contractFunc
-            .freezeWith(client)
+        console.log("sim",
+            Buffer.from(
+                fromHexString(`${functionIdentifier}${encodedBytes}`)
+            ).toString('hex')
+        );
+
+
+
+        return;
+
+
+
+
+        const frozenTx = contractFunc.freezeWith(client);
+
+        const txBytes = frozenTx.toBytes();
+
+        const unFrozenTx = Transaction.fromBytes(txBytes);
+
+        // console.log(frozenTx instanceof Transaction && frozenTx.toBytes());
+
+        // debugger;
+
+        unFrozenTx
+            // .freezeWith(client)
             .sign(PrivateKey.fromString(accountPrivateKey))
             .then(signTx => {
                 return signTx.execute(client);
@@ -234,7 +304,7 @@ export class SDK {
             SDK.#sendMessageToNative(completionKey, null, error)
         }
     }
-/**
+    /**
      * Sign message with hethers lib (signedTypeData)
      *
      * @param {string} messageString
