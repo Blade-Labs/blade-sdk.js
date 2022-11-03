@@ -409,7 +409,7 @@ export class SDK {
         dataJson.tokens.forEach(token => {
             var balance = Number(token.balance)
             const tokenDecimals = Number(token.decimals)
-            if (tokenDecimals) balance = balance / (10 * tokenDecimals)
+            if (tokenDecimals) balance = balance / (10 ** tokenDecimals)
             tokens.push({
                 tokenId: token.tokenId,
                 balance: balance
