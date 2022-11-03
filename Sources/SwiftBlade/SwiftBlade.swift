@@ -78,7 +78,7 @@ public class SwiftBlade: NSObject {
     ///   - receiverId: receiver
     ///   - amount: amount
     ///   - completion: result with TransferDataResponse type
-    public func transferHbars(accountId: String, accountPrivateKey: String, receiverId: String, amount: Int, completion: @escaping (_ result: TransferDataResponse?, _ error: Error?) -> Void) {
+    public func transferHbars(accountId: String, accountPrivateKey: String, receiverId: String, amount: Decimal, completion: @escaping (_ result: TransferDataResponse?, _ error: Error?) -> Void) {
         let completionKey = getCompletionKey("transferHbars");
         deferCompletion(forKey: completionKey) { (data, error) in
             if (error != nil) {
@@ -107,7 +107,7 @@ public class SwiftBlade: NSObject {
     ///   - receiverId: receiver
     ///   - amount: amount
     ///   - completion: result with TransferDataResponse type
-    public func transferTokens(tokenId: String, accountId: String, accountPrivateKey: String, receiverId: String, amount: Int, completion: @escaping (_ result: TransferDataResponse?, _ error: Error?) -> Void) {
+    public func transferTokens(tokenId: String, accountId: String, accountPrivateKey: String, receiverId: String, amount: Decimal, completion: @escaping (_ result: TransferDataResponse?, _ error: Error?) -> Void) {
         let completionKey = getCompletionKey("transferTokens");
         deferCompletion(forKey: completionKey) { (data, error) in
             if (error != nil) {

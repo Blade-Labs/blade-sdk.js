@@ -5,7 +5,7 @@ import {
     Mnemonic,
     PrivateKey,
     Transaction,
-    ContractFunctionParameters, AccountId, ContractExecuteTransaction
+    AccountId
 } from "@hashgraph/sdk";
 import { Buffer } from "buffer";
 import { hethers } from '@hashgraph/hethers';
@@ -13,6 +13,11 @@ import { hethers } from '@hashgraph/hethers';
 const ApiUrls = {
     "mainnet": "https://rest.prod.bladewallet.io/openapi/v7",
     "testnet": "https://rest.ci.bladewallet.io/openapi/v7"
+};
+
+const NetworkMirrorNodes = {
+    "mainnet": "https://mainnet-public.mirrornode.hedera.com",
+    "testnet": "https://testnet.mirrornode.hedera.com"
 };
 
 export class SDK {
@@ -52,15 +57,16 @@ export class SDK {
      * @param {string} accountId
      * @param {string} accountPrivateKey
      * @param {string} receiverID
-     * @param {number} amount
+     * @param {string} amount
      */
     static transferHbars(accountId, accountPrivateKey, receiverID, amount, completionKey) {
         const client = SDK.#getClient();
         client.setOperator(accountId, accountPrivateKey);
 
+        const parsedAmount = parseFloat(amount);
         new TransferTransaction()
-            .addHbarTransfer(receiverID, amount)
-            .addHbarTransfer(accountId, -1 * amount)
+            .addHbarTransfer(receiverID, parsedAmount)
+            .addHbarTransfer(accountId, -1 * parsedAmount)
             .execute(client).then(data => {
             SDK.#sendMessageToNative(completionKey, data)
         }).catch(error => {
@@ -224,21 +230,28 @@ export class SDK {
      * @param {string} accountId
      * @param {string} accountPrivateKey
      * @param {string} receiverID
-     * @param {number} amount
+     * @param {string} amount
      * @param {string} completionKey
      */
-    static transferTokens(tokenId, accountId, accountPrivateKey, receiverID, amount, completionKey) {
+    static async transferTokens(tokenId, accountId, accountPrivateKey, receiverID, amount, completionKey) {
         const client = SDK.#getClient();
         client.setOperator(accountId, accountPrivateKey)
 
-        new TransferTransaction()
-            .addTokenTransfer(tokenId, receiverID, amount)
-            .addTokenTransfer(tokenId, accountId, -1 * amount)
-            .execute(client).then(data => {
-            SDK.#sendMessageToNative(completionKey, data)
-        }).catch(error => {
-            SDK.#sendMessageToNative(completionKey, null, error)
-        })
+        try {
+            const meta = await SDK.#requestTokenInfo(tokenId);
+            const correctedAmount = parseFloat(amount) * (10 ** parseInt(meta.decimals));
+
+            new TransferTransaction()
+                .addTokenTransfer(tokenId, receiverID, correctedAmount)
+                .addTokenTransfer(tokenId, accountId, -1 * correctedAmount)
+                .execute(client).then(data => {
+                SDK.#sendMessageToNative(completionKey, data)
+            }).catch(error => {
+                SDK.#sendMessageToNative(completionKey, null, error)
+            });
+        } catch (error) {
+            SDK.#sendMessageToNative(completionKey, null, error);
+        }
     }
 
     /**
@@ -354,7 +367,7 @@ export class SDK {
     /**
      * Get client based on network
      *
-     * @returns {string}
+     * @returns {NodeClient}
      */
     static #getClient() {
         return SDK.NETWORK === "testnet" ? Client.forTestnet() : Client.forMainnet()
@@ -367,7 +380,7 @@ export class SDK {
      * @param {*} data
      * @param {Error} error
      */
-    static #sendMessageToNative(completionKey, data, error) {
+    static #sendMessageToNative(completionKey, data, error = null) {
         if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.bladeMessageHandler) {
             var responseObject = {
                 completionKey: completionKey,
@@ -407,4 +420,44 @@ export class SDK {
             tokens: tokens
         }
     }
+
+    static #requestTokenInfo(tokenId) {
+        return fetchWithRetry(`${NetworkMirrorNodes[SDK.NETWORK]}/api/v1/tokens/${tokenId}`, {})
+            .then(statusCheck)
+            .then(x => x.json());
+    }
+}
+
+const fetchWithRetry = async (url, options, maxAttempts = 3) => {
+    return new Promise((resolve, reject) => {
+        let attemptCounter = 0;
+
+        const interval = 5000;
+        const makeRequest = (url, options) => {
+            attemptCounter += 1;
+            fetch(url, options)
+                .then(async (res) => {
+                    if (!res.ok) {
+                        // Request timeout check
+                        if ((res.status === 408 || res.status === 429) && attemptCounter < maxAttempts) {
+                            setTimeout(() => {
+                                makeRequest(url, options);
+                            }, interval * attemptCounter);
+                        } else {
+                            reject(await res.json());
+                        }
+                    } else {
+                        resolve(res);
+                    }
+                });
+        };
+        makeRequest(url, options);
+    });
+};
+
+const statusCheck = async (res) => {
+    if (!res.ok) {
+        throw await res.json();
+    }
+    return res;
 };
