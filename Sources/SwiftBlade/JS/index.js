@@ -5,7 +5,7 @@ import {
     Mnemonic,
     PrivateKey,
     Transaction,
-    ContractFunctionParameters, AccountId, ContractExecuteTransaction
+    AccountId
 } from "@hashgraph/sdk";
 import { Buffer } from "buffer";
 import { hethers } from '@hashgraph/hethers';
@@ -426,7 +426,7 @@ export class SDK {
             .then(statusCheck)
             .then(x => x.json());
     }
-};
+}
 
 const fetchWithRetry = async (url, options, maxAttempts = 3) => {
     return new Promise((resolve, reject) => {
