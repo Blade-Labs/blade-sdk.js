@@ -1,6 +1,7 @@
 import WebKit
 import os
 import Alamofire
+import BigInt
 
 public class SwiftBlade: NSObject {
     private let API_BASE_URL = "https://rest.prod.bladewallet.io/openapi/v7"
@@ -97,7 +98,7 @@ public class SwiftBlade: NSObject {
         executeJS(script)
     }
     
-    /// Method to execure Hbar transfers from current account to receiver
+    /// Method to execure token transfers from current account to receiver
     ///
     /// - Parameters:
     ///   - tokenId: token
@@ -201,6 +202,39 @@ public class SwiftBlade: NSObject {
         }
         executeJS("JSWrapper.SDK.sign('\(messageString)', '\(privateKey)', '\(completionKey)')")
     }
+
+    public func createContractFunctionParameters() -> ContractFunctionParameters {
+        return ContractFunctionParameters();
+    }
+    
+    /// Method to call smart-contract function from current account
+    ///
+    /// - Parameters:
+    ///   - contractId: contract
+    ///   - functionName: function
+    ///   - params: function arguments
+    ///   - accountId: sender
+    ///   - accountPrivateKey: sender's private key to sign transfer transaction
+    ///   - gas: amount
+    ///   - completion: result with TransactionReceipt type
+    public func contractCallFunction(contractId: String, functionIdentifier: String, params: ContractFunctionParameters, accountId: String, accountPrivateKey: String, gas: Int, completion: @escaping (_ result: TransactionReceipt?, _ error: Error?) -> Void) {
+        let completionKey = getCompletionKey("contractCallFunction");
+        let paramsEncoded = params.encode();
+
+        deferCompletion(forKey: completionKey) { (data, error) in
+            do {
+                let response = try JSONDecoder().decode(TransactionReceiptResponse.self, from: data!)
+                completion(response.data, nil)
+            } catch {
+                print(error)
+                completion(nil, error)
+            }
+        }
+
+        let script = "JSWrapper.SDK.contractCallFunction('\(contractId)', '\(functionIdentifier)', '\(paramsEncoded)', '\(accountId)', '\(accountPrivateKey)', '\(self.apiKey!)', '\(self.dAppCode!)', '\(completionKey)')"
+    
+        executeJS(script)
+    }
     
     /// Sign message with private key
     ///
@@ -287,6 +321,82 @@ public class SwiftBlade: NSObject {
     private func getCompletionKey(_ tag: String = "") -> String {
         completionId += 1;
         return tag + String(completionId);
+    }
+}
+
+public class ContractFunctionParameters: NSObject {
+    private var params: [ContractFunctionParameter] = []
+
+    public func addAddress(value: String) -> ContractFunctionParameters {
+        params.append(ContractFunctionParameter(type: "address", value: [value]));
+        return self;
+    }
+    
+    public func addAddressArray(value: [String]) -> ContractFunctionParameters {
+        params.append(ContractFunctionParameter(type: "address[]", value: value));
+        return self;
+    }
+    
+    public func addBytes32(value: [UInt8]) -> ContractFunctionParameters {
+        do {
+            let encodedValue = try JSONEncoder().encode(value).base64EncodedString();
+            params.append(ContractFunctionParameter(type: "bytes32", value: [encodedValue]));
+        } catch let error {
+            print(error)
+        }
+        return self
+    }
+    
+    public func addUInt8(value: UInt8) -> ContractFunctionParameters {
+        params.append(ContractFunctionParameter(type: "uint8", value: [String(value)]));
+        return self
+    }
+    
+    public func addUInt64(value: UInt64) -> ContractFunctionParameters {
+        params.append(ContractFunctionParameter(type: "uint64", value: [String(value)]));
+        return self
+    }
+    
+    public func addUInt64Array(value: [UInt64]) -> ContractFunctionParameters {
+        params.append(ContractFunctionParameter(type: "uint64[]", value: value.map{ String($0)} ));
+        return self
+    }
+    
+    public func addInt64(value: Int64) -> ContractFunctionParameters {
+        params.append(ContractFunctionParameter(type: "int64", value: [String(value)]));
+        return self
+    }
+
+    public func addUInt256(value: BigUInt) -> ContractFunctionParameters {
+        params.append(ContractFunctionParameter(type: "uint256", value: [String(value)]));
+        return self;
+    }
+    
+    public func addUInt256Array(value: [BigUInt]) -> ContractFunctionParameters {
+        params.append(ContractFunctionParameter(type: "uint256[]", value: value.map{ String($0)} ));
+        return self;
+    }
+    
+    public func addTuple(value: ContractFunctionParameters) -> ContractFunctionParameters {
+        params.append(ContractFunctionParameter(type: "tuple", value: [value.encode()]));
+        return self;
+    }
+    
+    public func addTupleArray(value: [ContractFunctionParameters]) -> ContractFunctionParameters {
+        params.append(ContractFunctionParameter(type: "tuple[]", value: value.map{$0.encode()}));
+        return self;
+    }
+
+    public func encode() -> String {
+        do {
+            let jsonData = try JSONEncoder().encode(params)
+            if let res = String(data: jsonData, encoding: .utf8) {
+                return res;
+            }
+        } catch let error {
+            print(error)
+        }
+        return "";
     }
 }
 
@@ -393,6 +503,24 @@ public struct TransferDataResponse: Codable {
 
 public struct SignMessageDataResponse: Codable {
     public var signedMessage: String
+}
+
+public struct ContractFunctionParameter: Encodable {
+    public var type: String
+    public var value: [String] = []
+}
+
+struct TransactionReceiptResponse: Codable {
+    var completionKey: String
+    var data: TransactionReceipt
+}
+
+public struct TransactionReceipt: Codable {
+    public var status: String
+    public var contractId: String?
+    public var topicSequenceNumber: String?
+    public var totalSupply: String?
+    public var serials: [String]?
 }
 
 // MARK: - SwiftBlade errors
