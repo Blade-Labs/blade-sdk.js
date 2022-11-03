@@ -1,6 +1,19 @@
-import { Client, AccountBalanceQuery, TransferTransaction, Mnemonic, PrivateKey, Transaction } from "@hashgraph/sdk";
+import {
+    Client,
+    AccountBalanceQuery,
+    TransferTransaction,
+    Mnemonic,
+    PrivateKey,
+    Transaction,
+    ContractFunctionParameters, AccountId, ContractExecuteTransaction
+} from "@hashgraph/sdk";
 import { Buffer } from "buffer";
 import { hethers } from '@hashgraph/hethers';
+
+const ApiUrls = {
+    "mainnet": "https://rest.prod.bladewallet.io/openapi/v7",
+    "testnet": "https://rest.ci.bladewallet.io/openapi/v7"
+};
 
 const NetworkMirrorNodes = {
     "mainnet": "https://mainnet-public.mirrornode.hedera.com",
@@ -16,7 +29,7 @@ export class SDK {
      *
      * @param {string} network
      */
-    static setNetwork(network, completionKey){
+    static setNetwork(network, completionKey) {
         SDK.NETWORK = network
         SDK.#sendMessageToNative(completionKey, {status: "success"})
     }
@@ -32,10 +45,10 @@ export class SDK {
         new AccountBalanceQuery()
             .setAccountId(accountId)
             .execute(client).then(data => {
-                SDK.#sendMessageToNative(completionKey, SDK.#processBalanceData(data))
-            }).catch(error => {
-                SDK.#sendMessageToNative(completionKey, null, error)
-            })
+            SDK.#sendMessageToNative(completionKey, SDK.#processBalanceData(data))
+        }).catch(error => {
+            SDK.#sendMessageToNative(completionKey, null, error)
+        })
     }
 
     /**
@@ -48,19 +61,167 @@ export class SDK {
      */
     static transferHbars(accountId, accountPrivateKey, receiverID, amount, completionKey) {
         const client = SDK.#getClient();
-        client.setOperator(accountId, accountPrivateKey)
+        client.setOperator(accountId, accountPrivateKey);
 
         const parsedAmount = parseFloat(amount);
         new TransferTransaction()
             .addHbarTransfer(receiverID, parsedAmount)
             .addHbarTransfer(accountId, -1 * parsedAmount)
             .execute(client).then(data => {
-                SDK.#sendMessageToNative(completionKey, data)
-            }).catch(error => {
-                SDK.#sendMessageToNative(completionKey, null, error)
-            })
+            SDK.#sendMessageToNative(completionKey, data)
+        }).catch(error => {
+            SDK.#sendMessageToNative(completionKey, null, error)
+        })
     }
 
+    /**
+     * Contract function call
+     *
+     * @param {string} contractId
+     * @param {string} functionIdentifier
+     * @param {string} paramsEncoded
+     * @param {string} accountId
+     * @param {string} accountPrivateKey
+     * @param {string} apiKey
+     * @param {string} dAppCode
+     * @param {string} completionKey
+     */
+    static async contractCallFunction(contractId, functionIdentifier, paramsEncoded, accountId, accountPrivateKey, apiKey, dAppCode, completionKey) {
+        const client = SDK.#getClient();
+        client.setOperator(accountId, accountPrivateKey);
+
+        const parseContractFunctionParams = (paramsEncoded) => {
+            const types = [];
+            const values = [];
+            const paramsData = JSON.parse(paramsEncoded);
+
+            paramsData.forEach(param => {
+                switch (param?.type) {
+                    case "address": {
+                        // ["0.0.48619523"]
+                        const solidityAddress = AccountId.fromString(param.value[0]).toSolidityAddress()
+
+                        types.push(param.type);
+                        values.push(solidityAddress);
+                    } break;
+
+                    case "address[]": {
+                        // ["0.0.48619523", "0.0.4861934333"]
+
+                        const solidityAddresses = param.value.map(address => {
+                            return AccountId.fromString(address).toSolidityAddress()
+                        })
+
+                        types.push(param.type);
+                        values.push(solidityAddresses);
+                    } break;
+
+                    case "bytes32": {
+                        // "WzAsMSwyLDMsNCw1LDYsNyw4LDksMTAsMTEsMTIsMTMsMTQsMTUsMTYsMTcsMTgsMTksMjAsMjEsMjIsMjMsMjQsMjUsMjYsMjcsMjgsMjksMzAsMzFd"
+                        // base64 decode -> json parse -> data
+                        types.push(param.type);
+                        values.push(Uint8Array.from(JSON.parse(atob(param.value[0]))));
+                    } break;
+                    case "uint8":
+                    case "int64":
+                    case "uint64":
+                    case "uint256": {
+                        types.push(param.type);
+                        values.push(param.value[0]);
+                    } break;
+                    case "uint64[]":
+                    case "uint256[]": {
+                        types.push(param.type);
+                        values.push(param.value);
+                    } break;
+
+                    case "tuple": {
+                        const result = parseContractFunctionParams(param.value[0]);
+
+                        types.push(`tuple(${result.types})`);
+                        values.push(result.values);
+                    } break;
+
+                    case "tuple[]": {
+                        const result = param.value.map(value => {
+                            return parseContractFunctionParams(value)
+                        });
+
+                        types.push(`tuple[](${result[0].types})`);
+                        values.push(result.map(({values}) => values));
+                    } break;
+                    default: {
+                        const error = {
+                            name: "SwiftBlade JS",
+                            reason: `Type "${param?.type}" not implemented on JS`
+                        };
+                        SDK.#sendMessageToNative(completionKey, null, error);
+                        throw error;
+                    } break;
+                }
+            });
+
+            return {types, values};
+        }
+
+        const {types, values} = parseContractFunctionParams(paramsEncoded);
+        // console.log(types, values);
+
+        const abiCoder = new hethers.utils.AbiCoder();
+        const encodedBytes0x = abiCoder.encode(types, values);
+
+        const fromHexString = (hexString) => {
+            if (!hexString || hexString.length < 2) {
+                return Uint8Array.from([]);
+            }
+            return Uint8Array.from(hexString.match(/.{1,2}/g).map((byte) => parseInt(byte, 16)));
+        }
+
+        const encodedBytes = encodedBytes0x.split("0x")[1];
+        const paramBytes = fromHexString(`${functionIdentifier}${encodedBytes}`);
+
+        const url = `${ApiUrls[SDK.NETWORK]}/smart/contract/sign`;
+        const options = {
+            method: "POST",
+            headers: new Headers({
+                "X-NETWORK": SDK.NETWORK.toUpperCase(),
+                "X-DAPP-CODE": dAppCode,
+                "X-SDK-TOKEN": apiKey,
+                "Content-Type": "application/json"
+            }),
+            body: JSON.stringify({
+                functionParametersHash: Buffer.from(paramBytes).toString('base64'),
+                contractId: contractId,
+                functionName: functionIdentifier
+            })
+        };
+
+        const {transactionBytes} = await (await fetch(url, options)).json();
+        const buffer = Buffer.from(transactionBytes, "base64");
+        const transaction = Transaction.fromBytes(buffer);
+
+        transaction
+            .sign(PrivateKey.fromString(accountPrivateKey))
+            .then(signTx => {
+                return signTx.execute(client);
+            })
+            .then(executedTx => {
+                return executedTx.getReceipt(client)
+            })
+            .then(txReceipt => {
+                const result = {
+                    status: txReceipt.status?.toString(),
+                    contractId: txReceipt.contractId?.toString(),
+                    topicSequenceNumber: txReceipt.topicSequenceNumber?.toString(),
+                    totalSupply: txReceipt.totalSupply?.toString(),
+                    serial: txReceipt.serial?.map(value => value.toString())
+                }
+                SDK.#sendMessageToNative(completionKey, result);
+            })
+            .catch(error => {
+                SDK.#sendMessageToNative(completionKey, null, error)
+            });
+    }
 
     /**
      * Transfer tokens from current account to a receiver
@@ -157,7 +318,6 @@ export class SDK {
             SDK.#sendMessageToNative(completionKey, null, error)
         }
     }
-
     /**
      * Sign message with hethers lib (signedTypeData)
      *
@@ -210,7 +370,7 @@ export class SDK {
      * @returns {NodeClient}
      */
     static #getClient() {
-        return SDK.NETWORK == "testnet" ? Client.forTestnet() : Client.forMainnet()
+        return SDK.NETWORK === "testnet" ? Client.forTestnet() : Client.forMainnet()
     }
 
     /**
