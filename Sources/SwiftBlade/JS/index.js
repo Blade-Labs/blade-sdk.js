@@ -21,33 +21,35 @@ const NetworkMirrorNodes = {
 };
 
 export class SDK {
+    apiKey = "";
+    network = "";
+    dAppCode = "";
+    fingerprint = "";
 
-    static NETWORK = 'testnet'
+    init(apiKey, network, dAppCode, fingerprint, completionKey) {
+        this.apiKey = apiKey;
+        this.network = network.toLowerCase();
+        this.dAppCode = dAppCode;
+        this.fingerprint = fingerprint;
 
-    /**
-     * Set network for Hedera operations
-     *
-     * @param {string} network
-     */
-    static setNetwork(network, completionKey) {
-        SDK.NETWORK = network
-        SDK.#sendMessageToNative(completionKey, {status: "success"})
+        this.sendMessageToNative(completionKey, {status: "success"})
     }
 
     /**
      * Get balances by Hedera accountId (address)
      *
      * @param {string} accountId
+     * @param {string} completionKey
      */
-    static getBalance(accountId, completionKey) {
-        const client = SDK.#getClient();
+    getBalance(accountId, completionKey) {
+        const client = this.getClient();
 
         new AccountBalanceQuery()
             .setAccountId(accountId)
             .execute(client).then(data => {
-            SDK.#sendMessageToNative(completionKey, SDK.#processBalanceData(data))
+            this.sendMessageToNative(completionKey, this.processBalanceData(data))
         }).catch(error => {
-            SDK.#sendMessageToNative(completionKey, null, error)
+            this.sendMessageToNative(completionKey, null, error)
         })
     }
 
@@ -58,9 +60,10 @@ export class SDK {
      * @param {string} accountPrivateKey
      * @param {string} receiverID
      * @param {string} amount
+     * @param {string} completionKey
      */
-    static transferHbars(accountId, accountPrivateKey, receiverID, amount, completionKey) {
-        const client = SDK.#getClient();
+    transferHbars(accountId, accountPrivateKey, receiverID, amount, completionKey) {
+        const client = this.getClient();
         client.setOperator(accountId, accountPrivateKey);
 
         const parsedAmount = parseFloat(amount);
@@ -68,9 +71,9 @@ export class SDK {
             .addHbarTransfer(receiverID, parsedAmount)
             .addHbarTransfer(accountId, -1 * parsedAmount)
             .execute(client).then(data => {
-            SDK.#sendMessageToNative(completionKey, data)
+            this.sendMessageToNative(completionKey, data)
         }).catch(error => {
-            SDK.#sendMessageToNative(completionKey, null, error)
+            this.sendMessageToNative(completionKey, null, error)
         })
     }
 
@@ -82,12 +85,10 @@ export class SDK {
      * @param {string} paramsEncoded
      * @param {string} accountId
      * @param {string} accountPrivateKey
-     * @param {string} apiKey
-     * @param {string} dAppCode
      * @param {string} completionKey
      */
-    static async contractCallFunction(contractId, functionIdentifier, paramsEncoded, accountId, accountPrivateKey, apiKey, dAppCode, completionKey) {
-        const client = SDK.#getClient();
+    async contractCallFunction(contractId, functionIdentifier, paramsEncoded, accountId, accountPrivateKey, completionKey) {
+        const client = this.getClient();
         client.setOperator(accountId, accountPrivateKey);
 
         const parseContractFunctionParams = (paramsEncoded) => {
@@ -155,7 +156,7 @@ export class SDK {
                             name: "SwiftBlade JS",
                             reason: `Type "${param?.type}" not implemented on JS`
                         };
-                        SDK.#sendMessageToNative(completionKey, null, error);
+                        this.sendMessageToNative(completionKey, null, error);
                         throw error;
                     } break;
                 }
@@ -180,13 +181,13 @@ export class SDK {
         const encodedBytes = encodedBytes0x.split("0x")[1];
         const paramBytes = fromHexString(`${functionIdentifier}${encodedBytes}`);
 
-        const url = `${ApiUrls[SDK.NETWORK]}/smart/contract/sign`;
+        const url = `${ApiUrls[this.network]}/smart/contract/sign`;
         const options = {
             method: "POST",
             headers: new Headers({
-                "X-NETWORK": SDK.NETWORK.toUpperCase(),
-                "X-DAPP-CODE": dAppCode,
-                "X-SDK-TOKEN": apiKey,
+                "X-NETWORK": this.network.toUpperCase(),
+                "X-DAPP-CODE": this.dAppCode,
+                "X-SDK-TOKEN": this.apiKey,
                 "Content-Type": "application/json"
             }),
             body: JSON.stringify({
@@ -216,10 +217,10 @@ export class SDK {
                     totalSupply: txReceipt.totalSupply?.toString(),
                     serial: txReceipt.serial?.map(value => value.toString())
                 }
-                SDK.#sendMessageToNative(completionKey, result);
+                this.sendMessageToNative(completionKey, result);
             })
             .catch(error => {
-                SDK.#sendMessageToNative(completionKey, null, error)
+                this.sendMessageToNative(completionKey, null, error)
             });
     }
 
@@ -233,46 +234,78 @@ export class SDK {
      * @param {string} amount
      * @param {string} completionKey
      */
-    static async transferTokens(tokenId, accountId, accountPrivateKey, receiverID, amount, completionKey) {
-        const client = SDK.#getClient();
+    async transferTokens(tokenId, accountId, accountPrivateKey, receiverID, amount, completionKey) {
+        const client = this.getClient();
         client.setOperator(accountId, accountPrivateKey)
 
         try {
-            const meta = await SDK.#requestTokenInfo(tokenId);
+            const meta = await this.requestTokenInfo(tokenId);
             const correctedAmount = parseFloat(amount) * (10 ** parseInt(meta.decimals));
 
             new TransferTransaction()
                 .addTokenTransfer(tokenId, receiverID, correctedAmount)
                 .addTokenTransfer(tokenId, accountId, -1 * correctedAmount)
                 .execute(client).then(data => {
-                SDK.#sendMessageToNative(completionKey, data)
+                this.sendMessageToNative(completionKey, data)
             }).catch(error => {
-                SDK.#sendMessageToNative(completionKey, null, error)
+                this.sendMessageToNative(completionKey, null, error)
             });
         } catch (error) {
-            SDK.#sendMessageToNative(completionKey, null, error);
+            this.sendMessageToNative(completionKey, null, error);
         }
     }
 
     /**
-     * Method that generates set of keys and seed phrase
+     * Method that creates new account
      *
      * @param {string} completionKey
      */
-    static generateKeys(completionKey) {
-        Mnemonic.generate12().then(seedPhrase => {
-            //TODO check which type of keys to be used
-            seedPhrase.toEcdsaPrivateKey().then(privateKey => {
-                var publicKey = privateKey.publicKey;
-                SDK.#sendMessageToNative(completionKey, {
-                    seedPhrase: seedPhrase.toString(),
-                    publicKey: publicKey.toStringDer(),
-                    privateKey: privateKey.toStringDer()
-                })
-            }).catch(error => {
-                SDK.#sendMessageToNative(completionKey, null, error)
+    async createAccount(completionKey) {
+        const seedPhrase = await Mnemonic.generate12();
+        const privateKey = await seedPhrase.toEcdsaPrivateKey();
+        const publicKey = privateKey.publicKey.toStringDer();
+
+        const url = `${ApiUrls[this.network]}/accounts`;
+        const options = {
+            method: "POST",
+            headers: new Headers({
+                "X-SDK-TOKEN": this.apiKey,
+                "X-FINGERPRINT": this.fingerprint,
+                "X-NETWORK": this.network.toUpperCase(),
+                "X-DAPP-CODE": this.dAppCode,
+                "Content-Type": "application/json",
+            }),
+            body: JSON.stringify({
+                publicKey: publicKey
             })
-        });
+        };
+
+        try {
+            const {
+                id,
+                transactionBytes
+            } = await fetchWithRetry(url, options)
+                .then(statusCheck)
+                .then(x => x.json());
+
+            if (transactionBytes) {
+                const buffer = Buffer.from(transactionBytes, "base64");
+                const client = this.getClient();
+
+                const transaction = await Transaction.fromBytes(buffer).sign(privateKey);
+                await transaction.execute(client);
+            }
+
+            const result = {
+                seedPhrase: seedPhrase.toString(),
+                publicKey,
+                privateKey: privateKey.toStringDer(),
+                accountId: id
+            };
+            this.sendMessageToNative(completionKey, result)
+        } catch (error) {
+            this.sendMessageToNative(completionKey, null, error);
+        }
     }
 
     /**
@@ -281,21 +314,21 @@ export class SDK {
      * @param {string} mnemonic
      * @param {string} completionKey
      */
-    static getKeysFromMnemonic(mnemonic, completionKey) {
+    getKeysFromMnemonic(mnemonic, completionKey) {
         //TODO support all the different type of private keys
         Mnemonic.fromString(mnemonic).then(mnemonicObj => {
             //TODO check which type of keys to be used
             mnemonicObj.toEcdsaPrivateKey().then(privateKey => {
                 var publicKey = privateKey.publicKey;
-                SDK.#sendMessageToNative(completionKey, {
+                this.sendMessageToNative(completionKey, {
                     privateKey: privateKey.toStringDer(),
                     publicKey: publicKey.toStringDer()
                 })
             }).catch((error) => {
-                SDK.#sendMessageToNative(completionKey, null, error)
+                this.sendMessageToNative(completionKey, null, error)
             })
         }).catch((error) => {
-            SDK.#sendMessageToNative(completionKey, null, error)
+            this.sendMessageToNative(completionKey, null, error)
         })
     }
 
@@ -306,16 +339,16 @@ export class SDK {
      * @param {string} privateKey
      * @param {string} completionKey
      */
-    static sign(messageString, privateKey, completionKey) {
+    sign(messageString, privateKey, completionKey) {
         try {
             const key = PrivateKey.fromString(privateKey)
             const signed = key.sign(Buffer.from(messageString, 'base64'))
 
-            SDK.#sendMessageToNative(completionKey, {
+            this.sendMessageToNative(completionKey, {
                 signedMessage: Buffer.from(signed).toString("base64")
             })
         } catch (error) {
-            SDK.#sendMessageToNative(completionKey, null, error)
+            this.sendMessageToNative(completionKey, null, error)
         }
     }
     /**
@@ -325,52 +358,19 @@ export class SDK {
      * @param {string} privateKey
      * @param {string} completionKey
      */
-    static hethersSign(messageString, privateKey, completionKey) {
+    hethersSign(messageString, privateKey, completionKey) {
         const wallet = new hethers.Wallet(privateKey);
         wallet.signMessage(messageString).then(signedMessage => {
-            SDK.#sendMessageToNative(completionKey, {
+            this.sendMessageToNative(completionKey, {
                 signedMessage: signedMessage
             })
         }).catch((error) => {
-            SDK.#sendMessageToNative(completionKey, null, error)
+            this.sendMessageToNative(completionKey, null, error)
         })
     }
 
-    /**
-     * Execute token association transaction
-     *
-     * @param {string} transactionBytes
-     * @param {string} accountId
-     * @param {string} privateKey
-     * @param {string} completionKey
-     */
-    static doTokenAutoAssociate(transactionBytes, accountId, privateKey, completionKey) {
-        const client = SDK.#getClient();
-        client.setOperator(accountId, privateKey);
-
-        const buffer = Buffer.from(transactionBytes, "base64");
-        const tx = Transaction.fromBytes(buffer);
-        tx.signWithOperator(client).then(() => {
-            tx.execute(client).then(response => {
-                const txid = response.transactionId.toString();
-                SDK.#sendMessageToNative(completionKey, {
-                    txid: txid
-                })
-            }).catch((error) => {
-                SDK.#sendMessageToNative(completionKey, null, error)
-            })
-        }).catch((error) => {
-            SDK.#sendMessageToNative(completionKey, null, error)
-        })
-    }
-
-    /**
-     * Get client based on network
-     *
-     * @returns {NodeClient}
-     */
-    static #getClient() {
-        return SDK.NETWORK === "testnet" ? Client.forTestnet() : Client.forMainnet()
+    getClient() {
+        return this.network === "testnet" ? Client.forTestnet() : Client.forMainnet()
     }
 
     /**
@@ -380,7 +380,7 @@ export class SDK {
      * @param {*} data
      * @param {Error} error
      */
-    static #sendMessageToNative(completionKey, data, error = null) {
+    sendMessageToNative(completionKey, data, error = null) {
         if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.bladeMessageHandler) {
             var responseObject = {
                 completionKey: completionKey,
@@ -402,7 +402,7 @@ export class SDK {
      * @param {JSON} data
      * @returns {JSON}
      */
-    static #processBalanceData(data) {
+    processBalanceData(data) {
         const hbars = data.hbars.toBigNumber().toNumber();
         var tokens = []
         const dataJson = data.toJSON()
@@ -421,8 +421,8 @@ export class SDK {
         }
     }
 
-    static #requestTokenInfo(tokenId) {
-        return fetchWithRetry(`${NetworkMirrorNodes[SDK.NETWORK]}/api/v1/tokens/${tokenId}`, {})
+    requestTokenInfo(tokenId) {
+        return fetchWithRetry(`${NetworkMirrorNodes[this.network]}/api/v1/tokens/${tokenId}`, {})
             .then(statusCheck)
             .then(x => x.json());
     }
@@ -461,3 +461,5 @@ const statusCheck = async (res) => {
     }
     return res;
 };
+
+window.bladeSdk = new SDK();
