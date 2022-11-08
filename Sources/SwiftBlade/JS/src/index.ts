@@ -9,22 +9,13 @@ import {
 } from "@hashgraph/sdk";
 import { Buffer } from "buffer";
 import { hethers } from '@hashgraph/hethers';
-
-const ApiUrls = {
-    "mainnet": "https://rest.prod.bladewallet.io/openapi/v7",
-    "testnet": "https://rest.ci.bladewallet.io/openapi/v7"
-};
-
-const NetworkMirrorNodes = {
-    "mainnet": "https://mainnet-public.mirrornode.hedera.com",
-    "testnet": "https://testnet.mirrornode.hedera.com"
-};
+import {createAccount, requestTokenInfo, signContractCallTx} from "./ApiService";
 
 export class SDK {
-    apiKey = "";
-    network = "";
-    dAppCode = "";
-    fingerprint = "";
+    private apiKey: string = "";
+    private network: string = "";
+    private dAppCode: string = "";
+    private fingerprint: string = "";
 
     init(apiKey, network, dAppCode, fingerprint, completionKey) {
         this.apiKey = apiKey;
@@ -92,8 +83,8 @@ export class SDK {
         client.setOperator(accountId, accountPrivateKey);
 
         const parseContractFunctionParams = (paramsEncoded) => {
-            const types = [];
-            const values = [];
+            const types: string[] = [];
+            const values: any[] = [];
             const paramsData = JSON.parse(paramsEncoded);
 
             paramsData.forEach(param => {
@@ -181,23 +172,15 @@ export class SDK {
         const encodedBytes = encodedBytes0x.split("0x")[1];
         const paramBytes = fromHexString(`${functionIdentifier}${encodedBytes}`);
 
-        const url = `${ApiUrls[this.network]}/smart/contract/sign`;
         const options = {
-            method: "POST",
-            headers: new Headers({
-                "X-NETWORK": this.network.toUpperCase(),
-                "X-DAPP-CODE": this.dAppCode,
-                "X-SDK-TOKEN": this.apiKey,
-                "Content-Type": "application/json"
-            }),
-            body: JSON.stringify({
-                functionParametersHash: Buffer.from(paramBytes).toString('base64'),
-                contractId: contractId,
-                functionName: functionIdentifier
-            })
+            dAppCode: this.dAppCode,
+            apiKey: this.apiKey,
+            paramBytes,
+            contractId,
+            functionIdentifier,
         };
 
-        const {transactionBytes} = await (await fetch(url, options)).json();
+        const {transactionBytes} = await signContractCallTx(this.network, options);
         const buffer = Buffer.from(transactionBytes, "base64");
         const transaction = Transaction.fromBytes(buffer);
 
@@ -215,7 +198,7 @@ export class SDK {
                     contractId: txReceipt.contractId?.toString(),
                     topicSequenceNumber: txReceipt.topicSequenceNumber?.toString(),
                     totalSupply: txReceipt.totalSupply?.toString(),
-                    serial: txReceipt.serial?.map(value => value.toString())
+                    serial: txReceipt.serials?.map(value => value.toString())
                 }
                 this.sendMessageToNative(completionKey, result);
             })
@@ -239,7 +222,7 @@ export class SDK {
         client.setOperator(accountId, accountPrivateKey)
 
         try {
-            const meta = await this.requestTokenInfo(tokenId);
+            const meta = await requestTokenInfo(this.network, tokenId);
             const correctedAmount = parseFloat(amount) * (10 ** parseInt(meta.decimals));
 
             new TransferTransaction()
@@ -265,28 +248,15 @@ export class SDK {
         const privateKey = await seedPhrase.toEcdsaPrivateKey();
         const publicKey = privateKey.publicKey.toStringDer();
 
-        const url = `${ApiUrls[this.network]}/accounts`;
         const options = {
-            method: "POST",
-            headers: new Headers({
-                "X-SDK-TOKEN": this.apiKey,
-                "X-FINGERPRINT": this.fingerprint,
-                "X-NETWORK": this.network.toUpperCase(),
-                "X-DAPP-CODE": this.dAppCode,
-                "Content-Type": "application/json",
-            }),
-            body: JSON.stringify({
-                publicKey: publicKey
-            })
+            apiKey: this.apiKey,
+            fingerprint: this.fingerprint,
+            dAppCode: this.dAppCode,
+            publicKey
         };
 
         try {
-            const {
-                id,
-                transactionBytes
-            } = await fetchWithRetry(url, options)
-                .then(statusCheck)
-                .then(x => x.json());
+            const {id, transactionBytes} = await createAccount(this.network, options);
 
             if (transactionBytes) {
                 const buffer = Buffer.from(transactionBytes, "base64");
@@ -369,7 +339,7 @@ export class SDK {
         })
     }
 
-    getClient() {
+    private getClient() {
         return this.network === "testnet" ? Client.forTestnet() : Client.forMainnet()
     }
 
@@ -380,8 +350,9 @@ export class SDK {
      * @param {*} data
      * @param {Error} error
      */
-    sendMessageToNative(completionKey, data, error = null) {
-        if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.bladeMessageHandler) {
+    private sendMessageToNative(completionKey, data, error: any = null) {
+        // @ts-ignore
+        if (window?.webkit?.messageHandlers?.bladeMessageHandler) {
             var responseObject = {
                 completionKey: completionKey,
                 data: data
@@ -392,6 +363,7 @@ export class SDK {
                     reason: error.reason
                 }
             }
+            // @ts-ignore
             window.webkit.messageHandlers.bladeMessageHandler.postMessage(JSON.stringify(responseObject));
         }
     }
@@ -402,9 +374,9 @@ export class SDK {
      * @param {JSON} data
      * @returns {JSON}
      */
-    processBalanceData(data) {
+    private processBalanceData(data) {
         const hbars = data.hbars.toBigNumber().toNumber();
-        var tokens = []
+        var tokens: any[] = []
         const dataJson = data.toJSON()
         dataJson.tokens.forEach(token => {
             var balance = Number(token.balance)
@@ -420,46 +392,6 @@ export class SDK {
             tokens: tokens
         }
     }
-
-    requestTokenInfo(tokenId) {
-        return fetchWithRetry(`${NetworkMirrorNodes[this.network]}/api/v1/tokens/${tokenId}`, {})
-            .then(statusCheck)
-            .then(x => x.json());
-    }
 }
 
-const fetchWithRetry = async (url, options, maxAttempts = 3) => {
-    return new Promise((resolve, reject) => {
-        let attemptCounter = 0;
-
-        const interval = 5000;
-        const makeRequest = (url, options) => {
-            attemptCounter += 1;
-            fetch(url, options)
-                .then(async (res) => {
-                    if (!res.ok) {
-                        // Request timeout check
-                        if ((res.status === 408 || res.status === 429) && attemptCounter < maxAttempts) {
-                            setTimeout(() => {
-                                makeRequest(url, options);
-                            }, interval * attemptCounter);
-                        } else {
-                            reject(await res.json());
-                        }
-                    } else {
-                        resolve(res);
-                    }
-                });
-        };
-        makeRequest(url, options);
-    });
-};
-
-const statusCheck = async (res) => {
-    if (!res.ok) {
-        throw await res.json();
-    }
-    return res;
-};
-
-window.bladeSdk = new SDK();
+window["bladeSdk"] = new SDK();
