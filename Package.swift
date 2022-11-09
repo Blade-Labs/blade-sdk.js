@@ -27,10 +27,11 @@ let package = Package(
                 "Alamofire",
                 .product(name: "Web3", package: "Web3.swift")
             ],
-            exclude: ["JS/node_modules", "JS/package.json", "JS/package-lock.json", "JS/webpack.config.js", "JS/index.js", "JS/dist/JSWrapper.bundle.js.LICENSE.txt"],
+            exclude: ["JS/node_modules", "JS/src", "JS/package.json", "JS/package-lock.json", "JS/tsconfig.json", "JS/webpack.config.js", "JS/index.js", "JS/dist/JSWrapper.bundle.js.LICENSE.txt"],
             resources: [
               .process("JS/index.html"),
-              .process("JS/dist/JSWrapper.bundle.js")
+              .process("JS/dist/JSWrapper.bundle.js"),
+//              .process("JS/dist/JSWrapper.bundle.js.map")
             ]
         ),
         .testTarget(

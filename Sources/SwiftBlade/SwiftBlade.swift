@@ -151,8 +151,9 @@ public class SwiftBlade: NSObject {
     ///
     /// - Parameters:
     ///   - menmonic: seed phrase
+    ///   - lookupNames: lookup for accounts
     ///   - completion: result with PrivateKeyDataResponse type
-    public func getKeysFromMnemonic (menmonic: String, completion: @escaping (_ result: PrivateKeyDataResponse?, _ error: Error?) -> Void) {
+    public func getKeysFromMnemonic (menmonic: String, lookupNames: Bool = false, completion: @escaping (_ result: PrivateKeyDataResponse?, _ error: Error?) -> Void) {
         let completionKey = getCompletionKey("getKeysFromMnemonic");
         deferCompletion(forKey: completionKey) { (data, error) in
             if (error != nil) {
@@ -167,33 +168,8 @@ public class SwiftBlade: NSObject {
                 completion(nil, error)
             }
         }
-        executeJS("bladeSdk.getKeysFromMnemonic('\(menmonic)', '\(completionKey)')")
+        executeJS("bladeSdk.getKeysFromMnemonic('\(menmonic)', \(lookupNames), '\(completionKey)')")
     }
-    
-    /// Get account names by publicKey from mirror node
-    ///
-    /// - Parameters:
-    ///   - publicKey: public key
-    ///   - completion: result with AccountsFromPublicKeyDataResponse type
-    public func getAccountsFromPublicKey(publicKey: String, completion: @escaping (_ result: AccountsFromPublicKeyDataResponse?, _ error: Error?) -> Void) {
-        let completionKey = getCompletionKey("getAccountsFromPublicKey");
-        deferCompletion(forKey: completionKey) { (data, error) in
-            if (error != nil) {
-                print(error!)
-                completion(nil, error)
-            }
-            do {
-                let response = try JSONDecoder().decode(AccountsFromPublicKeyResponse.self, from: data!)
-                print(response.data);
-                completion(response.data, nil)
-            } catch {
-                print(error)
-                completion(nil, error)
-            }
-        }
-        executeJS("bladeSdk.getAccountsFromPublicKey('\(publicKey)', '\(completionKey)')")
-    }
-    
     
     /// Sign message with private key
     ///
@@ -433,15 +409,6 @@ struct PrivateKeyResponse: Codable {
     var data: PrivateKeyDataResponse
 }
 
-struct AccountsFromPublicKeyResponse: Codable {
-    var completionKey: String
-    var data: AccountsFromPublicKeyDataResponse
-}
-
-public struct AccountsFromPublicKeyDataResponse: Codable {
-    var accounts: [String]
-}
-
 struct TransferResponse: Codable {
     var completionKey: String
     var data: TransferDataResponse
@@ -479,6 +446,7 @@ public struct BalanceDataResponseToken: Codable {
 public struct PrivateKeyDataResponse: Codable {
     public var privateKey: String
     public var publicKey: String
+    public var accounts: [String]
 }
 
 public struct TransferDataResponse: Codable {

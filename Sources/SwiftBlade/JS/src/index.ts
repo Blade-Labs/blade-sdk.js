@@ -289,38 +289,26 @@ export class SDK {
     /**
      * Get public/private keys by seed phrase
      *
-     * @param {string} mnemonic
+     * @param {string} mnemonicRaw
+     * @param {boolean} lookupNames
      * @param {string} completionKey
      */
-    getKeysFromMnemonic(mnemonic, completionKey) {
-        //TODO support all the different type of private keys
-        Mnemonic.fromString(mnemonic).then(mnemonicObj => {
-            //TODO check which type of keys to be used
-            mnemonicObj.toEcdsaPrivateKey().then(privateKey => {
-                var publicKey = privateKey.publicKey;
-                this.sendMessageToNative(completionKey, {
-                    privateKey: privateKey.toStringDer(),
-                    publicKey: publicKey.toStringDer()
-                })
-            }).catch((error) => {
-                this.sendMessageToNative(completionKey, null, error)
-            })
-        }).catch((error) => {
-            this.sendMessageToNative(completionKey, null, error)
-        })
-    }
-
-    /**
-     * Get accounts by public key
-     *
-     * @param {string} publicKey
-     * @param {string} completionKey
-     */
-    async getAccountsFromPublicKey(publicKey: string, completionKey) {
+    async getKeysFromMnemonic(mnemonicRaw: string, lookupNames: boolean, completionKey: string) {
         try {
-            const accounts = await getAccountsFromPublicKey(this.network, PublicKey.fromString(publicKey))
-            console.log({accounts})
+            //TODO support all the different type of private keys
+            const mnemonic = await Mnemonic.fromString(mnemonicRaw);
+            //TODO check which type of keys to be used
+            const privateKey = await mnemonic.toEcdsaPrivateKey();
+            const publicKey = privateKey.publicKey;
+            let accounts = [];
+
+            if (lookupNames) {
+                accounts = await getAccountsFromPublicKey(this.network, publicKey);
+            }
+
             this.sendMessageToNative(completionKey, {
+                privateKey: privateKey.toStringDer(),
+                publicKey: publicKey.toStringDer(),
                 accounts
             })
         } catch (error) {
