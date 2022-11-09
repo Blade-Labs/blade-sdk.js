@@ -4,8 +4,6 @@ import Alamofire
 import BigInt
 
 public class SwiftBlade: NSObject {
-    private let API_BASE_URL = "https://rest.prod.bladewallet.io/openapi/v7"
-    
     public static let shared = SwiftBlade()
     
     private let webView = WKWebView()
@@ -67,7 +65,7 @@ public class SwiftBlade: NSObject {
                 completion(nil, error)
             }
         }
-        executeJS("JSWrapper.SDK.getBalance('\(id)', '\(completionKey)')")
+        executeJS("bladeSdk.getBalance('\(id)', '\(completionKey)')")
     }
     
     /// Method to execure Hbar transfers from current account to receiver
@@ -94,7 +92,7 @@ public class SwiftBlade: NSObject {
             }
         }
         
-        let script = "JSWrapper.SDK.transferHbars('\(accountId)', '\(accountPrivateKey)', '\(receiverId)', '\(amount)', '\(completionKey)')"
+        let script = "bladeSdk.transferHbars('\(accountId)', '\(accountPrivateKey)', '\(receiverId)', '\(amount)', '\(completionKey)')"
         executeJS(script)
     }
     
@@ -123,7 +121,7 @@ public class SwiftBlade: NSObject {
             }
         }
         
-        let script = "JSWrapper.SDK.transferTokens('\(tokenId)', '\(accountId)', '\(accountPrivateKey)', '\(receiverId)', '\(amount)', '\(completionKey)')"
+        let script = "bladeSdk.transferTokens('\(tokenId)', '\(accountId)', '\(accountPrivateKey)', '\(receiverId)', '\(amount)', '\(completionKey)')"
         executeJS(script)
     }
     
@@ -132,28 +130,21 @@ public class SwiftBlade: NSObject {
     /// - Parameter completion: result with CreatedAccountDataResponse type
     public func createHederaAccount(completion: @escaping (_ result: CreatedAccountDataResponse?, _ error: Error?) -> Void) {
         // Step 1. Generate mnemonice and public / private key
-        let completionKey = getCompletionKey("generateKeys");
+        let completionKey = getCompletionKey("createAccount");
         deferCompletion(forKey: completionKey) { (data, error) in
             if (error != nil) {
                 print(error!)
                 completion(nil, error)
             }
             do {
-                var result = try JSONDecoder().decode(CreatedAccountResponse.self, from: data!)
-                self.createAccountAPICall(account: result.data) { (apiResult, error) in
-                    guard apiResult != nil else {
-                        completion(nil, error)
-                        return
-                    }
-                    result.data.accountId = apiResult!.id
-                    completion(result.data, nil)
-                }
+                let result = try JSONDecoder().decode(CreatedAccountResponse.self, from: data!)
+                completion(result.data, nil)
             } catch {
                 print(error)
                 completion(nil, error)
             }
         }
-        executeJS("JSWrapper.SDK.generateKeys('\(completionKey)')")
+        executeJS("bladeSdk.createAccount('\(completionKey)')")
     }
     
     /// Restore public and private key by seed phrase
@@ -176,7 +167,7 @@ public class SwiftBlade: NSObject {
                 completion(nil, error)
             }
         }
-        executeJS("JSWrapper.SDK.getKeysFromMnemonic('\(menmonic)', '\(completionKey)')")
+        executeJS("bladeSdk.getKeysFromMnemonic('\(menmonic)', '\(completionKey)')")
     }
     
     /// Sign message with private key
@@ -200,7 +191,7 @@ public class SwiftBlade: NSObject {
                 completion(nil, error)
             }
         }
-        executeJS("JSWrapper.SDK.sign('\(messageString)', '\(privateKey)', '\(completionKey)')")
+        executeJS("bladeSdk.sign('\(messageString)', '\(privateKey)', '\(completionKey)')")
     }
 
     public func createContractFunctionParameters() -> ContractFunctionParameters {
@@ -231,7 +222,7 @@ public class SwiftBlade: NSObject {
             }
         }
 
-        let script = "JSWrapper.SDK.contractCallFunction('\(contractId)', '\(functionIdentifier)', '\(paramsEncoded)', '\(accountId)', '\(accountPrivateKey)', '\(self.apiKey!)', '\(self.dAppCode!)', '\(completionKey)')"
+        let script = "bladeSdk.contractCallFunction('\(contractId)', '\(functionIdentifier)', '\(paramsEncoded)', '\(accountId)', '\(accountPrivateKey)', '\(completionKey)')"
     
         executeJS(script)
     }
@@ -257,7 +248,7 @@ public class SwiftBlade: NSObject {
                 completion(nil, error)
             }
         }
-        executeJS("JSWrapper.SDK.hethersSign('\(messageString)', '\(privateKey)', '\(completionKey)')")
+        executeJS("bladeSdk.hethersSign('\(messageString)', '\(privateKey)', '\(completionKey)')")
     }
     
     // MARK: - Private methods 🔒
@@ -273,49 +264,12 @@ public class SwiftBlade: NSObject {
         deferCompletions.updateValue(completion, forKey: forKey)
     }
     
-    private func setNetwork(_ network: String) throws {
-        let completionKey = getCompletionKey("setNetwork");
+    private func initBladeSdkJS() throws {
+        let completionKey = getCompletionKey("initBladeSdkJS");
         deferCompletion(forKey: completionKey) { (data, error) in
             self.initCompletion!()
         }
-        executeJS("JSWrapper.SDK.setNetwork('\(network.lowercased())', '\(completionKey)')")
-        
-    }
-    
-    private func createAccountAPICall(account: CreatedAccountDataResponse, completion: @escaping (_ result: AccountAPIResponse?, _ error: Error?) -> Void) {
-        let params: Parameters = [
-            "publicKey": account.publicKey,
-            "autoAssociatePresetToken": true
-        ]
-        let headers: HTTPHeaders = [
-            "X-SDK-TOKEN": self.apiKey!,
-            "X-NETWORK": self.network.rawValue,
-            "X-FINGERPRINT": self.uuid,
-            "X-DAPP-CODE": self.dAppCode!
-        ]
-        
-        AF.request(self.API_BASE_URL + "/accounts", method: .post, parameters: params, encoding: JSONEncoding.default, headers: headers).responseDecodable(of: AccountAPIResponse.self) { (response) in
-            switch response.result {
-            case let .success(data):
-                self.doTokenAutoAssociate(account: account, apiData: data, completion: completion)
-            case let .failure(error):
-                completion(nil, error)
-            }
-        }
-    }
-    
-    private func doTokenAutoAssociate (account: CreatedAccountDataResponse, apiData: AccountAPIResponse, completion: @escaping (_ result: AccountAPIResponse?, _ error: Error?) -> Void) {
-        let transactionBytes = apiData.transactionBytes
-        
-        let completionKey = getCompletionKey("doTokenAutoAssociate");
-        deferCompletion(forKey: completionKey) { (data, error) in
-            if (error != nil) {
-                print(error!)
-                completion(nil, error)
-            }
-            completion(apiData, nil)
-        }
-        executeJS("JSWrapper.SDK.doTokenAutoAssociate('\(transactionBytes)', '\(apiData.id)', '\(account.privateKey)', '\(completionKey)')")
+        executeJS("bladeSdk.init('\(apiKey!)', '\(network.rawValue.lowercased())', '\(dAppCode!)', '\(uuid)', '\(completionKey)')");
     }
     
     private func getCompletionKey(_ tag: String = "") -> String {
@@ -430,8 +384,8 @@ extension SwiftBlade: WKNavigationDelegate {
         // Web-view initialized
         webViewInitialized = true
         
-        // Call setNetwork and initCompletion after that
-        try? self.setNetwork(self.network.rawValue)
+        // Call initBladeSdkJS and initCompletion after that
+        try? self.initBladeSdkJS()
     }
 }
 

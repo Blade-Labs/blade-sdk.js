@@ -8,3 +8,5 @@ DerivedData/
 .swiftpm/config/registries.json
 .swiftpm/xcode/package.xcworkspace
 .netrc
+.idea
+Sources/SwiftBlade/JS/.idea
