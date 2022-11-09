@@ -1,25 +1,28 @@
 import {
-    Client,
     AccountBalanceQuery,
-    TransferTransaction,
+    AccountId,
+    Client, ContractFunctionSelector,
     Mnemonic,
     PrivateKey,
+    PublicKey,
     Transaction,
-    AccountId
+    TransferTransaction
 } from "@hashgraph/sdk";
-import { Buffer } from "buffer";
-import { hethers } from '@hashgraph/hethers';
-import {createAccount, requestTokenInfo, signContractCallTx} from "./ApiService";
+import {Buffer} from "buffer";
+import {hethers} from "@hashgraph/hethers";
+import {createAccount, getAccountsFromPublicKey, requestTokenInfo, signContractCallTx} from "./ApiService";
+import {Network} from "./models/Networks";
+import StringHelpers from "./helpers/StringHelpers";
 
 export class SDK {
     private apiKey: string = "";
-    private network: string = "";
+    private network: Network = Network.Testnet;
     private dAppCode: string = "";
     private fingerprint: string = "";
 
-    init(apiKey, network, dAppCode, fingerprint, completionKey) {
+    init(apiKey: string, network: string, dAppCode: string, fingerprint: string, completionKey: string) {
         this.apiKey = apiKey;
-        this.network = network.toLowerCase();
+        this.network = StringHelpers.stringToNetwork(network);
         this.dAppCode = dAppCode;
         this.fingerprint = fingerprint;
 
@@ -72,13 +75,13 @@ export class SDK {
      * Contract function call
      *
      * @param {string} contractId
-     * @param {string} functionIdentifier
+     * @param {string} functionName
      * @param {string} paramsEncoded
      * @param {string} accountId
      * @param {string} accountPrivateKey
      * @param {string} completionKey
      */
-    async contractCallFunction(contractId, functionIdentifier, paramsEncoded, accountId, accountPrivateKey, completionKey) {
+    async contractCallFunction(contractId: string, functionName: string, paramsEncoded: string, accountId: string, accountPrivateKey: string, completionKey: string) {
         const client = this.getClient();
         client.setOperator(accountId, accountPrivateKey);
 
@@ -169,15 +172,20 @@ export class SDK {
             return Uint8Array.from(hexString.match(/.{1,2}/g).map((byte) => parseInt(byte, 16)));
         }
 
+        // to get function identifier we need to hash functions signature with params
+        const cfs = new ContractFunctionSelector(functionName);
+        cfs._params = types.join(',');
+        const functionIdentifier = cfs._build();
+
         const encodedBytes = encodedBytes0x.split("0x")[1];
-        const paramBytes = fromHexString(`${functionIdentifier}${encodedBytes}`);
+        const paramBytes = Buffer.concat([functionIdentifier, fromHexString(encodedBytes)]);
 
         const options = {
             dAppCode: this.dAppCode,
             apiKey: this.apiKey,
             paramBytes,
             contractId,
-            functionIdentifier,
+            functionName,
         };
 
         const {transactionBytes} = await signContractCallTx(this.network, options);
@@ -303,6 +311,24 @@ export class SDK {
     }
 
     /**
+     * Get accounts by public key
+     *
+     * @param {string} publicKey
+     * @param {string} completionKey
+     */
+    async getAccountsFromPublicKey(publicKey: string, completionKey) {
+        try {
+            const accounts = await getAccountsFromPublicKey(this.network, PublicKey.fromString(publicKey))
+            console.log({accounts})
+            this.sendMessageToNative(completionKey, {
+                accounts
+            })
+        } catch (error) {
+            this.sendMessageToNative(completionKey, null, error)
+        }
+    }
+
+    /**
      * Sign message by private key
      *
      * @param {string} messageString
@@ -340,7 +366,7 @@ export class SDK {
     }
 
     private getClient() {
-        return this.network === "testnet" ? Client.forTestnet() : Client.forMainnet()
+        return this.network === Network.Testnet ? Client.forTestnet() : Client.forMainnet()
     }
 
     /**

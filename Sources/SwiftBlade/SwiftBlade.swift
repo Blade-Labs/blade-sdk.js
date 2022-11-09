@@ -170,6 +170,31 @@ public class SwiftBlade: NSObject {
         executeJS("bladeSdk.getKeysFromMnemonic('\(menmonic)', '\(completionKey)')")
     }
     
+    /// Get account names by publicKey from mirror node
+    ///
+    /// - Parameters:
+    ///   - publicKey: public key
+    ///   - completion: result with AccountsFromPublicKeyDataResponse type
+    public func getAccountsFromPublicKey(publicKey: String, completion: @escaping (_ result: AccountsFromPublicKeyDataResponse?, _ error: Error?) -> Void) {
+        let completionKey = getCompletionKey("getAccountsFromPublicKey");
+        deferCompletion(forKey: completionKey) { (data, error) in
+            if (error != nil) {
+                print(error!)
+                completion(nil, error)
+            }
+            do {
+                let response = try JSONDecoder().decode(AccountsFromPublicKeyResponse.self, from: data!)
+                print(response.data);
+                completion(response.data, nil)
+            } catch {
+                print(error)
+                completion(nil, error)
+            }
+        }
+        executeJS("bladeSdk.getAccountsFromPublicKey('\(publicKey)', '\(completionKey)')")
+    }
+    
+    
     /// Sign message with private key
     ///
     /// - Parameters:
@@ -202,13 +227,12 @@ public class SwiftBlade: NSObject {
     ///
     /// - Parameters:
     ///   - contractId: contract
-    ///   - functionName: function
+    ///   - functionName: function name
     ///   - params: function arguments
     ///   - accountId: sender
     ///   - accountPrivateKey: sender's private key to sign transfer transaction
-    ///   - gas: amount
     ///   - completion: result with TransactionReceipt type
-    public func contractCallFunction(contractId: String, functionIdentifier: String, params: ContractFunctionParameters, accountId: String, accountPrivateKey: String, gas: Int, completion: @escaping (_ result: TransactionReceipt?, _ error: Error?) -> Void) {
+    public func contractCallFunction(contractId: String, functionName: String, params: ContractFunctionParameters, accountId: String, accountPrivateKey: String, completion: @escaping (_ result: TransactionReceipt?, _ error: Error?) -> Void) {
         let completionKey = getCompletionKey("contractCallFunction");
         let paramsEncoded = params.encode();
 
@@ -222,8 +246,7 @@ public class SwiftBlade: NSObject {
             }
         }
 
-        let script = "bladeSdk.contractCallFunction('\(contractId)', '\(functionIdentifier)', '\(paramsEncoded)', '\(accountId)', '\(accountPrivateKey)', '\(completionKey)')"
-    
+        let script = "bladeSdk.contractCallFunction('\(contractId)', '\(functionName)', '\(paramsEncoded)', '\(accountId)', '\(accountPrivateKey)', '\(completionKey)')"
         executeJS(script)
     }
     
@@ -408,6 +431,15 @@ struct BalanceResponse: Codable {
 struct PrivateKeyResponse: Codable {
     var completionKey: String
     var data: PrivateKeyDataResponse
+}
+
+struct AccountsFromPublicKeyResponse: Codable {
+    var completionKey: String
+    var data: AccountsFromPublicKeyDataResponse
+}
+
+public struct AccountsFromPublicKeyDataResponse: Codable {
+    var accounts: [String]
 }
 
 struct TransferResponse: Codable {
