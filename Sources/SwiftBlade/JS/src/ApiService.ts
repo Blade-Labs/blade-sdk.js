@@ -1,13 +1,10 @@
 import {Buffer} from "buffer";
+import {PublicKey} from "@hashgraph/sdk";
+import {Network, NetworkMirrorNodes} from "./models/Networks";
 
 const ApiUrls = {
-    "mainnet": "https://rest.prod.bladewallet.io/openapi/v7",
-    "testnet": "https://rest.ci.bladewallet.io/openapi/v7"
-};
-
-const NetworkMirrorNodes = {
-    "mainnet": "https://mainnet-public.mirrornode.hedera.com",
-    "testnet": "https://testnet.mirrornode.hedera.com"
+    [Network.Mainnet]: "https://rest.prod.bladewallet.io/openapi/v7",
+    [Network.Testnet]: "https://rest.ci.bladewallet.io/openapi/v7"
 };
 
 const fetchWithRetry = async (url, options, maxAttempts = 3) => {
@@ -44,8 +41,8 @@ const statusCheck = async (res) => {
     return res;
 };
 
-export const createAccount = async (network: string, params: any) => {
-    const url = `${ApiUrls[network.toLowerCase()]}/accounts`;
+export const createAccount = async (network: Network, params: any) => {
+    const url = `${ApiUrls[network]}/accounts`;
     const options = {
         method: "POST",
         headers: new Headers({
@@ -65,14 +62,14 @@ export const createAccount = async (network: string, params: any) => {
         .then(x => x.json())
 };
 
-export const requestTokenInfo = async (network: string, tokenId: string) => {
-    return fetchWithRetry(`${NetworkMirrorNodes[network.toLowerCase()]}/api/v1/tokens/${tokenId}`, {})
+export const requestTokenInfo = async (network: Network, tokenId: string) => {
+    return fetchWithRetry(`${NetworkMirrorNodes[network]}/api/v1/tokens/${tokenId}`, {})
         .then(statusCheck)
         .then(x => x.json());
 };
 
-export const signContractCallTx = async (network: string, params: any) => {
-    const url = `${ApiUrls[network.toLowerCase()]}/smart/contract/sign`;
+export const signContractCallTx = async (network: Network, params: any) => {
+    const url = `${ApiUrls[network]}/smart/contract/sign`;
     const options = {
         method: "POST",
         headers: new Headers({
@@ -84,7 +81,7 @@ export const signContractCallTx = async (network: string, params: any) => {
         body: JSON.stringify({
             functionParametersHash: Buffer.from(params.paramBytes).toString('base64'),
             contractId: params.contractId,
-            functionName: params.functionIdentifier
+            functionName: params.functionName
         })
     };
 
@@ -93,4 +90,14 @@ export const signContractCallTx = async (network: string, params: any) => {
         .then(x => x.json());
 };
 
+export const getAccountsFromPublicKey = async (network: Network, publicKey: PublicKey): Promise<string[]> => {
+    const formatted = publicKey.toStringRaw();
 
+    return fetchWithRetry(`${NetworkMirrorNodes[network]}/api/v1/accounts?account.publickey=${formatted}`, {})
+        .then(statusCheck)
+        .then(x => x.json())
+        .then(x => x.accounts.map(acc => acc.account))
+        .catch(error => {
+            return [];
+        });
+}

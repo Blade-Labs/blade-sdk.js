@@ -18,6 +18,7 @@ module.exports = {
         library: "[name]",
         libraryTarget: "var"
     },
+    devtool: "source-map",
     resolve: {
         extensions: ['.tsx', '.ts', '.js'],
     },
