@@ -2,10 +2,7 @@ import {Buffer} from "buffer";
 import {PublicKey} from "@hashgraph/sdk";
 import {Network, NetworkMirrorNodes} from "./models/Networks";
 
-const ApiUrls = {
-    [Network.Mainnet]: "https://rest.prod.bladewallet.io/openapi/v7",
-    [Network.Testnet]: "https://rest.ci.bladewallet.io/openapi/v7"
-};
+const ApiUrl = "https://rest.prod.bladewallet.io/openapi/v7";
 
 const fetchWithRetry = async (url, options, maxAttempts = 3) => {
     return new Promise((resolve, reject) => {
@@ -42,7 +39,7 @@ const statusCheck = async (res) => {
 };
 
 export const createAccount = async (network: Network, params: any) => {
-    const url = `${ApiUrls[network]}/accounts`;
+    const url = `${ApiUrl}/accounts`;
     const options = {
         method: "POST",
         headers: new Headers({
@@ -69,7 +66,7 @@ export const requestTokenInfo = async (network: Network, tokenId: string) => {
 };
 
 export const signContractCallTx = async (network: Network, params: any) => {
-    const url = `${ApiUrls[network]}/smart/contract/sign`;
+    const url = `${ApiUrl}/smart/contract/sign`;
     const options = {
         method: "POST",
         headers: new Headers({

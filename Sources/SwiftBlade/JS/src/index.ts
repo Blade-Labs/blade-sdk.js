@@ -374,8 +374,8 @@ export class SDK {
             }
             if (error) {
                 responseObject["error"] = {
-                    name: error.name,
-                    reason: error.reason || error.message
+                    name: error?.name || "Error",
+                    reason: error.reason || error.message || JSON.stringify(error)
                 }
             }
             // @ts-ignore
