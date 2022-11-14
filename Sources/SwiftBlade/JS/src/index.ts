@@ -13,6 +13,7 @@ import {hethers} from "@hashgraph/hethers";
 import {createAccount, getAccountsFromPublicKey, requestTokenInfo, signContractCallTx} from "./ApiService";
 import {Network} from "./models/Networks";
 import StringHelpers from "./helpers/StringHelpers";
+import {CustomError} from "./models/Errors";
 
 export class SDK {
     private apiKey: string = "";
@@ -364,7 +365,7 @@ export class SDK {
      * @param {*} data
      * @param {Error} error
      */
-    private sendMessageToNative(completionKey, data, error: any = null) {
+    private sendMessageToNative(completionKey: string, data: any | null, error: Partial<CustomError> = null) {
         // @ts-ignore
         if (window?.webkit?.messageHandlers?.bladeMessageHandler) {
             var responseObject = {
@@ -374,7 +375,7 @@ export class SDK {
             if (error) {
                 responseObject["error"] = {
                     name: error.name,
-                    reason: error.reason
+                    reason: error.reason || error.message
                 }
             }
             // @ts-ignore
