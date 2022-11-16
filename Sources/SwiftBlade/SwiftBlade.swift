@@ -332,7 +332,7 @@ public class ContractFunctionParameters: NSObject {
     public func encode() -> String {
         do {
             let jsonData = try JSONEncoder().encode(params)
-            if let res = String(data: jsonData, encoding: .utf8) {
+            if let res = String(data: jsonData, encoding: .utf8)?.replacingOccurrences(of: "\\", with: "\\\\") {
                 return res;
             }
         } catch let error {

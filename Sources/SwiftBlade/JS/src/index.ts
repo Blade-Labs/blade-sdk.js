@@ -83,137 +83,141 @@ export class SDK {
      * @param {string} completionKey
      */
     async contractCallFunction(contractId: string, functionName: string, paramsEncoded: string, accountId: string, accountPrivateKey: string, completionKey: string) {
-        const client = this.getClient();
-        client.setOperator(accountId, accountPrivateKey);
+        try {
+            const client = this.getClient();
+            client.setOperator(accountId, accountPrivateKey);
 
-        const parseContractFunctionParams = (paramsEncoded) => {
-            const types: string[] = [];
-            const values: any[] = [];
-            const paramsData = JSON.parse(paramsEncoded);
+            const parseContractFunctionParams = (paramsEncoded) => {
+                const types: string[] = [];
+                const values: any[] = [];
+                const paramsData = JSON.parse(paramsEncoded);
 
-            paramsData.forEach(param => {
-                switch (param?.type) {
-                    case "address": {
-                        // ["0.0.48619523"]
-                        const solidityAddress = AccountId.fromString(param.value[0]).toSolidityAddress()
+                paramsData.forEach(param => {
+                    switch (param?.type) {
+                        case "address": {
+                            // ["0.0.48619523"]
+                            const solidityAddress = AccountId.fromString(param.value[0]).toSolidityAddress()
 
-                        types.push(param.type);
-                        values.push(solidityAddress);
-                    } break;
+                            types.push(param.type);
+                            values.push(solidityAddress);
+                        } break;
 
-                    case "address[]": {
-                        // ["0.0.48619523", "0.0.4861934333"]
+                        case "address[]": {
+                            // ["0.0.48619523", "0.0.4861934333"]
 
-                        const solidityAddresses = param.value.map(address => {
-                            return AccountId.fromString(address).toSolidityAddress()
-                        })
+                            const solidityAddresses = param.value.map(address => {
+                                return AccountId.fromString(address).toSolidityAddress()
+                            })
 
-                        types.push(param.type);
-                        values.push(solidityAddresses);
-                    } break;
+                            types.push(param.type);
+                            values.push(solidityAddresses);
+                        } break;
 
-                    case "bytes32": {
-                        // "WzAsMSwyLDMsNCw1LDYsNyw4LDksMTAsMTEsMTIsMTMsMTQsMTUsMTYsMTcsMTgsMTksMjAsMjEsMjIsMjMsMjQsMjUsMjYsMjcsMjgsMjksMzAsMzFd"
-                        // base64 decode -> json parse -> data
-                        types.push(param.type);
-                        values.push(Uint8Array.from(JSON.parse(atob(param.value[0]))));
-                    } break;
-                    case "uint8":
-                    case "int64":
-                    case "uint64":
-                    case "uint256": {
-                        types.push(param.type);
-                        values.push(param.value[0]);
-                    } break;
-                    case "uint64[]":
-                    case "uint256[]": {
-                        types.push(param.type);
-                        values.push(param.value);
-                    } break;
+                        case "bytes32": {
+                            // "WzAsMSwyLDMsNCw1LDYsNyw4LDksMTAsMTEsMTIsMTMsMTQsMTUsMTYsMTcsMTgsMTksMjAsMjEsMjIsMjMsMjQsMjUsMjYsMjcsMjgsMjksMzAsMzFd"
+                            // base64 decode -> json parse -> data
+                            types.push(param.type);
+                            values.push(Uint8Array.from(JSON.parse(atob(param.value[0]))));
+                        } break;
+                        case "uint8":
+                        case "int64":
+                        case "uint64":
+                        case "uint256": {
+                            types.push(param.type);
+                            values.push(param.value[0]);
+                        } break;
+                        case "uint64[]":
+                        case "uint256[]": {
+                            types.push(param.type);
+                            values.push(param.value);
+                        } break;
 
-                    case "tuple": {
-                        const result = parseContractFunctionParams(param.value[0]);
+                        case "tuple": {
+                            const result = parseContractFunctionParams(param.value[0]);
 
-                        types.push(`tuple(${result.types})`);
-                        values.push(result.values);
-                    } break;
+                            types.push(`tuple(${result.types})`);
+                            values.push(result.values);
+                        } break;
 
-                    case "tuple[]": {
-                        const result = param.value.map(value => {
-                            return parseContractFunctionParams(value)
-                        });
+                        case "tuple[]": {
+                            const result = param.value.map(value => {
+                                return parseContractFunctionParams(value)
+                            });
 
-                        types.push(`tuple[](${result[0].types})`);
-                        values.push(result.map(({values}) => values));
-                    } break;
-                    default: {
-                        const error = {
-                            name: "SwiftBlade JS",
-                            reason: `Type "${param?.type}" not implemented on JS`
-                        };
-                        this.sendMessageToNative(completionKey, null, error);
-                        throw error;
-                    } break;
-                }
-            });
+                            types.push(`tuple[](${result[0].types})`);
+                            values.push(result.map(({values}) => values));
+                        } break;
+                        default: {
+                            const error = {
+                                name: "SwiftBlade JS",
+                                reason: `Type "${param?.type}" not implemented on JS`
+                            };
+                            this.sendMessageToNative(completionKey, null, error);
+                            throw error;
+                        } break;
+                    }
+                });
 
-            return {types, values};
-        }
-
-        const {types, values} = parseContractFunctionParams(paramsEncoded);
-        // console.log(types, values);
-
-        const abiCoder = new hethers.utils.AbiCoder();
-        const encodedBytes0x = abiCoder.encode(types, values);
-
-        const fromHexString = (hexString) => {
-            if (!hexString || hexString.length < 2) {
-                return Uint8Array.from([]);
+                return {types, values};
             }
-            return Uint8Array.from(hexString.match(/.{1,2}/g).map((byte) => parseInt(byte, 16)));
-        }
 
-        // to get function identifier we need to hash functions signature with params
-        const cfs = new ContractFunctionSelector(functionName);
-        cfs._params = types.join(',');
-        const functionIdentifier = cfs._build();
+            const {types, values} = parseContractFunctionParams(paramsEncoded);
+            // console.log(types, values);
 
-        const encodedBytes = encodedBytes0x.split("0x")[1];
-        const paramBytes = Buffer.concat([functionIdentifier, fromHexString(encodedBytes)]);
+            const abiCoder = new hethers.utils.AbiCoder();
+            const encodedBytes0x = abiCoder.encode(types, values);
 
-        const options = {
-            dAppCode: this.dAppCode,
-            apiKey: this.apiKey,
-            paramBytes,
-            contractId,
-            functionName,
-        };
-
-        const {transactionBytes} = await signContractCallTx(this.network, options);
-        const buffer = Buffer.from(transactionBytes, "base64");
-        const transaction = Transaction.fromBytes(buffer);
-
-        transaction
-            .sign(PrivateKey.fromString(accountPrivateKey))
-            .then(signTx => {
-                return signTx.execute(client);
-            })
-            .then(executedTx => {
-                return executedTx.getReceipt(client)
-            })
-            .then(txReceipt => {
-                const result = {
-                    status: txReceipt.status?.toString(),
-                    contractId: txReceipt.contractId?.toString(),
-                    topicSequenceNumber: txReceipt.topicSequenceNumber?.toString(),
-                    totalSupply: txReceipt.totalSupply?.toString(),
-                    serial: txReceipt.serials?.map(value => value.toString())
+            const fromHexString = (hexString) => {
+                if (!hexString || hexString.length < 2) {
+                    return Uint8Array.from([]);
                 }
-                this.sendMessageToNative(completionKey, result);
-            })
-            .catch(error => {
-                this.sendMessageToNative(completionKey, null, error)
-            });
+                return Uint8Array.from(hexString.match(/.{1,2}/g).map((byte) => parseInt(byte, 16)));
+            }
+
+            // to get function identifier we need to hash functions signature with params
+            const cfs = new ContractFunctionSelector(functionName);
+            cfs._params = types.join(',');
+            const functionIdentifier = cfs._build();
+
+            const encodedBytes = encodedBytes0x.split("0x")[1];
+            const paramBytes = Buffer.concat([functionIdentifier, fromHexString(encodedBytes)]);
+
+            const options = {
+                dAppCode: this.dAppCode,
+                apiKey: this.apiKey,
+                paramBytes,
+                contractId,
+                functionName,
+            };
+
+            const {transactionBytes} = await signContractCallTx(this.network, options);
+            const buffer = Buffer.from(transactionBytes, "base64");
+            const transaction = Transaction.fromBytes(buffer);
+
+            transaction
+                .sign(PrivateKey.fromString(accountPrivateKey))
+                .then(signTx => {
+                    return signTx.execute(client);
+                })
+                .then(executedTx => {
+                    return executedTx.getReceipt(client)
+                })
+                .then(txReceipt => {
+                    const result = {
+                        status: txReceipt.status?.toString(),
+                        contractId: txReceipt.contractId?.toString(),
+                        topicSequenceNumber: txReceipt.topicSequenceNumber?.toString(),
+                        totalSupply: txReceipt.totalSupply?.toString(),
+                        serial: txReceipt.serials?.map(value => value.toString())
+                    }
+                    this.sendMessageToNative(completionKey, result);
+                })
+                .catch(error => {
+                    this.sendMessageToNative(completionKey, null, error)
+                });
+        } catch (error) {
+            this.sendMessageToNative(completionKey, null, error)
+        }
     }
 
     /**
