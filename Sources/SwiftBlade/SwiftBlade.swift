@@ -472,9 +472,15 @@ public enum SwiftBladeError: Error {
     case apiError(String)
 }
 
-public struct BladeJSError: Codable {
+public struct BladeJSError: Error, Codable {
     public var name: String
     public var reason: String
+}
+
+extension BladeJSError: LocalizedError {
+    public var errorDescription: String? {
+        return NSLocalizedString("\(self.name): \(self.reason)", comment: self.reason);
+    }
 }
 
 // MARK: - SwiftBlade enums
