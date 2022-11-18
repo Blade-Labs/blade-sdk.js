@@ -269,12 +269,17 @@ export class SDK {
         };
 
         try {
-            const {id, transactionBytes} = await createAccount(this.network, options);
+            const {id, transactionBytes, updateAccountTransactionBytes} = await createAccount(this.network, options);
+
+            const client = this.getClient();
+            if (updateAccountTransactionBytes) {
+                const buffer: Buffer = Buffer.from(updateAccountTransactionBytes, "base64");
+                const transaction = await Transaction.fromBytes(buffer).sign(privateKey);
+                await transaction.execute(client);
+            }
 
             if (transactionBytes) {
                 const buffer = Buffer.from(transactionBytes, "base64");
-                const client = this.getClient();
-
                 const transaction = await Transaction.fromBytes(buffer).sign(privateKey);
                 await transaction.execute(client);
             }
