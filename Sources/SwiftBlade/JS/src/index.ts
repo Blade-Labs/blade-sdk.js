@@ -1,5 +1,5 @@
 import {
-    AccountBalanceQuery,
+    AccountBalanceQuery, AccountDeleteTransaction,
     AccountId,
     Client, ContractFunctionSelector,
     Mnemonic,
@@ -291,6 +291,36 @@ export class SDK {
                 accountId: id
             };
             this.sendMessageToNative(completionKey, result)
+        } catch (error) {
+            this.sendMessageToNative(completionKey, null, error);
+        }
+    }
+
+    async deleteAccount(deleteAccountId: string, deletePrivateKey: string, transferAccountId: string, operatorAccountId: string, operatorPrivateKey: string, completionKey: string) {
+        try {
+            const client = this.getClient();
+            const deleteAccountKey = PrivateKey.fromString(deletePrivateKey);
+            const operatorAccountKey = PrivateKey.fromString(operatorPrivateKey);
+            client.setOperator(operatorAccountId, operatorAccountKey);
+
+            const transaction = await new AccountDeleteTransaction()
+                .setAccountId(deleteAccountId)
+                .setTransferAccountId(transferAccountId)
+                .freezeWith(client)
+            ;
+
+            const signTx = await transaction.sign(deleteAccountKey);
+            const txResponse = await signTx.execute(client);
+            const txReceipt = await txResponse.getReceipt(client);
+
+            const result = {
+                status: txReceipt.status?.toString(),
+                contractId: txReceipt.contractId?.toString(),
+                topicSequenceNumber: txReceipt.topicSequenceNumber?.toString(),
+                totalSupply: txReceipt.totalSupply?.toString(),
+                serial: txReceipt.serials?.map(value => value.toString())
+            }
+            this.sendMessageToNative(completionKey, result);
         } catch (error) {
             this.sendMessageToNative(completionKey, null, error);
         }
