@@ -139,6 +139,32 @@ public class SwiftBlade: NSObject {
         executeJS("bladeSdk.createAccount('\(completionKey)')")
     }
     
+    /// Method to delete Hedera account
+    ///
+    /// - Parameters:
+    ///   - deleteAccountId: account to delete - id
+    ///   - deletePrivateKey: account to delete - private key
+    ///   - transferAccountId: The ID of the account to transfer the remaining funds to.
+    ///   - operatorAccountId: operator account Id
+    ///   - operatorPrivateKey: operator account private key
+    ///   - completion: result with TransactionReceipt type
+    public func deleteHederaAccount(deleteAccountId: String, deletePrivateKey: String, transferAccountId: String, operatorAccountId: String, operatorPrivateKey: String, completion: @escaping (_ result: TransactionReceipt?, _ error: BladeJSError?) -> Void) {
+        let completionKey = getCompletionKey("deleteHederaAccount");
+        deferCompletion(forKey: completionKey) { (data, error) in
+            if (error != nil) {
+                return completion(nil, error)
+            }
+            do {
+                let response = try JSONDecoder().decode(TransactionReceiptResponse.self, from: data!)
+                completion(response.data, nil)
+            } catch let error as NSError {
+                print(error)
+                completion(nil, BladeJSError(name: "Error", reason: "\(error)"))
+            }
+        }
+        executeJS("bladeSdk.deleteAccount('\(deleteAccountId)', '\(deletePrivateKey)', '\(transferAccountId)', '\(operatorAccountId)', '\(operatorPrivateKey)',  '\(completionKey)')")
+    }
+    
     /// Restore public and private key by seed phrase
     ///
     /// - Parameters:

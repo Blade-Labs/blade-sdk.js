@@ -31,7 +31,7 @@ let package = Package(
             resources: [
               .process("JS/index.html"),
               .process("JS/dist/JSWrapper.bundle.js"),
-//              .process("JS/dist/JSWrapper.bundle.js.map")
+              .process("JS/dist/JSWrapper.bundle.js.map")
             ]
         ),
         .testTarget(
