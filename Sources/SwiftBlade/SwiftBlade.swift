@@ -239,6 +239,28 @@ public class SwiftBlade: NSObject {
         executeJS("bladeSdk.hethersSign('\(messageString)', '\(privateKey)', '\(completionKey)')")
     }
     
+    /// Method to split signature into v-r-s
+    ///
+    /// - Parameters:
+    ///   - signature: signature string "0x21fbf0696......"
+    ///   - completion: result with SplitedSignature type
+    public func splitSignature(signature: String, completion: @escaping (_ result: SplitedSignature?, _ error: BladeJSError?) -> Void ) {
+        let completionKey = getCompletionKey("splitSignature");
+        deferCompletion(forKey: completionKey) { (data, error) in
+            if (error != nil) {
+                return completion(nil, error)
+            }
+            do {
+                let response = try JSONDecoder().decode(SplitedSignatureResponse.self, from: data!)
+                completion(response.data, nil)
+            } catch let error as NSError {
+                print(error)
+                completion(nil, BladeJSError(name: "Error", reason: "\(error)"))
+            }
+        }
+        executeJS("bladeSdk.splitSignature('\(signature)', '\(completionKey)')")
+    }
+    
     // MARK: - Private methods 🔒
     private func executeJS (_ script: String) {
         guard webViewInitialized else {
@@ -465,6 +487,18 @@ public struct TransactionReceipt: Codable {
     public var totalSupply: String?
     public var serials: [String]?
 }
+
+struct SplitedSignatureResponse: Codable {
+    var completionKey: String
+    var data: SplitedSignature
+}
+
+public struct SplitedSignature: Codable {
+    public var v: Int
+    public var r: String
+    public var s: String
+}
+
 
 // MARK: - SwiftBlade errors
 public enum SwiftBladeError: Error {

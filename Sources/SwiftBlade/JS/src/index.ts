@@ -363,6 +363,15 @@ export class SDK {
         })
     }
 
+    splitSignature(signature: string, completionKey: string) {
+        try {
+            const {v, r, s} = hethers.utils.splitSignature(signature);
+            this.sendMessageToNative(completionKey, {v, r, s});
+        } catch (error) {
+            this.sendMessageToNative(completionKey, null, error);
+        }
+    }
+
     private getClient() {
         return this.network === Network.Testnet ? Client.forTestnet() : Client.forMainnet()
     }
