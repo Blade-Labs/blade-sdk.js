@@ -467,7 +467,7 @@ public struct CreatedAccountDataResponse: Codable {
     public var seedPhrase: String
     public var publicKey: String
     public var privateKey: String
-    public var accountId: String?
+    public var accountId: String
 }
 
 public struct BalanceDataResponse: Codable {
