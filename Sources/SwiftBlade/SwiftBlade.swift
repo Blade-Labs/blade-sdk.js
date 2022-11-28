@@ -376,6 +376,16 @@ public class ContractFunctionParameters: NSObject {
         params.append(ContractFunctionParameter(type: "tuple[]", value: value.map{$0.encode()}));
         return self;
     }
+    
+    public func addString(value: String) -> ContractFunctionParameters {
+        params.append(ContractFunctionParameter(type: "string", value: [value]));
+        return self;
+    }
+
+    public func addStringArray(value: [String]) -> ContractFunctionParameters {
+        params.append(ContractFunctionParameter(type: "string[]", value: value));
+        return self;
+    }
 
     public func encode() -> String {
         do {
