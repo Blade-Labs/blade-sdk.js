@@ -1,4 +1,4 @@
-const SDK = require("./index");
+const SDK = require("../../src");
 require("dotenv").config();
 
 const {PrivateKey} = require("@hashgraph/sdk");
@@ -8,14 +8,11 @@ const bladeSdk = window["bladeSdk"];
 const completionKey = "completionKey1";
 const privateKey = "3030020100300706052b8104000a04220420ce63a040b35eaaddc8ddfbd92f101f0ec501ce9c9285865bdffde26710d22590";
 
-console.log(process.env.ENVIRONMENT)
-
 test('bladeSdk defined', () => {
     expect(window["bladeSdk"]).toBeDefined()
 });
 
 test('bladeSdk.init', async () => {
-    console.log(process.env.API_KEY);
     const result = await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.FINGERPRINT, completionKey);
     checkResult(result);
     expect(result.data.status).toEqual("success" );
