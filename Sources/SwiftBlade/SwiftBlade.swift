@@ -211,6 +211,31 @@ public class SwiftBlade: NSObject {
         executeJS("bladeSdk.sign('\(messageString)', '\(privateKey)', '\(completionKey)')")
     }
 
+    /// Verify message signature with public key
+    ///
+    /// - Parameters:
+    ///   - messageString: message in base64 string
+    ///   - signature: hex-encoded signature string
+    ///   - publicKey: public key string
+    ///   - completion: result with SignMessageDataResponse type
+    public func signVerify(messageString: String, signature: String, publicKey: String, completion: @escaping (_ result: SignVerifyMessageDataResponse?, _ error: BladeJSError?) -> Void) {
+        let completionKey = getCompletionKey("signVerify");
+        deferCompletion(forKey: completionKey) { (data, error) in
+            if (error != nil) {
+                return completion(nil, error)
+            }
+            do {
+                let response = try JSONDecoder().decode(SignVerifyMessageResponse.self, from: data!)
+                completion(response.data, nil)
+            } catch let error as NSError {
+                print(error)
+                completion(nil, BladeJSError(name: "Error", reason: "\(error)"))
+            }
+        }
+        executeJS("bladeSdk.signVerify('\(messageString)', '\(signature)', '\(publicKey)', '\(completionKey)')")
+    }
+    
+
     public func createContractFunctionParameters() -> ContractFunctionParameters {
         return ContractFunctionParameters();
     }
@@ -376,6 +401,16 @@ public class ContractFunctionParameters: NSObject {
         params.append(ContractFunctionParameter(type: "tuple[]", value: value.map{$0.encode()}));
         return self;
     }
+    
+    public func addString(value: String) -> ContractFunctionParameters {
+        params.append(ContractFunctionParameter(type: "string", value: [value]));
+        return self;
+    }
+
+    public func addStringArray(value: [String]) -> ContractFunctionParameters {
+        params.append(ContractFunctionParameter(type: "string[]", value: value));
+        return self;
+    }
 
     public func encode() -> String {
         do {
@@ -463,11 +498,16 @@ struct SignMessageResponse: Codable {
     var data: SignMessageDataResponse
 }
 
+struct SignVerifyMessageResponse: Codable {
+    var completionKey: String
+    var data: SignVerifyMessageDataResponse
+}
+
 public struct CreatedAccountDataResponse: Codable {
     public var seedPhrase: String
     public var publicKey: String
     public var privateKey: String
-    public var accountId: String?
+    public var accountId: String
 }
 
 public struct BalanceDataResponse: Codable {
@@ -494,6 +534,10 @@ public struct TransferDataResponse: Codable {
 
 public struct SignMessageDataResponse: Codable {
     public var signedMessage: String
+}
+
+public struct SignVerifyMessageDataResponse: Codable {
+    public var valid: Bool
 }
 
 public struct ContractFunctionParameter: Encodable {
