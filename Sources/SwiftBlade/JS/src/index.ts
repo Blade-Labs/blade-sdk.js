@@ -1,9 +1,8 @@
 import {
     AccountBalanceQuery, AccountDeleteTransaction,
-    AccountId,
     Client, ContractFunctionSelector,
     Mnemonic,
-    PrivateKey,
+    PrivateKey, PublicKey,
     Transaction,
     TransferTransaction
 } from "@hashgraph/sdk";
@@ -274,6 +273,21 @@ export class SDK {
             return this.sendMessageToNative(completionKey, {
                 signedMessage: Buffer.from(signed).toString("hex")
             });
+        } catch (error) {
+            return this.sendMessageToNative(completionKey, null, error);
+        }
+    }
+
+    /**
+     * Verify signature by public key
+     */
+    signVerify(messageString: string, signature: string, publicKey: string, completionKey: string) {
+        try {
+            const valid = PublicKey.fromString(publicKey).verify(
+                Buffer.from(messageString, 'base64'),
+                Buffer.from(signature, 'hex')
+            );
+            return this.sendMessageToNative(completionKey, {valid});
         } catch (error) {
             return this.sendMessageToNative(completionKey, null, error);
         }

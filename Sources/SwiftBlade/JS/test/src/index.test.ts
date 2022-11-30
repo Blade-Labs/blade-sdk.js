@@ -36,6 +36,11 @@ test('bladeSdk.sign', async () => {
 
     expect(result.data).toHaveProperty("signedMessage");
     expect(result.data.signedMessage).toEqual("0fca6a58f4870cb4aaa289d6932ef8d47d091fc740e3864d76a383d4faabf5df65b234d24f842f14808e96e9bf1c96c386367e6bc2a353967312df541c502672");
+
+    const validationResult = bladeSdk.signVerify(messageString, result.data.signedMessage, PrivateKey.fromString(privateKey).publicKey.toStringRaw(), completionKey);
+    checkResult(validationResult);
+    expect(validationResult.data.valid).toEqual(true);
+
     expect(PrivateKey.fromString(privateKey).publicKey.verify(
         Buffer.from(message),
         Buffer.from(result.data.signedMessage, "hex")
