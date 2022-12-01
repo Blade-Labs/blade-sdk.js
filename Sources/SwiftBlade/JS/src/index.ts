@@ -324,6 +324,25 @@ export class SDK {
         }
     }
 
+    async getParamsSignature(paramsEncoded: any, privateKey: string, completionKey: string) {
+        try {
+            const {types, values} = parseContractFunctionParams(paramsEncoded);
+
+            console.log({types, values});
+
+            const hash = hethers.utils.solidityKeccak256(types, values);
+            const messageHashBytes = hethers.utils.arrayify(hash);
+
+            const wallet = new hethers.Wallet(privateKey);
+            const signed = await wallet.signMessage(messageHashBytes);
+
+            const {v, r, s} = hethers.utils.splitSignature(signed);
+            return this.sendMessageToNative(completionKey, {v, r, s});
+        } catch (error) {
+            return this.sendMessageToNative(completionKey, null, error);
+        }
+    }
+
     private getClient() {
         return this.network === Network.Testnet ? Client.forTestnet() : Client.forMainnet();
     }

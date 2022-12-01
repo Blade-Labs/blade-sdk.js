@@ -312,6 +312,30 @@ public class SwiftBlade: NSObject {
         executeJS("bladeSdk.splitSignature('\(signature)', '\(completionKey)')")
     }
     
+    /// Method to split signature into v-r-s
+    ///
+    /// - Parameters:
+    ///   - params: params generated with ContractFunctionParameters
+    ///   - accountPrivateKey: account private key string
+    ///   - completion: result with SplitedSignature type
+    public func getParamsSignature(params: ContractFunctionParameters, accountPrivateKey: String, completion: @escaping (_ result: SplitedSignature?, _ error: BladeJSError?) -> Void ) {
+        let completionKey = getCompletionKey("getParamsSignature");
+        deferCompletion(forKey: completionKey) { (data, error) in
+            if (error != nil) {
+                return completion(nil, error)
+            }
+            do {
+                let response = try JSONDecoder().decode(SplitedSignatureResponse.self, from: data!)
+                completion(response.data, nil)
+            } catch let error as NSError {
+                print(error)
+                completion(nil, BladeJSError(name: "Error", reason: "\(error)"))
+            }
+        }
+        let paramsEncoded = params.encode();
+        executeJS("bladeSdk.getParamsSignature('\(paramsEncoded)', '\(accountPrivateKey)', '\(completionKey)')")
+    }
+
     // MARK: - Private methods 🔒
     private func executeJS (_ script: String) {
         guard webViewInitialized else {
