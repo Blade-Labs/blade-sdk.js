@@ -328,8 +328,6 @@ export class SDK {
         try {
             const {types, values} = parseContractFunctionParams(paramsEncoded);
 
-            console.log({types, values});
-
             const hash = hethers.utils.solidityKeccak256(types, values);
             const messageHashBytes = hethers.utils.arrayify(hash);
 
