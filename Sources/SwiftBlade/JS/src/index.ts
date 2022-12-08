@@ -8,7 +8,12 @@ import {
 } from "@hashgraph/sdk";
 import {Buffer} from "buffer";
 import {hethers} from "@hashgraph/hethers";
-import {createAccount, getAccountsFromPublicKey, requestTokenInfo, signContractCallTx} from "./ApiService";
+import {
+    createAccount,
+    getAccountsFromPublicKey,
+    requestTokenInfo, signContractCallTx,
+    getTransactionsFrom
+} from "./ApiService";
 import {Network} from "./models/Networks";
 import StringHelpers from "./helpers/StringHelpers";
 import {parseContractFunctionParams} from "./helpers/ContractHelpers";
@@ -29,9 +34,6 @@ export class SDK {
         return this.sendMessageToNative(completionKey, {status: "success"});
     }
 
-    /**
-     * Get balances by Hedera accountId (address)
-     */
     getBalance(accountId: string, completionKey: string) {
         const client = this.getClient();
 
@@ -45,9 +47,6 @@ export class SDK {
             });
     }
 
-    /**
-     * Transfer Hbars from current account to a receiver
-     */
     transferHbars(accountId: string, accountPrivateKey: string, receiverID: string, amount: string, completionKey: string) {
         try {
             const client = this.getClient();
@@ -69,17 +68,11 @@ export class SDK {
 
     }
 
-    /**
-     * Contract function call
-     */
     async contractCallFunction(contractId: string, functionName: string, paramsEncoded: string, accountId: string, accountPrivateKey: string, completionKey: string) {
         try {
             const client = this.getClient();
             client.setOperator(accountId, accountPrivateKey);
-
-
             const {types, values} = parseContractFunctionParams(paramsEncoded);
-            // console.log(types, values);
 
             const abiCoder = new hethers.utils.AbiCoder();
             const encodedBytes0x = abiCoder.encode(types, values);
@@ -137,9 +130,6 @@ export class SDK {
         }
     }
 
-    /**
-     * Transfer tokens from current account to a receiver
-     */
     async transferTokens(tokenId: string, accountId: string, accountPrivateKey: string, receiverID: string, amount: string, completionKey: string) {
         try {
             const client = this.getClient();
@@ -162,9 +152,6 @@ export class SDK {
         }
     }
 
-    /**
-     * Method that creates new account
-     */
     async createAccount(completionKey: string) {
         try {
             const seedPhrase = await Mnemonic.generate12();
@@ -236,9 +223,6 @@ export class SDK {
         }
     }
 
-    /**
-     * Get public/private keys by seed phrase
-     */
     async getKeysFromMnemonic(mnemonicRaw: string, lookupNames: boolean, completionKey: string) {
         try {
             //TODO support all the different type of private keys
@@ -262,9 +246,6 @@ export class SDK {
         }
     }
 
-    /**
-     * Sign message by private key
-     */
     sign(messageString: string, privateKey: string, completionKey: string) {
         try {
             const key = PrivateKey.fromString(privateKey);
@@ -278,9 +259,6 @@ export class SDK {
         }
     }
 
-    /**
-     * Verify signature by public key
-     */
     signVerify(messageString: string, signature: string, publicKey: string, completionKey: string) {
         try {
             const valid = PublicKey.fromString(publicKey).verify(
@@ -293,9 +271,6 @@ export class SDK {
         }
     }
 
-    /**
-     * Sign message with hethers lib (signedTypeData)
-     */
     hethersSign(messageString: string, privateKey: string, completionKey: string) {
         try {
             const wallet = new hethers.Wallet(privateKey);
@@ -341,6 +316,15 @@ export class SDK {
         }
     }
 
+    async getTransactions(accountId: string, nextPage: string, completionKey: string) {
+        try {
+            const transactionData = await getTransactionsFrom(this.network, accountId, nextPage);
+            return this.sendMessageToNative(completionKey, transactionData);
+        } catch (error) {
+            return this.sendMessageToNative(completionKey, null, error);
+        }
+    }
+
     private getClient() {
         return this.network === Network.Testnet ? Client.forTestnet() : Client.forMainnet();
     }
@@ -365,7 +349,7 @@ export class SDK {
             // @ts-ignore
             window.webkit.messageHandlers.bladeMessageHandler.postMessage(JSON.stringify(responseObject));
         }
-        return responseObject;
+        return JSON.parse(JSON.stringify(responseObject));
     }
 
     /**

@@ -335,6 +335,29 @@ public class SwiftBlade: NSObject {
         let paramsEncoded = params.encode();
         executeJS("bladeSdk.getParamsSignature('\(paramsEncoded)', '\(accountPrivateKey)', '\(completionKey)')")
     }
+    
+    /// Method to get transactions history
+    ///
+    /// - Parameters:
+    ///   - accountId: accountId of history
+    ///   - nextPage: link from response to load next page of history
+    ///   - completion: result with TransactionsHistory type
+    public func getTransactions(accountId: String, nextPage: String = "", completion: @escaping (_ result: TransactionsHistory?, _ error: BladeJSError?) -> Void) {
+        let completionKey = getCompletionKey("getTransactions");
+        deferCompletion(forKey: completionKey) { (data, error) in
+            if (error != nil) {
+                return completion(nil, error)
+            }
+            do {
+                let response = try JSONDecoder().decode(TransactionsHistoryResponse.self, from: data!)
+                completion(response.data, nil)
+            } catch let error as NSError {
+                print(error)
+                completion(nil, BladeJSError(name: "Error", reason: "\(error)"))
+            }
+        }
+        executeJS("bladeSdk.getTransactions('\(accountId)', '\(nextPage)', '\(completionKey)')")
+    }
 
     // MARK: - Private methods 🔒
     private func executeJS (_ script: String) {
@@ -593,6 +616,39 @@ public struct SplitedSignature: Codable {
     public var s: String
 }
 
+struct TransactionsHistoryResponse: Codable {
+    var completionKey: String
+    var data: TransactionsHistory
+}
+
+public struct TransactionsHistory: Codable {
+    public var nextPage: String?
+    public var transactions: [TransactionHistoryDetail]
+}
+
+public struct TransactionHistoryDetail: Codable {
+    public var fee: Int
+    public var memo: String
+    public var nftTransfers: [TransactionHistoryNftTransfer]?
+    public var time: String
+    public var transactionId: String
+    public var transfers: [TransactionHistoryTransfer]
+    public var type: String
+}
+
+public struct TransactionHistoryTransfer: Codable {
+    public var account: String
+    public var amount: Decimal
+    public var is_approval: Bool
+}
+
+public struct TransactionHistoryNftTransfer: Codable {
+    public var is_approval: Bool
+    public var receiver_account_id: String
+    public var sender_account_id: String
+    public var serial_number: Int
+    public var token_id: String
+}
 
 // MARK: - SwiftBlade errors
 public enum SwiftBladeError: Error {
