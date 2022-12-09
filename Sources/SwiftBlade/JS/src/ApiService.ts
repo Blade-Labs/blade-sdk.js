@@ -40,7 +40,7 @@ const statusCheck = async (res) => {
     return res;
 };
 
-const GET = (network: Network, route: string) => {
+export const GET = (network: Network, route: string) => {
     return fetchWithRetry(`${NetworkMirrorNodes[network]}/${route}`, {})
         .then(statusCheck)
         .then(x => x.json());
