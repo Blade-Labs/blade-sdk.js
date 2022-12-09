@@ -38,6 +38,12 @@ const statusCheck = async (res) => {
     return res;
 };
 
+export const GET = (network: Network, route: string) => {
+    return fetchWithRetry(`${NetworkMirrorNodes[network]}/${route}`, {})
+        .then(statusCheck)
+        .then(x => x.json());
+};
+
 export const createAccount = async (network: Network, params: any) => {
     const url = `${ApiUrl}/accounts`;
     const options = {
