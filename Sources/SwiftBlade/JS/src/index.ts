@@ -77,8 +77,7 @@ export class SDK {
             const client = this.getClient();
             client.setOperator(accountId, accountPrivateKey);
 
-
-            const {types, values} = parseContractFunctionParams(paramsEncoded);
+            const {types, values} = await parseContractFunctionParams(paramsEncoded, this.network);
             // console.log(types, values);
 
             const abiCoder = new hethers.utils.AbiCoder();
@@ -326,8 +325,7 @@ export class SDK {
 
     async getParamsSignature(paramsEncoded: any, privateKey: string, completionKey: string) {
         try {
-            const {types, values} = parseContractFunctionParams(paramsEncoded);
-
+            const {types, values} = await parseContractFunctionParams(paramsEncoded, this.network);
             const hash = hethers.utils.solidityKeccak256(types, values);
             const messageHashBytes = hethers.utils.arrayify(hash);
 
