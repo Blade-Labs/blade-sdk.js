@@ -51,7 +51,7 @@ export const parseContractFunctionParams = async (paramsEncoded, network: Networ
             case "tuple": {
                 const result = await parseContractFunctionParams(param.value[0], network);
 
-                types.push(`tuple(${result.types})`);
+                types.push(`(${result.types})`);
                 values.push(result.values);
             } break;
 
@@ -61,7 +61,7 @@ export const parseContractFunctionParams = async (paramsEncoded, network: Networ
                     result.push(await parseContractFunctionParams(param.value[i], network));
                 }
 
-                types.push(`tuple[](${result[0].types})`);
+                types.push(`(${result[0].types})[]`);
                 values.push(result.map(({values}) => values));
             } break;
             case "string": {
