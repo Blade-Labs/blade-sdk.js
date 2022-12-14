@@ -68,7 +68,7 @@ export const createAccount = async (network: Network, params: any) => {
 };
 
 export const requestTokenInfo = async (network: Network, tokenId: string) => {
-    return GET(network,`/api/v1/tokens/${tokenId}`);
+    return GET(network,`api/v1/tokens/${tokenId}`);
 };
 
 export const signContractCallTx = async (network: Network, params: any) => {
@@ -95,7 +95,7 @@ export const signContractCallTx = async (network: Network, params: any) => {
 
 export const getAccountsFromPublicKey = async (network: Network, publicKey: PublicKey): Promise<string[]> => {
     const formatted = publicKey.toStringRaw();
-    return GET(network, `/api/v1/accounts?account.publickey=${formatted}`)
+    return GET(network, `api/v1/accounts?account.publickey=${formatted}`)
         .then(x => x.accounts.map(acc => acc.account))
         .catch(error => {
             return [];

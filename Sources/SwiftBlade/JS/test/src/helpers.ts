@@ -1,0 +1,72 @@
+import {Client, Hbar, PrivateKey, TokenAssociateTransaction, TokenCreateTransaction, TokenId} from "@hashgraph/sdk";
+import {GET} from "../../src/ApiService";
+import {Network} from "../../src/models/Networks";
+
+export const privateKeyFromString = (privateKey: string) => {
+    let res = null;
+    try {
+        return PrivateKey.fromStringECDSA(privateKey);
+    } catch (e) {}
+    try {
+        return PrivateKey.fromStringED25519(privateKey);
+    } catch (e) {}
+    return res
+}
+
+export const createToken = async (accountId: string, privateKey: string, tokenName: string): Promise<string> => {
+    const client = Client.forTestnet();
+    client.setOperator(accountId, privateKey);
+    const key = PrivateKey.fromString(privateKey);
+
+
+    //Create the transaction and freeze for manual signing
+    const transaction = await new TokenCreateTransaction()
+        .setTokenName(tokenName)
+        .setTokenSymbol("JTT")
+        .setTreasuryAccountId(accountId)
+        .setInitialSupply(1000000)
+        .setAdminKey(key.publicKey)
+        .setMaxTransactionFee(new Hbar(30)) //Change the default max transaction fee
+        .freezeWith(client);
+
+    //Sign the transaction with the token adminKey and the token treasury account private key
+    const signTx =  await (await transaction.sign(key)).sign(key);
+
+    //Sign the transaction with the client operator private key and submit to a Hedera network
+    const txResponse = await signTx.execute(client);
+
+    //Get the receipt of the transaction
+    const receipt = await txResponse.getReceipt(client);
+
+    //Get the token ID from the receipt
+    return  receipt.tokenId.toString();
+}
+
+
+export const associateToken = async (tokenId: string, accountId: string, privateKey: string) => {
+    const client = Client.forTestnet();
+    const key = privateKeyFromString(privateKey);
+    client.setOperator(accountId, key);
+
+    //Associate a token to an account and freeze the unsigned transaction for signing
+    const transaction = await new TokenAssociateTransaction()
+        .setAccountId(accountId)
+        .setTokenIds([tokenId])
+        .freezeWith(client);
+
+    const signTx = await transaction.sign(key);
+
+    return await signTx.execute(client).catch(err => {
+        console.log(err);
+        return null;
+    });
+}
+
+export const getTokenInfo = async (tokenId: string) => {
+    return GET(Network.Testnet, `api/v1/tokens/${tokenId}`).catch(err => {
+        console.log(err);
+        return null;
+    });
+}
+
+
