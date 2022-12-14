@@ -2,6 +2,8 @@ import {Client, TokenDeleteTransaction, TokenDissociateTransaction} from "@hashg
 
 const SDK = require("../../src");
 import {associateToken, createToken, getTokenInfo} from "./helpers";
+import {GET} from "../../src/ApiService";
+import {Network} from "../../src/models/Networks";
 require("dotenv").config();
 
 global.fetch = require("node-fetch");
@@ -74,7 +76,6 @@ test('bladeSdk.contractCallFunction', async () => {
 });
 
 test('bladeSdk.transferTokens', async () => {
-    // TODO
     const client = Client.forTestnet();
     client.setOperator(accountId, privateKey);
 
@@ -133,18 +134,46 @@ test('bladeSdk.transferTokens', async () => {
 }, 120_000);
 
 test('bladeSdk.createAccount', async () => {
-    // TODO
     const client = Client.forTestnet();
     client.setOperator(accountId, privateKey);
 
+    let result = await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.FINGERPRINT, completionKey);
+    checkResult(result);
 
+    result = await bladeSdk.createAccount(completionKey);
+    checkResult(result);
 
+    expect(result.data).toHaveProperty("seedPhrase");
+    expect(result.data).toHaveProperty("publicKey");
+    expect(result.data).toHaveProperty("privateKey");
+    expect(result.data).toHaveProperty("accountId");
 
-});
+    result = await bladeSdk.init("wrong api key", process.env.NETWORK, process.env.DAPP_CODE, process.env.FINGERPRINT, completionKey);
+    checkResult(result);
+
+    result = await bladeSdk.createAccount(completionKey);
+    checkResult(result, false);
+}, 60_000);
 
 test('bladeSdk.deleteAccount', async () => {
-    // TODO
-});
+    const client = Client.forTestnet();
+    client.setOperator(accountId, privateKey);
+
+    let result = await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.FINGERPRINT, completionKey);
+    checkResult(result);
+
+    result = await bladeSdk.createAccount(completionKey);
+    checkResult(result);
+    const newAccountId = result.data.accountId;
+
+    result = await bladeSdk.deleteAccount(newAccountId, result.data.privateKey, accountId, accountId, privateKey, completionKey);
+    checkResult(result);
+
+    await sleep(15_000);
+    result = await GET(Network.Testnet, `api/v1/accounts/${newAccountId}`);
+
+    expect(result.deleted).toEqual(true);
+}, 60_000);
 
 test('bladeSdk.getKeysFromMnemonic', async () => {
     // TODO
