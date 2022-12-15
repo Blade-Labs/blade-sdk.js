@@ -1,8 +1,10 @@
 import {Client, Hbar, PrivateKey, TokenAssociateTransaction, TokenCreateTransaction, TokenId} from "@hashgraph/sdk";
 import {GET} from "../../src/ApiService";
 import {Network} from "../../src/models/Networks";
+import {completionKey} from "./index.test";
 
 export const privateKeyFromString = (privateKey: string) => {
+  // TODO TRY different keys in different format (ecdsa, ed25, .raw, .der)
     let res = null;
     try {
         return PrivateKey.fromStringECDSA(privateKey);
@@ -24,7 +26,7 @@ export const createToken = async (accountId: string, privateKey: string, tokenNa
         .setTokenName(tokenName)
         .setTokenSymbol("JTT")
         .setTreasuryAccountId(accountId)
-        .setInitialSupply(1000000)
+        .setInitialSupply(1000000000)
         .setAdminKey(key.publicKey)
         .setMaxTransactionFee(new Hbar(30)) //Change the default max transaction fee
         .freezeWith(client);
@@ -69,4 +71,25 @@ export const getTokenInfo = async (tokenId: string) => {
     });
 }
 
+export function sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
 
+//utils
+export function checkResult(result, success = true) {
+    // console.log(success, JSON.parse(JSON.stringify(result)));
+    expect(result).toEqual(
+        expect.objectContaining({
+            completionKey: completionKey,
+        }),
+    );
+    if (success) {
+        expect(result).toHaveProperty("data");
+        expect(result).not.toHaveProperty("error");
+    } else {
+        expect(result.data).toBeNull();
+        expect(result).toHaveProperty("error");
+        expect(result.error).toHaveProperty("name");
+        expect(result.error).toHaveProperty("reason");
+    }
+}

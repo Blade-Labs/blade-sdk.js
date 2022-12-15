@@ -280,9 +280,6 @@ export class SDK {
                     return this.sendMessageToNative(completionKey, {
                         signedMessage: signedMessage
                     });
-                })
-                .catch((error) => {
-                    return this.sendMessageToNative(completionKey, null, error);
                 });
         } catch (error) {
             return this.sendMessageToNative(completionKey, null, error);
@@ -345,6 +342,7 @@ export class SDK {
 
         // @ts-ignore
         if (window?.webkit?.messageHandlers?.bladeMessageHandler) {
+            /* istanbul ignore next */
             // @ts-ignore
             window.webkit.messageHandlers.bladeMessageHandler.postMessage(JSON.stringify(responseObject));
         }

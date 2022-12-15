@@ -18,6 +18,7 @@ const fetchWithRetry = async (url, options, maxAttempts = 3) => {
                     if (!res.ok) {
                         // Request timeout check
                         if ((res.status === 408 || res.status === 429) && attemptCounter < maxAttempts) {
+                            /* istanbul ignore next */
                             setTimeout(() => {
                                 makeRequest(url, options);
                             }, interval * attemptCounter);
@@ -131,7 +132,7 @@ export const getTransactionsFrom = async (
 
 };
 
-const getTransaction = (network: Network, transactionId: string, accountId: string): Promise<TransactionData[]> => {
+export const getTransaction = (network: Network, transactionId: string, accountId: string): Promise<TransactionData[]> => {
     return GET(network, `api/v1/transactions/${transactionId}`)
         .then(x => x.transactions.map((t: any) => {
             return {

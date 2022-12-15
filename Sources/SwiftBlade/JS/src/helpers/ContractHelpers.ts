@@ -1,6 +1,7 @@
 import {AccountId} from "@hashgraph/sdk";
 import {GET} from "../ApiService";
 import {Network} from "../models/Networks";
+import {hethers} from "@hashgraph/hethers";
 
 
 export const parseContractFunctionParams = async (paramsEncoded, network: Network) => {
@@ -87,7 +88,7 @@ export const parseContractFunctionParams = async (paramsEncoded, network: Networ
 const valueToSolidity = async (value: string, network: Network) => {
     // if input.length >=32 - replace "0x" to "" and return
     // if address - get account info and get evm-address (only for ECDSA keys)
-    // if no evm - address convert input to solidity
+    // if no evm - address - check of key_type == ECDSA_SECP256K1 - and compute EVM address else convert input to solidity
 
     let result = "";
     if (value.length >= 32) {
@@ -97,8 +98,12 @@ const valueToSolidity = async (value: string, network: Network) => {
         if (accountInfo.evm_address) {
             result = accountInfo.evm_address;
         } else {
-            result = AccountId.fromString(value).toSolidityAddress();
+            if (accountInfo.key._type === "ECDSA_SECP256K1") {
+                result = hethers.utils.computeAddress(`0x${accountInfo.key.key}`);
+            } else {
+                result = `0x${AccountId.fromString(value).toSolidityAddress()}`;
+            }
         }
     }
-    return result; //.replace("0x", "");
+    return result;
 };
