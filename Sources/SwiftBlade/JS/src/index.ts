@@ -74,23 +74,19 @@ export class SDK {
             client.setOperator(accountId, accountPrivateKey);
             const {types, values} = await parseContractFunctionParams(paramsEncoded, this.network);
 
+            // get func identifier
+            const functionSignature = `${functionName}(${types.join(",")})`;
+            const functionIdentifier = new hethers.utils.Interface([
+                hethers.utils.FunctionFragment.from(functionSignature)
+            ]).getSighash(functionName);
+
             const abiCoder = new hethers.utils.AbiCoder();
-            const encodedBytes0x = abiCoder.encode(types, values);
+            const encodedBytes = abiCoder.encode(types, values);
 
-            const fromHexString = (hexString) => {
-                if (!hexString || hexString.length < 2) {
-                    return Uint8Array.from([]);
-                }
-                return Uint8Array.from(hexString.match(/.{1,2}/g).map((byte) => parseInt(byte, 16)));
-            };
-
-            // to get function identifier we need to hash functions signature with params
-            const cfs = new ContractFunctionSelector(functionName);
-            cfs._params = types.join(",");
-            const functionIdentifier = cfs._build();
-
-            const encodedBytes = encodedBytes0x.split("0x")[1];
-            const paramBytes = Buffer.concat([functionIdentifier, fromHexString(encodedBytes)]);
+            const paramBytes = Buffer.concat([
+                hethers.utils.arrayify(functionIdentifier),
+                hethers.utils.arrayify(encodedBytes)
+            ]);
 
             const options = {
                 dAppCode: this.dAppCode,
