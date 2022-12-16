@@ -4,7 +4,9 @@ import {flattenDeep} from "lodash";
 import {Network, NetworkMirrorNodes} from "./models/Networks";
 import {TransactionData} from "./models/Common";
 
-const ApiUrl = "https://rest.prod.bladewallet.io/openapi/v7";
+const ApiUrl = process.env.NODE_ENV === "test"
+    ? "https://rest.ci.bladewallet.io/openapi/v7"
+    : "https://rest.prod.bladewallet.io/openapi/v7"
 
 const fetchWithRetry = async (url, options, maxAttempts = 3) => {
     return new Promise((resolve, reject) => {
