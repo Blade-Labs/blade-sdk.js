@@ -1,8 +1,8 @@
 import {Buffer} from "buffer";
 import {PublicKey} from "@hashgraph/sdk";
-import {flattenDeep} from "lodash";
 import {Network, NetworkMirrorNodes} from "./models/Networks";
 import {TransactionData} from "./models/Common";
+import {flatArray} from "./helpers/ArrayHelpers";
 
 const ApiUrl = process.env.NODE_ENV === "test"
     ? "https://rest.ci.bladewallet.io/openapi/v7"
@@ -87,7 +87,8 @@ export const signContractCallTx = async (network: Network, params: any) => {
         body: JSON.stringify({
             functionParametersHash: Buffer.from(params.paramBytes).toString("base64"),
             contractId: params.contractId,
-            functionName: params.functionName
+            functionName: params.functionName,
+            gas: params.gas
         })
     };
 
@@ -123,7 +124,7 @@ export const getTransactionsFrom = async (
         groupedTransactions[t.transaction_id] = await getTransaction(network, t.transaction_id, accountId);
     }));
 
-    const transactions: TransactionData[] = flattenDeep(Object.values(groupedTransactions))
+    const transactions: TransactionData[] = flatArray(Object.values(groupedTransactions))
         .sort((a, b) => new Date(b.time).valueOf() - new Date(a.time).valueOf())
     ;
 
