@@ -1,6 +1,6 @@
 import {
     AccountBalanceQuery, AccountDeleteTransaction,
-    Client, ContractFunctionSelector,
+    Client,
     Mnemonic,
     PrivateKey, PublicKey,
     Transaction,
@@ -68,7 +68,7 @@ export class SDK {
 
     }
 
-    async contractCallFunction(contractId: string, functionName: string, paramsEncoded: string, accountId: string, accountPrivateKey: string, completionKey: string) {
+    async contractCallFunction(contractId: string, functionName: string, paramsEncoded: string, accountId: string, accountPrivateKey: string, gas: number = 100000, completionKey: string) {
         try {
             const client = this.getClient();
             client.setOperator(accountId, accountPrivateKey);
@@ -93,7 +93,8 @@ export class SDK {
                 apiKey: this.apiKey,
                 paramBytes,
                 contractId,
-                functionName
+                functionName,
+                gas
             };
 
             const {transactionBytes} = await signContractCallTx(this.network, options);

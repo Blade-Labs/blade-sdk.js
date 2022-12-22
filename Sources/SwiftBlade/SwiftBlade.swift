@@ -248,8 +248,9 @@ public class SwiftBlade: NSObject {
     ///   - params: function arguments
     ///   - accountId: sender
     ///   - accountPrivateKey: sender's private key to sign transfer transaction
+    ///   - gas: gas amount for transaction (default 100000)
     ///   - completion: result with TransactionReceipt type
-    public func contractCallFunction(contractId: String, functionName: String, params: ContractFunctionParameters, accountId: String, accountPrivateKey: String, completion: @escaping (_ result: TransactionReceipt?, _ error: BladeJSError?) -> Void) {
+    public func contractCallFunction(contractId: String, functionName: String, params: ContractFunctionParameters, accountId: String, accountPrivateKey: String, gas: Int = 100000, completion: @escaping (_ result: TransactionReceipt?, _ error: BladeJSError?) -> Void) {
         let completionKey = getCompletionKey("contractCallFunction");
         deferCompletion(forKey: completionKey) { (data, error) in
             if (error != nil) {
@@ -264,7 +265,7 @@ public class SwiftBlade: NSObject {
             }
         }
         let paramsEncoded = params.encode();
-        executeJS("bladeSdk.contractCallFunction('\(contractId)', '\(functionName)', '\(paramsEncoded)', '\(accountId)', '\(accountPrivateKey)', '\(completionKey)')")
+        executeJS("bladeSdk.contractCallFunction('\(contractId)', '\(functionName)', '\(paramsEncoded)', '\(accountId)', '\(accountPrivateKey)', \(gas), '\(completionKey)')")
     }
 
     /// Sign message with private key
@@ -365,7 +366,6 @@ public class SwiftBlade: NSObject {
             print("Error while executing JS, webview not loaded")
             fatalError()
         }
-        print(script);
         webView.evaluateJavaScript(script)
     }
 
