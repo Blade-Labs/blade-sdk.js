@@ -6,5 +6,6 @@ const config: Config.InitialOptions = {
         '^.+\\.tsx?$': 'ts-jest',
     },
     "testEnvironment": "jsdom",
+    setupFilesAfterEnv: ["<rootDir>/test/src/helpers.ts"]
 };
 export default config;

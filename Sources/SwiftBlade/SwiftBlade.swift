@@ -5,9 +5,9 @@ import BigInt
 
 public class SwiftBlade: NSObject {
     public static let shared = SwiftBlade()
-    
+
     private let webView = WKWebView()
-    private var webViewInitialized = false    
+    private var webViewInitialized = false
     private var deferCompletions: [String: (_ result: Data?, _ error: BladeJSError?) -> Void] = [:]
     private var initCompletion: (() -> Void)?
     private var completionId: Int = 0
@@ -16,7 +16,7 @@ public class SwiftBlade: NSObject {
     private let uuid = UUID().uuidString
     private var network: HederaNetwork = .TESTNET
     private var dAppCode: String?
-    
+
     // MARK: - It's init time 🎬
     /// Initialization of Swift blade
     ///
@@ -34,7 +34,7 @@ public class SwiftBlade: NSObject {
         self.apiKey = apiKey
         self.dAppCode = dAppCode
         self.network = network
-        
+
         // Setting up and loading webview
         self.webView.navigationDelegate = self
         if let url = Bundle.module.url(forResource: "index", withExtension: "html") {
@@ -43,7 +43,7 @@ public class SwiftBlade: NSObject {
         let contentController = self.webView.configuration.userContentController
         contentController.add(self, name: "bladeMessageHandler")
     }
-    
+
     // MARK: - Public methods 📢
     /// Get balances by Hedera id (address)
     ///
@@ -66,7 +66,7 @@ public class SwiftBlade: NSObject {
         }
         executeJS("bladeSdk.getBalance('\(id)', '\(completionKey)')")
     }
-    
+
     /// Method to execure Hbar transfers from current account to receiver
     ///
     /// - Parameters:
@@ -91,7 +91,7 @@ public class SwiftBlade: NSObject {
         }
         executeJS("bladeSdk.transferHbars('\(accountId)', '\(accountPrivateKey)', '\(receiverId)', '\(amount)', '\(completionKey)')")
     }
-    
+
     /// Method to execure token transfers from current account to receiver
     ///
     /// - Parameters:
@@ -117,7 +117,7 @@ public class SwiftBlade: NSObject {
         }
         executeJS("bladeSdk.transferTokens('\(tokenId)', '\(accountId)', '\(accountPrivateKey)', '\(receiverId)', '\(amount)', '\(completionKey)')")
     }
-    
+
     /// Method to create Hedera account
     ///
     /// - Parameter completion: result with CreatedAccountDataResponse type
@@ -138,7 +138,7 @@ public class SwiftBlade: NSObject {
         }
         executeJS("bladeSdk.createAccount('\(completionKey)')")
     }
-    
+
     /// Method to delete Hedera account
     ///
     /// - Parameters:
@@ -164,7 +164,7 @@ public class SwiftBlade: NSObject {
         }
         executeJS("bladeSdk.deleteAccount('\(deleteAccountId)', '\(deletePrivateKey)', '\(transferAccountId)', '\(operatorAccountId)', '\(operatorPrivateKey)',  '\(completionKey)')")
     }
-    
+
     /// Restore public and private key by seed phrase
     ///
     /// - Parameters:
@@ -187,7 +187,7 @@ public class SwiftBlade: NSObject {
         }
         executeJS("bladeSdk.getKeysFromMnemonic('\(menmonic)', \(lookupNames), '\(completionKey)')")
     }
-    
+
     /// Sign message with private key
     ///
     /// - Parameters:
@@ -234,12 +234,12 @@ public class SwiftBlade: NSObject {
         }
         executeJS("bladeSdk.signVerify('\(messageString)', '\(signature)', '\(publicKey)', '\(completionKey)')")
     }
-    
+
 
     public func createContractFunctionParameters() -> ContractFunctionParameters {
         return ContractFunctionParameters();
     }
-    
+
     /// Method to call smart-contract function from current account
     ///
     /// - Parameters:
@@ -266,7 +266,7 @@ public class SwiftBlade: NSObject {
         let paramsEncoded = params.encode();
         executeJS("bladeSdk.contractCallFunction('\(contractId)', '\(functionName)', '\(paramsEncoded)', '\(accountId)', '\(accountPrivateKey)', '\(completionKey)')")
     }
-    
+
     /// Sign message with private key
     ///
     /// - Parameters:
@@ -289,7 +289,7 @@ public class SwiftBlade: NSObject {
         }
         executeJS("bladeSdk.hethersSign('\(messageString)', '\(privateKey)', '\(completionKey)')")
     }
-    
+
     /// Method to split signature into v-r-s
     ///
     /// - Parameters:
@@ -311,7 +311,7 @@ public class SwiftBlade: NSObject {
         }
         executeJS("bladeSdk.splitSignature('\(signature)', '\(completionKey)')")
     }
-    
+
     /// Method to split signature into v-r-s
     ///
     /// - Parameters:
@@ -336,19 +336,43 @@ public class SwiftBlade: NSObject {
         executeJS("bladeSdk.getParamsSignature('\(paramsEncoded)', '\(accountPrivateKey)', '\(completionKey)')")
     }
 
+    /// Method to get transactions history
+    ///
+    /// - Parameters:
+    ///   - accountId: accountId of history
+    ///   - nextPage: link from response to load next page of history
+    ///   - completion: result with TransactionsHistory type
+    public func getTransactions(accountId: String, nextPage: String = "", completion: @escaping (_ result: TransactionsHistory?, _ error: BladeJSError?) -> Void) {
+        let completionKey = getCompletionKey("getTransactions");
+        deferCompletion(forKey: completionKey) { (data, error) in
+            if (error != nil) {
+                return completion(nil, error)
+            }
+            do {
+                let response = try JSONDecoder().decode(TransactionsHistoryResponse.self, from: data!)
+                completion(response.data, nil)
+            } catch let error as NSError {
+                print(error)
+                completion(nil, BladeJSError(name: "Error", reason: "\(error)"))
+            }
+        }
+        executeJS("bladeSdk.getTransactions('\(accountId)', '\(nextPage)', '\(completionKey)')")
+    }
+
     // MARK: - Private methods 🔒
     private func executeJS (_ script: String) {
         guard webViewInitialized else {
             print("Error while executing JS, webview not loaded")
             fatalError()
         }
+        print(script);
         webView.evaluateJavaScript(script)
     }
-    
+
     private func deferCompletion (forKey: String, completion: @escaping (_ result: Data?, _ error: BladeJSError?) -> Void) {
         deferCompletions.updateValue(completion, forKey: forKey)
     }
-    
+
     private func initBladeSdkJS() throws {
         let completionKey = getCompletionKey("initBladeSdkJS");
         deferCompletion(forKey: completionKey) { (data, error) in
@@ -356,7 +380,7 @@ public class SwiftBlade: NSObject {
         }
         executeJS("bladeSdk.init('\(apiKey!)', '\(network.rawValue.lowercased())', '\(dAppCode!)', '\(uuid)', '\(completionKey)')");
     }
-    
+
     private func getCompletionKey(_ tag: String = "") -> String {
         completionId += 1;
         return tag + String(completionId);
@@ -370,12 +394,12 @@ public class ContractFunctionParameters: NSObject {
         params.append(ContractFunctionParameter(type: "address", value: [value]));
         return self;
     }
-    
+
     public func addAddressArray(value: [String]) -> ContractFunctionParameters {
         params.append(ContractFunctionParameter(type: "address[]", value: value));
         return self;
     }
-    
+
     public func addBytes32(value: [UInt8]) -> ContractFunctionParameters {
         do {
             let encodedValue = try JSONEncoder().encode(value).base64EncodedString();
@@ -385,22 +409,22 @@ public class ContractFunctionParameters: NSObject {
         }
         return self
     }
-    
+
     public func addUInt8(value: UInt8) -> ContractFunctionParameters {
         params.append(ContractFunctionParameter(type: "uint8", value: [String(value)]));
         return self
     }
-    
+
     public func addUInt64(value: UInt64) -> ContractFunctionParameters {
         params.append(ContractFunctionParameter(type: "uint64", value: [String(value)]));
         return self
     }
-    
+
     public func addUInt64Array(value: [UInt64]) -> ContractFunctionParameters {
         params.append(ContractFunctionParameter(type: "uint64[]", value: value.map{ String($0)} ));
         return self
     }
-    
+
     public func addInt64(value: Int64) -> ContractFunctionParameters {
         params.append(ContractFunctionParameter(type: "int64", value: [String(value)]));
         return self
@@ -410,22 +434,22 @@ public class ContractFunctionParameters: NSObject {
         params.append(ContractFunctionParameter(type: "uint256", value: [String(value)]));
         return self;
     }
-    
+
     public func addUInt256Array(value: [BigUInt]) -> ContractFunctionParameters {
         params.append(ContractFunctionParameter(type: "uint256[]", value: value.map{ String($0)} ));
         return self;
     }
-    
+
     public func addTuple(value: ContractFunctionParameters) -> ContractFunctionParameters {
         params.append(ContractFunctionParameter(type: "tuple", value: [value.encode()]));
         return self;
     }
-    
+
     public func addTupleArray(value: [ContractFunctionParameters]) -> ContractFunctionParameters {
         params.append(ContractFunctionParameter(type: "tuple[]", value: value.map{$0.encode()}));
         return self;
     }
-    
+
     public func addString(value: String) -> ContractFunctionParameters {
         params.append(ContractFunctionParameter(type: "string", value: [value]));
         return self;
@@ -478,7 +502,7 @@ extension SwiftBlade: WKNavigationDelegate {
     public func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         // Web-view initialized
         webViewInitialized = true
-        
+
         // Call initBladeSdkJS and initCompletion after that
         try? self.initBladeSdkJS()
     }
@@ -593,6 +617,39 @@ public struct SplitedSignature: Codable {
     public var s: String
 }
 
+struct TransactionsHistoryResponse: Codable {
+    var completionKey: String
+    var data: TransactionsHistory
+}
+
+public struct TransactionsHistory: Codable {
+    public var nextPage: String?
+    public var transactions: [TransactionHistoryDetail]
+}
+
+public struct TransactionHistoryDetail: Codable {
+    public var fee: Int
+    public var memo: String
+    public var nftTransfers: [TransactionHistoryNftTransfer]?
+    public var time: String
+    public var transactionId: String
+    public var transfers: [TransactionHistoryTransfer]
+    public var type: String
+}
+
+public struct TransactionHistoryTransfer: Codable {
+    public var account: String
+    public var amount: Decimal
+    public var is_approval: Bool
+}
+
+public struct TransactionHistoryNftTransfer: Codable {
+    public var is_approval: Bool
+    public var receiver_account_id: String
+    public var sender_account_id: String
+    public var serial_number: Int
+    public var token_id: String
+}
 
 // MARK: - SwiftBlade errors
 public enum SwiftBladeError: Error {
