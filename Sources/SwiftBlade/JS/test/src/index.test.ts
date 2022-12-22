@@ -74,6 +74,13 @@ test('bladeSdk.transferHbars', async () => {
 
 // TODO
 test('bladeSdk.contractCallFunction', async () => {
+    // check if contract exists
+    // if no - deploy contract
+
+    // call contract method (with plain params)
+    // call contract method (with tuple)
+    // check result
+
 
 });
 
@@ -354,7 +361,6 @@ test('bladeSdk.getTransactions', async () => {
 
     //invalid tx
     result = await getTransaction(Network.Testnet, "wrong tx id", accountId);
-    console.log(result);
     expect(Array.isArray(result));
     expect(result.length).toEqual(0)
 
