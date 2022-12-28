@@ -182,7 +182,8 @@ export class SDK {
                 seedPhrase: seedPhrase.toString(),
                 publicKey,
                 privateKey: privateKey.toStringDer(),
-                accountId: id
+                accountId: id,
+                evmAddress: hethers.utils.computeAddress(`0x${privateKey.publicKey.toStringRaw()}`).toLowerCase()
             };
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
