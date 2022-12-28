@@ -156,6 +156,12 @@ test('bladeSdk.createAccount', async () => {
     expect(result.data).toHaveProperty("publicKey");
     expect(result.data).toHaveProperty("privateKey");
     expect(result.data).toHaveProperty("accountId");
+    expect(result.data).toHaveProperty("evmAddress");
+
+    await sleep(25_000);
+
+    const accountInfo = await GET(Network.Testnet, `api/v1/accounts/${result.data.accountId}`);
+    expect(result.data.evmAddress).toEqual(accountInfo.evm_address);
 
     result = await bladeSdk.init("wrong api key", process.env.NETWORK, process.env.DAPP_CODE, process.env.FINGERPRINT, completionKey);
     checkResult(result);

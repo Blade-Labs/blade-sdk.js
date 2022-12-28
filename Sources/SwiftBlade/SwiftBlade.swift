@@ -556,6 +556,7 @@ public struct CreatedAccountDataResponse: Codable {
     public var publicKey: String
     public var privateKey: String
     public var accountId: String
+    public var evmAddress: String
 }
 
 public struct BalanceDataResponse: Codable {
