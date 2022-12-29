@@ -573,6 +573,7 @@ public struct PrivateKeyDataResponse: Codable {
     public var privateKey: String
     public var publicKey: String
     public var accounts: [String]
+    public var evmAddress: String
 }
 
 public struct TransferDataResponse: Codable {

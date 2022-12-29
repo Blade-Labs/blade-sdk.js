@@ -193,10 +193,11 @@ test('bladeSdk.deleteAccount', async () => {
 
 test('bladeSdk.getKeysFromMnemonic', async () => {
     const accountSample = {
-        seedPhrase: "dawn fruit rigid walk neck cook glare force rude tonight awesome message",
-        publicKey: "302d300706052b8104000a03220002ea56217d9b7d031d9e37442226643f584c96373dee15fa6ed70d76a9a86058eb",
-        privateKey: "3030020100300706052b8104000a04220420e556cca765b9e8ed7808be639cb03d5d397714ab93d401f86ed79ae9487a68a9",
-        accountId: "0.0.49091979"
+        accountId: "0.0.49177063",
+        privateKey: "3030020100300706052b8104000a0422042045224074f95b943a4ad8ce7f660db9593d1193d35b3808ecd2e7265caaa00a3d",
+        publicKey: "302d300706052b8104000a03220002bdc4a7f2d365a0112867a79fa0acda12d59c00b115870b09e7e83c77a7728d95",
+        seedPhrase: "service unable under gauge castle lawn orchard kitten chat produce anxiety top",
+        evmAddress: "0x38e689ffa7ac5d9e5d2e3bd81eea564d4faf4921"
     }
 
     let result = await bladeSdk.getKeysFromMnemonic(accountSample.seedPhrase, false, completionKey);
@@ -205,11 +206,13 @@ test('bladeSdk.getKeysFromMnemonic', async () => {
     expect(result.data).toHaveProperty("privateKey");
     expect(result.data).toHaveProperty("publicKey");
     expect(result.data).toHaveProperty("accounts");
+    expect(result.data).toHaveProperty("evmAddress");
     expect(Array.isArray(result.data.accounts)).toEqual(true);
     expect(result.data.accounts.length).toEqual(0);
 
     expect(result.data.privateKey).toEqual(accountSample.privateKey);
     expect(result.data.publicKey).toEqual(accountSample.publicKey);
+    expect(result.data.evmAddress).toEqual(accountSample.evmAddress);
 
     result = await bladeSdk.getKeysFromMnemonic(accountSample.seedPhrase, true, completionKey);
     checkResult(result);
