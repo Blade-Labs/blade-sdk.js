@@ -237,7 +237,8 @@ export class SDK {
             return this.sendMessageToNative(completionKey, {
                 privateKey: privateKey.toStringDer(),
                 publicKey: publicKey.toStringDer(),
-                accounts
+                accounts,
+                evmAddress: hethers.utils.computeAddress(`0x${publicKey.toStringRaw()}`).toLowerCase()
             });
         } catch (error) {
             return this.sendMessageToNative(completionKey, null, error);
