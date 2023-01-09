@@ -78,7 +78,7 @@ export const parseContractFunctionParams = async (paramsEncoded, network: Networ
                     name: "SwiftBlade JS",
                     reason: `Type "${param?.type}" not implemented on JS`
                 }
-            } break;
+            }
         }
     }
 
