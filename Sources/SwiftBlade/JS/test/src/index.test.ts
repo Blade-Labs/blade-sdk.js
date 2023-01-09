@@ -73,7 +73,6 @@ test('bladeSdk.transferHbars', async () => {
 
 }, 60_000);
 
-// TODO
 test('bladeSdk.contractCallFunction', async () => {
     const contractId = process.env.CONTRACT_ID || "";
     expect(contractId).not.toEqual("");
@@ -386,7 +385,7 @@ test('bladeSdk.getTransactions', async () => {
     await sleep(10_000);
 
     //get expected transaction
-    result = await bladeSdk.getTransactions(accountId, "", completionKey);
+    result = await bladeSdk.getTransactions(accountId, "", "", completionKey);
     checkResult(result);
 
     expect(result.data).toHaveProperty("nextPage");
@@ -417,11 +416,28 @@ test('bladeSdk.getTransactions', async () => {
 
 
     //next page
-    result = await bladeSdk.getTransactions(accountId, nextPage, completionKey);
+    result = await bladeSdk.getTransactions(accountId, "", nextPage, completionKey);
     checkResult(result);
 
+    // filter by transactionType
+    result = await bladeSdk.getTransactions(accountId, "CRYPTOTRANSFER", "", completionKey);
+    checkResult(result);
+
+    // filter by transactionType and add custom plainData in response
+    result = await bladeSdk.getTransactions(accountId, "CRYPTOTRANSFERTOKEN", "", completionKey);
+    checkResult(result);
+
+    if (result.data.transactions.length) {
+        expect(result.data.transactions[0]).toHaveProperty("plainData");
+        expect(result.data.transactions[0].plainData).toHaveProperty("type");
+        expect(result.data.transactions[0].plainData).toHaveProperty("token_id");
+        expect(result.data.transactions[0].plainData).toHaveProperty("account");
+        expect(result.data.transactions[0].plainData).toHaveProperty("amount");
+        console.log(result.data.transactions[0].plainData);
+    }
+
     //invalid accountId
-    result = await bladeSdk.getTransactions('0.dgsgsdgdsgdsgdsg', "", completionKey);
+    result = await bladeSdk.getTransactions('0.dgsgsdgdsgdsgdsg', "", "", completionKey);
     checkResult(result, false);
 
     //invalid tx

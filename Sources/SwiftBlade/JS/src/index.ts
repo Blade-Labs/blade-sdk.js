@@ -313,9 +313,9 @@ export class SDK {
         }
     }
 
-    async getTransactions(accountId: string, nextPage: string, completionKey: string) {
+    async getTransactions(accountId: string, transactionType: string = "", nextPage: string, completionKey: string) {
         try {
-            const transactionData = await getTransactionsFrom(this.network, accountId, nextPage);
+            const transactionData = await getTransactionsFrom(this.network, accountId, transactionType, nextPage);
             return this.sendMessageToNative(completionKey, transactionData);
         } catch (error) {
             return this.sendMessageToNative(completionKey, null, error);
