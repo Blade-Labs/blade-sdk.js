@@ -3,6 +3,7 @@ import {PublicKey} from "@hashgraph/sdk";
 import {Network, NetworkMirrorNodes} from "./models/Networks";
 import {TransactionData} from "./models/Common";
 import {flatArray} from "./helpers/ArrayHelpers";
+import {filterAndFormatTransactions} from "./helpers/TransactionHelpers";
 
 const ApiUrl = process.env.NODE_ENV === "test"
     ? "https://rest.ci.bladewallet.io/openapi/v7"
@@ -109,6 +110,7 @@ export const getAccountsFromPublicKey = async (network: Network, publicKey: Publ
 export const getTransactionsFrom = async (
     network: Network,
     accountId: string,
+    transactionType: string = "",
     nextPage?: string | null
 ): Promise<{ nextPage: string | null, transactions: TransactionData[] }> => {
     let info;
@@ -124,15 +126,14 @@ export const getTransactionsFrom = async (
         groupedTransactions[t.transaction_id] = await getTransaction(network, t.transaction_id, accountId);
     }));
 
-    const transactions: TransactionData[] = flatArray(Object.values(groupedTransactions))
-        .sort((a, b) => new Date(b.time).valueOf() - new Date(a.time).valueOf())
-    ;
+    let transactions: TransactionData[] = flatArray(Object.values(groupedTransactions))
+        .sort((a, b) => new Date(b.time).valueOf() - new Date(a.time).valueOf());
 
+    transactions = filterAndFormatTransactions(transactions, transactionType);
     return {
         nextPage: info.links.next?.substring(1) ?? null,
         transactions: transactions
     };
-
 };
 
 export const getTransaction = (network: Network, transactionId: string, accountId: string): Promise<TransactionData[]> => {

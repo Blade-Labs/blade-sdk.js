@@ -9,6 +9,7 @@ export interface TransactionData {
     memo?: string,
     fee?: number,
     showDetailed?: boolean,
+    plainData?: any
 }
 
 export interface TransferData {
