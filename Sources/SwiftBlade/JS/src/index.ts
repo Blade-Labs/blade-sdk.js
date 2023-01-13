@@ -164,7 +164,7 @@ export class SDK {
             };
 
 
-            const {id, transactionBytes, updateAccountTransactionBytes} = await createAccount(this.network, options);
+            const {id, transactionBytes, updateAccountTransactionBytes, originalPublicKey} = await createAccount(this.network, options);
 
             const client = this.getClient();
             if (updateAccountTransactionBytes) {
@@ -179,12 +179,19 @@ export class SDK {
                 await transaction.execute(client);
             }
 
+            let evmAddress;
+            if (originalPublicKey) {
+                evmAddress = hethers.utils.computeAddress(`0x${originalPublicKey.slice(-66)}`);
+            } else {
+                evmAddress = hethers.utils.computeAddress(`0x${privateKey.publicKey.toStringRaw()}`);
+            }
+
             const result = {
                 seedPhrase: seedPhrase.toString(),
                 publicKey,
                 privateKey: privateKey.toStringDer(),
                 accountId: id,
-                evmAddress: hethers.utils.computeAddress(`0x${privateKey.publicKey.toStringRaw()}`).toLowerCase()
+                evmAddress: evmAddress.toLowerCase()
             };
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
