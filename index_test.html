@@ -1,0 +1,105 @@
+<html>
+    <head>
+        <script src="dist/JSWrapper.bundle.js"></script>
+    </head>
+    <body>
+    <pre>
+<script style="display: block" p>
+(async () => {
+    console.log(await bladeSdk.contractCallFunction('0.0.48915363', 'set_message', '[{"type":"string","value":["Hello, Backend"]},{"type":"bytes32","value":["WzAsMSwyLDMsNCw1LDYsNyw4LDksMTAsMTEsMTIsMTMsMTQsMTUsMTYsMTcsMTgsMTksMjAsMjEsMjIsMjMsMjQsMjUsMjYsMjcsMjgsMjksMzAsMzFd"]},{"type":"address[]","value":["0.0.48738539","0.0.48738538","0.0.48738537"]},{"type":"address","value":["0.0.48850466"]},{"type":"address","value":["0.0.499326"]},{"type":"address","value":["0.0.48801688"]},{"type":"int64","value":["1"]},{"type":"uint8","value":["123"]},{"type":"uint64[]","value":["1","2","3"]},{"type":"uint256[]","value":["1","2","3"]},{"type":"tuple","value":["[{\\"type\\":\\"int64\\",\\"value\\":[\\"50\\"]},{\\"type\\":\\"tuple\\",\\"value\\":[\\"[{\\\\\\\\\\"type\\\\\\\\\\":\\\\\\\\\\"int64\\\\\\\\\\",\\\\\\\\\\"value\\\\\\\\\\":[\\\\\\\\\\"5\\\\\\\\\\"]},{\\\\\\\\\\"type\\\\\\\\\\":\\\\\\\\\\"int64\\\\\\\\\\",\\\\\\\\\\"value\\\\\\\\\\":[\\\\\\\\\\"10\\\\\\\\\\"]}]\\"]}]"]},{"type":"tuple[]","value":["[{\\"type\\":\\"int64\\",\\"value\\":[\\"5\\"]},{\\"type\\":\\"int64\\",\\"value\\":[\\"10\\"]}]","[{\\"type\\":\\"int64\\",\\"value\\":[\\"5\\"]},{\\"type\\":\\"int64\\",\\"value\\":[\\"10\\"]}]"]},{"type":"address","value":["0.0.12345"]},{"type":"uint64","value":["18446744073709551615"]},{"type":"uint256","value":["12345"]}]', '0.0.48905075', '302e020100300506032b65700422042042df7851440d10c1599999f28653ae31d59adc0bc4b7d18caaae777da38e385f', 100000, 'contractCallFunction2'));
+    // console.log("bladeSdk.getTransactions", await bladeSdk.getTransactions("0.0.49177063", "CRYPTOTRANSFERTOKEN", null));
+    // console.log("bladeSdk.getTransactions", await bladeSdk.getTransactions("0.0.499326", "", null));
+
+    // let types = new Set();
+    // let nextPage = null;
+    // do {
+    //     let res = await bladeSdk.getTransactions("0.0.499326", "", nextPage);
+    //
+    //     res.data.transactions.forEach(tx => types.add(tx.type));
+    //
+    //
+    //     nextPage = res.data.nextPage;
+    //     console.log([...types]);
+    // } while (nextPage !== null)
+    //
+    // console.log([...types]);
+
+
+
+
+
+
+    // console.log("bladeSdk.getTransactions", await bladeSdk.getTransactions("0.0.49177063", "CRYPTOCREATEACCOUNT", null));
+    // console.log("bladeSdk.createAccount()", await bladeSdk.createAccount("completionKey1"));
+    // console.log("contract", await bladeSdk.contractCallFunction('0.0.49059473', 'claim', '[{"type":"address","value":["0.0.48914498"]},{"type":"uint64[]","value":["5000000000","5000000000"]},{"type":"uint64[]","value":["6"]},{"type":"uint64[]","value":["34"]},{"type":"tuple[]","value":["[{\\"type\\":\\"address\\",\\"value\\":[\\"0.0.48914498\\"]},{\\"type\\":\\"uint8\\",\\"value\\":[\\"28\\"]},{\\"type\\":\\"bytes32\\",\\"value\\":[\\"WzIyOCwxNTgsODksMjUwLDEyMSwyOCwxODQsMTU2LDIzOSwxMzcsNDIsMTc1LDkxLDE4NSwyMjcsMTU3LDk4LDMzLDYsMjQ2LDI1Miw1MCw3MCwyMjYsMTgsMzUsMjksMTY3LDc4LDIzMCwyMDAsNzRd\\"]},{\\"type\\":\\"bytes32\\",\\"value\\":[\\"WzUzLDIxMiw0OSw2MCwxNTgsNiw5MSw3NywyNDksMjMxLDEwNiwyMzgsMCwxNTMsMTA5LDMzLDEwMywxMzksMTM0LDIxMSw0OSwxMzAsMTE0LDEwNCwxMzMsMjU0LDUzLDE0MiwyMzAsMTc0LDk1LDExN10=\\"]}]","[{\\"type\\":\\"address\\",\\"value\\":[\\"0.0.48914498\\"]},{\\"type\\":\\"uint8\\",\\"value\\":[\\"28\\"]},{\\"type\\":\\"bytes32\\",\\"value\\":[\\"WzIyOCwxNTgsODksMjUwLDEyMSwyOCwxODQsMTU2LDIzOSwxMzcsNDIsMTc1LDkxLDE4NSwyMjcsMTU3LDk4LDMzLDYsMjQ2LDI1Miw1MCw3MCwyMjYsMTgsMzUsMjksMTY3LDc4LDIzMCwyMDAsNzRd\\"]},{\\"type\\":\\"bytes32\\",\\"value\\":[\\"WzUzLDIxMiw0OSw2MCwxNTgsNiw5MSw3NywyNDksMjMxLDEwNiwyMzgsMCwxNTMsMTA5LDMzLDEwMywxMzksMTM0LDIxMSw0OSwxMzAsMTE0LDEwNCwxMzMsMjU0LDUzLDE0MiwyMzAsMTc0LDk1LDExN10=\\"]}]"]}]', '0.0.48914498', '3030020100300706052b8104000a042204200ce23c3a1cc9b7cd85db5fdd039491cab3d95c0065ac18f77867d33eaff5c050', 15000000, 'contractCallFunction3'));
+    // console.log("contract", await bladeSdk.contractCallFunction('0.0.49178094', 'registerToVote', '[{"type":"address","value":["0.0.49177063"]}]', '0.0.49177063', '3030020100300706052b8104000a0422042045224074f95b943a4ad8ce7f660db9593d1193d35b3808ecd2e7265caaa00a3d', 56543, 'contractCallFunction2'));
+})();
+</script>
+</pre>
+        <script>
+
+            // const account = {
+            //     accountId: "0.0.49177063",
+            //     privateKey: "3030020100300706052b8104000a0422042045224074f95b943a4ad8ce7f660db9593d1193d35b3808ecd2e7265caaa00a3d",
+            //     publicKey: "302d300706052b8104000a03220002bdc4a7f2d365a0112867a79fa0acda12d59c00b115870b09e7e83c77a7728d95",
+            //     seedPhrase: "service unable under gauge castle lawn orchard kitten chat produce anxiety top"
+            //     evm: "0x38e689ffa7ac5d9e5d2e3bd81eea564d4faf4921"
+            // }
+            // window.webkit.messageHandlers.bladeMessageHandler.postMessage
+
+            // window.webkit = {
+            //     messageHandlers: {
+            //         bladeMessageHandler: {
+            //             postMessage: console.log
+            //         }
+            //     }
+            // }
+
+
+            // console.log(bladeSdk.init("1NpEy10UxlZ7AeqkuiCws3zJLPehQqvm7ahefmNF6wREULFGlm6rNtY/dKG6tmM", "TESTNET", "karatecombat", "C1AF277B-882B-48AB-8D53-843ED4E93649", "init"));
+
+
+
+
+
+
+
+
+            // console.log(
+            //     bladeSdk.createAccount("1234")
+            // );
+
+            // console.log(bladeSdk.getAccountsFromPublicKey("302a300506032b6570032100db34f1200267f387d904a54367cf338d680f11bb7e12effd995131906f92c7cc", "ok"))
+
+            // bladeSdk.contractCallFunction('0.0.48800361', '3a04033c', '[{"type":"address","value":["0.0.48738539"]},{"type":"address","value":["0.0.499326"]},{"type":"address","value":["0.0.48801688"]},{"type":"int64","value":["1"]}]', '0.0.499326', '302e020100300506032b657004220420a796173a23fb7c6867ee9ecb57114a1b4c2f4b4345e9bb76f71286e27c79cd67', 'contractCallFunction2');
+
+            // bladeSdk.deleteAccount("0.0.48964811", "3030020100300706052b8104000a042204209ca176453383dbe56571c23ca20d4aa9701f09cc19849ff50f54a14bd1697b9a", "0.0.48905075", 'completionKey1');
+
+            // bladeSdk.createAccount("createAccount1");
+
+            // {"completionKey":"createAccount1","data":{"seedPhrase":"fee feel buddy wealth spot potato barrel alpha exit birth mimic excuse","publicKey":"302d300706052b8104000a032200030c93ffa8465e66a46b25ec23a41528364673db5b18ef72479b0bed338fb5d952","privateKey":"3030020100300706052b8104000a04220420ce63a040b35eaaddc8ddfbd92f101f0ec501ce9c9285865bdffde26710d22590","accountId":"0.0.48971155"}}
+
+            // (async () => {
+            //     // console.log("bladeSdk.getBalance", await bladeSdk.getBalance("0.0.499326"));
+            //
+            //     // console.log("bladeSdk.getTransactions", await bladeSdk.getTransactions("0.0.48905075"));
+            //     // console.log("bladeSdk.getParamsSignature", await bladeSdk.getParamsSignature('[{"type":"address[]","value":["0.0.49070632","0.0.48914498", "0.0.48905075"]},{"type":"uint64[]","value":["5000000000","5000000000"]},{"type":"uint64[]","value":["6"]},{"type":"uint64[]","value":["7"]}]', '3030020100300706052b8104000a042204200ce23c3a1cc9b7cd85db5fdd039491cab3d95c0065ac18f77867d33eaff5c050', 'getParamsSignature2'));
+            //     // console.log("bladeSdk.contractCallFunction", await bladeSdk.contractCallFunction('0.0.49059473', 'claim', '[{"type":"address[]","value":["0.0.48914498", "0.0.49070632"]},{"type":"uint64[]","value":["5000000000","5000000000"]},{"type":"uint64[]","value":["6"]},{"type":"uint64[]","value":["17"]},{"type":"tuple[]","value":["[{\\"type\\":\\"uint8\\",\\"value\\":[\\"28\\"]},{\\"type\\":\\"bytes32\\",\\"value\\":[\\"WzEyLDc3LDksNSwyNSwyNTIsNDcsNDIsMTU3LDExLDEyMSwzNCwxMzMsMTc3LDI0Niw0Nyw3NiwyNCwyMTQsMTQ5LDE0NSwxMCw5LDEzOSwxMzQsMTA5LDIyMiwzOSw5NiwyMTUsMjAwLDE3Ml0=\\"]},{\\"type\\":\\"bytes32\\",\\"value\\":[\\"WzMwLDI0OSwyMzgsNzMsMzcsMTg4LDE0NiwyNDIsMjI4LDExMywyMDksNjgsNzYsMTE3LDEwMCwxNDIsNTYsNjEsOCw2MiwxMjgsMTIxLDExLDI2LDc3LDE3NywxNDUsMjEsMTA5LDUzLDIwNCwyN10=\\"]}]","[{\\"type\\":\\"uint8\\",\\"value\\":[\\"28\\"]},{\\"type\\":\\"bytes32\\",\\"value\\":[\\"WzEyLDc3LDksNSwyNSwyNTIsNDcsNDIsMTU3LDExLDEyMSwzNCwxMzMsMTc3LDI0Niw0Nyw3NiwyNCwyMTQsMTQ5LDE0NSwxMCw5LDEzOSwxMzQsMTA5LDIyMiwzOSw5NiwyMTUsMjAwLDE3Ml0=\\"]},{\\"type\\":\\"bytes32\\",\\"value\\":[\\"WzMwLDI0OSwyMzgsNzMsMzcsMTg4LDE0NiwyNDIsMjI4LDExMywyMDksNjgsNzYsMTE3LDEwMCwxNDIsNTYsNjEsOCw2MiwxMjgsMTIxLDExLDI2LDc3LDE3NywxNDUsMjEsMTA5LDUzLDIwNCwyN10=\\"]}]"]}]', '0.0.48914498', '3030020100300706052b8104000a042204200ce23c3a1cc9b7cd85db5fdd039491cab3d95c0065ac18f77867d33eaff5c050', 'contractCallFunction3'));
+            //
+            //
+            // })();
+
+
+            // bladeSdk.sign("msg", "3030020100300706052b8104000a04220420ce63a040b35eaaddc8ddfbd92f101f0ec501ce9c9285865bdffde26710d22590", "sign1");
+
+            // bladeSdk.hethersSign("msg", "3030020100300706052b8104000a04220420ce63a040b35eaaddc8ddfbd92f101f0ec501ce9c9285865bdffde26710d22590", "hethersSign1");
+
+            // bladeSdk.test();
+
+
+
+            // bladeSdk.contractCallFunction('0.0.48800361', '3a04033c', '[{"type":"address","value":["0.0.48738539"]},{"type":"address","value":["0.0.499326"]},{"type":"address","value":["0.0.48801688"]},{"type":"int64","value":["1"]},{"type":"tuple","value":["[{\\"type\\":\\"int64\\",\\"value\\":[\\"50\\"]},{\\"type\\":\\"tuple\\",\\"value\\":[\\"[{\\\\\\"type\\\\\\":\\\\\\"int64\\\\\\",\\\\\\"value\\\\\\":[\\\\\\"5\\\\\\"]},{\\\\\\"type\\\\\\":\\\\\\"int64\\\\\\",\\\\\\"value\\\\\\":[\\\\\\"10\\\\\\"]}]\\"]}]"]},{"type":"tuple[]","value":["[{\\"type\\":\\"int64\\",\\"value\\":[\\"5\\"]},{\\"type\\":\\"int64\\",\\"value\\":[\\"10\\"]}]","[{\\"type\\":\\"int64\\",\\"value\\":[\\"5\\"]},{\\"type\\":\\"int64\\",\\"value\\":[\\"10\\"]}]"]}]', '0.0.499326', '302e020100300506032b657004220420a796173a23fb7c6867ee9ecb57114a1b4c2f4b4345e9bb76f71286e27c79cd67', 'contractCallFunction2')
+        </script>
+
+    </body>
+</html>

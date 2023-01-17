@@ -2,13 +2,6 @@
 /.build
 node_modules
 /Packages
-/*.xcodeproj
-xcuserdata/
-DerivedData/
-.swiftpm/config/registries.json
-.swiftpm/xcode/package.xcworkspace
-.netrc
 .idea
-Sources/SwiftBlade/JS/.idea
-Sources/SwiftBlade/JS/coverage
-Sources/SwiftBlade/JS/publish
+coverage
+publish
