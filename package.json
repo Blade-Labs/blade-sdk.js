@@ -1,6 +1,6 @@
 {
   "name": "hederaskdwrapper",
-  "version": "0.0.1",
+  "version": "0.3.6",
   "description": "A simple wrapper for Hedera SDK",
   "main": "index.js",
   "scripts": {
