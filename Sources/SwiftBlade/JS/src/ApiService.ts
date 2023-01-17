@@ -26,7 +26,9 @@ const fetchWithRetry = async (url, options, maxAttempts = 3) => {
                                 makeRequest(url, options);
                             }, interval * attemptCounter);
                         } else {
-                            reject(await res.json());
+                            const result = await res.json()
+                            result['url'] = res.url;
+                            reject(result);
                         }
                     } else {
                         resolve(res);

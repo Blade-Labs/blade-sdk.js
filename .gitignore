@@ -11,3 +11,4 @@ DerivedData/
 .idea
 Sources/SwiftBlade/JS/.idea
 Sources/SwiftBlade/JS/coverage
+Sources/SwiftBlade/JS/publish
