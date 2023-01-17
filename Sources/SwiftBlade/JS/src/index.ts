@@ -348,11 +348,10 @@ export class SDK {
             };
         }
 
-        // @ts-ignore
-        if (window?.webkit?.messageHandlers?.bladeMessageHandler) {
-            /* istanbul ignore next */
-            // @ts-ignore
-            window.webkit.messageHandlers.bladeMessageHandler.postMessage(JSON.stringify(responseObject));
+        // @ts-ignore  // IOS or Android
+        const bladeMessageHandler = window?.webkit?.messageHandlers?.bladeMessageHandler || window?.bladeMessageHandler;
+        if (bladeMessageHandler) {
+            bladeMessageHandler.postMessage(JSON.stringify(responseObject));
         }
         return JSON.parse(JSON.stringify(responseObject));
     }
