@@ -18,4 +18,4 @@ npm run build
 npm run publish
 ```
 
-On repos create pull request from newly created branch `js/build_<date>`
+On repos create pull request from newly created branch `js/latest-build`

@@ -9,7 +9,8 @@ export interface TransactionData {
     memo?: string,
     fee?: number,
     showDetailed?: boolean,
-    plainData?: any
+    plainData?: any,
+    consensusTimestamp: string
 }
 
 export interface TransferData {
