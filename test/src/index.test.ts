@@ -385,7 +385,7 @@ test('bladeSdk.getTransactions', async () => {
     await sleep(10_000);
 
     //get expected transaction
-    result = await bladeSdk.getTransactions(accountId, "", "", completionKey);
+    result = await bladeSdk.getTransactions(accountId, "", "", "5", completionKey);
     checkResult(result);
 
     expect(result.data).toHaveProperty("nextPage");
@@ -416,15 +416,15 @@ test('bladeSdk.getTransactions', async () => {
 
 
     //next page
-    result = await bladeSdk.getTransactions(accountId, "", nextPage, completionKey);
+    result = await bladeSdk.getTransactions(accountId, "", nextPage, "5", completionKey);
     checkResult(result);
 
     // filter by transactionType
-    result = await bladeSdk.getTransactions(accountId, "CRYPTOTRANSFER", "", completionKey);
+    result = await bladeSdk.getTransactions(accountId, "CRYPTOTRANSFER", "", "5", completionKey);
     checkResult(result);
 
     // filter by transactionType and add custom plainData in response
-    result = await bladeSdk.getTransactions(accountId, "CRYPTOTRANSFERTOKEN", "", completionKey);
+    result = await bladeSdk.getTransactions(accountId, "CRYPTOTRANSFERTOKEN", "", "5", completionKey);
     checkResult(result);
 
     if (result.data.transactions.length) {
@@ -437,7 +437,7 @@ test('bladeSdk.getTransactions', async () => {
     }
 
     //invalid accountId
-    result = await bladeSdk.getTransactions('0.dgsgsdgdsgdsgdsg', "", "", completionKey);
+    result = await bladeSdk.getTransactions('0.dgsgsdgdsgdsgdsg', "", "", "5", completionKey);
     checkResult(result, false);
 
     //invalid tx

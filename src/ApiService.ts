@@ -151,28 +151,46 @@ export const getTransactionsFrom = async (
     network: Network,
     accountId: string,
     transactionType: string = "",
-    nextPage?: string | null
+    nextPage?: string | null,
+    transactionsLimit: string = "10"
 ): Promise<{ nextPage: string | null, transactions: TransactionData[] }> => {
+    const limit = parseInt(transactionsLimit, 10);
     let info;
-    if (nextPage) {
-        info = await GET(network, nextPage);
-    } else {
-        info = await GET(network, `api/v1/transactions/?account.id=${accountId}`);
+    const result: TransactionData[] = [];
+
+    while (result.length < limit) {
+        if (nextPage) {
+            info = await GET(network, nextPage);
+        } else {
+            info = await GET(network, `api/v1/transactions/?account.id=${accountId}`);
+        }
+        nextPage = info.links.next?.substring(1) ?? null;
+
+        const groupedTransactions: {[key: string]: TransactionData[]} = {};
+
+        await Promise.all(info.transactions.map(async(t: any) => {
+            groupedTransactions[t.transaction_id] = await getTransaction(network, t.transaction_id, accountId);
+        }));
+
+        let transactions: TransactionData[] = flatArray(Object.values(groupedTransactions))
+            .sort((a, b) => new Date(b.time).valueOf() - new Date(a.time).valueOf());
+
+        transactions = filterAndFormatTransactions(transactions, transactionType);
+
+        result.push(...transactions);
+
+        if (result.length >= limit) {
+            nextPage = `api/v1/transactions?account.id=${accountId}&timestamp=lt:${result[limit-1].consensusTimestamp}`;
+        }
+
+        if (!nextPage) {
+            break;
+        }
     }
 
-    const groupedTransactions: {[key: string]: TransactionData[]} = {};
-
-    await Promise.all(info.transactions.map(async(t: any) => {
-        groupedTransactions[t.transaction_id] = await getTransaction(network, t.transaction_id, accountId);
-    }));
-
-    let transactions: TransactionData[] = flatArray(Object.values(groupedTransactions))
-        .sort((a, b) => new Date(b.time).valueOf() - new Date(a.time).valueOf());
-
-    transactions = filterAndFormatTransactions(transactions, transactionType);
     return {
-        nextPage: info.links.next?.substring(1) ?? null,
-        transactions: transactions
+        nextPage,
+        transactions: result.slice(0, limit)
     };
 };
 
@@ -190,7 +208,8 @@ export const getTransaction = (network: Network, transactionId: string, accountI
                 memo: global.atob(t.memo_base64),
                 transactionId: t.transaction_id,
                 fee: t.charged_tx_fee,
-                type: t.name
+                type: t.name,
+                consensusTimestamp: t.consensus_timestamp
             };
         }))
         .catch(err => {

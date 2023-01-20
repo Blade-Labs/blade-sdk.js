@@ -366,9 +366,9 @@ export class SDK {
         }
     }
 
-    async getTransactions(accountId: string, transactionType: string = "", nextPage: string, completionKey: string) {
+    async getTransactions(accountId: string, transactionType: string = "", nextPage: string, transactionsLimit: string = "10", completionKey: string) {
         try {
-            const transactionData = await getTransactionsFrom(this.network, accountId, transactionType, nextPage);
+            const transactionData = await getTransactionsFrom(this.network, accountId, transactionType, nextPage, transactionsLimit);
             return this.sendMessageToNative(completionKey, transactionData);
         } catch (error) {
             return this.sendMessageToNative(completionKey, null, error);

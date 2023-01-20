@@ -1,8 +1,9 @@
 const shell = require('shelljs')
 
 const dir = 'publish';
-const sourcePaths = ['dist/*', 'index.html']
-const branch = `js/build_${(new Date()).toLocaleDateString('en-UK').split('/').reverse().join('-')}`
+const sourcePaths = ['dist/*', 'index.html'];
+const branch = 'js/latest-build';
+const message = `build JS from ${Date().toString()}`;
 
 const sdkConfigs = [
     {
@@ -33,7 +34,7 @@ for (const {destinationPath, repoUrl, sdkName} of sdkConfigs) {
         shell.cp(`../../${sourcePath}`, destinationPath);
     }
     shell.exec(`git add ${destinationPath}`);
-    shell.exec(`git commit -m "build JS from ${Date().toString()}"`);
+    shell.exec(`git commit -m "${message}"`);
     shell.exec(`git push --set-upstream origin ${branch} --force`);
     shell.cd('../..');
     shell.rm('-rf', `${dir}/${sdkName}`);
