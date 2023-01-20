@@ -73,6 +73,44 @@ export const createAccount = async (network: Network, params: any) => {
         .then(x => x.json());
 };
 
+export const checkAccountCreationStatus = async (transactionId: string, network: Network, params: any): Promise<any> => {
+    const url = `${ApiUrl}/accounts/status?transactionId=${transactionId}`;
+    console.log(`checkAccountCreationStatus(${transactionId})`);
+    const options = {
+        method: "GET",
+        headers: new Headers({
+            "X-SDK-TOKEN": params.apiKey,
+            "X-FINGERPRINT": params.fingerprint,
+            "X-NETWORK": network.toUpperCase(),
+            "X-DAPP-CODE": params.dAppCode,
+            "Content-Type": "application/json"
+        })
+    };
+
+    return fetch(url, options)
+        .then(statusCheck)
+        .then(x => x.json());
+};
+
+export const getPendingAccountData = async (transactionId: string, network: Network, params: any) => {
+    const url = `${ApiUrl}/accounts/details?transactionId=${transactionId}`;
+    console.log(`getPendingAccountData(${transactionId})`);
+    const options = {
+        method: "GET",
+        headers: new Headers({
+            "X-SDK-TOKEN": params.apiKey,
+            "X-FINGERPRINT": params.fingerprint,
+            "X-NETWORK": network.toUpperCase(),
+            "X-DAPP-CODE": params.dAppCode,
+            "Content-Type": "application/json"
+        })
+    };
+
+    return fetch(url, options)
+        .then(statusCheck)
+        .then(x => x.json());
+};
+
 export const requestTokenInfo = async (network: Network, tokenId: string) => {
     return GET(network,`api/v1/tokens/${tokenId}`);
 };

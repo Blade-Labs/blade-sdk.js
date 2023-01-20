@@ -1,23 +1,30 @@
 import {
-    AccountBalanceQuery, AccountDeleteTransaction,
+    AccountBalanceQuery,
+    AccountDeleteTransaction,
     Client,
     Mnemonic,
-    PrivateKey, PublicKey,
+    PrivateKey,
+    PublicKey,
     Transaction,
     TransferTransaction
 } from "@hashgraph/sdk";
 import {Buffer} from "buffer";
 import {hethers} from "@hashgraph/hethers";
 import {
+    checkAccountCreationStatus,
     createAccount,
     getAccountsFromPublicKey,
-    requestTokenInfo, signContractCallTx,
-    getTransactionsFrom
+    getPendingAccountData,
+    getTransactionsFrom,
+    requestTokenInfo,
+    signContractCallTx
 } from "./ApiService";
 import {Network} from "./models/Networks";
 import StringHelpers from "./helpers/StringHelpers";
 import {parseContractFunctionParams} from "./helpers/ContractHelpers";
 import {CustomError} from "./models/Errors";
+import {AccountStatus} from "./models/Common";
+import {executeUpdateAccountTransactions} from "./helpers/AccountHelpers";
 
 export class SDK {
     private apiKey: string = "";
@@ -163,36 +170,75 @@ export class SDK {
                 publicKey
             };
 
+            const {
+                id,
+                transactionBytes,
+                updateAccountTransactionBytes,
+                originalPublicKey,
+                transactionId
+            } = await createAccount(this.network, options);
 
-            const {id, transactionBytes, updateAccountTransactionBytes, originalPublicKey} = await createAccount(this.network, options);
+            await executeUpdateAccountTransactions(this.getClient(), privateKey, updateAccountTransactionBytes, transactionBytes);
 
-            const client = this.getClient();
-            if (updateAccountTransactionBytes) {
-                const buffer: Buffer = Buffer.from(updateAccountTransactionBytes, "base64");
-                const transaction = await Transaction.fromBytes(buffer).sign(privateKey);
-                await transaction.execute(client);
-            }
-
-            if (transactionBytes) {
-                const buffer = Buffer.from(transactionBytes, "base64");
-                const transaction = await Transaction.fromBytes(buffer).sign(privateKey);
-                await transaction.execute(client);
-            }
-
-            let evmAddress;
-            if (originalPublicKey) {
-                evmAddress = hethers.utils.computeAddress(`0x${originalPublicKey.slice(-66)}`);
-            } else {
-                evmAddress = hethers.utils.computeAddress(`0x${privateKey.publicKey.toStringRaw()}`);
-            }
+            const evmAddress = hethers.utils.computeAddress(`0x${originalPublicKey ? originalPublicKey.slice(-66) : privateKey.publicKey.toStringRaw()}`);
 
             const result = {
+                transactionId,
+                status: transactionId ? "PENDING" : "SUCCESS",
                 seedPhrase: seedPhrase.toString(),
                 publicKey,
                 privateKey: privateKey.toStringDer(),
-                accountId: id,
+                accountId: id || null,
                 evmAddress: evmAddress.toLowerCase()
             };
+            return this.sendMessageToNative(completionKey, result);
+        } catch (error) {
+            return this.sendMessageToNative(completionKey, null, error);
+        }
+    }
+
+    async getPendingAccount(transactionId: string, mnemonic: string, completionKey: string) {
+        try {
+            const seedPhrase = await Mnemonic.fromString(mnemonic);
+            const privateKey = await seedPhrase.toEcdsaPrivateKey();
+            const publicKey = privateKey.publicKey.toStringDer();
+            let evmAddress = hethers.utils.computeAddress(`0x${privateKey.publicKey.toStringRaw()}`);
+
+            const result = {
+                transactionId,
+                status: AccountStatus.PENDING,
+                seedPhrase: seedPhrase.toString(),
+                publicKey,
+                privateKey: privateKey.toStringDer(),
+                accountId: null,
+                evmAddress: evmAddress.toLowerCase()
+            };
+
+            const params = {
+                apiKey: this.apiKey,
+                fingerprint: this.fingerprint,
+                network: this.network.toLowerCase(),
+                dAppCode: this.dAppCode,
+            };
+            const {status} = await checkAccountCreationStatus(transactionId, this.network, params);
+            if (status === AccountStatus.SUCCESS) {
+                const {
+                    id,
+                    transactionBytes,
+                    updateAccountTransactionBytes,
+                    originalPublicKey
+                } = await getPendingAccountData(transactionId, this.network, params);
+
+                await executeUpdateAccountTransactions(this.getClient(), privateKey, updateAccountTransactionBytes, transactionBytes);
+
+                evmAddress = hethers.utils.computeAddress(`0x${originalPublicKey ? originalPublicKey.slice(-66) : privateKey.publicKey.toStringRaw()}`);
+
+                result.transactionId = null;
+                result.status = status;
+                result.accountId = id;
+                result.evmAddress = evmAddress.toLowerCase()
+            }
+
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             return this.sendMessageToNative(completionKey, null, error);
@@ -257,7 +303,7 @@ export class SDK {
     sign(messageString: string, privateKey: string, completionKey: string) {
         try {
             const key = PrivateKey.fromString(privateKey);
-            const signed = key.sign(Buffer.from(messageString, 'base64'));
+            const signed = key.sign(Buffer.from(messageString, "base64"));
 
             return this.sendMessageToNative(completionKey, {
                 signedMessage: Buffer.from(signed).toString("hex")
@@ -270,8 +316,8 @@ export class SDK {
     signVerify(messageString: string, signature: string, publicKey: string, completionKey: string) {
         try {
             const valid = PublicKey.fromString(publicKey).verify(
-                Buffer.from(messageString, 'base64'),
-                Buffer.from(signature, 'hex')
+                Buffer.from(messageString, "base64"),
+                Buffer.from(signature, "hex")
             );
             return this.sendMessageToNative(completionKey, {valid});
         } catch (error) {
@@ -283,7 +329,7 @@ export class SDK {
         try {
             const wallet = new hethers.Wallet(privateKey);
             return wallet
-                .signMessage(Buffer.from(messageString, 'base64'))
+                .signMessage(Buffer.from(messageString, "base64"))
                 .then(signedMessage => {
                     return this.sendMessageToNative(completionKey, {
                         signedMessage: signedMessage

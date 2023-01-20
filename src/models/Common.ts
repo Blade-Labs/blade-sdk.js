@@ -17,3 +17,10 @@ export interface TransferData {
     account: string,
     token_id?: string
 }
+
+export enum AccountStatus {
+    PENDING = "PENDING",
+    SUCCESS = "SUCCESS",
+    RETRY = "RETRY",
+    FAILED ="FAILED"
+}
