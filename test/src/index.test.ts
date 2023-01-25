@@ -174,14 +174,14 @@ test('bladeSdk.transferTokens', async () => {
 
     const amount = 1;
     // invalid signature
-    result = await bladeSdk.transferTokens(tokenId.toString(), accountId2, privateKey, accountId2, amount.toString(), completionKey);
+    result = await bladeSdk.transferTokens(tokenId.toString(), accountId2, privateKey, accountId2, amount.toString(), false, completionKey);
     checkResult(result, false);
 
     // invalid tokenId
-    result = await bladeSdk.transferTokens("invalid token id", accountId2, privateKey, accountId2, amount.toString(), completionKey);
+    result = await bladeSdk.transferTokens("invalid token id", accountId2, privateKey, accountId2, amount.toString(), false, completionKey);
     checkResult(result, false);
 
-    result = await bladeSdk.transferTokens(tokenId.toString(), accountId, privateKey, accountId2, amount.toString(), completionKey);
+    result = await bladeSdk.transferTokens(tokenId.toString(), accountId, privateKey, accountId2, amount.toString(), false, completionKey);
     checkResult(result);
     expect(result.data).toHaveProperty("nodeId");
     expect(result.data).toHaveProperty("transactionHash");
