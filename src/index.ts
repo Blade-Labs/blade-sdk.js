@@ -17,7 +17,8 @@ import {
     getPendingAccountData,
     getTransactionsFrom,
     requestTokenInfo,
-    signContractCallTx
+    signContractCallTx,
+    transferTokens
 } from "./ApiService";
 import {Network} from "./models/Networks";
 import StringHelpers from "./helpers/StringHelpers";
@@ -135,7 +136,7 @@ export class SDK {
         }
     }
 
-    async transferTokens(tokenId: string, accountId: string, accountPrivateKey: string, receiverID: string, amount: string, completionKey: string) {
+    async transferTokens(tokenId: string, accountId: string, accountPrivateKey: string, receiverID: string, amount: string, freeTransfer: boolean = true, completionKey: string) {
         try {
             const client = this.getClient();
             client.setOperator(accountId, accountPrivateKey);
@@ -143,15 +144,45 @@ export class SDK {
             const meta = await requestTokenInfo(this.network, tokenId);
             const correctedAmount = parseFloat(amount) * (10 ** parseInt(meta.decimals));
 
-            return new TransferTransaction()
-                .addTokenTransfer(tokenId, receiverID, correctedAmount)
-                .addTokenTransfer(tokenId, accountId, -1 * correctedAmount)
-                .execute(client)
-                .then(data => {
-                    return this.sendMessageToNative(completionKey, data);
-                }).catch(error => {
-                    return this.sendMessageToNative(completionKey, null, error);
-                });
+            if (freeTransfer) {
+                const options = {
+                    dAppCode: this.dAppCode,
+                    apiKey: this.apiKey,
+                    receiverAccountId: receiverID,
+                    senderAccountId: accountId,
+                    amount: correctedAmount,
+                    decimals: null,
+                    memo: "string",
+                    // no tokenId, backend pick first token from list for currend dApp
+                }
+
+                const {transactionBytes} = await transferTokens(this.network, options);
+                const buffer = Buffer.from(transactionBytes, "base64");
+                const transaction = Transaction.fromBytes(buffer);
+
+                return transaction
+                    .sign(PrivateKey.fromString(accountPrivateKey))
+                    .then(signTx => {
+                        return signTx.execute(client);
+                    })
+                    .then(result => {
+                        return this.sendMessageToNative(completionKey, result)
+                    })
+                    .catch(error => {
+                        return this.sendMessageToNative(completionKey, null, error);
+                    });
+            } else {
+                return new TransferTransaction()
+                    .addTokenTransfer(tokenId, receiverID, correctedAmount)
+                    .addTokenTransfer(tokenId, accountId, -1 * correctedAmount)
+                    .execute(client)
+                    .then(data => {
+                        return this.sendMessageToNative(completionKey, data);
+                    }).catch(error => {
+                        return this.sendMessageToNative(completionKey, null, error);
+                    });
+            }
+
         } catch (error) {
             return this.sendMessageToNative(completionKey, null, error);
         }
@@ -211,7 +242,8 @@ export class SDK {
                 publicKey,
                 privateKey: privateKey.toStringDer(),
                 accountId: null,
-                evmAddress: evmAddress.toLowerCase()
+                evmAddress: evmAddress.toLowerCase(),
+                queueNumber: 0
             };
 
             const params = {
@@ -220,7 +252,7 @@ export class SDK {
                 network: this.network.toLowerCase(),
                 dAppCode: this.dAppCode,
             };
-            const {status} = await checkAccountCreationStatus(transactionId, this.network, params);
+            const {status, queueNumber} = await checkAccountCreationStatus(transactionId, this.network, params);
             if (status === AccountStatus.SUCCESS) {
                 const {
                     id,
@@ -237,6 +269,8 @@ export class SDK {
                 result.status = status;
                 result.accountId = id;
                 result.evmAddress = evmAddress.toLowerCase()
+            } else {
+                result.queueNumber = queueNumber;
             }
 
             return this.sendMessageToNative(completionKey, result);
