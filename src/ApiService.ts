@@ -115,6 +115,31 @@ export const requestTokenInfo = async (network: Network, tokenId: string) => {
     return GET(network,`api/v1/tokens/${tokenId}`);
 };
 
+export const transferTokens = async (network: Network, params: any) => {
+    const url = `${ApiUrl}/tokens/transfers`;
+
+    const options = {
+        method: "POST",
+        headers: new Headers({
+            "X-NETWORK": network.toUpperCase(),
+            "X-DAPP-CODE": params.dAppCode,
+            "X-SDK-TOKEN": params.apiKey,
+            "Content-Type": "application/json"
+        }),
+        body: JSON.stringify({
+            receiverAccountId: params.receiverAccountId,
+            senderAccountId: params.senderAccountId,
+            amount: params.amount,
+            decimals: params.decimals,
+            memo: params.memo
+        })
+    };
+
+    return fetch(url, options)
+        .then(statusCheck)
+        .then(x => x.json());
+};
+
 export const signContractCallTx = async (network: Network, params: any) => {
     const url = `${ApiUrl}/smart/contract/sign`;
     const options = {
@@ -157,12 +182,13 @@ export const getTransactionsFrom = async (
     const limit = parseInt(transactionsLimit, 10);
     let info;
     const result: TransactionData[] = [];
+    const pageLimit = limit >= 100 ? 100 : 25;
 
     while (result.length < limit) {
         if (nextPage) {
             info = await GET(network, nextPage);
         } else {
-            info = await GET(network, `api/v1/transactions/?account.id=${accountId}`);
+            info = await GET(network, `api/v1/transactions/?account.id=${accountId}&limit=${pageLimit}`);
         }
         nextPage = info.links.next?.substring(1) ?? null;
 
@@ -180,7 +206,7 @@ export const getTransactionsFrom = async (
         result.push(...transactions);
 
         if (result.length >= limit) {
-            nextPage = `api/v1/transactions?account.id=${accountId}&timestamp=lt:${result[limit-1].consensusTimestamp}`;
+            nextPage = `api/v1/transactions?account.id=${accountId}&timestamp=lt:${result[limit-1].consensusTimestamp}&limit=${pageLimit}`;
         }
 
         if (!nextPage) {
