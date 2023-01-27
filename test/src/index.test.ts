@@ -247,15 +247,19 @@ test('bladeSdk.deleteAccount', async () => {
 }, 60_000);
 
 test('bladeSdk.getKeysFromMnemonic', async () => {
+    await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.FINGERPRINT, completionKey);
+    let result = await bladeSdk.createAccount(completionKey);
+    checkResult(result);
+
     const accountSample = {
-        accountId: "0.0.49177063",
-        privateKey: "3030020100300706052b8104000a0422042045224074f95b943a4ad8ce7f660db9593d1193d35b3808ecd2e7265caaa00a3d",
-        publicKey: "302d300706052b8104000a03220002bdc4a7f2d365a0112867a79fa0acda12d59c00b115870b09e7e83c77a7728d95",
-        seedPhrase: "service unable under gauge castle lawn orchard kitten chat produce anxiety top",
-        evmAddress: "0x38e689ffa7ac5d9e5d2e3bd81eea564d4faf4921"
+        accountId: result.data.accountId,
+        privateKey: result.data.privateKey,
+        publicKey: result.data.publicKey,
+        seedPhrase: result.data.seedPhrase,
+        evmAddress: result.data.evmAddress
     }
 
-    let result = await bladeSdk.getKeysFromMnemonic(accountSample.seedPhrase, false, completionKey);
+    result = await bladeSdk.getKeysFromMnemonic(accountSample.seedPhrase, false, completionKey);
     checkResult(result);
 
     expect(result.data).toHaveProperty("privateKey");
@@ -291,7 +295,7 @@ test('bladeSdk.sign + signVerify', async () => {
     checkResult(result);
 
     expect(result.data).toHaveProperty("signedMessage");
-    expect(result.data.signedMessage).toEqual("bbc2f1c80fbbabb6e898c65d2e5a2a5ce3f3a04d4321b3d0095145019eedf99cf2e3a80fe88794f908cc95fdcdb0b8079de81bed6b053f7adcfe5a1c77560c50");
+    expect(result.data.signedMessage).toEqual(Buffer.from(PrivateKey.fromString(privateKey).sign(Buffer.from(message))).toString("hex"));
 
     const validationResult = bladeSdk.signVerify(messageString, result.data.signedMessage, PrivateKey.fromString(privateKey).publicKey.toStringRaw(), completionKey);
     checkResult(validationResult);
@@ -313,16 +317,15 @@ test('bladeSdk.sign + signVerify', async () => {
 test('bladeSdk.hethersSign', async () => {
     const message = "hello";
     const messageString = Buffer.from(message).toString("base64");
+    const wallet = new hethers.Wallet(privateKey);
 
     let result = await bladeSdk.hethersSign(messageString, privateKey, completionKey);
     checkResult(result);
 
     expect(result.data).toHaveProperty("signedMessage");
-    expect(result.data.signedMessage).toEqual("0x12509f194214661211b113c6a23029f4a8364fd4885918cc5943f2d784eb63661aded5c89825451fc1248b692e86479fa0dff50bf05caab20e56bb63e26559181c");
+    expect(result.data.signedMessage).toEqual(await wallet.signMessage(Buffer.from(message)));
 
     const signerAddress = hethers.utils.verifyMessage(message, result.data.signedMessage);
-    const wallet = new hethers.Wallet(privateKey);
-
     expect(signerAddress).toEqual(wallet.publicKey);
 
     // invalid calls
@@ -356,7 +359,7 @@ test('bladeSdk.splitSignature', async () => {
 });
 
 test('bladeSdk.getParamsSignature', async () => {
-    let result = await bladeSdk.getParamsSignature('[{"type":"address","value":["0.0.48914498"]},{"type":"uint64[]","value":["300000","300000"]},{"type":"uint64[]","value":["6"]},{"type":"uint64[]","value":["2"]}]', privateKey, completionKey);
+    let result = await bladeSdk.getParamsSignature(`[{"type":"address","value":["${accountId}"]},{"type":"uint64[]","value":["300000","300000"]},{"type":"uint64[]","value":["6"]},{"type":"uint64[]","value":["2"]}]`, privateKey, completionKey);
     checkResult(result);
 
     expect(result.data).toHaveProperty("v");
@@ -364,8 +367,8 @@ test('bladeSdk.getParamsSignature', async () => {
     expect(result.data).toHaveProperty("s");
 
     expect(result.data.v).toEqual(28);
-    expect(result.data.r).toEqual("0x9c46fd17727237e33e420b072e142a7dd0b4b1ffe2b983759c0e0db9bd0783b4");
-    expect(result.data.s).toEqual("0x0706284b70f7d4228af3b356d6fa65120c2104af58a9b10b1a54a85356bd9e5c");
+    expect(result.data.r).toEqual("0x94c49534e9edb9dd552884b21954105fe14142903d5eec5c04958c62cf49fcfe");
+    expect(result.data.s).toEqual("0x75ff4e91d2e0ba2772cca3271d98fb3ee8ba45429b53bb713aa39aabb6f90514");
 
     // invalid paramsEncoded
     result = await bladeSdk.getParamsSignature('[{{{{{{{{{{{"]', privateKey, completionKey);
@@ -433,7 +436,6 @@ test('bladeSdk.getTransactions', async () => {
         expect(result.data.transactions[0].plainData).toHaveProperty("token_id");
         expect(result.data.transactions[0].plainData).toHaveProperty("account");
         expect(result.data.transactions[0].plainData).toHaveProperty("amount");
-        console.log(result.data.transactions[0].plainData);
     }
 
     //invalid accountId
