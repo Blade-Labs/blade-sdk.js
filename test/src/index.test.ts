@@ -117,7 +117,7 @@ test('bladeSdk.contractCallFunction', async () => {
 
 
     // fail on wrong function params (CONTRACT_REVERT_EXECUTED)
-    paramsEncoded = '[{"type":"string","value":["Sum test"]},{"type":"address","value":["0x65f17cac69fb3df1328a5c239761d32e8b346da0"]},{"type":"address[]","value":["0.0.49054496","0.0.49057744","0.0.48831080"]},{"type":"bytes32","value":["WzAsMSwyLDMsNCw1LDYsNyw4LDksMTAsMTEsMTIsMTMsMTQsMTUsMTYsMTcsMTgsMTksMjAsMjEsMjIsMjMsMjQsMjUsMjYsMjcsMjgsMjksMzAsMzFd"]},{"type":"uint8","value":["1"]},{"type":"int64","value":["64"]},{"type":"uint256","value":["256"]},{"type":"uint64[]","value":["1"]},{"type":"uint256[]","value":["1"]},{"type":"tuple","value":["[{\\"type\\":\\"string[]\\",\\"value\\":[\\"1\\"]}]"]},{"type":"tuple[]","value":["[{\\"type\\":\\"string[]\\",\\"value\\":[\\"1\\"]}]"]}]';
+    paramsEncoded = `[{"type":"string","value":["Sum test"]},{"type":"address","value":["0x65f17cac69fb3df1328a5c239761d32e8b346da0"]},{"type":"address[]","value":["${accountId}","${accountId2}"]},{"type":"bytes32","value":["WzAsMSwyLDMsNCw1LDYsNyw4LDksMTAsMTEsMTIsMTMsMTQsMTUsMTYsMTcsMTgsMTksMjAsMjEsMjIsMjMsMjQsMjUsMjYsMjcsMjgsMjksMzAsMzFd"]},{"type":"uint8","value":["1"]},{"type":"int64","value":["64"]},{"type":"uint256","value":["256"]},{"type":"uint64[]","value":["1"]},{"type":"uint256[]","value":["1"]},{"type":"tuple","value":["[{\\"type\\":\\"string[]\\",\\"value\\":[\\"1\\"]}]"]},{"type":"tuple[]","value":["[{\\"type\\":\\"string[]\\",\\"value\\":[\\"1\\"]}]"]}]`;
     result = await bladeSdk.contractCallFunction(contractId, "set_numbers", paramsEncoded, accountId, privateKey, 1000000, completionKey);
     checkResult(result, false);
     expect(result.error.reason.includes("CONTRACT_REVERT_EXECUTED")).toEqual(true);
@@ -272,6 +272,8 @@ test('bladeSdk.getKeysFromMnemonic', async () => {
     expect(result.data.privateKey).toEqual(accountSample.privateKey);
     expect(result.data.publicKey).toEqual(accountSample.publicKey);
     expect(result.data.evmAddress).toEqual(accountSample.evmAddress);
+
+    await sleep(7000);
 
     result = await bladeSdk.getKeysFromMnemonic(accountSample.seedPhrase, true, completionKey);
     checkResult(result);

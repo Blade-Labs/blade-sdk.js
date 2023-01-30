@@ -75,7 +75,6 @@ export const createAccount = async (network: Network, params: any) => {
 
 export const checkAccountCreationStatus = async (transactionId: string, network: Network, params: any): Promise<any> => {
     const url = `${ApiUrl}/accounts/status?transactionId=${transactionId}`;
-    console.log(`checkAccountCreationStatus(${transactionId})`);
     const options = {
         method: "GET",
         headers: new Headers({
