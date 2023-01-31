@@ -2,6 +2,7 @@ import {
     AccountBalanceQuery,
     AccountDeleteTransaction,
     Client,
+    ContractExecuteTransaction,
     Mnemonic,
     PrivateKey,
     PublicKey,
@@ -76,7 +77,16 @@ export class SDK {
 
     }
 
-    async contractCallFunction(contractId: string, functionName: string, paramsEncoded: string, accountId: string, accountPrivateKey: string, gas: number = 100000, completionKey: string) {
+    async contractCallFunction(
+        contractId: string,
+        functionName: string,
+        paramsEncoded: string,
+        accountId: string,
+        accountPrivateKey: string,
+        gas: number = 100000,
+        bladePayFee: boolean = false,
+        completionKey: string
+    ) {
         try {
             const client = this.getClient();
             client.setOperator(accountId, accountPrivateKey);
@@ -91,23 +101,33 @@ export class SDK {
             const abiCoder = new hethers.utils.AbiCoder();
             const encodedBytes = abiCoder.encode(types, values);
 
-            const paramBytes = Buffer.concat([
+            const contractFunctionParameters = Buffer.concat([
                 hethers.utils.arrayify(functionIdentifier),
                 hethers.utils.arrayify(encodedBytes)
             ]);
 
-            const options = {
-                dAppCode: this.dAppCode,
-                apiKey: this.apiKey,
-                paramBytes,
-                contractId,
-                functionName,
-                gas
-            };
+            let transaction;
+            if (bladePayFee) {
+                const options = {
+                    dAppCode: this.dAppCode,
+                    apiKey: this.apiKey,
+                    contractFunctionParameters,
+                    contractId,
+                    functionName,
+                    gas
+                };
 
-            const {transactionBytes} = await signContractCallTx(this.network, options);
-            const buffer = Buffer.from(transactionBytes, "base64");
-            const transaction = Transaction.fromBytes(buffer);
+                const {transactionBytes} = await signContractCallTx(this.network, options);
+                const buffer = Buffer.from(transactionBytes, "base64");
+                transaction = Transaction.fromBytes(buffer);
+            } else {
+                transaction = new ContractExecuteTransaction()
+                    .setContractId(contractId)
+                    .setGas(gas)
+                    .setFunction(functionName)
+                    .setFunctionParameters(contractFunctionParameters)
+                    .freezeWith(client);
+            }
 
             return transaction
                 .sign(PrivateKey.fromString(accountPrivateKey))
@@ -152,9 +172,9 @@ export class SDK {
                     senderAccountId: accountId,
                     amount: correctedAmount,
                     decimals: null,
-                    memo: "string",
+                    memo: ""
                     // no tokenId, backend pick first token from list for currend dApp
-                }
+                };
 
                 const {transactionBytes} = await transferTokens(this.network, options);
                 const buffer = Buffer.from(transactionBytes, "base64");
@@ -166,7 +186,7 @@ export class SDK {
                         return signTx.execute(client);
                     })
                     .then(result => {
-                        return this.sendMessageToNative(completionKey, result)
+                        return this.sendMessageToNative(completionKey, result);
                     })
                     .catch(error => {
                         return this.sendMessageToNative(completionKey, null, error);
@@ -250,7 +270,7 @@ export class SDK {
                 apiKey: this.apiKey,
                 fingerprint: this.fingerprint,
                 network: this.network.toLowerCase(),
-                dAppCode: this.dAppCode,
+                dAppCode: this.dAppCode
             };
             const {status, queueNumber} = await checkAccountCreationStatus(transactionId, this.network, params);
             if (status === AccountStatus.SUCCESS) {
@@ -268,7 +288,7 @@ export class SDK {
                 result.transactionId = null;
                 result.status = status;
                 result.accountId = id;
-                result.evmAddress = evmAddress.toLowerCase()
+                result.evmAddress = evmAddress.toLowerCase();
             } else {
                 result.queueNumber = queueNumber;
             }

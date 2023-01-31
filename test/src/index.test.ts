@@ -84,7 +84,9 @@ test('bladeSdk.contractCallFunction', async () => {
 
     let message = `Hello test ${Math.random()}`;
     let paramsEncoded = `[{"type":"string","value":["${message}"]}]`;
-    result = await bladeSdk.contractCallFunction(contractId, "set_message", paramsEncoded, accountId, privateKey, 1000000, completionKey);
+
+    // direct call
+    result = await bladeSdk.contractCallFunction(contractId, "set_message", paramsEncoded, accountId, privateKey, 1000000, false, completionKey);
     checkResult(result);
 
     let contractCallQuery = new ContractCallQuery()
@@ -94,14 +96,30 @@ test('bladeSdk.contractCallFunction', async () => {
         .setQueryPayment(new Hbar(1));
 
     let contractCallQueryResult = await contractCallQuery.execute(client);
-    expect(contractCallQueryResult.getString(0)).toEqual(message)
+    expect(contractCallQueryResult.getString(0)).toEqual(message);
+
+
+    // pay fee on backend
+    message = `Hello test ${Math.random()}`;
+    paramsEncoded = `[{"type":"string","value":["${message}"]}]`;
+    result = await bladeSdk.contractCallFunction(contractId, "set_message", paramsEncoded, accountId, privateKey, 1000000, true, completionKey);
+    checkResult(result);
+
+    contractCallQuery = new ContractCallQuery()
+        .setContractId(contractId)
+        .setGas(100000)
+        .setFunction("get_message")
+        .setQueryPayment(new Hbar(1));
+
+    contractCallQueryResult = await contractCallQuery.execute(client);
+    expect(contractCallQueryResult.getString(0)).toEqual(message);
 
 
     message = `Sum test ${Math.random()}`;
     const num1 = 37;
     const num2 = 5;
     paramsEncoded = `[{"type":"string","value":["${message}"]},{"type":"tuple","value":["[{\\"type\\":\\"uint64\\",\\"value\\":[\\"${num1}\\"]},{\\"type\\":\\"uint64\\",\\"value\\":[\\"${num2}\\"]}]"]}]`;
-    result = await bladeSdk.contractCallFunction(contractId, "set_numbers", paramsEncoded, accountId, privateKey, 1000000, completionKey);
+    result = await bladeSdk.contractCallFunction(contractId, "set_numbers", paramsEncoded, accountId, privateKey, 1000000, false, completionKey);
     checkResult(result);
 
 
@@ -118,24 +136,24 @@ test('bladeSdk.contractCallFunction', async () => {
 
     // fail on wrong function params (CONTRACT_REVERT_EXECUTED)
     paramsEncoded = `[{"type":"string","value":["Sum test"]},{"type":"address","value":["0x65f17cac69fb3df1328a5c239761d32e8b346da0"]},{"type":"address[]","value":["${accountId}","${accountId2}"]},{"type":"bytes32","value":["WzAsMSwyLDMsNCw1LDYsNyw4LDksMTAsMTEsMTIsMTMsMTQsMTUsMTYsMTcsMTgsMTksMjAsMjEsMjIsMjMsMjQsMjUsMjYsMjcsMjgsMjksMzAsMzFd"]},{"type":"uint8","value":["1"]},{"type":"int64","value":["64"]},{"type":"uint256","value":["256"]},{"type":"uint64[]","value":["1"]},{"type":"uint256[]","value":["1"]},{"type":"tuple","value":["[{\\"type\\":\\"string[]\\",\\"value\\":[\\"1\\"]}]"]},{"type":"tuple[]","value":["[{\\"type\\":\\"string[]\\",\\"value\\":[\\"1\\"]}]"]}]`;
-    result = await bladeSdk.contractCallFunction(contractId, "set_numbers", paramsEncoded, accountId, privateKey, 1000000, completionKey);
+    result = await bladeSdk.contractCallFunction(contractId, "set_numbers", paramsEncoded, accountId, privateKey, 1000000, false, completionKey);
     checkResult(result, false);
     expect(result.error.reason.includes("CONTRACT_REVERT_EXECUTED")).toEqual(true);
 
     // fail on invalid json
     paramsEncoded = '[{"type":"string",""""""""]'
-    result = await bladeSdk.contractCallFunction(contractId, "set_numbers", paramsEncoded, accountId, privateKey, 1000000, completionKey);
+    result = await bladeSdk.contractCallFunction(contractId, "set_numbers", paramsEncoded, accountId, privateKey, 1000000, false, completionKey);
     checkResult(result, false);
     expect(result.error.reason.includes("Unexpected string in JSON")).toEqual(true);
 
     // fail on unknown param type
     paramsEncoded = `[{"type":"int1024[]","value":["${message}"]}]`;
-    result = await bladeSdk.contractCallFunction(contractId, "set_numbers", paramsEncoded, accountId, privateKey, 1000000, completionKey);
+    result = await bladeSdk.contractCallFunction(contractId, "set_numbers", paramsEncoded, accountId, privateKey, 1000000, false, completionKey);
     checkResult(result, false);
     expect(result.error.reason.includes('Type "int1024[]" not implemented on JS')).toEqual(true);
 
     //fail on low gas
-    result = await bladeSdk.contractCallFunction(contractId, "set_message", paramsEncoded, accountId, privateKey, 1, completionKey);
+    result = await bladeSdk.contractCallFunction(contractId, "set_message", paramsEncoded, accountId, privateKey, 1, false, completionKey);
     checkResult(result, false);
 }, 120_000);
 
