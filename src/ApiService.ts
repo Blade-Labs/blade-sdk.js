@@ -150,7 +150,7 @@ export const signContractCallTx = async (network: Network, params: any) => {
             "Content-Type": "application/json"
         }),
         body: JSON.stringify({
-            functionParametersHash: Buffer.from(params.paramBytes).toString("base64"),
+            functionParametersHash: Buffer.from(params.contractFunctionParameters).toString("base64"),
             contractId: params.contractId,
             functionName: params.functionName,
             gas: params.gas
