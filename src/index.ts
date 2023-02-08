@@ -225,13 +225,12 @@ export class SDK {
                 id,
                 transactionBytes,
                 updateAccountTransactionBytes,
-                originalPublicKey,
                 transactionId
             } = await createAccount(this.network, options);
 
             await executeUpdateAccountTransactions(this.getClient(), privateKey, updateAccountTransactionBytes, transactionBytes);
 
-            const evmAddress = hethers.utils.computeAddress(`0x${originalPublicKey ? originalPublicKey.slice(-66) : privateKey.publicKey.toStringRaw()}`);
+            const evmAddress = hethers.utils.computeAddress(`0x${privateKey.publicKey.toStringRaw()}`);
 
             const result = {
                 transactionId,
