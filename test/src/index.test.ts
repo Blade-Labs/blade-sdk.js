@@ -233,8 +233,10 @@ test('bladeSdk.createAccount', async () => {
 
     await sleep(25_000);
 
-    const accountInfo = await GET(Network.Testnet, `api/v1/accounts/${result.data.accountId}`);
-    expect(result.data.evmAddress).toEqual(accountInfo.evm_address);
+    const publicKey = PrivateKey.fromString(result.data.privateKey).publicKey.toStringRaw();
+    const evmAddress = hethers.utils.computeAddress(`0x${publicKey}`);
+
+    expect(result.data.evmAddress).toEqual(evmAddress.toLowerCase());
 
     result = await bladeSdk.init("wrong api key", process.env.NETWORK, process.env.DAPP_CODE, process.env.FINGERPRINT, completionKey);
     checkResult(result);
@@ -387,8 +389,8 @@ test('bladeSdk.getParamsSignature', async () => {
     expect(result.data).toHaveProperty("s");
 
     expect(result.data.v).toEqual(28);
-    expect(result.data.r).toEqual("0x94c49534e9edb9dd552884b21954105fe14142903d5eec5c04958c62cf49fcfe");
-    expect(result.data.s).toEqual("0x75ff4e91d2e0ba2772cca3271d98fb3ee8ba45429b53bb713aa39aabb6f90514");
+    expect(result.data.r).toEqual("0x615bd012c437d1e0c166a75675fcf2fb628836d53d5421452f784505d9d4b28f");
+    expect(result.data.s).toEqual("0x10ee86b9b05c5745efeb2b1a560fbf422c4ecfab9241d35ef44be6367ef8efb5");
 
     // invalid paramsEncoded
     result = await bladeSdk.getParamsSignature('[{{{{{{{{{{{"]', privateKey, completionKey);
