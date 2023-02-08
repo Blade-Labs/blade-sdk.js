@@ -75,7 +75,7 @@ export const parseContractFunctionParams = async (paramsEncoded, network: Networ
             } break;
             default: {
                 throw {
-                    name: "SwiftBlade JS",
+                    name: "BladeSDK.JS",
                     reason: `Type "${param?.type}" not implemented on JS`
                 }
             }
@@ -86,24 +86,12 @@ export const parseContractFunctionParams = async (paramsEncoded, network: Networ
 }
 
 const valueToSolidity = async (value: string, network: Network) => {
-    // if input.length >=32 - replace "0x" to "" and return
-    // if address - get account info and get evm-address (only for ECDSA keys)
-    // if no evm - address - check of key_type == ECDSA_SECP256K1 - and compute EVM address else convert input to solidity
+    // if input.length >=32 - return as EVM address
+    // else convert input to solidity
 
-    let result = "";
     if (value.length >= 32) {
-        result = value;
+        return value;
     } else {
-        const accountInfo = await GET(network, `api/v1/accounts/${value}`);
-        if (accountInfo.evm_address) {
-            result = accountInfo.evm_address;
-        } else {
-            if (accountInfo.key._type === "ECDSA_SECP256K1") {
-                result = hethers.utils.computeAddress(`0x${accountInfo.key.key}`);
-            } else {
-                result = `0x${AccountId.fromString(value).toSolidityAddress()}`;
-            }
-        }
+        return `0x${AccountId.fromString(value).toSolidityAddress()}`;
     }
-    return result;
 };
