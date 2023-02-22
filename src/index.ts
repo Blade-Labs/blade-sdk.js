@@ -14,6 +14,7 @@ import {hethers} from "@hashgraph/hethers";
 import {
     checkAccountCreationStatus,
     createAccount,
+    accountInfo,
     getAccountsFromPublicKey,
     getPendingAccountData,
     getTransactionsFrom,
@@ -324,6 +325,20 @@ export class SDK {
                 serial: txReceipt.serials?.map(value => value.toString())
             };
             return this.sendMessageToNative(completionKey, result);
+        } catch (error) {
+            return this.sendMessageToNative(completionKey, null, error);
+        }
+    }
+
+    async getAccountInfo(accountId: string, completionKey: string) {
+        try {
+            const {evmAddress, publicKey} = await accountInfo(this.network, accountId);
+
+            return this.sendMessageToNative(completionKey, {
+                accountId,
+                evmAddress: evmAddress,
+                calculatedEvmAddress: hethers.utils.computeAddress(`0x${publicKey}`).toLowerCase()
+            });
         } catch (error) {
             return this.sendMessageToNative(completionKey, null, error);
         }

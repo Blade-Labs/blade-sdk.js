@@ -1,5 +1,5 @@
 import {Buffer} from "buffer";
-import {PublicKey} from "@hashgraph/sdk";
+import {AccountId, PublicKey} from "@hashgraph/sdk";
 import {Network, NetworkMirrorNodes} from "./models/Networks";
 import {TransactionData} from "./models/Common";
 import {flatArray} from "./helpers/ArrayHelpers";
@@ -93,7 +93,6 @@ export const checkAccountCreationStatus = async (transactionId: string, network:
 
 export const getPendingAccountData = async (transactionId: string, network: Network, params: any) => {
     const url = `${ApiUrl}/accounts/details?transactionId=${transactionId}`;
-    console.log(`getPendingAccountData(${transactionId})`);
     const options = {
         method: "GET",
         headers: new Headers({
@@ -170,6 +169,14 @@ export const getAccountsFromPublicKey = async (network: Network, publicKey: Publ
             return [];
         });
 };
+
+export const accountInfo = async (network: Network, accountId: string): Promise<{ evmAddress: string, publicKey: string }> => {
+    const accountInfo = await GET(network, `api/v1/accounts/${accountId}`);
+    return {
+        evmAddress: accountInfo.evm_address ? accountInfo.evm_address : `0x${AccountId.fromString(accountId).toSolidityAddress()}`,
+        publicKey: accountInfo.key.key
+    };
+}
 
 export const getTransactionsFrom = async (
     network: Network,
