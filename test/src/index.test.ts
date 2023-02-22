@@ -1,4 +1,4 @@
-import {Client, ContractCallQuery, Hbar, Mnemonic} from "@hashgraph/sdk";
+import {AccountId, Client, ContractCallQuery, Hbar, Mnemonic} from "@hashgraph/sdk";
 import {associateToken, checkResult, createToken, getTokenInfo, sleep} from "./helpers";
 import {GET, getTransaction} from "../../src/ApiService";
 import {Network} from "../../src/models/Networks";
@@ -243,6 +243,23 @@ test('bladeSdk.createAccount', async () => {
 
     result = await bladeSdk.createAccount(completionKey);
     checkResult(result, false);
+}, 60_000);
+
+test('bladeSdk.getAccountInfo', async () => {
+    let result = await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.FINGERPRINT, completionKey);
+    checkResult(result);
+
+    const account = await bladeSdk.createAccount(completionKey);
+    checkResult(account);
+    const newAccountId = account.data.accountId;
+
+    await sleep(7_000);
+
+    const accountInfo = await bladeSdk.getAccountInfo(newAccountId, completionKey);
+    checkResult(accountInfo);
+
+    expect(accountInfo.data.evmAddress).toEqual(`0x${AccountId.fromString(newAccountId).toSolidityAddress()}`);
+    expect(accountInfo.data.calculatedEvmAddress).toEqual(account.data.evmAddress);
 }, 60_000);
 
 test('bladeSdk.deleteAccount', async () => {
