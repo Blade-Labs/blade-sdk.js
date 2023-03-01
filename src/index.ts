@@ -211,8 +211,20 @@ export class SDK {
 
     async createAccount(completionKey: string) {
         try {
-            const seedPhrase = await Mnemonic.generate12();
-            const privateKey = await seedPhrase.toEcdsaPrivateKey();
+            let seedPhrase: Mnemonic | null = null;
+            let privateKey: PrivateKey | null = null;
+
+            let valid = false;
+            // https://github.com/hashgraph/hedera-sdk-js/issues/1396
+            do {
+                seedPhrase = await Mnemonic.generate12();
+                privateKey = await seedPhrase.toEcdsaPrivateKey();
+                const privateKeyString = privateKey.toStringDer();
+                const publicKeyString = privateKey.publicKey.toStringRaw();
+                const restoredPrivateKey = PrivateKey.fromString(privateKeyString);
+                const restoredPublicKeyString = restoredPrivateKey.publicKey.toStringRaw();
+                valid = publicKeyString === restoredPublicKeyString;
+            } while (!valid);
             const publicKey = privateKey.publicKey.toStringDer();
 
             const options = {
