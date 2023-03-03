@@ -161,6 +161,29 @@ export const signContractCallTx = async (network: Network, params: any) => {
         .then(x => x.json());
 };
 
+export const apiCallContractQuery = async (network: Network, params: any) => {
+    const url = `${ApiUrl}/smart/contract/call`;
+    const options = {
+        method: "POST",
+        headers: new Headers({
+            "X-NETWORK": network.toUpperCase(),
+            "X-DAPP-CODE": params.dAppCode,
+            "X-SDK-TOKEN": params.apiKey,
+            "Content-Type": "application/json"
+        }),
+        body: JSON.stringify({
+            functionParametersHash: Buffer.from(params.contractFunctionParameters).toString("base64"),
+            contractId: params.contractId,
+            functionName: params.functionName,
+            gas: params.gas
+        })
+    };
+
+    return fetch(url, options)
+        .then(statusCheck)
+        .then(x => x.json());
+};
+
 export const getAccountsFromPublicKey = async (network: Network, publicKey: PublicKey): Promise<string[]> => {
     const formatted = publicKey.toStringRaw();
     return GET(network, `api/v1/accounts?account.publickey=${formatted}`)
