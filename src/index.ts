@@ -2,7 +2,9 @@ import {
     AccountBalanceQuery,
     AccountDeleteTransaction,
     Client,
+    ContractCallQuery,
     ContractExecuteTransaction,
+    ContractFunctionResult,
     Mnemonic,
     PrivateKey,
     PublicKey,
@@ -20,11 +22,16 @@ import {
     getTransactionsFrom,
     requestTokenInfo,
     signContractCallTx,
-    transferTokens
+    transferTokens,
+    apiCallContractQuery
 } from "./ApiService";
 import {Network} from "./models/Networks";
 import StringHelpers from "./helpers/StringHelpers";
-import {parseContractFunctionParams} from "./helpers/ContractHelpers";
+import {
+    getContractFunctionBytecode,
+    parseContractFunctionParams,
+    parseContractQueryResponse
+} from "./helpers/ContractHelpers";
 import {CustomError} from "./models/Errors";
 import {AccountStatus} from "./models/Common";
 import {executeUpdateAccountTransactions} from "./helpers/AccountHelpers";
@@ -91,23 +98,9 @@ export class SDK {
         try {
             const client = this.getClient();
             client.setOperator(accountId, accountPrivateKey);
-            const {types, values} = await parseContractFunctionParams(paramsEncoded, this.network);
+            const contractFunctionParameters = await getContractFunctionBytecode(functionName, paramsEncoded);
 
-            // get func identifier
-            const functionSignature = `${functionName}(${types.join(",")})`;
-            const functionIdentifier = new hethers.utils.Interface([
-                hethers.utils.FunctionFragment.from(functionSignature)
-            ]).getSighash(functionName);
-
-            const abiCoder = new hethers.utils.AbiCoder();
-            const encodedBytes = abiCoder.encode(types, values);
-
-            const contractFunctionParameters = Buffer.concat([
-                hethers.utils.arrayify(functionIdentifier),
-                hethers.utils.arrayify(encodedBytes)
-            ]);
-
-            let transaction;
+            let transaction: Transaction;
             if (bladePayFee) {
                 const options = {
                     dAppCode: this.dAppCode,
@@ -119,8 +112,7 @@ export class SDK {
                 };
 
                 const {transactionBytes} = await signContractCallTx(this.network, options);
-                const buffer = Buffer.from(transactionBytes, "base64");
-                transaction = Transaction.fromBytes(buffer);
+                transaction = Transaction.fromBytes(Buffer.from(transactionBytes, "base64"));
             } else {
                 transaction = new ContractExecuteTransaction()
                     .setContractId(contractId)
@@ -154,6 +146,69 @@ export class SDK {
                 });
         } catch (error) {
             return this.sendMessageToNative(completionKey, null, error);
+        }
+    }
+
+    async contractCallQueryFunction(
+        contractId: string,
+        functionName: string,
+        paramsEncoded: string,
+        accountId: string,
+        accountPrivateKey: string,
+        gas: number = 100000,
+        bladePayFee: boolean = false,
+        resultTypes: string[],
+        completionKey: string) {
+        try {
+            const client = this.getClient();
+            client.setOperator(accountId, accountPrivateKey);
+            const contractFunctionParameters = await getContractFunctionBytecode(functionName, paramsEncoded);
+            let response: ContractFunctionResult;
+            try {
+                if (bladePayFee) {
+                    const options = {
+                        dAppCode: this.dAppCode,
+                        apiKey: this.apiKey,
+                        contractFunctionParameters,
+                        contractId,
+                        functionName,
+                        gas
+                    };
+                    const {contractFunctionResult, rawResult} = await apiCallContractQuery(this.network, options);
+
+                    response = new ContractFunctionResult({
+                            _createResult: false,
+                            amount: undefined,
+                            bloom: undefined,
+                            bytes: Buffer.from(rawResult, "base64"),
+                            contractId: contractFunctionResult?.contractId,
+                            createdContractIds: [],
+                            errorMessage: "",
+                            evmAddress: undefined,
+                            functionParameters: undefined,
+                            gas: undefined,
+                            gasUsed: contractFunctionResult?.gasUsed,
+                            logs: [],
+                            senderAccountId: undefined,
+                            stateChanges: []
+                        });
+                } else {
+                    response = await new ContractCallQuery()
+                        .setContractId(contractId)
+                        .setGas(gas)
+                        .setFunction(functionName)
+                        .setFunctionParameters(contractFunctionParameters)
+                        .execute(client);
+                }
+
+
+                const result = await parseContractQueryResponse(response, resultTypes);
+                return this.sendMessageToNative(completionKey, result);
+            } catch (error) {
+                return this.sendMessageToNative(completionKey, null, error);
+            }
+        } catch (error) {
+            this.sendMessageToNative(completionKey, null, error)
         }
     }
 
@@ -432,7 +487,7 @@ export class SDK {
 
     async getParamsSignature(paramsEncoded: any, privateKey: string, completionKey: string) {
         try {
-            const {types, values} = await parseContractFunctionParams(paramsEncoded, this.network);
+            const {types, values} = await parseContractFunctionParams(paramsEncoded);
             const hash = hethers.utils.solidityKeccak256(types, values);
             const messageHashBytes = hethers.utils.arrayify(hash);
 

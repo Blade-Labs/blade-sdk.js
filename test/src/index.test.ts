@@ -157,6 +157,54 @@ test('bladeSdk.contractCallFunction', async () => {
     checkResult(result, false);
 }, 120_000);
 
+test('bladeSdk.contractCallQueryFunction', async () => {
+    const contractId = process.env.CONTRACT_ID || "";
+    expect(contractId).not.toEqual("");
+    const client = Client.forTestnet();
+    client.setOperator(accountId, privateKey);
+
+    let result = await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.FINGERPRINT, completionKey);
+    checkResult(result);
+
+    let message = `Hello DIRECT test ${Math.random()}`;
+    let paramsEncoded = `[{"type":"string","value":["${message}"]}]`;
+
+    result = await bladeSdk.contractCallFunction(contractId, "set_message", paramsEncoded, accountId, privateKey, 100000, false, completionKey);
+    checkResult(result);
+
+
+    // direct call
+    result = await bladeSdk.contractCallQueryFunction(contractId, "get_message", '[]', accountId, privateKey, 100000, false, ["string"], completionKey);
+    checkResult(result);
+
+    expect(Array.isArray(result.data)).toEqual(true);
+    expect(result.data.length).toEqual(1);
+
+    expect(result.data[0]).toHaveProperty("type");
+    expect(result.data[0]).toHaveProperty("value");
+    expect(result.data[0].type).toEqual("string");
+    expect(result.data[0].value).toEqual(message);
+
+    // call with API
+
+    message = `Hello API test ${Math.random()}`;
+    paramsEncoded = `[{"type":"string","value":["${message}"]}]`;
+
+    result = await bladeSdk.contractCallFunction(contractId, "set_message", paramsEncoded, accountId, privateKey, 100000, true, completionKey);
+    checkResult(result);
+
+    result = await bladeSdk.contractCallQueryFunction(contractId, "get_message", '[]', accountId, privateKey, 100000, true, ["string"], completionKey);
+    checkResult(result);
+
+    expect(Array.isArray(result.data)).toEqual(true);
+    expect(result.data.length).toEqual(1);
+
+    expect(result.data[0]).toHaveProperty("type");
+    expect(result.data[0]).toHaveProperty("value");
+    expect(result.data[0].type).toEqual("string");
+    expect(result.data[0].value).toEqual(message);
+}, 120_000);
+
 test('bladeSdk.transferTokens', async () => {
     const client = Client.forTestnet();
     client.setOperator(accountId, privateKey);
