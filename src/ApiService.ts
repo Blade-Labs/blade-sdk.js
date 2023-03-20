@@ -184,6 +184,21 @@ export const apiCallContractQuery = async (network: Network, params: any) => {
         .then(x => x.json());
 };
 
+export const getC14token = async (params: any) => {
+    const url = `${ApiUrl}/c14/data`;
+    const options = {
+        method: "GET",
+        headers: new Headers({
+            "X-SDK-TOKEN": params.apiKey,
+            "Content-Type": "application/json"
+        }),
+    };
+
+    return fetch(url, options)
+        .then(statusCheck)
+        .then(x => x.json());
+};
+
 export const getAccountsFromPublicKey = async (network: Network, publicKey: PublicKey): Promise<string[]> => {
     const formatted = publicKey.toStringRaw();
     return GET(network, `api/v1/accounts?account.publickey=${formatted}`)

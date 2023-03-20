@@ -25,3 +25,16 @@ export enum AccountStatus {
     RETRY = "RETRY",
     FAILED ="FAILED"
 }
+
+export interface C14WidgetConfig {
+    clientId?: string;
+    sourceCurrencyCode?: string;
+    targetAssetId?: string;
+    sourceAmount?: string;
+    targetAmount?: string;
+    targetAddress?: string;
+    sourceCurrencyCodeLock?: boolean;
+    targetAssetIdLock?: boolean;
+    quoteAmountLock?: boolean;
+    targetAddressLock?: boolean;
+}
