@@ -18,6 +18,7 @@ import {
     createAccount,
     accountInfo,
     getAccountsFromPublicKey,
+    getC14token,
     getPendingAccountData,
     getTransactionsFrom,
     requestTokenInfo,
@@ -33,7 +34,7 @@ import {
     parseContractQueryResponse
 } from "./helpers/ContractHelpers";
 import {CustomError} from "./models/Errors";
-import {AccountStatus} from "./models/Common";
+import {AccountStatus, C14WidgetConfig} from "./models/Common";
 import {executeUpdateAccountTransactions} from "./helpers/AccountHelpers";
 
 export class SDK {
@@ -505,6 +506,40 @@ export class SDK {
         try {
             const transactionData = await getTransactionsFrom(this.network, accountId, transactionType, nextPage, transactionsLimit);
             return this.sendMessageToNative(completionKey, transactionData);
+        } catch (error) {
+            return this.sendMessageToNative(completionKey, null, error);
+        }
+    }
+
+    async getC14url(asset: string, account: string, amount: string, completionKey: string) {
+        try {
+            const {token} = await getC14token({apiKey: this.apiKey});
+            const url = new URL("https://pay.c14.money/");
+            const purchaseParams: C14WidgetConfig = {
+                clientId: token
+            };
+
+            switch (asset.toUpperCase()) {
+                case "USDC": {
+                    purchaseParams.targetAssetId = "b0694345-1eb4-4bc4-b340-f389a58ee4f3";
+                    purchaseParams.targetAssetIdLock = true;
+                } break;
+                case "HBAR": {
+                    purchaseParams.targetAssetId = "d9b45743-e712-4088-8a31-65ee6f371022";
+                    purchaseParams.targetAssetIdLock = true;
+                } break;
+            }
+            if (amount) {
+                purchaseParams.sourceAmount = amount;
+                purchaseParams.quoteAmountLock = true;
+            }
+            if (account) {
+                purchaseParams.targetAddress = account;
+                purchaseParams.targetAddressLock = true;
+            }
+
+            url.search = new URLSearchParams(purchaseParams as Record<keyof C14WidgetConfig, any>).toString();
+            return this.sendMessageToNative(completionKey, {url: url.toString()});
         } catch (error) {
             return this.sendMessageToNative(completionKey, null, error);
         }

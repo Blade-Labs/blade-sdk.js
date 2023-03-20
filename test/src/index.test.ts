@@ -535,3 +535,41 @@ test('bladeSdk.getTransactions', async () => {
     expect(result.length).toEqual(0)
 
 }, 30_000);
+
+test('bladeSdk.getC14url', async () => {
+    let result = await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.FINGERPRINT, completionKey);
+    checkResult(result);
+
+    result = await bladeSdk.getC14url("hbar", "0.0.123456", "123", completionKey);
+    checkResult(result);
+    expect(result.data).toHaveProperty("url");
+
+    let url = result.data.url;
+    expect(url.includes("clientId")).toEqual(true);
+    expect(url.includes("targetAssetId")).toEqual(true);
+    expect(url.includes("targetAssetIdLock")).toEqual(true);
+    expect(url.includes("sourceAmount")).toEqual(true);
+    expect(url.includes("quoteAmountLock")).toEqual(true);
+    expect(url.includes("targetAddress")).toEqual(true);
+    expect(url.includes("targetAddressLock")).toEqual(true);
+
+    result = await bladeSdk.getC14url("usdc", "0.0.123456", "123", completionKey);
+    url = result.data.url;
+    expect(url.includes("clientId")).toEqual(true);
+    expect(url.includes("targetAssetId")).toEqual(true);
+    expect(url.includes("targetAssetIdLock")).toEqual(true);
+    expect(url.includes("sourceAmount")).toEqual(true);
+    expect(url.includes("quoteAmountLock")).toEqual(true);
+    expect(url.includes("targetAddress")).toEqual(true);
+    expect(url.includes("targetAddressLock")).toEqual(true);
+
+    result = await bladeSdk.getC14url("unknown-asset", "", "", completionKey);
+    url = result.data.url;
+    expect(url.includes("clientId")).toEqual(true);
+    expect(url.includes("targetAssetId")).toEqual(false);
+    expect(url.includes("targetAssetIdLock")).toEqual(false);
+    expect(url.includes("sourceAmount")).toEqual(false);
+    expect(url.includes("quoteAmountLock")).toEqual(false);
+    expect(url.includes("targetAddress")).toEqual(false);
+    expect(url.includes("targetAddressLock")).toEqual(false);
+});
