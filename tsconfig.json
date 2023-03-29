@@ -1,19 +1,40 @@
 {
   "compilerOptions": {
-    "outDir": "./dist/",
+    "target": "es2019",
+    "module": "esnext",
+    "strict": true,
+    "declaration": true,
+    "outDir": "lib",
     "noImplicitAny": false,
-    "module": "es6",
-    "target": "es5",
-    "jsx": "react",
+    "importHelpers": true,
+    "incremental": true,
     "allowJs": true,
     "moduleResolution": "node",
-    "sourceMap": true,
-    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "src/*"
+      ]
+    },
+    "plugins": [
+      {
+        "name": "typescript-tslint-plugin"
+      }
+    ],
     "lib": [
+      "esnext",
       "dom",
-      "es5",
-      "scripthost",
-      "es2015"
     ]
-  }
+  },
+  "types": [
+    "node"
+  ],
+  "include": [
+    "src/**/*.ts",
+    "index.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }

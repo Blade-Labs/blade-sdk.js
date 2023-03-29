@@ -37,7 +37,7 @@ export const parseContractFunctionParams = async (paramsEncoded: string) => {
 
             case "address[]": {
                 // ["0.0.48619523", "0.0.4861934333"]
-                const result = [];
+                const result: any[] = [];
                 for (let i = 0; i < param.value.length; i++) {
                     result.push(await valueToSolidity(param.value[i]));
                 }
@@ -73,7 +73,7 @@ export const parseContractFunctionParams = async (paramsEncoded: string) => {
             } break;
 
             case "tuple[]": {
-                const result = [];
+                const result: any[] = [];
                 for (let i = 0; i < param.value.length; i++) {
                     result.push(await parseContractFunctionParams(param.value[i]));
                 }
@@ -113,7 +113,7 @@ const valueToSolidity = async (value: string) => {
 };
 
 export const parseContractQueryResponse = async (contractFunctionResult: ContractFunctionResult, resultTypes: string[]) => {
-    const result = [];
+    const result: {type: string, value: any}[] = [];
     const availableTypes = ["bytes32","address","string","bool","int32","uint32","int40","uint40","int48","uint48","int56","uint56","int64","uint64","int72","uint72","int80","uint80","int88","uint88","int96","uint96","int104","uint104","int112","uint112","int120","uint120","int128","uint128","int136","uint136","int144","uint144","int152","uint152","int160","uint160","int168","uint168","int176","uint176","int184","uint184","int192","uint192","int200","uint200","int208","uint208","int216","uint216","int224","uint224","int232","uint232","int240","uint240","int248","uint248","int256","uint256"];
 
     resultTypes.forEach((type, index) => {

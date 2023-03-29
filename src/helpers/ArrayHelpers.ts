@@ -1,6 +1,6 @@
 
 export const flatArray = (array: any[]): any[] => {
-    const result = [];
+    const result: any[] = [];
 
     if (array && Array.isArray(array)) {
         for (const value of array) {

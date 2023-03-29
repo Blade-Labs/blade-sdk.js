@@ -2,7 +2,7 @@
 var path = require('path')
 
 module.exports = {
-    entry: { JSWrapper: "./src/index.ts" },
+    entry: { JSWrapper: "./index.ts" },
     module: {
         rules: [
             {

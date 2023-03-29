@@ -220,7 +220,7 @@ export const getTransactionsFrom = async (
     network: Network,
     accountId: string,
     transactionType: string = "",
-    nextPage?: string | null,
+    nextPage: string | null = null,
     transactionsLimit: string = "10"
 ): Promise<{ nextPage: string | null, transactions: TransactionData[] }> => {
     const limit = parseInt(transactionsLimit, 10);
