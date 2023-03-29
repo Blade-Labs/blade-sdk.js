@@ -1,4 +1,5 @@
 import {
+    AccountBalance,
     AccountBalanceQuery,
     AccountDeleteTransaction,
     Client,
@@ -34,7 +35,7 @@ import {
     parseContractQueryResponse
 } from "./helpers/ContractHelpers";
 import {CustomError} from "./models/Errors";
-import {AccountStatus, C14WidgetConfig} from "./models/Common";
+import {AccountStatus, BridgeResponse, C14WidgetConfig} from "./models/Common";
 import {executeUpdateAccountTransactions} from "./helpers/AccountHelpers";
 
 export class BladeSDK {
@@ -58,7 +59,7 @@ export class BladeSDK {
         return new AccountBalanceQuery()
             .setAccountId(accountId)
             .execute(client)
-            .then(data => {
+            .then((data) => {
                 return this.sendMessageToNative(completionKey, this.processBalanceData(data));
             }).catch(error => {
                 return this.sendMessageToNative(completionKey, null, error);
@@ -178,21 +179,21 @@ export class BladeSDK {
                     const {contractFunctionResult, rawResult} = await apiCallContractQuery(this.network, options);
 
                     response = new ContractFunctionResult({
-                            _createResult: false,
-                            amount: undefined,
-                            bloom: Uint8Array.from([]),
-                            bytes: Buffer.from(rawResult, "base64"),
-                            contractId: contractFunctionResult?.contractId,
-                            createdContractIds: [],
-                            errorMessage: "",
-                            evmAddress: null,
-                            functionParameters: Uint8Array.from([]),
-                            gas: undefined,
-                            gasUsed: contractFunctionResult?.gasUsed,
-                            logs: [],
-                            senderAccountId: null,
-                            stateChanges: []
-                        });
+                        _createResult: false,
+                        contractId: contractFunctionResult?.contractId,
+                        errorMessage: "",
+                        bloom: Uint8Array.from([]),
+                        gasUsed: contractFunctionResult?.gasUsed,
+                        logs: [],
+                        createdContractIds: [],
+                        evmAddress: null,
+                        bytes: Buffer.from(rawResult, "base64"),
+                        gas: contractFunctionResult?.gasUsed,
+                        amount: contractFunctionResult?.gasUsed,
+                        functionParameters: Uint8Array.from([]),
+                        senderAccountId: null,
+                        stateChanges: [],
+                    });
                 } else {
                     response = await new ContractCallQuery()
                         .setContractId(contractId)
@@ -553,7 +554,7 @@ export class BladeSDK {
      * Message that sends response back to native handler
      */
     private sendMessageToNative(completionKey: string, data: any | null, error: Partial<CustomError>|any|null = null) {
-        const responseObject = {
+        const responseObject: BridgeResponse = {
             completionKey: completionKey,
             data: data
         };
@@ -578,7 +579,7 @@ export class BladeSDK {
      * @param {JSON} data
      * @returns {JSON}
      */
-    private processBalanceData(data) {
+    private processBalanceData(data: AccountBalance) {
         const hbars = data.hbars.toBigNumber().toNumber();
         const tokens: any[] = [];
         const dataJson = data.toJSON();
@@ -598,4 +599,4 @@ export class BladeSDK {
     }
 }
 
-if (window) window["bladeSdk"] = new BladeSDK();
+// if (window) window["bladeSdk"] = new BladeSDK();

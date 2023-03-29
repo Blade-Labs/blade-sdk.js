@@ -1,5 +1,11 @@
 import {MirrorNodeTransactionType} from "./TransactionType";
 
+export interface BridgeResponse {
+    completionKey: string,
+    data: any,
+    error?: any
+}
+
 export interface TransactionData {
     transactionId: string,
     type: MirrorNodeTransactionType,

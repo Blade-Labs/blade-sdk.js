@@ -127,6 +127,7 @@ export const parseContractQueryResponse = async (contractFunctionResult: Contrac
         }
 
         const method = `get${type.slice(0, 1).toUpperCase()}${type.slice(1)}`;
+        // @ts-ignore
         let value = contractFunctionResult[method](index).toString();
 
         if (type === "bytes32") {
