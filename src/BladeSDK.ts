@@ -1,5 +1,4 @@
 import {
-    AccountBalance,
     AccountBalanceQuery,
     AccountDeleteTransaction,
     Client,
@@ -66,6 +65,15 @@ export class BladeSDK {
         this.webView = isWebView;
     }
 
+    /**
+     * Inits instance of BladeSDK for correct work with Blade API and Hedera network.
+     * @param apiKey Unique key for API provided by Blade team.
+     * @param network "Mainnet" or "Testnet" of Hedera network
+     * @param dAppCode your dAppCode - request specific one by contacting us
+     * @param fingerprint client unique fingerprint
+     * @param completionKey optional field bridge between mobile webViews and native apps
+     * @returns {InitData} status: "success" or "error"
+     */
     init(apiKey: string, network: string, dAppCode: string, fingerprint: string, completionKey?: string): Promise<InitData> {
         this.apiKey = apiKey;
         this.network = StringHelpers.stringToNetwork(network);
@@ -75,6 +83,12 @@ export class BladeSDK {
         return this.sendMessageToNative(completionKey, {status: "success"});
     }
 
+    /**
+     * Get hbar and token balances for specific account.
+     * @param accountId Hedera account id (0.0.xxxxx)
+     * @param completionKey optional field bridge between mobile webViews and native apps
+     * @returns {BalanceData} hbars: number, tokens: [{tokenId: string, balance: number}]
+     */
     getBalance(accountId: string, completionKey?: string): Promise<BalanceData> {
         const client = this.getClient();
 
@@ -88,6 +102,15 @@ export class BladeSDK {
             });
     }
 
+    /**
+     * Send hbars to specific account.
+     * @param accountId sender account id (0.0.xxxxx)
+     * @param accountPrivateKey sender's hex-encoded private key with DER-header (302e020100300506032b657004220420...). ECDSA or Ed25519
+     * @param receiverID receiver account id (0.0.xxxxx)
+     * @param amount of hbars to send (decimal number)
+     * @param completionKey optional field bridge between mobile webViews and native apps
+     * @returns {TransactionResponse}
+     */
     transferHbars(accountId: string, accountPrivateKey: string, receiverID: string, amount: string, completionKey?: string): Promise<TransactionResponse> {
         try {
             const client = this.getClient();
@@ -236,7 +259,18 @@ export class BladeSDK {
         }
     }
 
-    async transferTokens(tokenId: string, accountId: string, accountPrivateKey: string, receiverID: string, amount: string, freeTransfer: boolean = true, completionKey?: string): Promise<TransactionResponse> {
+    /**
+     * Send token to specific account.
+     * @param tokenId token id to send (0.0.xxxxx)
+     * @param accountId sender account id (0.0.xxxxx)
+     * @param accountPrivateKey sender's hex-encoded private key with DER-header (302e020100300506032b657004220420...). ECDSA or Ed25519
+     * @param receiverID receiver account id (0.0.xxxxx)
+     * @param amount of tokens to send (with token-decimals correction)
+     * @param freeTransfer if true, Blade will pay fee transaction. Only for single dApp configured token. In that case tokenId not used
+     * @param completionKey optional field bridge between mobile webViews and native apps
+     * @returns {TransactionResponse}
+     */
+    async transferTokens(tokenId: string, accountId: string, accountPrivateKey: string, receiverID: string, amount: string, freeTransfer: boolean = false, completionKey?: string): Promise<TransactionResponse> {
         try {
             const client = this.getClient();
             client.setOperator(accountId, accountPrivateKey);
@@ -288,6 +322,13 @@ export class BladeSDK {
         }
     }
 
+    /**
+     * Create Hedera account (ECDSA). Only for configured dApps. Depending on dApp config Blade create account, associate tokens, etc.
+     * In case of not using pre-created accounts pool and network high load, this method can return transactionId and no accountId.
+     * In that case account creation added to queue, and you should wait some time and call `getPendingAccount()` method.
+     * @param completionKey optional field bridge between mobile webViews and native apps
+     * @returns {CreateAccountData}
+     */
     async createAccount(completionKey?: string): Promise<CreateAccountData> {
         try {
             let seedPhrase: Mnemonic | null = null;
@@ -339,6 +380,15 @@ export class BladeSDK {
         }
     }
 
+    /**
+     * Get account from queue (read more at `createAccount()`).
+     * If account already created, return account data.
+     * If account not created yet, response will be same as in `createAccount()` method if account in queue.
+     * @param transactionId returned from `createAccount()` method
+     * @param mnemonic returned from `createAccount()` method
+     * @param completionKey optional field bridge between mobile webViews and native apps
+     * @returns {CreateAccountData}
+     */
     async getPendingAccount(transactionId: string, mnemonic: string, completionKey?: string): Promise<CreateAccountData> {
         try {
             const seedPhrase = await Mnemonic.fromString(mnemonic);
@@ -390,6 +440,16 @@ export class BladeSDK {
         }
     }
 
+    /**
+     * Delete Hedera account
+     * @param deleteAccountId account id of account to delete (0.0.xxxxx)
+     * @param deletePrivateKey account private key (DER encoded hex string)
+     * @param transferAccountId if any funds left on account, they will be transferred to this account (0.0.xxxxx)
+     * @param operatorAccountId operator account id (0.0.xxxxx). Used for fee
+     * @param operatorPrivateKey operator's account private key (DER encoded hex string)
+     * @param completionKey optional field bridge between mobile webViews and native apps
+     * @returns {TransactionReceipt}
+     */
     async deleteAccount(deleteAccountId: string, deletePrivateKey: string, transferAccountId: string, operatorAccountId: string, operatorPrivateKey: string, completionKey?: string): Promise<TransactionReceipt> {
         try {
             const client = this.getClient();
@@ -421,6 +481,14 @@ export class BladeSDK {
         }
     }
 
+    /**
+     * Get account info.
+     * EvmAddress is address of Hedera account if exists. Else accountId will be converted to solidity address.
+     * CalculatedEvmAddress is calculated from account public key. May be different from evmAddress.
+     * @param accountId Hedera account id (0.0.xxxxx)
+     * @param completionKey optional field bridge between mobile webViews and native apps
+     * @returns {AccountInfoData}
+     */
     async getAccountInfo(accountId: string, completionKey?: string): Promise<AccountInfoData> {
         try {
             const {evmAddress, publicKey} = await accountInfo(this.network, accountId);
@@ -435,6 +503,15 @@ export class BladeSDK {
         }
     }
 
+    /**
+     * Get ECDSA private key from mnemonic. Also try to find accountIds based on public key if lookupNames is true.
+     * Returned keys with DER header.
+     * EvmAddress computed from Public key.
+     * @param mnemonicRaw BIP39 mnemonic
+     * @param lookupNames if true, get accountIds from mirror node by public key
+     * @param completionKey optional field bridge between mobile webViews and native apps
+     * @returns {PrivateKeyData}
+     */
     async getKeysFromMnemonic(mnemonicRaw: string, lookupNames: boolean, completionKey?: string): Promise<PrivateKeyData> {
         try {
             //TODO support all the different type of private keys
@@ -459,6 +536,13 @@ export class BladeSDK {
         }
     }
 
+    /**
+     * Sign base64-encoded message with private key. Returns hex-encoded signature.
+     * @param messageString base64-encoded message to sign
+     * @param privateKey hex-encoded private key with DER header
+     * @param completionKey optional field bridge between mobile webViews and native apps
+     * @returns {SignMessageData}
+     */
     sign(messageString: string, privateKey: string, completionKey?: string): Promise<SignMessageData> {
         try {
             const key = PrivateKey.fromString(privateKey);
@@ -472,6 +556,14 @@ export class BladeSDK {
         }
     }
 
+    /**
+     * Verify message signature by public key
+     * @param messageString base64-encoded message (same as provided to `sign()` method)
+     * @param signature hex-encoded signature (result from `sign()` method)
+     * @param publicKey hex-encoded public key with DER header
+     * @param completionKey optional field bridge between mobile webViews and native apps
+     * @returns {SignVerifyMessageData}
+     */
     signVerify(messageString: string, signature: string, publicKey: string, completionKey?: string): Promise<SignVerifyMessageData> {
         try {
             const valid = PublicKey.fromString(publicKey).verify(
@@ -484,6 +576,13 @@ export class BladeSDK {
         }
     }
 
+    /**
+     * Sign base64-encoded message with private key using hethers lib. Returns hex-encoded signature.
+     * @param messageString base64-encoded message to sign
+     * @param privateKey hex-encoded private key with DER header
+     * @param completionKey optional field bridge between mobile webViews and native apps
+     * @returns {SignMessageData}
+     */
     hethersSign(messageString: string, privateKey: string, completionKey?: string): Promise<SignMessageData> {
         try {
             const wallet = new hethers.Wallet(privateKey);
@@ -500,6 +599,12 @@ export class BladeSDK {
 
     }
 
+    /**
+     * Split signature to v-r-s format.
+     * @param signature hex-encoded signature
+     * @param completionKey optional field bridge between mobile webViews and native apps
+     * @returns {SplitSignatureData}
+     */
     splitSignature(signature: string, completionKey?: string): Promise<SplitSignatureData> {
         try {
             const {v, r, s} = hethers.utils.splitSignature(signature);
@@ -525,6 +630,18 @@ export class BladeSDK {
         }
     }
 
+    /**
+     * Get transactions history for account. Can be filtered by transaction type.
+     * Transaction requested from mirror node. Every transaction requested for child transactions. Result are flattened.
+     * If transaction type is not provided, all transactions will be returned.
+     * If transaction type is CRYPTOTRANSFERTOKEN records will additionally contain plainData field with decoded data.
+     * @param accountId account id to get transactions for (0.0.xxxxx)
+     * @param transactionType one of enum MirrorNodeTransactionType or "CRYPTOTRANSFERTOKEN"
+     * @param nextPage link to next page of transactions from previous request
+     * @param transactionsLimit number of transactions to return. Speed of request depends on this value if transactionType is set.
+     * @param completionKey optional field bridge between mobile webViews and native apps
+     * @returns {TransactionsHistoryData}
+     */
     async getTransactions(accountId: string, transactionType: string = "", nextPage: string, transactionsLimit: string = "10", completionKey?: string): Promise<TransactionsHistoryData> {
         try {
             const transactionData = await getTransactionsFrom(this.network, accountId, transactionType, nextPage, transactionsLimit);
@@ -534,6 +651,17 @@ export class BladeSDK {
         }
     }
 
+    /**
+     * Get configured url for C14 integration (iframe or popup)
+     * Transaction requested from mirror node. Every transaction requested for child transactions. Result are flattened.
+     * If transaction type is not provided, all transactions will be returned.
+     * If transaction type is CRYPTOTRANSFERTOKEN records will additionally contain plainData field with decoded data.
+     * @param asset name (USDC or HBAR)
+     * @param account receiver account id (0.0.xxxxx)
+     * @param amount preset amount. May be overwritten if out of range (min/max)
+     * @param completionKey optional field bridge between mobile webViews and native apps
+     * @returns {IntegrationUrlData}
+     */
     async getC14url(asset: string, account: string, amount: string, completionKey?: string): Promise<IntegrationUrlData> {
         try {
             const {token} = await getC14token({apiKey: this.apiKey});

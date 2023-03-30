@@ -24,11 +24,17 @@ const balance = await bladeSDK.getBalance("0.0.8235");
 console.log(balance);
 ```
 
+## Documentation
 
+TODO - add link to documentation
 
+## TODO
 
-
-
+- [ ] Add documentation
+- [ ] Add builder for contract call params
+- [ ] Add JSDoc for `contractCallFunction` method
+- [ ] Add JSDoc for `contractCallQueryFunction` method
+- [ ] Add JSDoc for `getParamsSignature` method
 
 ## Publish bundle for other SDK repos
 
