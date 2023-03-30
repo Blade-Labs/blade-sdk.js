@@ -10,6 +10,8 @@ import {
     PrivateKey,
     PublicKey,
     Transaction,
+    TransactionReceipt,
+    TransactionResponse,
     TransferTransaction
 } from "@hashgraph/sdk";
 import {Buffer} from "buffer";
@@ -35,8 +37,23 @@ import {
     parseContractQueryResponse
 } from "./helpers/ContractHelpers";
 import {CustomError} from "./models/Errors";
-import {AccountStatus, BridgeResponse, C14WidgetConfig} from "./models/Common";
-import {executeUpdateAccountTransactions} from "./helpers/AccountHelpers";
+import {
+    AccountInfoData,
+    AccountStatus,
+    BalanceData,
+    BridgeResponse,
+    C14WidgetConfig,
+    ContractCallQueryRecord,
+    CreateAccountData,
+    InitData,
+    IntegrationUrlData,
+    PrivateKeyData,
+    SignMessageData,
+    SignVerifyMessageData,
+    SplitSignatureData,
+    TransactionsHistoryData
+} from "./models/Common";
+import {executeUpdateAccountTransactions, processBalanceData} from "./helpers/AccountHelpers";
 
 export class BladeSDK {
     private apiKey: string = "";
@@ -49,7 +66,7 @@ export class BladeSDK {
         this.webView = isWebView;
     }
 
-    init(apiKey: string, network: string, dAppCode: string, fingerprint: string, completionKey?: string) {
+    init(apiKey: string, network: string, dAppCode: string, fingerprint: string, completionKey?: string): Promise<InitData> {
         this.apiKey = apiKey;
         this.network = StringHelpers.stringToNetwork(network);
         this.dAppCode = dAppCode;
@@ -58,20 +75,20 @@ export class BladeSDK {
         return this.sendMessageToNative(completionKey, {status: "success"});
     }
 
-    getBalance(accountId: string, completionKey?: string) {
+    getBalance(accountId: string, completionKey?: string): Promise<BalanceData> {
         const client = this.getClient();
 
         return new AccountBalanceQuery()
             .setAccountId(accountId)
             .execute(client)
             .then((data) => {
-                return this.sendMessageToNative(completionKey, this.processBalanceData(data));
+                return this.sendMessageToNative(completionKey, processBalanceData(data));
             }).catch(error => {
                 return this.sendMessageToNative(completionKey, null, error);
             });
     }
 
-    transferHbars(accountId: string, accountPrivateKey: string, receiverID: string, amount: string, completionKey?: string) {
+    transferHbars(accountId: string, accountPrivateKey: string, receiverID: string, amount: string, completionKey?: string): Promise<TransactionResponse> {
         try {
             const client = this.getClient();
             client.setOperator(accountId, accountPrivateKey);
@@ -101,7 +118,7 @@ export class BladeSDK {
         gas: number = 100000,
         bladePayFee: boolean = false,
         completionKey?: string
-    ) {
+    ): Promise<Partial<TransactionReceipt>> {
         try {
             const client = this.getClient();
             client.setOperator(accountId, accountPrivateKey);
@@ -165,7 +182,7 @@ export class BladeSDK {
         gas: number = 100000,
         bladePayFee: boolean = false,
         resultTypes: string[],
-        completionKey?: string) {
+        completionKey?: string): Promise<ContractCallQueryRecord[]> {
         try {
             const client = this.getClient();
             client.setOperator(accountId, accountPrivateKey);
@@ -215,11 +232,11 @@ export class BladeSDK {
                 return this.sendMessageToNative(completionKey, null, error);
             }
         } catch (error) {
-            this.sendMessageToNative(completionKey, null, error)
+            return this.sendMessageToNative(completionKey, null, error)
         }
     }
 
-    async transferTokens(tokenId: string, accountId: string, accountPrivateKey: string, receiverID: string, amount: string, freeTransfer: boolean = true, completionKey?: string) {
+    async transferTokens(tokenId: string, accountId: string, accountPrivateKey: string, receiverID: string, amount: string, freeTransfer: boolean = true, completionKey?: string): Promise<TransactionResponse> {
         try {
             const client = this.getClient();
             client.setOperator(accountId, accountPrivateKey);
@@ -271,7 +288,7 @@ export class BladeSDK {
         }
     }
 
-    async createAccount(completionKey?: string) {
+    async createAccount(completionKey?: string): Promise<CreateAccountData> {
         try {
             let seedPhrase: Mnemonic | null = null;
             let privateKey: PrivateKey | null = null;
@@ -322,7 +339,7 @@ export class BladeSDK {
         }
     }
 
-    async getPendingAccount(transactionId: string, mnemonic: string, completionKey?: string) {
+    async getPendingAccount(transactionId: string, mnemonic: string, completionKey?: string): Promise<CreateAccountData> {
         try {
             const seedPhrase = await Mnemonic.fromString(mnemonic);
             const privateKey = await seedPhrase.toEcdsaPrivateKey();
@@ -373,7 +390,7 @@ export class BladeSDK {
         }
     }
 
-    async deleteAccount(deleteAccountId: string, deletePrivateKey: string, transferAccountId: string, operatorAccountId: string, operatorPrivateKey: string, completionKey?: string) {
+    async deleteAccount(deleteAccountId: string, deletePrivateKey: string, transferAccountId: string, operatorAccountId: string, operatorPrivateKey: string, completionKey?: string): Promise<TransactionReceipt> {
         try {
             const client = this.getClient();
             const deleteAccountKey = PrivateKey.fromString(deletePrivateKey);
@@ -404,7 +421,7 @@ export class BladeSDK {
         }
     }
 
-    async getAccountInfo(accountId: string, completionKey?: string) {
+    async getAccountInfo(accountId: string, completionKey?: string): Promise<AccountInfoData> {
         try {
             const {evmAddress, publicKey} = await accountInfo(this.network, accountId);
 
@@ -418,7 +435,7 @@ export class BladeSDK {
         }
     }
 
-    async getKeysFromMnemonic(mnemonicRaw: string, lookupNames: boolean, completionKey?: string) {
+    async getKeysFromMnemonic(mnemonicRaw: string, lookupNames: boolean, completionKey?: string): Promise<PrivateKeyData> {
         try {
             //TODO support all the different type of private keys
             const mnemonic = await Mnemonic.fromString(mnemonicRaw);
@@ -442,7 +459,7 @@ export class BladeSDK {
         }
     }
 
-    sign(messageString: string, privateKey: string, completionKey?: string) {
+    sign(messageString: string, privateKey: string, completionKey?: string): Promise<SignMessageData> {
         try {
             const key = PrivateKey.fromString(privateKey);
             const signed = key.sign(Buffer.from(messageString, "base64"));
@@ -455,7 +472,7 @@ export class BladeSDK {
         }
     }
 
-    signVerify(messageString: string, signature: string, publicKey: string, completionKey?: string) {
+    signVerify(messageString: string, signature: string, publicKey: string, completionKey?: string): Promise<SignVerifyMessageData> {
         try {
             const valid = PublicKey.fromString(publicKey).verify(
                 Buffer.from(messageString, "base64"),
@@ -467,7 +484,7 @@ export class BladeSDK {
         }
     }
 
-    hethersSign(messageString: string, privateKey: string, completionKey?: string) {
+    hethersSign(messageString: string, privateKey: string, completionKey?: string): Promise<SignMessageData> {
         try {
             const wallet = new hethers.Wallet(privateKey);
             return wallet
@@ -483,7 +500,7 @@ export class BladeSDK {
 
     }
 
-    splitSignature(signature: string, completionKey?: string) {
+    splitSignature(signature: string, completionKey?: string): Promise<SplitSignatureData> {
         try {
             const {v, r, s} = hethers.utils.splitSignature(signature);
             return this.sendMessageToNative(completionKey, {v, r, s});
@@ -492,7 +509,7 @@ export class BladeSDK {
         }
     }
 
-    async getParamsSignature(paramsEncoded: any, privateKey: string, completionKey?: string) {
+    async getParamsSignature(paramsEncoded: any, privateKey: string, completionKey?: string): Promise<SplitSignatureData> {
         try {
             const {types, values} = await parseContractFunctionParams(paramsEncoded);
             const hash = hethers.utils.solidityKeccak256(types, values);
@@ -508,7 +525,7 @@ export class BladeSDK {
         }
     }
 
-    async getTransactions(accountId: string, transactionType: string = "", nextPage: string, transactionsLimit: string = "10", completionKey?: string) {
+    async getTransactions(accountId: string, transactionType: string = "", nextPage: string, transactionsLimit: string = "10", completionKey?: string): Promise<TransactionsHistoryData> {
         try {
             const transactionData = await getTransactionsFrom(this.network, accountId, transactionType, nextPage, transactionsLimit);
             return this.sendMessageToNative(completionKey, transactionData);
@@ -517,7 +534,7 @@ export class BladeSDK {
         }
     }
 
-    async getC14url(asset: string, account: string, amount: string, completionKey?: string) {
+    async getC14url(asset: string, account: string, amount: string, completionKey?: string): Promise<IntegrationUrlData> {
         try {
             const {token} = await getC14token({apiKey: this.apiKey});
             const url = new URL("https://pay.c14.money/");
@@ -584,30 +601,5 @@ export class BladeSDK {
             bladeMessageHandler.postMessage(JSON.stringify(responseObject));
         }
         return JSON.parse(JSON.stringify(responseObject));
-    }
-
-    /**
-     * Object to parse balance response
-     *
-     * @param {JSON} data
-     * @returns {JSON}
-     */
-    private processBalanceData(data: AccountBalance) {
-        const hbars = data.hbars.toBigNumber().toNumber();
-        const tokens: any[] = [];
-        const dataJson = data.toJSON();
-        dataJson.tokens.forEach(token => {
-            var balance = Number(token.balance);
-            const tokenDecimals = Number(token.decimals);
-            if (tokenDecimals) balance = balance / (10 ** tokenDecimals);
-            tokens.push({
-                tokenId: token.tokenId,
-                balance: balance
-            });
-        });
-        return {
-            hbars: hbars,
-            tokens: tokens
-        };
     }
 }
