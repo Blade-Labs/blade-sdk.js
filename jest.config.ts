@@ -3,9 +3,13 @@ import type {Config} from '@jest/types';
 const config: Config.InitialOptions = {
     verbose: true,
     transform: {
-        '^.+\\.tsx?$': 'ts-jest',
+        '^.+\\.tsx?$': [
+            'ts-jest',
+            {tsconfig: './tsconfig.json'}
+        ],
     },
-    "testEnvironment": "jsdom",
+    testEnvironment: "jsdom",
+    setupFiles: ["core-js"],
     setupFilesAfterEnv: ["<rootDir>/test/src/helpers.ts"]
 };
 export default config;

@@ -43,8 +43,13 @@ export class BladeSDK {
     private network: Network = Network.Testnet;
     private dAppCode: string = "";
     private fingerprint: string = "";
+    private webView: boolean = false;
 
-    init(apiKey: string, network: string, dAppCode: string, fingerprint: string, completionKey: string) {
+    constructor(isWebView = false) {
+        this.webView = isWebView;
+    }
+
+    init(apiKey: string, network: string, dAppCode: string, fingerprint: string, completionKey: string = "") {
         this.apiKey = apiKey;
         this.network = StringHelpers.stringToNetwork(network);
         this.dAppCode = dAppCode;
@@ -554,6 +559,14 @@ export class BladeSDK {
      * Message that sends response back to native handler
      */
     private sendMessageToNative(completionKey: string, data: any | null, error: Partial<CustomError>|any|null = null) {
+        if (!this.webView) {
+            if (error) {
+                throw error;
+            }
+            return data;
+        }
+
+        // web-view bridge response
         const responseObject: BridgeResponse = {
             completionKey: completionKey,
             data: data
@@ -598,5 +611,3 @@ export class BladeSDK {
         };
     }
 }
-
-// if (window) window["bladeSdk"] = new BladeSDK();

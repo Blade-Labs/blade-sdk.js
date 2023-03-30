@@ -2,7 +2,7 @@
 var path = require('path')
 
 module.exports = {
-    entry: { JSWrapper: "./index.ts" },
+    entry: { JSWrapper: "./src/webView.ts" },
     module: {
         rules: [
             {

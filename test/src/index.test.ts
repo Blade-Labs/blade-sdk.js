@@ -5,7 +5,7 @@ import {Network} from "../../src/models/Networks";
 import {isEqual} from "lodash";
 import {Buffer} from "buffer";
 
-const SDK = require("../../src");
+const {BladeSDK} = require("../../src/webView");
 require("dotenv").config();
 
 global.fetch = require("node-fetch");
@@ -13,7 +13,7 @@ global.fetch = require("node-fetch");
 const {PrivateKey} = require("@hashgraph/sdk");
 const {hethers} = require("@hashgraph/hethers");
 
-const bladeSdk = window["bladeSdk"];
+const bladeSdk = new BladeSDK(true);
 export const completionKey = "completionKey1";
 const privateKey = process.env.PRIVATE_KEY; // ECDSA
 const accountId = process.env.ACCOUNT_ID;
