@@ -49,7 +49,7 @@ export class BladeSDK {
         this.webView = isWebView;
     }
 
-    init(apiKey: string, network: string, dAppCode: string, fingerprint: string, completionKey: string = "") {
+    init(apiKey: string, network: string, dAppCode: string, fingerprint: string, completionKey?: string) {
         this.apiKey = apiKey;
         this.network = StringHelpers.stringToNetwork(network);
         this.dAppCode = dAppCode;
@@ -58,7 +58,7 @@ export class BladeSDK {
         return this.sendMessageToNative(completionKey, {status: "success"});
     }
 
-    getBalance(accountId: string, completionKey: string) {
+    getBalance(accountId: string, completionKey?: string) {
         const client = this.getClient();
 
         return new AccountBalanceQuery()
@@ -71,7 +71,7 @@ export class BladeSDK {
             });
     }
 
-    transferHbars(accountId: string, accountPrivateKey: string, receiverID: string, amount: string, completionKey: string) {
+    transferHbars(accountId: string, accountPrivateKey: string, receiverID: string, amount: string, completionKey?: string) {
         try {
             const client = this.getClient();
             client.setOperator(accountId, accountPrivateKey);
@@ -100,7 +100,7 @@ export class BladeSDK {
         accountPrivateKey: string,
         gas: number = 100000,
         bladePayFee: boolean = false,
-        completionKey: string
+        completionKey?: string
     ) {
         try {
             const client = this.getClient();
@@ -165,7 +165,7 @@ export class BladeSDK {
         gas: number = 100000,
         bladePayFee: boolean = false,
         resultTypes: string[],
-        completionKey: string) {
+        completionKey?: string) {
         try {
             const client = this.getClient();
             client.setOperator(accountId, accountPrivateKey);
@@ -219,7 +219,7 @@ export class BladeSDK {
         }
     }
 
-    async transferTokens(tokenId: string, accountId: string, accountPrivateKey: string, receiverID: string, amount: string, freeTransfer: boolean = true, completionKey: string) {
+    async transferTokens(tokenId: string, accountId: string, accountPrivateKey: string, receiverID: string, amount: string, freeTransfer: boolean = true, completionKey?: string) {
         try {
             const client = this.getClient();
             client.setOperator(accountId, accountPrivateKey);
@@ -271,7 +271,7 @@ export class BladeSDK {
         }
     }
 
-    async createAccount(completionKey: string) {
+    async createAccount(completionKey?: string) {
         try {
             let seedPhrase: Mnemonic | null = null;
             let privateKey: PrivateKey | null = null;
@@ -322,7 +322,7 @@ export class BladeSDK {
         }
     }
 
-    async getPendingAccount(transactionId: string, mnemonic: string, completionKey: string) {
+    async getPendingAccount(transactionId: string, mnemonic: string, completionKey?: string) {
         try {
             const seedPhrase = await Mnemonic.fromString(mnemonic);
             const privateKey = await seedPhrase.toEcdsaPrivateKey();
@@ -373,7 +373,7 @@ export class BladeSDK {
         }
     }
 
-    async deleteAccount(deleteAccountId: string, deletePrivateKey: string, transferAccountId: string, operatorAccountId: string, operatorPrivateKey: string, completionKey: string) {
+    async deleteAccount(deleteAccountId: string, deletePrivateKey: string, transferAccountId: string, operatorAccountId: string, operatorPrivateKey: string, completionKey?: string) {
         try {
             const client = this.getClient();
             const deleteAccountKey = PrivateKey.fromString(deletePrivateKey);
@@ -404,7 +404,7 @@ export class BladeSDK {
         }
     }
 
-    async getAccountInfo(accountId: string, completionKey: string) {
+    async getAccountInfo(accountId: string, completionKey?: string) {
         try {
             const {evmAddress, publicKey} = await accountInfo(this.network, accountId);
 
@@ -418,7 +418,7 @@ export class BladeSDK {
         }
     }
 
-    async getKeysFromMnemonic(mnemonicRaw: string, lookupNames: boolean, completionKey: string) {
+    async getKeysFromMnemonic(mnemonicRaw: string, lookupNames: boolean, completionKey?: string) {
         try {
             //TODO support all the different type of private keys
             const mnemonic = await Mnemonic.fromString(mnemonicRaw);
@@ -442,7 +442,7 @@ export class BladeSDK {
         }
     }
 
-    sign(messageString: string, privateKey: string, completionKey: string) {
+    sign(messageString: string, privateKey: string, completionKey?: string) {
         try {
             const key = PrivateKey.fromString(privateKey);
             const signed = key.sign(Buffer.from(messageString, "base64"));
@@ -455,7 +455,7 @@ export class BladeSDK {
         }
     }
 
-    signVerify(messageString: string, signature: string, publicKey: string, completionKey: string) {
+    signVerify(messageString: string, signature: string, publicKey: string, completionKey?: string) {
         try {
             const valid = PublicKey.fromString(publicKey).verify(
                 Buffer.from(messageString, "base64"),
@@ -467,7 +467,7 @@ export class BladeSDK {
         }
     }
 
-    hethersSign(messageString: string, privateKey: string, completionKey: string) {
+    hethersSign(messageString: string, privateKey: string, completionKey?: string) {
         try {
             const wallet = new hethers.Wallet(privateKey);
             return wallet
@@ -483,7 +483,7 @@ export class BladeSDK {
 
     }
 
-    splitSignature(signature: string, completionKey: string) {
+    splitSignature(signature: string, completionKey?: string) {
         try {
             const {v, r, s} = hethers.utils.splitSignature(signature);
             return this.sendMessageToNative(completionKey, {v, r, s});
@@ -492,7 +492,7 @@ export class BladeSDK {
         }
     }
 
-    async getParamsSignature(paramsEncoded: any, privateKey: string, completionKey: string) {
+    async getParamsSignature(paramsEncoded: any, privateKey: string, completionKey?: string) {
         try {
             const {types, values} = await parseContractFunctionParams(paramsEncoded);
             const hash = hethers.utils.solidityKeccak256(types, values);
@@ -508,7 +508,7 @@ export class BladeSDK {
         }
     }
 
-    async getTransactions(accountId: string, transactionType: string = "", nextPage: string, transactionsLimit: string = "10", completionKey: string) {
+    async getTransactions(accountId: string, transactionType: string = "", nextPage: string, transactionsLimit: string = "10", completionKey?: string) {
         try {
             const transactionData = await getTransactionsFrom(this.network, accountId, transactionType, nextPage, transactionsLimit);
             return this.sendMessageToNative(completionKey, transactionData);
@@ -517,7 +517,7 @@ export class BladeSDK {
         }
     }
 
-    async getC14url(asset: string, account: string, amount: string, completionKey: string) {
+    async getC14url(asset: string, account: string, amount: string, completionKey?: string) {
         try {
             const {token} = await getC14token({apiKey: this.apiKey});
             const url = new URL("https://pay.c14.money/");
@@ -558,7 +558,7 @@ export class BladeSDK {
     /**
      * Message that sends response back to native handler
      */
-    private sendMessageToNative(completionKey: string, data: any | null, error: Partial<CustomError>|any|null = null) {
+    private sendMessageToNative(completionKey: string | undefined, data: any | null, error: Partial<CustomError>|any|null = null) {
         if (!this.webView) {
             if (error) {
                 throw error;
@@ -568,7 +568,7 @@ export class BladeSDK {
 
         // web-view bridge response
         const responseObject: BridgeResponse = {
-            completionKey: completionKey,
+            completionKey: completionKey || "",
             data: data
         };
         if (error) {

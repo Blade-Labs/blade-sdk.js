@@ -1,30 +1,41 @@
 # Blade-SDK.js
 
-Build for npm-install
-Build for webView
+[![Build Status](https://github.com/Blade-Labs/blade-sdk.js/actions/workflows/node.js.yml/badge.svg)](https://github.com/Blade-Labs/blade-sdk.js/actions/workflows/node.js.yml)
 
-## Documentation
 
-## Example Usage
 
 ## Getting Started
 
-## Install
+### Install
 
 ```
-npm i
+npm i @bladelabs/blade-sdk.js
 ```
 
-## Build
+## Use
 
 ```
-npm run build
+import {BladeSDK} from '@bladelabs/blade-sdk.js';
+
+...
+const bladeSDK = new BladeSDK();
+await bladeSDK.init("Blade apiKey", "testnet", "dAppCode", "client unique fingerprint");
+const balance = await bladeSDK.getBalance("0.0.8235");
+console.log(balance);
 ```
 
-## Publish to external repo
+
+
+
+
+
+
+## Publish bundle for other SDK repos
+
+Some other SDKs ([Kotlin-Blade](https://github.com/Blade-Labs/kotlin-blade) and [Swift-Blade](https://github.com/Blade-Labs/swift-blade)) depend on this repo. To publish a new bundle to those repos, run the following command:
 
 ```
-npm run publish
+npm run publish:web-view
 ```
 
 On repos create pull request from newly created branch `js/latest-build`
