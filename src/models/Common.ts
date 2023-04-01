@@ -108,3 +108,8 @@ export interface C14WidgetConfig {
     quoteAmountLock?: boolean;
     targetAddressLock?: boolean;
 }
+
+export interface ContractFunctionParameter {
+    type: string,
+    value: string[]
+}

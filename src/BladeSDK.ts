@@ -53,6 +53,7 @@ import {
     TransactionsHistoryData
 } from "./models/Common";
 import {executeUpdateAccountTransactions, processBalanceData} from "./helpers/AccountHelpers";
+import {ParametersBuilder} from "./ParametersBuilder";
 
 export class BladeSDK {
     private apiKey: string = "";
@@ -135,7 +136,7 @@ export class BladeSDK {
     async contractCallFunction(
         contractId: string,
         functionName: string,
-        paramsEncoded: string,
+        paramsEncoded: string | ParametersBuilder,
         accountId: string,
         accountPrivateKey: string,
         gas: number = 100000,
@@ -199,7 +200,7 @@ export class BladeSDK {
     async contractCallQueryFunction(
         contractId: string,
         functionName: string,
-        paramsEncoded: string,
+        paramsEncoded: string | ParametersBuilder,
         accountId: string,
         accountPrivateKey: string,
         gas: number = 100000,
@@ -614,7 +615,7 @@ export class BladeSDK {
         }
     }
 
-    async getParamsSignature(paramsEncoded: any, privateKey: string, completionKey?: string): Promise<SplitSignatureData> {
+    async getParamsSignature(paramsEncoded: string | ParametersBuilder, privateKey: string, completionKey?: string): Promise<SplitSignatureData> {
         try {
             const {types, values} = await parseContractFunctionParams(paramsEncoded);
             const hash = hethers.utils.solidityKeccak256(types, values);

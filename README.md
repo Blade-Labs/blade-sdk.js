@@ -67,6 +67,8 @@ TODO - add link to documentation
 - [ ] Add JSDoc for `contractCallFunction` method
 - [ ] Add JSDoc for `contractCallQueryFunction` method
 - [ ] Add JSDoc for `getParamsSignature` method
+- [ ] Rebuild Kotlin-Blade and Swift-Blade with new bundle
+
 
 ## Publish bundle for other SDK repos
 

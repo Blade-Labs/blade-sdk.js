@@ -1,8 +1,9 @@
 import {AccountId, ContractFunctionResult} from "@hashgraph/sdk";
 import {hethers} from "@hashgraph/hethers";
 import {Buffer} from "buffer";
+import {ParametersBuilder} from "../ParametersBuilder";
 
-export const getContractFunctionBytecode = async (functionName: string, paramsEncoded: string): Promise<Buffer> => {
+export const getContractFunctionBytecode = async (functionName: string, paramsEncoded: string | ParametersBuilder): Promise<Buffer> => {
     const {types, values} = await parseContractFunctionParams(paramsEncoded);
 
     // get func identifier
@@ -20,10 +21,17 @@ export const getContractFunctionBytecode = async (functionName: string, paramsEn
     ]);
 }
 
-export const parseContractFunctionParams = async (paramsEncoded: string) => {
+export const parseContractFunctionParams = async (paramsEncoded: string | ParametersBuilder) => {
     const types: string[] = [];
     const values: any[] = [];
-    const paramsData = JSON.parse(paramsEncoded);
+
+    if (paramsEncoded instanceof ParametersBuilder) {
+        paramsEncoded = paramsEncoded.encode();
+    }
+
+    const paramsData = JSON.parse(
+        Buffer.from(paramsEncoded, "base64").toString()
+    );
 
     for (let i = 0; i < paramsData.length; i++) {
         const param = paramsData[i];
@@ -76,6 +84,17 @@ export const parseContractFunctionParams = async (paramsEncoded: string) => {
                 const result: any[] = [];
                 for (let i = 0; i < param.value.length; i++) {
                     result.push(await parseContractFunctionParams(param.value[i]));
+                }
+
+                // check if all types are the same (tuple structure must be the same in array)
+                const tupleTypes = result[0].types.toString();
+                for (let i = 1; i < result.length; i++) {
+                    if (result[i].types.toString() !== tupleTypes) {
+                        throw {
+                            name: "BladeSDK.JS",
+                            reason: `Tuple structure in array must be the same`
+                        }
+                    }
                 }
 
                 types.push(`(${result[0].types})[]`);
