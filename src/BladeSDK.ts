@@ -689,9 +689,6 @@ export class BladeSDK {
 
     /**
      * Get configured url for C14 integration (iframe or popup)
-     * Transaction requested from mirror node. Every transaction requested for child transactions. Result are flattened.
-     * If transaction type is not provided, all transactions will be returned.
-     * If transaction type is CRYPTOTRANSFERTOKEN records will additionally contain plainData field with decoded data.
      * @param asset name (USDC or HBAR)
      * @param account receiver account id (0.0.xxxxx)
      * @param amount preset amount. May be overwritten if out of range (min/max)
