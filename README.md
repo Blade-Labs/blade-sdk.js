@@ -52,12 +52,7 @@ console.log(balance);
 
 ## Documentation
 
-TODO - add link to documentation
-
-## TODO
-
-* [ ] Add documentation (to docs.bladelabs.io)
-* [ ] Rebuild Kotlin-Blade and Swift-Blade with new bundle
+[Blade-SDK.js docs](SUMMARY.md)
 
 ## Publish bundle for other SDK repos
 

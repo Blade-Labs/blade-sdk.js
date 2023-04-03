@@ -8,26 +8,26 @@ description: More details on how to use Blade-SDK.js
 
 #### Methods
 
-* [constructor](./#constructor)
-* [init](./#init)
-* [getBalance](./#getbalance)
-* [createAccount](./#createaccount)
-* [getPendingAccount](./#getpendingaccount)
-* [getAccountInfo](./#getaccountinfo)
-* [getKeysFromMnemonic](./#getkeysfrommnemonic)
-* [transferHbars](./#transferhbars)
-* [transferTokens](./#transfertokens)
-* [getTransactions](./#gettransactions)
-* [deleteAccount](./#deleteaccount)
-* [contractCallFunction](./#contractcallfunction)
-* [contractCallQueryFunction](./#contractcallqueryfunction)
-* [getParamsSignature](./#getparamssignature)
-* [sign](./#sign)
-* [signVerify](./#signverify)
-* [hethersSign](./#hetherssign)
-* [splitSignature](./#splitsignature)
-* [getC14url](./#getc14url)
-* [sendMessageToNative](./#sendmessagetonative)
+* [constructor](usage.md#constructor)
+* [init](usage.md#init)
+* [getBalance](usage.md#getbalance)
+* [createAccount](usage.md#createaccount)
+* [getPendingAccount](usage.md#getpendingaccount)
+* [getAccountInfo](usage.md#getaccountinfo)
+* [getKeysFromMnemonic](usage.md#getkeysfrommnemonic)
+* [transferHbars](usage.md#transferhbars)
+* [transferTokens](usage.md#transfertokens)
+* [getTransactions](usage.md#gettransactions)
+* [deleteAccount](usage.md#deleteaccount)
+* [contractCallFunction](usage.md#contractcallfunction)
+* [contractCallQueryFunction](usage.md#contractcallqueryfunction)
+* [getParamsSignature](usage.md#getparamssignature)
+* [sign](usage.md#sign)
+* [signVerify](usage.md#signverify)
+* [hethersSign](usage.md#hetherssign)
+* [splitSignature](usage.md#splitsignature)
+* [getC14url](usage.md#getc14url)
+* [sendMessageToNative](usage.md#sendmessagetonative)
 
 ## Methods
 
@@ -260,16 +260,16 @@ Call contract function. Directly or via Blade Payer account (fee will be paid by
 
 #### Parameters
 
-| Name                | Type                                                       | Default value | Description                                                                                           |
-| ------------------- | ---------------------------------------------------------- | ------------- | ----------------------------------------------------------------------------------------------------- |
-| `contractId`        | `string`                                                   | `undefined`   | contract id (0.0.xxxxx)                                                                               |
-| `functionName`      | `string`                                                   | `undefined`   | name of the contract function to call                                                                 |
-| `paramsEncoded`     | `string` \| [`ParametersBuilder`](../ParametersBuilder.md) | `undefined`   | function argument. Can be generated with ParametersBuilder object                                     |
-| `accountId`         | `string`                                                   | `undefined`   | operator account id (0.0.xxxxx)                                                                       |
-| `accountPrivateKey` | `string`                                                   | `undefined`   | operator's hex-encoded private key with DER-header, ECDSA or Ed25519                                  |
-| `gas`               | `number`                                                   | `100000`      | gas limit for the transaction                                                                         |
-| `bladePayFee`       | `boolean`                                                  | `false`       | if true, fee will be paid by Blade (note: msg.sender inside the contract will be Blade Payer account) |
-| `completionKey?`    | `string`                                                   | `undefined`   | optional field bridge between mobile webViews and native apps                                         |
+| Name                | Type                                                       | Default value                                  | Description                                                                                           |
+| ------------------- | ---------------------------------------------------------- |------------------------------------------------| ----------------------------------------------------------------------------------------------------- |
+| `contractId`        | `string`                                                   | `undefined`                                    | contract id (0.0.xxxxx)                                                                               |
+| `functionName`      | `string`                                                   | `undefined`                                    | name of the contract function to call                                                                 |
+| `paramsEncoded`     | `string` \| [`ParametersBuilder`](parametersbuilder.md)    | `undefined`   | function argument. Can be generated with ParametersBuilder object                                     |
+| `accountId`         | `string`                                                   | `undefined`                                    | operator account id (0.0.xxxxx)                                                                       |
+| `accountPrivateKey` | `string`                                                   | `undefined`                                    | operator's hex-encoded private key with DER-header, ECDSA or Ed25519                                  |
+| `gas`               | `number`                                                   | `100000`                                       | gas limit for the transaction                                                                         |
+| `bladePayFee`       | `boolean`                                                  | `false`                                        | if true, fee will be paid by Blade (note: msg.sender inside the contract will be Blade Payer account) |
+| `completionKey?`    | `string`                                                   | `undefined`                                    | optional field bridge between mobile webViews and native apps                                         |
 
 #### Returns
 
@@ -285,17 +285,17 @@ Call query on contract function. Similar to contractCallFunction can be called d
 
 #### Parameters
 
-| Name                | Type                                                       | Default value | Description                                                                                           |
-| ------------------- | ---------------------------------------------------------- | ------------- | ----------------------------------------------------------------------------------------------------- |
-| `contractId`        | `string`                                                   | `undefined`   | contract id (0.0.xxxxx)                                                                               |
-| `functionName`      | `string`                                                   | `undefined`   | name of the contract function to call                                                                 |
-| `paramsEncoded`     | `string` \| [`ParametersBuilder`](../ParametersBuilder.md) | `undefined`   | function argument. Can be generated with ParametersBuilder object                                     |
-| `accountId`         | `string`                                                   | `undefined`   | operator account id (0.0.xxxxx)                                                                       |
-| `accountPrivateKey` | `string`                                                   | `undefined`   | operator's hex-encoded private key with DER-header, ECDSA or Ed25519                                  |
-| `gas`               | `number`                                                   | `100000`      | gas limit for the transaction                                                                         |
-| `bladePayFee`       | `boolean`                                                  | `false`       | if true, fee will be paid by Blade (note: msg.sender inside the contract will be Blade Payer account) |
-| `resultTypes`       | `string`\[]                                                | `undefined`   | array of result types. Currently supported only plain data types                                      |
-| `completionKey?`    | `string`                                                   | `undefined`   | optional field bridge between mobile webViews and native apps                                         |
+| Name                | Type                                                       | Default value                                  | Description                                                                                           |
+| ------------------- | ---------------------------------------------------------- |------------------------------------------------| ----------------------------------------------------------------------------------------------------- |
+| `contractId`        | `string`                                                   | `undefined`                                    | contract id (0.0.xxxxx)                                                                               |
+| `functionName`      | `string`                                                   | `undefined`                                    | name of the contract function to call                                                                 |
+| `paramsEncoded`     | `string` \| [`ParametersBuilder`](parametersbuilder.md)    | `undefined`   | function argument. Can be generated with ParametersBuilder object                                     |
+| `accountId`         | `string`                                                   | `undefined`                                    | operator account id (0.0.xxxxx)                                                                       |
+| `accountPrivateKey` | `string`                                                   | `undefined`                                    | operator's hex-encoded private key with DER-header, ECDSA or Ed25519                                  |
+| `gas`               | `number`                                                   | `100000`                                       | gas limit for the transaction                                                                         |
+| `bladePayFee`       | `boolean`                                                  | `false`                                        | if true, fee will be paid by Blade (note: msg.sender inside the contract will be Blade Payer account) |
+| `resultTypes`       | `string`\[]                                                | `undefined`                                    | array of result types. Currently supported only plain data types                                      |
+| `completionKey?`    | `string`                                                   | `undefined`                                    | optional field bridge between mobile webViews and native apps                                         |
 
 #### Returns
 
@@ -311,10 +311,10 @@ Get v-r-s signature of contract function params
 
 #### Parameters
 
-| Name             | Type                                                       | Description                                                   |
-| ---------------- | ---------------------------------------------------------- | ------------------------------------------------------------- |
-| `paramsEncoded`  | `string` \| [`ParametersBuilder`](../ParametersBuilder.md) | data to sign. Can be string or ParametersBuilder              |
-| `privateKey`     | `string`                                                   | signer private key (hex-encoded with DER header)              |
+| Name             | Type                                                       | Description                                             |
+| ---------------- | ---------------------------------------------------------- |---------------------------------------------------------|
+| `paramsEncoded`  | `string` \| [`ParametersBuilder`](parametersbuilder.md)    | data to sign. Can be string or ParametersBuilder              |
+| `privateKey`     | `string`                                                   | signer private key (hex-encoded with DER header)        |
 | `completionKey?` | `string`                                                   | optional field bridge between mobile webViews and native apps |
 
 #### Returns
