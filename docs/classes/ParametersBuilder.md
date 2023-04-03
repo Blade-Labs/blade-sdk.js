@@ -1,6 +1,8 @@
+# ParametersBuilder class
+
 [blade-sdk.js](../contents.md) / ParametersBuilder
 
-# Class: ParametersBuilder
+## Class: ParametersBuilder
 
 ParametersBuilder is a helper class to build contract function parameters
 
@@ -16,322 +18,318 @@ const params = new ParametersBuilder()
  ;
 ```
 
-## Table of contents
+### Table of contents
+
+#### Constructors
+
+*
+
+#### Methods
+
+* [constructor](ParametersBuilder.md#constructor)
+* [addAddress](ParametersBuilder.md#addaddress)
+* [addAddressArray](ParametersBuilder.md#addaddressarray)
+* [addBytes32](ParametersBuilder.md#addbytes32)
+* [addInt64](ParametersBuilder.md#addint64)
+* [addString](ParametersBuilder.md#addstring)
+* [addStringArray](ParametersBuilder.md#addstringarray)
+* [addTuple](ParametersBuilder.md#addtuple)
+* [addTupleArray](ParametersBuilder.md#addtuplearray)
+* [addUInt256](ParametersBuilder.md#adduint256)
+* [addUInt256Array](ParametersBuilder.md#adduint256array)
+* [addUInt64](ParametersBuilder.md#adduint64)
+* [addUInt64Array](ParametersBuilder.md#adduint64array)
+* [addUInt8](ParametersBuilder.md#adduint8)
+* [encode](ParametersBuilder.md#encode)
 
 ### Constructors
 
-- [constructor](ParametersBuilder.md#constructor)
-
-### Properties
-
-- [params](ParametersBuilder.md#params)
-
-### Methods
-
-- [addAddress](ParametersBuilder.md#addaddress)
-- [addAddressArray](ParametersBuilder.md#addaddressarray)
-- [addBytes32](ParametersBuilder.md#addbytes32)
-- [addInt64](ParametersBuilder.md#addint64)
-- [addString](ParametersBuilder.md#addstring)
-- [addStringArray](ParametersBuilder.md#addstringarray)
-- [addTuple](ParametersBuilder.md#addtuple)
-- [addTupleArray](ParametersBuilder.md#addtuplearray)
-- [addUInt256](ParametersBuilder.md#adduint256)
-- [addUInt256Array](ParametersBuilder.md#adduint256array)
-- [addUInt64](ParametersBuilder.md#adduint64)
-- [addUInt64Array](ParametersBuilder.md#adduint64array)
-- [addUInt8](ParametersBuilder.md#adduint8)
-- [encode](ParametersBuilder.md#encode)
-
-## Constructors
-
-### constructor
+#### constructor
 
 • **new ParametersBuilder**()
 
-## Properties
+### Properties
 
-### params
+#### params
 
-• `Private` **params**: `ContractFunctionParameter`[] = `[]`
+• `Private` **params**: `ContractFunctionParameter`\[] = `[]`
 
-#### Defined in
+**Defined in**
 
 [ParametersBuilder.ts:22](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/ParametersBuilder.ts#L22)
 
-## Methods
+### Methods
 
-### addAddress
+#### addAddress
 
 ▸ **addAddress**(`value`): [`ParametersBuilder`](ParametersBuilder.md)
 
-#### Parameters
+**Parameters**
 
-| Name | Type |
-| :------ | :------ |
+| Name    | Type                  |
+| ------- | --------------------- |
 | `value` | `string` \| `default` |
 
-#### Returns
+**Returns**
 
 [`ParametersBuilder`](ParametersBuilder.md)
 
-#### Defined in
+**Defined in**
 
 [ParametersBuilder.ts:24](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/ParametersBuilder.ts#L24)
 
-___
+***
 
-### addAddressArray
+#### addAddressArray
 
 ▸ **addAddressArray**(`value`): [`ParametersBuilder`](ParametersBuilder.md)
 
-#### Parameters
+**Parameters**
 
-| Name | Type |
-| :------ | :------ |
-| `value` | `string`[] \| `default`[] |
+| Name    | Type                        |
+| ------- | --------------------------- |
+| `value` | `string`\[] \| `default`\[] |
 
-#### Returns
+**Returns**
 
 [`ParametersBuilder`](ParametersBuilder.md)
 
-#### Defined in
+**Defined in**
 
 [ParametersBuilder.ts:29](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/ParametersBuilder.ts#L29)
 
-___
+***
 
-### addBytes32
+#### addBytes32
 
 ▸ **addBytes32**(`value`): [`ParametersBuilder`](ParametersBuilder.md)
 
-#### Parameters
+**Parameters**
 
-| Name | Type |
-| :------ | :------ |
-| `value` | `number`[] \| `Uint8Array` |
+| Name    | Type                        |
+| ------- | --------------------------- |
+| `value` | `number`\[] \| `Uint8Array` |
 
-#### Returns
+**Returns**
 
 [`ParametersBuilder`](ParametersBuilder.md)
 
-#### Defined in
+**Defined in**
 
 [ParametersBuilder.ts:34](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/ParametersBuilder.ts#L34)
 
-___
+***
 
-### addInt64
+#### addInt64
 
 ▸ **addInt64**(`value`): [`ParametersBuilder`](ParametersBuilder.md)
 
-#### Parameters
+**Parameters**
 
-| Name | Type |
-| :------ | :------ |
+| Name    | Type        |
+| ------- | ----------- |
 | `value` | `BigNumber` |
 
-#### Returns
+**Returns**
 
 [`ParametersBuilder`](ParametersBuilder.md)
 
-#### Defined in
+**Defined in**
 
 [ParametersBuilder.ts:61](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/ParametersBuilder.ts#L61)
 
-___
+***
 
-### addString
+#### addString
 
 ▸ **addString**(`value`): [`ParametersBuilder`](ParametersBuilder.md)
 
-#### Parameters
+**Parameters**
 
-| Name | Type |
-| :------ | :------ |
+| Name    | Type     |
+| ------- | -------- |
 | `value` | `string` |
 
-#### Returns
+**Returns**
 
 [`ParametersBuilder`](ParametersBuilder.md)
 
-#### Defined in
+**Defined in**
 
 [ParametersBuilder.ts:86](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/ParametersBuilder.ts#L86)
 
-___
+***
 
-### addStringArray
+#### addStringArray
 
 ▸ **addStringArray**(`value`): [`ParametersBuilder`](ParametersBuilder.md)
 
-#### Parameters
+**Parameters**
 
-| Name | Type |
-| :------ | :------ |
-| `value` | `string`[] |
+| Name    | Type        |
+| ------- | ----------- |
+| `value` | `string`\[] |
 
-#### Returns
+**Returns**
 
 [`ParametersBuilder`](ParametersBuilder.md)
 
-#### Defined in
+**Defined in**
 
 [ParametersBuilder.ts:91](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/ParametersBuilder.ts#L91)
 
-___
+***
 
-### addTuple
+#### addTuple
 
 ▸ **addTuple**(`value`): [`ParametersBuilder`](ParametersBuilder.md)
 
-#### Parameters
+**Parameters**
 
-| Name | Type |
-| :------ | :------ |
+| Name    | Type                                        |
+| ------- | ------------------------------------------- |
 | `value` | [`ParametersBuilder`](ParametersBuilder.md) |
 
-#### Returns
+**Returns**
 
 [`ParametersBuilder`](ParametersBuilder.md)
 
-#### Defined in
+**Defined in**
 
 [ParametersBuilder.ts:76](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/ParametersBuilder.ts#L76)
 
-___
+***
 
-### addTupleArray
+#### addTupleArray
 
 ▸ **addTupleArray**(`value`): [`ParametersBuilder`](ParametersBuilder.md)
 
-#### Parameters
+**Parameters**
 
-| Name | Type |
-| :------ | :------ |
-| `value` | [`ParametersBuilder`](ParametersBuilder.md)[] |
+| Name    | Type                                           |
+| ------- | ---------------------------------------------- |
+| `value` | [`ParametersBuilder`](ParametersBuilder.md)\[] |
 
-#### Returns
+**Returns**
 
 [`ParametersBuilder`](ParametersBuilder.md)
 
-#### Defined in
+**Defined in**
 
 [ParametersBuilder.ts:81](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/ParametersBuilder.ts#L81)
 
-___
+***
 
-### addUInt256
+#### addUInt256
 
 ▸ **addUInt256**(`value`): [`ParametersBuilder`](ParametersBuilder.md)
 
-#### Parameters
+**Parameters**
 
-| Name | Type |
-| :------ | :------ |
+| Name    | Type        |
+| ------- | ----------- |
 | `value` | `BigNumber` |
 
-#### Returns
+**Returns**
 
 [`ParametersBuilder`](ParametersBuilder.md)
 
-#### Defined in
+**Defined in**
 
 [ParametersBuilder.ts:66](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/ParametersBuilder.ts#L66)
 
-___
+***
 
-### addUInt256Array
+#### addUInt256Array
 
 ▸ **addUInt256Array**(`value`): [`ParametersBuilder`](ParametersBuilder.md)
 
-#### Parameters
+**Parameters**
 
-| Name | Type |
-| :------ | :------ |
-| `value` | `BigNumber`[] |
+| Name    | Type           |
+| ------- | -------------- |
+| `value` | `BigNumber`\[] |
 
-#### Returns
+**Returns**
 
 [`ParametersBuilder`](ParametersBuilder.md)
 
-#### Defined in
+**Defined in**
 
 [ParametersBuilder.ts:71](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/ParametersBuilder.ts#L71)
 
-___
+***
 
-### addUInt64
+#### addUInt64
 
 ▸ **addUInt64**(`value`): [`ParametersBuilder`](ParametersBuilder.md)
 
-#### Parameters
+**Parameters**
 
-| Name | Type |
-| :------ | :------ |
+| Name    | Type        |
+| ------- | ----------- |
 | `value` | `BigNumber` |
 
-#### Returns
+**Returns**
 
 [`ParametersBuilder`](ParametersBuilder.md)
 
-#### Defined in
+**Defined in**
 
 [ParametersBuilder.ts:51](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/ParametersBuilder.ts#L51)
 
-___
+***
 
-### addUInt64Array
+#### addUInt64Array
 
 ▸ **addUInt64Array**(`value`): [`ParametersBuilder`](ParametersBuilder.md)
 
-#### Parameters
+**Parameters**
 
-| Name | Type |
-| :------ | :------ |
-| `value` | `BigNumber`[] |
+| Name    | Type           |
+| ------- | -------------- |
+| `value` | `BigNumber`\[] |
 
-#### Returns
+**Returns**
 
 [`ParametersBuilder`](ParametersBuilder.md)
 
-#### Defined in
+**Defined in**
 
 [ParametersBuilder.ts:56](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/ParametersBuilder.ts#L56)
 
-___
+***
 
-### addUInt8
+#### addUInt8
 
 ▸ **addUInt8**(`value`): [`ParametersBuilder`](ParametersBuilder.md)
 
-#### Parameters
+**Parameters**
 
-| Name | Type |
-| :------ | :------ |
+| Name    | Type     |
+| ------- | -------- |
 | `value` | `number` |
 
-#### Returns
+**Returns**
 
 [`ParametersBuilder`](ParametersBuilder.md)
 
-#### Defined in
+**Defined in**
 
 [ParametersBuilder.ts:46](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/ParametersBuilder.ts#L46)
 
-___
+***
 
-### encode
+#### encode
 
 ▸ **encode**(): `string`
 
-Encodes the parameters to a base64 string, compatible with the methods of the BladeSDK
-Calling this method is optional, as the BladeSDK will automatically encode the parameters if needed
+Encodes the parameters to a base64 string, compatible with the methods of the BladeSDK Calling this method is optional, as the BladeSDK will automatically encode the parameters if needed
 
-#### Returns
+**Returns**
 
 `string`
 
-#### Defined in
+**Defined in**
 
 [ParametersBuilder.ts:100](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/ParametersBuilder.ts#L100)
