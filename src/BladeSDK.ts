@@ -62,6 +62,10 @@ export class BladeSDK {
     private fingerprint: string = "";
     private webView: boolean = false;
 
+    /**
+     * BladeSDK constructor.
+     * @param isWebView - true if you are using this SDK in webview of native app. It changes the way of communication with native app.
+     */
     constructor(isWebView = false) {
         this.webView = isWebView;
     }

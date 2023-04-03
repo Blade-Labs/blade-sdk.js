@@ -12,7 +12,8 @@
     "clean": "rm -rf ./lib",
     "publish:web-view": "npm run build:web-view && node utils/publish-sdk-bundle.js",
     "test": "jest --coverage",
-    "deploy-test-contract": "solcjs --bin --abi test/contract/TestContract.sol -o ./test/contract && node test/contract/deploy.js"
+    "deploy-test-contract": "solcjs --bin --abi test/contract/TestContract.sol -o ./test/contract && node test/contract/deploy.js",
+    "docs": "typedoc --theme markdown --out docs --mode file src"
   },
   "keywords": [
     "hedera",
@@ -77,7 +78,8 @@
     "ts-node": "^10.9.1",
     "tslint": "^6.1.3",
     "tslint-config-prettier": "^1.18.0",
-    "typedoc": "^0.23.24",
+    "typedoc": "^0.23.28",
+    "typedoc-plugin-markdown": "^3.14.0",
     "typescript": "^4.7.4",
     "webpack": "^5.76.3",
     "webpack-cli": "^4.10.0"
