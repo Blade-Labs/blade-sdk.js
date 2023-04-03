@@ -444,7 +444,13 @@ test('bladeSdk.splitSignature', async () => {
 });
 
 test('bladeSdk.getParamsSignature', async () => {
-    let result = await bladeSdk.getParamsSignature(`[{"type":"address","value":["${accountId}"]},{"type":"uint64[]","value":["300000","300000"]},{"type":"uint64[]","value":["6"]},{"type":"uint64[]","value":["2"]}]`, privateKey, completionKey);
+    const params = new ParametersBuilder()
+        .addAddress(accountId)
+        .addUInt64Array([300000, 300000])
+        .addUInt64Array([6])
+        .addUInt64Array([2])
+
+    let result = await bladeSdk.getParamsSignature(params, privateKey, completionKey);
     checkResult(result);
 
     expect(result.data).toHaveProperty("v");

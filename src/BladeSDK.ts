@@ -133,6 +133,18 @@ export class BladeSDK {
 
     }
 
+    /**
+     * Call contract function. Directly or via Blade Payer account (fee will be paid by Blade), depending on your dApp configuration.
+     * @param contractId - contract id (0.0.xxxxx)
+     * @param functionName - name of the contract function to call
+     * @param paramsEncoded - function argument. Can be generated with {@link ParametersBuilder} object
+     * @param accountId - operator account id (0.0.xxxxx)
+     * @param accountPrivateKey - operator's hex-encoded private key with DER-header, ECDSA or Ed25519
+     * @param gas - gas limit for the transaction
+     * @param bladePayFee - if true, fee will be paid by Blade (note: msg.sender inside the contract will be Blade Payer account)
+     * @param completionKey - optional field bridge between mobile webViews and native apps
+     * @returns {Partial<TransactionReceipt>}
+     */
     async contractCallFunction(
         contractId: string,
         functionName: string,
@@ -197,6 +209,19 @@ export class BladeSDK {
         }
     }
 
+    /**
+     * Call query on contract function. Similar to {@link contractCallFunction} can be called directly or via Blade Payer account.
+     * @param contractId - contract id (0.0.xxxxx)
+     * @param functionName - name of the contract function to call
+     * @param paramsEncoded - function argument. Can be generated with {@link ParametersBuilder} object
+     * @param accountId - operator account id (0.0.xxxxx)
+     * @param accountPrivateKey - operator's hex-encoded private key with DER-header, ECDSA or Ed25519
+     * @param gas - gas limit for the transaction
+     * @param bladePayFee - if true, fee will be paid by Blade (note: msg.sender inside the contract will be Blade Payer account)
+     * @param resultTypes - array of result types. Currently supported only plain data types
+     * @param completionKey - optional field bridge between mobile webViews and native apps
+     * @returns {ContractCallQueryRecord[]}
+     */
     async contractCallQueryFunction(
         contractId: string,
         functionName: string,
@@ -248,7 +273,6 @@ export class BladeSDK {
                         .setFunctionParameters(contractFunctionParameters)
                         .execute(client);
                 }
-
 
                 const result = await parseContractQueryResponse(response, resultTypes);
                 return this.sendMessageToNative(completionKey, result);
@@ -615,6 +639,13 @@ export class BladeSDK {
         }
     }
 
+    /**
+     * Get v-r-s signature of contract function params
+     * @param paramsEncoded - data to sign. Can be string or ParametersBuilder
+     * @param privateKey - signer private key (hex-encoded with DER header)
+     * @param completionKey - optional field bridge between mobile webViews and native apps
+     * @returns {SplitSignatureData}
+     */
     async getParamsSignature(paramsEncoded: string | ParametersBuilder, privateKey: string, completionKey?: string): Promise<SplitSignatureData> {
         try {
             const {types, values} = await parseContractFunctionParams(paramsEncoded);
