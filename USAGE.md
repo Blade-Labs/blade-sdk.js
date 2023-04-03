@@ -29,7 +29,6 @@ description: More details on how to use Blade-SDK.js
 * [getC14url](USAGE.md#getc14url)
 * [sendMessageToNative](USAGE.md#sendmessagetonative)
 
-
 ## Methods
 
 ### constructor
