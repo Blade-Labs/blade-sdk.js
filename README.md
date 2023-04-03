@@ -4,12 +4,7 @@
 
 ## Disclaimer
 
-Please note that the security of your private keys is your sole responsibility.
-Our JS SDK, which wraps Hedera SDK and Blade wallet API, has been developed to ensure the highest level of security possible.
-However, we do not take any responsibility for the security of your private keys.
-Please be aware that once someone else gains access to your private keys, they will have full control of your account, funds, tokens, and NFTs.
-We strongly recommend that you follow best practices for securing your private keys when using our SDK.
-Please be aware that private keys will never be sent over the network or shared with any third party through our SDK.
+Please note that the security of your private keys is your sole responsibility. Our JS SDK, which wraps Hedera SDK and Blade wallet API, has been developed to ensure the highest level of security possible. However, we do not take any responsibility for the security of your private keys. Please be aware that once someone else gains access to your private keys, they will have full control of your account, funds, tokens, and NFTs. We strongly recommend that you follow best practices for securing your private keys when using our SDK. Please be aware that private keys will never be sent over the network or shared with any third party through our SDK.
 
 ### Best practices for securing your private keys
 
@@ -21,8 +16,8 @@ Here are some examples of secure storage options for hex-encoded private keys fo
 
 **Encrypted file**: You can store the private key in an encrypted file and save it to the device's file system. The file can be decrypted when needed using a password or passphrase.
 
+#### Android:
 
-#### Android: 
 **Android Keystore**: Android provides a secure hardware-backed Keystore service that allows you to store cryptographic keys securely. You can use the Android Keystore API provided by Google to store and retrieve private keys in a secure manner.
 
 **Encrypted file**: Similar to iOS, you can store the private key in an encrypted file and save it to the device's file system. The file can be decrypted when needed using a password or passphrase.
@@ -34,7 +29,6 @@ Here are some examples of secure storage options for hex-encoded private keys fo
 **Encrypted cookie**: You can store the private key in an encrypted cookie on the user's device. The cookie can be decrypted when needed using a password or passphrase. However, this is not the most secure option as cookies can be accessed by other scripts running on the same page.
 
 It's important to note that these are just a few examples, and there may be other secure storage options available depending on your specific use case and requirements. It's recommended to consult with a security expert to determine the most appropriate storage solution for your needs.
-
 
 ## Getting Started
 
@@ -62,13 +56,8 @@ TODO - add link to documentation
 
 ## TODO
 
-- [ ] Add documentation (to docs.bladelabs.io)
-- [ ] Add builder for contract call params
-- [ ] Add JSDoc for `contractCallFunction` method
-- [ ] Add JSDoc for `contractCallQueryFunction` method
-- [ ] Add JSDoc for `getParamsSignature` method
-- [ ] Rebuild Kotlin-Blade and Swift-Blade with new bundle
-
+* [ ] Add documentation (to docs.bladelabs.io)
+* [ ] Rebuild Kotlin-Blade and Swift-Blade with new bundle
 
 ## Publish bundle for other SDK repos
 
