@@ -1,20 +1,21 @@
 import {Buffer} from "buffer";
 import {AccountId, PublicKey} from "@hashgraph/sdk";
 import {Network, NetworkMirrorNodes} from "./models/Networks";
+import {AccountInfoMirrorResponse} from "./models/MirrorNode";
 import {TransactionData} from "./models/Common";
 import {flatArray} from "./helpers/ArrayHelpers";
 import {filterAndFormatTransactions} from "./helpers/TransactionHelpers";
 
-const ApiUrl = process.env.NODE_ENV === "test"
+const ApiUrl = process.env['NODE_ENV'] === "test"
     ? "https://rest.ci.bladewallet.io/openapi/v7"
     : "https://rest.prod.bladewallet.io/openapi/v7"
 
-const fetchWithRetry = async (url, options, maxAttempts = 3) => {
+const fetchWithRetry = async (url: string, options: RequestInit, maxAttempts = 3) => {
     return new Promise((resolve, reject) => {
         let attemptCounter = 0;
 
         const interval = 5000;
-        const makeRequest = (url, options) => {
+        const makeRequest = (url: string, options: RequestInit) => {
             attemptCounter += 1;
             fetch(url, options)
                 .then(async (res) => {
@@ -39,7 +40,7 @@ const fetchWithRetry = async (url, options, maxAttempts = 3) => {
     });
 };
 
-const statusCheck = async (res) => {
+const statusCheck = async (res: Response|any): Promise<Response> => {
     if (!res.ok) {
         throw await res.json();
     }
@@ -202,7 +203,7 @@ export const getC14token = async (params: any) => {
 export const getAccountsFromPublicKey = async (network: Network, publicKey: PublicKey): Promise<string[]> => {
     const formatted = publicKey.toStringRaw();
     return GET(network, `api/v1/accounts?account.publickey=${formatted}`)
-        .then(x => x.accounts.map(acc => acc.account))
+        .then((x: AccountInfoMirrorResponse) => x.accounts.map(acc => acc.account))
         .catch(error => {
             return [];
         });
@@ -220,7 +221,7 @@ export const getTransactionsFrom = async (
     network: Network,
     accountId: string,
     transactionType: string = "",
-    nextPage?: string | null,
+    nextPage: string | null = null,
     transactionsLimit: string = "10"
 ): Promise<{ nextPage: string | null, transactions: TransactionData[] }> => {
     const limit = parseInt(transactionsLimit, 10);

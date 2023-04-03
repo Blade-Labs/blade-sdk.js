@@ -5,3 +5,7 @@ node_modules
 .idea
 coverage
 publish
+lib
+dist
+index_test.html
+

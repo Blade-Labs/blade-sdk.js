@@ -3,16 +3,20 @@
     "outDir": "./dist/",
     "noImplicitAny": false,
     "module": "es6",
-    "target": "es5",
+    "target": "es2015",
     "jsx": "react",
     "allowJs": true,
     "moduleResolution": "node",
-    "sourceMap": true,
-    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "src/*"
+      ]
+    },
     "lib": [
       "dom",
-      "es5",
-      "scripthost",
       "es2015"
     ]
   }

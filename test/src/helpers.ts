@@ -3,16 +3,12 @@ import {GET} from "../../src/ApiService";
 import {Network} from "../../src/models/Networks";
 import {completionKey} from "./index.test";
 
-export const privateKeyFromString = (privateKey: string) => {
+export const privateKeyFromString = (privateKey: string): PrivateKey => {
   // TODO TRY different keys in different format (ecdsa, ed25, .raw, .der)
-    let res = null;
     try {
         return PrivateKey.fromStringECDSA(privateKey);
     } catch (e) {}
-    try {
-        return PrivateKey.fromStringED25519(privateKey);
-    } catch (e) {}
-    return res
+    return PrivateKey.fromStringED25519(privateKey);
 }
 
 export const createToken = async (accountId: string, privateKey: string, tokenName: string): Promise<string> => {
@@ -41,7 +37,7 @@ export const createToken = async (accountId: string, privateKey: string, tokenNa
     const receipt = await txResponse.getReceipt(client);
 
     //Get the token ID from the receipt
-    return  receipt.tokenId.toString();
+    return  receipt.tokenId?.toString() || "";
 }
 
 
@@ -76,7 +72,7 @@ export function sleep(ms: number): Promise<void> {
 }
 
 //utils
-export function checkResult(result, success = true) {
+export function checkResult(result: any, success = true) {
     // console.log(success, JSON.parse(JSON.stringify(result)));
     expect(result).toEqual(
         expect.objectContaining({
