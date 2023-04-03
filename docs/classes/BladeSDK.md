@@ -1,4 +1,4 @@
-[blade-sdk.js](../README.md) / [Exports](../modules.md) / BladeSDK
+[blade-sdk.js](../contents.md) / BladeSDK
 
 # Class: BladeSDK
 
@@ -55,7 +55,7 @@ BladeSDK constructor.
 
 #### Defined in
 
-[BladeSDK.ts:69](https://github.com/Blade-Labs/blade-sdk.js/blob/d6d0f60/src/BladeSDK.ts#L69)
+[BladeSDK.ts:69](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/BladeSDK.ts#L69)
 
 ## Properties
 
@@ -65,7 +65,7 @@ BladeSDK constructor.
 
 #### Defined in
 
-[BladeSDK.ts:59](https://github.com/Blade-Labs/blade-sdk.js/blob/d6d0f60/src/BladeSDK.ts#L59)
+[BladeSDK.ts:59](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/BladeSDK.ts#L59)
 
 ___
 
@@ -75,7 +75,7 @@ ___
 
 #### Defined in
 
-[BladeSDK.ts:61](https://github.com/Blade-Labs/blade-sdk.js/blob/d6d0f60/src/BladeSDK.ts#L61)
+[BladeSDK.ts:61](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/BladeSDK.ts#L61)
 
 ___
 
@@ -85,7 +85,7 @@ ___
 
 #### Defined in
 
-[BladeSDK.ts:62](https://github.com/Blade-Labs/blade-sdk.js/blob/d6d0f60/src/BladeSDK.ts#L62)
+[BladeSDK.ts:62](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/BladeSDK.ts#L62)
 
 ___
 
@@ -95,7 +95,7 @@ ___
 
 #### Defined in
 
-[BladeSDK.ts:60](https://github.com/Blade-Labs/blade-sdk.js/blob/d6d0f60/src/BladeSDK.ts#L60)
+[BladeSDK.ts:60](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/BladeSDK.ts#L60)
 
 ___
 
@@ -105,7 +105,7 @@ ___
 
 #### Defined in
 
-[BladeSDK.ts:63](https://github.com/Blade-Labs/blade-sdk.js/blob/d6d0f60/src/BladeSDK.ts#L63)
+[BladeSDK.ts:63](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/BladeSDK.ts#L63)
 
 ## Methods
 
@@ -134,7 +134,7 @@ Call contract function. Directly or via Blade Payer account (fee will be paid by
 
 #### Defined in
 
-[BladeSDK.ts:152](https://github.com/Blade-Labs/blade-sdk.js/blob/d6d0f60/src/BladeSDK.ts#L152)
+[BladeSDK.ts:152](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/BladeSDK.ts#L152)
 
 ___
 
@@ -164,7 +164,7 @@ Call query on contract function. Similar to [contractCallFunction](BladeSDK.md#c
 
 #### Defined in
 
-[BladeSDK.ts:229](https://github.com/Blade-Labs/blade-sdk.js/blob/d6d0f60/src/BladeSDK.ts#L229)
+[BladeSDK.ts:229](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/BladeSDK.ts#L229)
 
 ___
 
@@ -188,7 +188,7 @@ In that case account creation added to queue, and you should wait some time and 
 
 #### Defined in
 
-[BladeSDK.ts:361](https://github.com/Blade-Labs/blade-sdk.js/blob/d6d0f60/src/BladeSDK.ts#L361)
+[BladeSDK.ts:361](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/BladeSDK.ts#L361)
 
 ___
 
@@ -215,7 +215,7 @@ Delete Hedera account
 
 #### Defined in
 
-[BladeSDK.ts:482](https://github.com/Blade-Labs/blade-sdk.js/blob/d6d0f60/src/BladeSDK.ts#L482)
+[BladeSDK.ts:482](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/BladeSDK.ts#L482)
 
 ___
 
@@ -240,7 +240,7 @@ CalculatedEvmAddress is calculated from account public key. May be different fro
 
 #### Defined in
 
-[BladeSDK.ts:521](https://github.com/Blade-Labs/blade-sdk.js/blob/d6d0f60/src/BladeSDK.ts#L521)
+[BladeSDK.ts:521](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/BladeSDK.ts#L521)
 
 ___
 
@@ -265,7 +265,7 @@ hbars: number, tokens: [{tokenId: string, balance: number}]
 
 #### Defined in
 
-[BladeSDK.ts:97](https://github.com/Blade-Labs/blade-sdk.js/blob/d6d0f60/src/BladeSDK.ts#L97)
+[BladeSDK.ts:97](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/BladeSDK.ts#L97)
 
 ___
 
@@ -293,7 +293,7 @@ If transaction type is CRYPTOTRANSFERTOKEN records will additionally contain pla
 
 #### Defined in
 
-[BladeSDK.ts:701](https://github.com/Blade-Labs/blade-sdk.js/blob/d6d0f60/src/BladeSDK.ts#L701)
+[BladeSDK.ts:701](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/BladeSDK.ts#L701)
 
 ___
 
@@ -307,7 +307,7 @@ ___
 
 #### Defined in
 
-[BladeSDK.ts:735](https://github.com/Blade-Labs/blade-sdk.js/blob/d6d0f60/src/BladeSDK.ts#L735)
+[BladeSDK.ts:735](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/BladeSDK.ts#L735)
 
 ___
 
@@ -333,7 +333,7 @@ EvmAddress computed from Public key.
 
 #### Defined in
 
-[BladeSDK.ts:544](https://github.com/Blade-Labs/blade-sdk.js/blob/d6d0f60/src/BladeSDK.ts#L544)
+[BladeSDK.ts:544](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/BladeSDK.ts#L544)
 
 ___
 
@@ -357,7 +357,7 @@ Get v-r-s signature of contract function params
 
 #### Defined in
 
-[BladeSDK.ts:653](https://github.com/Blade-Labs/blade-sdk.js/blob/d6d0f60/src/BladeSDK.ts#L653)
+[BladeSDK.ts:653](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/BladeSDK.ts#L653)
 
 ___
 
@@ -383,7 +383,7 @@ If account not created yet, response will be same as in `createAccount()` method
 
 #### Defined in
 
-[BladeSDK.ts:421](https://github.com/Blade-Labs/blade-sdk.js/blob/d6d0f60/src/BladeSDK.ts#L421)
+[BladeSDK.ts:421](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/BladeSDK.ts#L421)
 
 ___
 
@@ -412,7 +412,7 @@ If transaction type is CRYPTOTRANSFERTOKEN records will additionally contain pla
 
 #### Defined in
 
-[BladeSDK.ts:681](https://github.com/Blade-Labs/blade-sdk.js/blob/d6d0f60/src/BladeSDK.ts#L681)
+[BladeSDK.ts:681](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/BladeSDK.ts#L681)
 
 ___
 
@@ -436,7 +436,7 @@ Sign base64-encoded message with private key using hethers lib. Returns hex-enco
 
 #### Defined in
 
-[BladeSDK.ts:615](https://github.com/Blade-Labs/blade-sdk.js/blob/d6d0f60/src/BladeSDK.ts#L615)
+[BladeSDK.ts:615](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/BladeSDK.ts#L615)
 
 ___
 
@@ -464,7 +464,7 @@ status: "success" or "error"
 
 #### Defined in
 
-[BladeSDK.ts:82](https://github.com/Blade-Labs/blade-sdk.js/blob/d6d0f60/src/BladeSDK.ts#L82)
+[BladeSDK.ts:82](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/BladeSDK.ts#L82)
 
 ___
 
@@ -488,7 +488,7 @@ Message that sends response back to native handler
 
 #### Defined in
 
-[BladeSDK.ts:742](https://github.com/Blade-Labs/blade-sdk.js/blob/d6d0f60/src/BladeSDK.ts#L742)
+[BladeSDK.ts:742](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/BladeSDK.ts#L742)
 
 ___
 
@@ -512,7 +512,7 @@ Sign base64-encoded message with private key. Returns hex-encoded signature.
 
 #### Defined in
 
-[BladeSDK.ts:575](https://github.com/Blade-Labs/blade-sdk.js/blob/d6d0f60/src/BladeSDK.ts#L575)
+[BladeSDK.ts:575](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/BladeSDK.ts#L575)
 
 ___
 
@@ -537,7 +537,7 @@ Verify message signature by public key
 
 #### Defined in
 
-[BladeSDK.ts:596](https://github.com/Blade-Labs/blade-sdk.js/blob/d6d0f60/src/BladeSDK.ts#L596)
+[BladeSDK.ts:596](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/BladeSDK.ts#L596)
 
 ___
 
@@ -560,7 +560,7 @@ Split signature to v-r-s format.
 
 #### Defined in
 
-[BladeSDK.ts:637](https://github.com/Blade-Labs/blade-sdk.js/blob/d6d0f60/src/BladeSDK.ts#L637)
+[BladeSDK.ts:637](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/BladeSDK.ts#L637)
 
 ___
 
@@ -586,7 +586,7 @@ Send hbars to specific account.
 
 #### Defined in
 
-[BladeSDK.ts:119](https://github.com/Blade-Labs/blade-sdk.js/blob/d6d0f60/src/BladeSDK.ts#L119)
+[BladeSDK.ts:119](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/BladeSDK.ts#L119)
 
 ___
 
@@ -614,4 +614,4 @@ Send token to specific account.
 
 #### Defined in
 
-[BladeSDK.ts:302](https://github.com/Blade-Labs/blade-sdk.js/blob/d6d0f60/src/BladeSDK.ts#L302)
+[BladeSDK.ts:302](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/BladeSDK.ts#L302)

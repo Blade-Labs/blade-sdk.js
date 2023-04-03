@@ -1,4 +1,4 @@
-[blade-sdk.js](../README.md) / [Exports](../modules.md) / ParametersBuilder
+[blade-sdk.js](../contents.md) / ParametersBuilder
 
 # Class: ParametersBuilder
 
@@ -57,7 +57,7 @@ const params = new ParametersBuilder()
 
 #### Defined in
 
-[ParametersBuilder.ts:22](https://github.com/Blade-Labs/blade-sdk.js/blob/d6d0f60/src/ParametersBuilder.ts#L22)
+[ParametersBuilder.ts:22](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/ParametersBuilder.ts#L22)
 
 ## Methods
 
@@ -77,7 +77,7 @@ const params = new ParametersBuilder()
 
 #### Defined in
 
-[ParametersBuilder.ts:24](https://github.com/Blade-Labs/blade-sdk.js/blob/d6d0f60/src/ParametersBuilder.ts#L24)
+[ParametersBuilder.ts:24](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/ParametersBuilder.ts#L24)
 
 ___
 
@@ -97,7 +97,7 @@ ___
 
 #### Defined in
 
-[ParametersBuilder.ts:29](https://github.com/Blade-Labs/blade-sdk.js/blob/d6d0f60/src/ParametersBuilder.ts#L29)
+[ParametersBuilder.ts:29](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/ParametersBuilder.ts#L29)
 
 ___
 
@@ -117,7 +117,7 @@ ___
 
 #### Defined in
 
-[ParametersBuilder.ts:34](https://github.com/Blade-Labs/blade-sdk.js/blob/d6d0f60/src/ParametersBuilder.ts#L34)
+[ParametersBuilder.ts:34](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/ParametersBuilder.ts#L34)
 
 ___
 
@@ -137,7 +137,7 @@ ___
 
 #### Defined in
 
-[ParametersBuilder.ts:61](https://github.com/Blade-Labs/blade-sdk.js/blob/d6d0f60/src/ParametersBuilder.ts#L61)
+[ParametersBuilder.ts:61](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/ParametersBuilder.ts#L61)
 
 ___
 
@@ -157,7 +157,7 @@ ___
 
 #### Defined in
 
-[ParametersBuilder.ts:86](https://github.com/Blade-Labs/blade-sdk.js/blob/d6d0f60/src/ParametersBuilder.ts#L86)
+[ParametersBuilder.ts:86](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/ParametersBuilder.ts#L86)
 
 ___
 
@@ -177,7 +177,7 @@ ___
 
 #### Defined in
 
-[ParametersBuilder.ts:91](https://github.com/Blade-Labs/blade-sdk.js/blob/d6d0f60/src/ParametersBuilder.ts#L91)
+[ParametersBuilder.ts:91](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/ParametersBuilder.ts#L91)
 
 ___
 
@@ -197,7 +197,7 @@ ___
 
 #### Defined in
 
-[ParametersBuilder.ts:76](https://github.com/Blade-Labs/blade-sdk.js/blob/d6d0f60/src/ParametersBuilder.ts#L76)
+[ParametersBuilder.ts:76](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/ParametersBuilder.ts#L76)
 
 ___
 
@@ -217,7 +217,7 @@ ___
 
 #### Defined in
 
-[ParametersBuilder.ts:81](https://github.com/Blade-Labs/blade-sdk.js/blob/d6d0f60/src/ParametersBuilder.ts#L81)
+[ParametersBuilder.ts:81](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/ParametersBuilder.ts#L81)
 
 ___
 
@@ -237,7 +237,7 @@ ___
 
 #### Defined in
 
-[ParametersBuilder.ts:66](https://github.com/Blade-Labs/blade-sdk.js/blob/d6d0f60/src/ParametersBuilder.ts#L66)
+[ParametersBuilder.ts:66](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/ParametersBuilder.ts#L66)
 
 ___
 
@@ -257,7 +257,7 @@ ___
 
 #### Defined in
 
-[ParametersBuilder.ts:71](https://github.com/Blade-Labs/blade-sdk.js/blob/d6d0f60/src/ParametersBuilder.ts#L71)
+[ParametersBuilder.ts:71](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/ParametersBuilder.ts#L71)
 
 ___
 
@@ -277,7 +277,7 @@ ___
 
 #### Defined in
 
-[ParametersBuilder.ts:51](https://github.com/Blade-Labs/blade-sdk.js/blob/d6d0f60/src/ParametersBuilder.ts#L51)
+[ParametersBuilder.ts:51](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/ParametersBuilder.ts#L51)
 
 ___
 
@@ -297,7 +297,7 @@ ___
 
 #### Defined in
 
-[ParametersBuilder.ts:56](https://github.com/Blade-Labs/blade-sdk.js/blob/d6d0f60/src/ParametersBuilder.ts#L56)
+[ParametersBuilder.ts:56](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/ParametersBuilder.ts#L56)
 
 ___
 
@@ -317,7 +317,7 @@ ___
 
 #### Defined in
 
-[ParametersBuilder.ts:46](https://github.com/Blade-Labs/blade-sdk.js/blob/d6d0f60/src/ParametersBuilder.ts#L46)
+[ParametersBuilder.ts:46](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/ParametersBuilder.ts#L46)
 
 ___
 
@@ -334,4 +334,4 @@ Calling this method is optional, as the BladeSDK will automatically encode the p
 
 #### Defined in
 
-[ParametersBuilder.ts:100](https://github.com/Blade-Labs/blade-sdk.js/blob/d6d0f60/src/ParametersBuilder.ts#L100)
+[ParametersBuilder.ts:100](https://github.com/Blade-Labs/blade-sdk.js/blob/d578d13/src/ParametersBuilder.ts#L100)

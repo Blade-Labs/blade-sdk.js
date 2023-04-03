@@ -1,4 +1,4 @@
-[blade-sdk.js](README.md) / Exports
+blade-sdk.js
 
 # blade-sdk.js
 

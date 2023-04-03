@@ -13,7 +13,7 @@
     "publish:web-view": "npm run build:web-view && node utils/publish-sdk-bundle.js",
     "test": "jest --coverage",
     "deploy-test-contract": "solcjs --bin --abi test/contract/TestContract.sol -o ./test/contract && node test/contract/deploy.js",
-    "docs": "typedoc --theme markdown --out docs --mode file src"
+    "docs": "typedoc --theme markdown --out docs --entryDocument contents.md --readme none --hideGenerator src"
   },
   "keywords": [
     "hedera",
