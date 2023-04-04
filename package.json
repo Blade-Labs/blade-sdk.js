@@ -1,5 +1,5 @@
 {
-  "name": "blade-sdk.js",
+  "name": "@bladelabs/blade-sdk.js",
   "version": "0.5.0",
   "description": "Hedera SDK wrapper with Blade features",
   "scripts": {
@@ -9,7 +9,7 @@
     "build:web-view": "webpack --progress --color --mode production",
     "dev": "webpack --progress --color --watch --mode development",
     "prepack": "npm run build",
-    "clean": "rm -rf ./lib",
+    "clean": "rimraf lib",
     "publish:web-view": "npm run build:web-view && node utils/publish-sdk-bundle.js",
     "test": "jest --coverage",
     "deploy-test-contract": "solcjs --bin --abi test/contract/TestContract.sol -o ./test/contract && node test/contract/deploy.js"
@@ -42,17 +42,17 @@
   },
   "release": {
     "branches": [
-      "main"
+      "develop"
     ]
   },
   "publishConfig": {
     "access": "public"
   },
-  "author": "Blade Team (https://www.bladewallet.io/)",
+  "author": "Blade Labs (https://www.bladewallet.io/)",
   "contributors": [
     "Ihor Dubii <the.gary.du@gmail.com> (https://gary.pp.ua/)"
   ],
-  "license": "ISC",
+  "license": "Apache-2.0",
   "dependencies": {
     "@hashgraph/hethers": "^1.2.2",
     "@hashgraph/sdk": "^2.19.2",
@@ -70,6 +70,7 @@
     "lodash": "^4.17.21",
     "node-fetch": "^2.6.7",
     "prettier": "^2.8.3",
+    "rimraf": "^4.4.1",
     "shelljs": "^0.8.5",
     "solc": "0.8.8",
     "ts-jest": "^29.0.3",
