@@ -89,6 +89,20 @@ export class BladeSDK {
     }
 
     /**
+     * Returns information about initialized instance of BladeSDK.
+     * @returns {InfoData}
+     */
+    getInfo(completionKey?: string): Promise<InitData> {
+        return this.sendMessageToNative(completionKey, {
+            apiKey: this.apiKey,
+            dAppCode: this.dAppCode,
+            network: this.network,
+            fingerprint: this.fingerprint,
+            nonce: Math.round(Math.random() * 1000000000)
+        });
+    }
+
+    /**
      * Get hbar and token balances for specific account.
      * @param accountId Hedera account id (0.0.xxxxx)
      * @param completionKey optional field bridge between mobile webViews and native apps

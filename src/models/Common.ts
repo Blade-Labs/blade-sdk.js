@@ -10,6 +10,14 @@ export interface InitData {
     status: string
 }
 
+export interface InfoData {
+    apiKey: string,
+    dAppCode: string,
+    network: string,
+    fingerprint: string,
+    nonce: number
+}
+
 export interface BalanceData {
     hbars: number,
     tokens: [{
