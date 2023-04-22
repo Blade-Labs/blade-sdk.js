@@ -2,7 +2,7 @@ import {Buffer} from "buffer";
 import {AccountId, PublicKey} from "@hashgraph/sdk";
 import {Network, NetworkMirrorNodes} from "./models/Networks";
 import {AccountInfoMirrorResponse} from "./models/MirrorNode";
-import {TransactionData} from "./models/Common";
+import {ConfirmUpdateAccountData, TransactionData} from "./models/Common";
 import {flatArray} from "./helpers/ArrayHelpers";
 import {filterAndFormatTransactions} from "./helpers/TransactionHelpers";
 
@@ -109,6 +109,28 @@ export const getPendingAccountData = async (transactionId: string, network: Netw
         .then(statusCheck)
         .then(x => x.json());
 };
+
+export const confirmAccountUpdate = async (params: ConfirmUpdateAccountData): Promise<void> => {
+    const url = `${ApiUrl}/accounts/confirm`;
+    const options = {
+        method: "PATCH",
+        headers: new Headers({
+            "X-SDK-TOKEN": params.apiKey,
+            "X-FINGERPRINT": params.fingerprint,
+            "X-NETWORK": params.network.toUpperCase(),
+            "X-DAPP-CODE": params.dAppCode,
+            "Content-Type": "application/json"
+        }),
+        body: JSON.stringify({
+            id: params.accountId
+        })
+    };
+
+    return fetchWithRetry(url, options)
+        .then(statusCheck)
+        .then(x => x.json());
+};
+
 
 export const requestTokenInfo = async (network: Network, tokenId: string) => {
     return GET(network,`api/v1/tokens/${tokenId}`);

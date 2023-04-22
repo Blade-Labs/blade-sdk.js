@@ -1,13 +1,11 @@
-import NodeClient from "@hashgraph/sdk/lib/client/NodeClient";
-
 import {
-    AccountBalance,
-    PrivateKey, Transaction
+    AccountBalance, Client,
+    PrivateKey, Status, Transaction
 } from "@hashgraph/sdk";
 import {Buffer} from "buffer";
 
 export const executeUpdateAccountTransactions = async (
-    client: NodeClient,
+    client: Client,
     privateKey: PrivateKey,
     updateAccountTransactionBytes: string,
     transactionBytes: string
@@ -15,7 +13,12 @@ export const executeUpdateAccountTransactions = async (
     if (updateAccountTransactionBytes) {
         const buffer = Buffer.from(updateAccountTransactionBytes, "base64");
         const transaction = await Transaction.fromBytes(buffer).sign(privateKey);
-        await transaction.execute(client);
+        const response = await transaction.execute(client);
+
+        const receipt = await response.getReceipt(client);
+        if (receipt.status !== Status.Success) {
+            throw new Error("UpdateAccountTransaction failed");
+        }
     }
 
     if (transactionBytes) {
