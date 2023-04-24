@@ -22,6 +22,7 @@ import {
     getAccountsFromPublicKey,
     getC14token,
     getPendingAccountData,
+    confirmAccountUpdate,
     getTransactionsFrom,
     requestTokenInfo,
     signContractCallTx,
@@ -406,6 +407,14 @@ export class BladeSDK {
 
             await executeUpdateAccountTransactions(this.getClient(), privateKey, updateAccountTransactionBytes, transactionBytes);
 
+            await confirmAccountUpdate({
+                accountId: id,
+                network: this.network,
+                apiKey: this.apiKey,
+                fingerprint: this.fingerprint,
+                dAppCode: this.dAppCode
+            });
+
             const evmAddress = hethers.utils.computeAddress(`0x${privateKey.publicKey.toStringRaw()}`);
 
             const result = {
@@ -466,6 +475,14 @@ export class BladeSDK {
                 } = await getPendingAccountData(transactionId, this.network, params);
 
                 await executeUpdateAccountTransactions(this.getClient(), privateKey, updateAccountTransactionBytes, transactionBytes);
+
+                await confirmAccountUpdate({
+                    accountId: id,
+                    network: this.network,
+                    apiKey: this.apiKey,
+                    fingerprint: this.fingerprint,
+                    dAppCode: this.dAppCode
+                });
 
                 evmAddress = hethers.utils.computeAddress(`0x${originalPublicKey ? originalPublicKey.slice(-66) : privateKey.publicKey.toStringRaw()}`);
 

@@ -1,4 +1,5 @@
 import {MirrorNodeTransactionType} from "./TransactionType";
+import {Network} from "./Networks";
 
 export interface BridgeResponse {
     completionKey: string,
@@ -120,4 +121,12 @@ export interface C14WidgetConfig {
 export interface ContractFunctionParameter {
     type: string,
     value: string[]
+}
+
+export interface ConfirmUpdateAccountData {
+    network: Network,
+    accountId: string,
+    dAppCode: string
+    apiKey: string,
+    fingerprint: string
 }
