@@ -110,7 +110,7 @@ export const getPendingAccountData = async (transactionId: string, network: Netw
         .then(x => x.json());
 };
 
-export const confirmAccountUpdate = async (params: ConfirmUpdateAccountData): Promise<void> => {
+export const confirmAccountUpdate = async (params: ConfirmUpdateAccountData): Promise<Response> => {
     const url = `${ApiUrl}/accounts/confirm`;
     const options = {
         method: "PATCH",
@@ -127,8 +127,7 @@ export const confirmAccountUpdate = async (params: ConfirmUpdateAccountData): Pr
     };
 
     return fetchWithRetry(url, options)
-        .then(statusCheck)
-        .then(x => x.json());
+        .then(statusCheck);
 };
 
 
