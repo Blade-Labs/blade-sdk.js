@@ -463,9 +463,9 @@ test('bladeSdk.getParamsSignature', async () => {
     expect(result.data).toHaveProperty("r");
     expect(result.data).toHaveProperty("s");
 
-    expect(result.data.v).toEqual(28);
-    expect(result.data.r).toEqual("0x615bd012c437d1e0c166a75675fcf2fb628836d53d5421452f784505d9d4b28f");
-    expect(result.data.s).toEqual("0x10ee86b9b05c5745efeb2b1a560fbf422c4ecfab9241d35ef44be6367ef8efb5");
+    expect(result.data.v).toEqual(27);
+    expect(result.data.r).toEqual("0xc1cbf024e22a5c058e8259711631a0ebbda3414e2eea58ea39209deecc94cbae");
+    expect(result.data.s).toEqual("0x55781b465929d7771e5202d76d5e83f3658610e96d49bf34c32855d98f0bde38");
 
     // invalid paramsEncoded
     result = await bladeSdk.getParamsSignature('[{{{{{{{{{{{"]', privateKey, completionKey);

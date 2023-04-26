@@ -684,7 +684,7 @@ export class BladeSDK {
     async getParamsSignature(paramsEncoded: string | ParametersBuilder, privateKey: string, completionKey?: string): Promise<SplitSignatureData> {
         try {
             const {types, values} = await parseContractFunctionParams(paramsEncoded);
-            const hash = hethers.utils.solidityKeccak256(types, values);
+            const hash = hethers.utils.defaultAbiCoder.encode(types, values);
             const messageHashBytes = hethers.utils.arrayify(hash);
 
             const wallet = new hethers.Wallet(privateKey);
