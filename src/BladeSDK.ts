@@ -407,13 +407,15 @@ export class BladeSDK {
 
             await executeUpdateAccountTransactions(this.getClient(), privateKey, updateAccountTransactionBytes, transactionBytes);
 
-            await confirmAccountUpdate({
-                accountId: id,
-                network: this.network,
-                apiKey: this.apiKey,
-                fingerprint: this.fingerprint,
-                dAppCode: this.dAppCode
-            });
+            if (updateAccountTransactionBytes) {
+                await confirmAccountUpdate({
+                    accountId: id,
+                    network: this.network,
+                    apiKey: this.apiKey,
+                    fingerprint: this.fingerprint,
+                    dAppCode: this.dAppCode
+                });
+            }
 
             const evmAddress = hethers.utils.computeAddress(`0x${privateKey.publicKey.toStringRaw()}`);
 
