@@ -370,10 +370,11 @@ export class BladeSDK {
      * Create Hedera account (ECDSA). Only for configured dApps. Depending on dApp config Blade create account, associate tokens, etc.
      * In case of not using pre-created accounts pool and network high load, this method can return transactionId and no accountId.
      * In that case account creation added to queue, and you should wait some time and call `getPendingAccount()` method.
+     * @param deviceId optional field for headers for backend check
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {CreateAccountData}
      */
-    async createAccount(completionKey?: string): Promise<CreateAccountData> {
+    async createAccount(deviceId?: string, completionKey?: string): Promise<CreateAccountData> {
         try {
             let seedPhrase: Mnemonic | null = null;
             let privateKey: PrivateKey | null = null;
@@ -395,6 +396,7 @@ export class BladeSDK {
                 apiKey: this.apiKey,
                 fingerprint: this.fingerprint,
                 dAppCode: this.dAppCode,
+                deviceId,
                 publicKey
             };
 
