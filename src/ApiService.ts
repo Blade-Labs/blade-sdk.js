@@ -70,7 +70,7 @@ export const GET = (network: Network, route: string) => {
 
 export const createAccount = async (network: Network, params: any) => {
     const url = `${ApiUrl}/accounts`;
-    const headers = {
+    const headers: any = {
         "X-SDK-TOKEN": params.apiKey,
         "X-FINGERPRINT": params.fingerprint,
         "X-NETWORK": network.toUpperCase(),

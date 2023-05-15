@@ -274,7 +274,7 @@ test('bladeSdk.createAccount', async () => {
     let result = await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.FINGERPRINT, completionKey);
     checkResult(result);
 
-    result = await bladeSdk.createAccount(completionKey);
+    result = await bladeSdk.createAccount("device-id", completionKey);
     checkResult(result);
 
     expect(result.data).toHaveProperty("seedPhrase");
@@ -293,7 +293,7 @@ test('bladeSdk.createAccount', async () => {
     result = await bladeSdk.init("wrong api key", process.env.NETWORK, process.env.DAPP_CODE, process.env.FINGERPRINT, completionKey);
     checkResult(result);
 
-    result = await bladeSdk.createAccount(completionKey);
+    result = await bladeSdk.createAccount("device-id", completionKey);
     checkResult(result, false);
 }, 60_000);
 
@@ -301,7 +301,7 @@ test('bladeSdk.getAccountInfo', async () => {
     let result = await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.FINGERPRINT, completionKey);
     checkResult(result);
 
-    const account = await bladeSdk.createAccount(completionKey);
+    const account = await bladeSdk.createAccount("device-id", completionKey);
     checkResult(account);
     const newAccountId = account.data.accountId;
 
@@ -318,7 +318,7 @@ test('bladeSdk.deleteAccount', async () => {
     let result = await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.FINGERPRINT, completionKey);
     checkResult(result);
 
-    result = await bladeSdk.createAccount(completionKey);
+    result = await bladeSdk.createAccount("device-id", completionKey);
     checkResult(result);
     const newAccountId = result.data.accountId;
     const newPrivateKey = result.data.privateKey;
@@ -337,7 +337,7 @@ test('bladeSdk.deleteAccount', async () => {
 
 test('bladeSdk.getKeysFromMnemonic', async () => {
     await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.FINGERPRINT, completionKey);
-    let result = await bladeSdk.createAccount(completionKey);
+    let result = await bladeSdk.createAccount("device-id", completionKey);
     checkResult(result);
 
     const accountSample = {
