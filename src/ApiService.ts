@@ -27,13 +27,28 @@ const fetchWithRetry = async (url: string, options: RequestInit, maxAttempts = 3
                                 makeRequest(url, options);
                             }, interval * attemptCounter);
                         } else {
-                            const result = await res.json()
-                            result['url'] = res.url;
-                            reject(result);
+                            const rawData = await res.text();
+                            try {
+                                reject({
+                                    url: res.url,
+                                    ...JSON.parse(rawData)
+                                });
+                            } catch (e) {
+                                reject({
+                                    url: res.url,
+                                    error: rawData
+                                });
+                            }
                         }
                     } else {
                         resolve(res);
                     }
+                })
+                .catch(e => {
+                    reject({
+                        url,
+                        error: e.message
+                    });
                 });
         };
         makeRequest(url, options);
@@ -55,15 +70,20 @@ export const GET = (network: Network, route: string) => {
 
 export const createAccount = async (network: Network, params: any) => {
     const url = `${ApiUrl}/accounts`;
+    const headers: any = {
+        "X-SDK-TOKEN": params.apiKey,
+        "X-FINGERPRINT": params.fingerprint,
+        "X-NETWORK": network.toUpperCase(),
+        "X-DAPP-CODE": params.dAppCode,
+        "Content-Type": "application/json"
+    };
+    if (params.deviceId) {
+        headers["X-DID-API"] = params.deviceId;
+    }
+
     const options = {
         method: "POST",
-        headers: new Headers({
-            "X-SDK-TOKEN": params.apiKey,
-            "X-FINGERPRINT": params.fingerprint,
-            "X-NETWORK": network.toUpperCase(),
-            "X-DAPP-CODE": params.dAppCode,
-            "Content-Type": "application/json"
-        }),
+        headers: new Headers(headers),
         body: JSON.stringify({
             publicKey: params.publicKey
         })
