@@ -5,10 +5,16 @@ import {AccountInfoMirrorResponse} from "./models/MirrorNode";
 import {ConfirmUpdateAccountData, TransactionData} from "./models/Common";
 import {flatArray} from "./helpers/ArrayHelpers";
 import {filterAndFormatTransactions} from "./helpers/TransactionHelpers";
+import config from "./config";
 
-const ApiUrl = process.env['NODE_ENV'] === "test"
+const ApiUrl = config.environment === "test"
     ? "https://rest.ci.bladewallet.io/openapi/v7"
     : "https://rest.prod.bladewallet.io/openapi/v7"
+let sdkVersion = ``;
+
+export const setSDKVersion = (version: string) => {
+    sdkVersion = version;
+}
 
 const fetchWithRetry = async (url: string, options: RequestInit, maxAttempts = 3) => {
     return new Promise((resolve, reject) => {
@@ -75,6 +81,7 @@ export const createAccount = async (network: Network, params: any) => {
         "X-FINGERPRINT": params.fingerprint,
         "X-NETWORK": network.toUpperCase(),
         "X-DAPP-CODE": params.dAppCode,
+        "X-SDK-VERSION": sdkVersion,
         "Content-Type": "application/json"
     };
     if (params.deviceId) {
@@ -103,6 +110,7 @@ export const checkAccountCreationStatus = async (transactionId: string, network:
             "X-FINGERPRINT": params.fingerprint,
             "X-NETWORK": network.toUpperCase(),
             "X-DAPP-CODE": params.dAppCode,
+            "X-SDK-VERSION": sdkVersion,
             "Content-Type": "application/json"
         })
     };
@@ -121,6 +129,7 @@ export const getPendingAccountData = async (transactionId: string, network: Netw
             "X-FINGERPRINT": params.fingerprint,
             "X-NETWORK": network.toUpperCase(),
             "X-DAPP-CODE": params.dAppCode,
+            "X-SDK-VERSION": sdkVersion,
             "Content-Type": "application/json"
         })
     };
@@ -139,6 +148,7 @@ export const confirmAccountUpdate = async (params: ConfirmUpdateAccountData): Pr
             "X-FINGERPRINT": params.fingerprint,
             "X-NETWORK": params.network.toUpperCase(),
             "X-DAPP-CODE": params.dAppCode,
+            "X-SDK-VERSION": sdkVersion,
             "Content-Type": "application/json"
         }),
         body: JSON.stringify({
@@ -164,6 +174,7 @@ export const transferTokens = async (network: Network, params: any) => {
             "X-NETWORK": network.toUpperCase(),
             "X-DAPP-CODE": params.dAppCode,
             "X-SDK-TOKEN": params.apiKey,
+            "X-SDK-VERSION": sdkVersion,
             "Content-Type": "application/json"
         }),
         body: JSON.stringify({
@@ -188,6 +199,7 @@ export const signContractCallTx = async (network: Network, params: any) => {
             "X-NETWORK": network.toUpperCase(),
             "X-DAPP-CODE": params.dAppCode,
             "X-SDK-TOKEN": params.apiKey,
+            "X-SDK-VERSION": sdkVersion,
             "Content-Type": "application/json"
         }),
         body: JSON.stringify({
@@ -211,6 +223,7 @@ export const apiCallContractQuery = async (network: Network, params: any) => {
             "X-NETWORK": network.toUpperCase(),
             "X-DAPP-CODE": params.dAppCode,
             "X-SDK-TOKEN": params.apiKey,
+            "X-SDK-VERSION": sdkVersion,
             "Content-Type": "application/json"
         }),
         body: JSON.stringify({
@@ -232,6 +245,7 @@ export const getC14token = async (params: any) => {
         method: "GET",
         headers: new Headers({
             "X-SDK-TOKEN": params.apiKey,
+            "X-SDK-VERSION": sdkVersion,
             "Content-Type": "application/json"
         }),
     };

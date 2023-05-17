@@ -27,7 +27,8 @@ import {
     requestTokenInfo,
     signContractCallTx,
     transferTokens,
-    apiCallContractQuery
+    apiCallContractQuery,
+    setSDKVersion
 } from "./ApiService";
 import {Network} from "./models/Networks";
 import StringHelpers from "./helpers/StringHelpers";
@@ -53,6 +54,7 @@ import {
     SplitSignatureData,
     TransactionsHistoryData
 } from "./models/Common";
+import config from "./config"
 import {executeUpdateAccountTransactions, processBalanceData} from "./helpers/AccountHelpers";
 import {ParametersBuilder} from "./ParametersBuilder";
 
@@ -61,7 +63,7 @@ export class BladeSDK {
     private network: Network = Network.Testnet;
     private dAppCode: string = "";
     private fingerprint: string = "";
-    private webView: boolean = false;
+    private readonly webView: boolean = false;
 
     /**
      * BladeSDK constructor.
@@ -77,14 +79,16 @@ export class BladeSDK {
      * @param network "Mainnet" or "Testnet" of Hedera network
      * @param dAppCode your dAppCode - request specific one by contacting us
      * @param fingerprint client unique fingerprint
+     * @param sdkVersion used for header X-SDK-VERSION
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {InitData} status: "success" or "error"
      */
-    init(apiKey: string, network: string, dAppCode: string, fingerprint: string, completionKey?: string): Promise<InitData> {
+    init(apiKey: string, network: string, dAppCode: string, fingerprint: string, sdkVersion: string = config.sdkVersion, completionKey?: string): Promise<InitData> {
         this.apiKey = apiKey;
         this.network = StringHelpers.stringToNetwork(network);
         this.dAppCode = dAppCode;
         this.fingerprint = fingerprint;
+        setSDKVersion(sdkVersion);
 
         return this.sendMessageToNative(completionKey, {status: "success"});
     }
