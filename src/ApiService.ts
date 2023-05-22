@@ -78,7 +78,8 @@ export const createAccount = async (network: Network, params: any) => {
     const url = `${ApiUrl}/accounts`;
     const headers: any = {
         "X-SDK-TOKEN": params.apiKey,
-        "X-FINGERPRINT": params.fingerprint,
+        "X-FINGERPRINT": params.deviceUuid, // uuid
+        "X-VISITOR-ID": params.visitorId, // fingerprint (visitorId) (eg.: YoZoVL4XZspaCtLH4GoL)
         "X-NETWORK": network.toUpperCase(),
         "X-DAPP-CODE": params.dAppCode,
         "X-SDK-VERSION": sdkVersion,
@@ -107,7 +108,8 @@ export const checkAccountCreationStatus = async (transactionId: string, network:
         method: "GET",
         headers: new Headers({
             "X-SDK-TOKEN": params.apiKey,
-            "X-FINGERPRINT": params.fingerprint,
+            "X-FINGERPRINT": params.deviceUuid,
+            "X-VISITOR-ID": params.visitorId,
             "X-NETWORK": network.toUpperCase(),
             "X-DAPP-CODE": params.dAppCode,
             "X-SDK-VERSION": sdkVersion,
@@ -126,7 +128,8 @@ export const getPendingAccountData = async (transactionId: string, network: Netw
         method: "GET",
         headers: new Headers({
             "X-SDK-TOKEN": params.apiKey,
-            "X-FINGERPRINT": params.fingerprint,
+            "X-FINGERPRINT": params.deviceUuid,
+            "X-VISITOR-ID": params.visitorId,
             "X-NETWORK": network.toUpperCase(),
             "X-DAPP-CODE": params.dAppCode,
             "X-SDK-VERSION": sdkVersion,
@@ -145,7 +148,8 @@ export const confirmAccountUpdate = async (params: ConfirmUpdateAccountData): Pr
         method: "PATCH",
         headers: new Headers({
             "X-SDK-TOKEN": params.apiKey,
-            "X-FINGERPRINT": params.fingerprint,
+            "X-FINGERPRINT": params.deviceUuid,
+            "X-VISITOR-ID": params.visitorId,
             "X-NETWORK": params.network.toUpperCase(),
             "X-DAPP-CODE": params.dAppCode,
             "X-SDK-VERSION": sdkVersion,

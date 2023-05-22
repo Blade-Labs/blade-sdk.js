@@ -15,7 +15,8 @@ export interface InfoData {
     apiKey: string,
     dAppCode: string,
     network: string,
-    fingerprint: string,
+    deviceUuid: string,
+    visitorId: string,
     nonce: number
 }
 
@@ -128,5 +129,6 @@ export interface ConfirmUpdateAccountData {
     accountId: string,
     dAppCode: string
     apiKey: string,
-    fingerprint: string
+    deviceUuid: string,
+    visitorId: string
 }

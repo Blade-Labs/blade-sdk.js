@@ -46,6 +46,7 @@ import {
     C14WidgetConfig,
     ContractCallQueryRecord,
     CreateAccountData,
+    InfoData,
     InitData,
     IntegrationUrlData,
     PrivateKeyData,
@@ -62,7 +63,8 @@ export class BladeSDK {
     private apiKey: string = "";
     private network: Network = Network.Testnet;
     private dAppCode: string = "";
-    private fingerprint: string = "";
+    private deviceUuid: string = "";
+    private visitorId: string = "";
     private readonly webView: boolean = false;
 
     /**
@@ -78,16 +80,18 @@ export class BladeSDK {
      * @param apiKey Unique key for API provided by Blade team.
      * @param network "Mainnet" or "Testnet" of Hedera network
      * @param dAppCode your dAppCode - request specific one by contacting us
-     * @param fingerprint client unique fingerprint
+     * @param deviceUuid client unique deviceId (uuid)
+     * @param visitorId client unique fingerprint (visitorId)
      * @param sdkVersion used for header X-SDK-VERSION
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {InitData} status: "success" or "error"
      */
-    init(apiKey: string, network: string, dAppCode: string, fingerprint: string, sdkVersion: string = config.sdkVersion, completionKey?: string): Promise<InitData> {
+    init(apiKey: string, network: string, dAppCode: string, deviceUuid: string, visitorId: string, sdkVersion: string = config.sdkVersion, completionKey?: string): Promise<InitData> {
         this.apiKey = apiKey;
         this.network = StringHelpers.stringToNetwork(network);
         this.dAppCode = dAppCode;
-        this.fingerprint = fingerprint;
+        this.deviceUuid = deviceUuid;
+        this.visitorId = visitorId;
         setSDKVersion(sdkVersion);
 
         return this.sendMessageToNative(completionKey, {status: "success"});
@@ -97,12 +101,13 @@ export class BladeSDK {
      * Returns information about initialized instance of BladeSDK.
      * @returns {InfoData}
      */
-    getInfo(completionKey?: string): Promise<InitData> {
+    getInfo(completionKey?: string): Promise<InfoData> {
         return this.sendMessageToNative(completionKey, {
             apiKey: this.apiKey,
             dAppCode: this.dAppCode,
             network: this.network,
-            fingerprint: this.fingerprint,
+            visitorId: this.visitorId,
+            deviceUuid: this.deviceUuid,
             nonce: Math.round(Math.random() * 1000000000)
         });
     }
@@ -398,7 +403,8 @@ export class BladeSDK {
 
             const options = {
                 apiKey: this.apiKey,
-                fingerprint: this.fingerprint,
+                deviceUuid: this.deviceUuid,
+                visitorId: this.visitorId,
                 dAppCode: this.dAppCode,
                 deviceId,
                 publicKey
@@ -418,7 +424,8 @@ export class BladeSDK {
                     accountId: id,
                     network: this.network,
                     apiKey: this.apiKey,
-                    fingerprint: this.fingerprint,
+                    deviceUuid: this.deviceUuid,
+                    visitorId: this.visitorId,
                     dAppCode: this.dAppCode
                 });
             }
@@ -469,7 +476,8 @@ export class BladeSDK {
 
             const params = {
                 apiKey: this.apiKey,
-                fingerprint: this.fingerprint,
+                deviceUuid: this.deviceUuid,
+                visitorId: this.visitorId,
                 network: this.network.toLowerCase(),
                 dAppCode: this.dAppCode
             };
@@ -488,7 +496,8 @@ export class BladeSDK {
                     accountId: id,
                     network: this.network,
                     apiKey: this.apiKey,
-                    fingerprint: this.fingerprint,
+                    deviceUuid: this.deviceUuid,
+                    visitorId: this.visitorId,
                     dAppCode: this.dAppCode
                 });
 
