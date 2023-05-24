@@ -99,7 +99,6 @@ export class BladeSDK {
         sdkVersion: string = config.sdkVersion,
         completionKey?: string
     ): Promise<InitData> {
-        // tODO env prod/ci
         this.apiKey = apiKey;
         this.network = StringHelpers.stringToNetwork(network);
         this.dAppCode = dAppCode;
