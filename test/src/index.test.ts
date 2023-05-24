@@ -44,6 +44,8 @@ test('bladeSdk.init', async () => {
     expect(result.data).toHaveProperty("network");
     expect(result.data).toHaveProperty("deviceUuid");
     expect(result.data).toHaveProperty("visitorId");
+    expect(result.data).toHaveProperty("sdkEnvironment");
+    expect(result.data).toHaveProperty("sdkVersion");
     expect(result.data).toHaveProperty("nonce");
 });
 

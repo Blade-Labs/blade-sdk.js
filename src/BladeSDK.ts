@@ -66,6 +66,8 @@ export class BladeSDK {
     private dAppCode: string = "";
     private deviceUuid: string = "";
     private visitorId: string = "";
+    private sdkEnvironment: SdkEnvironment = SdkEnvironment.Prod;
+    private sdkVersion: string = config.sdkVersion;
     private readonly webView: boolean = false;
 
     /**
@@ -103,8 +105,12 @@ export class BladeSDK {
         this.dAppCode = dAppCode;
         this.deviceUuid = deviceUuid;
         this.visitorId = visitorId;
-        setSDKVersion(sdkVersion);
+        this.sdkEnvironment = sdkEnvironment;
+        this.sdkVersion = sdkVersion;
+
         setEnvironment(sdkEnvironment);
+        setSDKVersion(sdkVersion);
+
 
         return this.sendMessageToNative(completionKey, {
             apiKey: this.apiKey,
@@ -112,6 +118,8 @@ export class BladeSDK {
             network: this.network,
             visitorId: this.visitorId,
             deviceUuid: this.deviceUuid,
+            sdkEnvironment: this.sdkEnvironment,
+            sdkVersion: this.sdkVersion,
             nonce: Math.round(Math.random() * 1000000000)
         });
     }
@@ -127,6 +135,8 @@ export class BladeSDK {
             network: this.network,
             visitorId: this.visitorId,
             deviceUuid: this.deviceUuid,
+            sdkEnvironment: this.sdkEnvironment,
+            sdkVersion: this.sdkVersion,
             nonce: Math.round(Math.random() * 1000000000)
         });
     }

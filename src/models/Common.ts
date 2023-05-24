@@ -18,6 +18,8 @@ export interface InfoData {
     network: string,
     deviceUuid: string,
     visitorId: string,
+    sdkEnvironment: SdkEnvironment,
+    sdkVersion: string,
     nonce: number
 }
 
