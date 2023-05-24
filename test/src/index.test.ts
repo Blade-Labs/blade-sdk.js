@@ -39,7 +39,12 @@ test('bladeSdk.init', async () => {
         sdkVersion,
         completionKey);
     checkResult(result);
-    expect(result.data.status).toEqual("success" );
+    expect(result.data).toHaveProperty("apiKey");
+    expect(result.data).toHaveProperty("dAppCode");
+    expect(result.data).toHaveProperty("network");
+    expect(result.data).toHaveProperty("deviceUuid");
+    expect(result.data).toHaveProperty("visitorId");
+    expect(result.data).toHaveProperty("nonce");
 });
 
 test('bladeSdk.getBalance', async () => {

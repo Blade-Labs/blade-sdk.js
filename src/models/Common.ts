@@ -12,10 +12,6 @@ export interface BridgeResponse {
     error?: any
 }
 
-export interface InitData {
-    status: string
-}
-
 export interface InfoData {
     apiKey: string,
     dAppCode: string,

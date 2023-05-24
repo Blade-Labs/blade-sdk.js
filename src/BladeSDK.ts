@@ -48,7 +48,6 @@ import {
     ContractCallQueryRecord,
     CreateAccountData,
     InfoData,
-    InitData,
     IntegrationUrlData,
     PrivateKeyData,
     SdkEnvironment,
@@ -87,7 +86,7 @@ export class BladeSDK {
      * @param sdkEnvironment environment to choose BladeAPI server (Prod, CI)
      * @param sdkVersion used for header X-SDK-VERSION
      * @param completionKey optional field bridge between mobile webViews and native apps
-     * @returns {InitData} status: "success" or "error"
+     * @returns {InfoData} status: "success" or "error"
      */
     init(
         apiKey: string,
@@ -98,7 +97,7 @@ export class BladeSDK {
         sdkEnvironment: SdkEnvironment = SdkEnvironment.Prod,
         sdkVersion: string = config.sdkVersion,
         completionKey?: string
-    ): Promise<InitData> {
+    ): Promise<InfoData> {
         this.apiKey = apiKey;
         this.network = StringHelpers.stringToNetwork(network);
         this.dAppCode = dAppCode;
@@ -107,7 +106,14 @@ export class BladeSDK {
         setSDKVersion(sdkVersion);
         setEnvironment(sdkEnvironment);
 
-        return this.sendMessageToNative(completionKey, {status: "success"});
+        return this.sendMessageToNative(completionKey, {
+            apiKey: this.apiKey,
+            dAppCode: this.dAppCode,
+            network: this.network,
+            visitorId: this.visitorId,
+            deviceUuid: this.deviceUuid,
+            nonce: Math.round(Math.random() * 1000000000)
+        });
     }
 
     /**
