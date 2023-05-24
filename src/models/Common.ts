@@ -1,6 +1,11 @@
 import {MirrorNodeTransactionType} from "./TransactionType";
 import {Network} from "./Networks";
 
+export enum SdkEnvironment {
+    Prod = "Prod",
+    CI = "CI"
+}
+
 export interface BridgeResponse {
     completionKey: string,
     data: any,

@@ -2,5 +2,4 @@
 
 export default {
     sdkVersion: "BladeSDK.js@0.5.1",
-    environment: "production",
 };

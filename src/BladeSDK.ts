@@ -16,19 +16,20 @@ import {
 import {Buffer} from "buffer";
 import {hethers} from "@hashgraph/hethers";
 import {
-    checkAccountCreationStatus,
-    createAccount,
     accountInfo,
+    apiCallContractQuery,
+    checkAccountCreationStatus,
+    confirmAccountUpdate,
+    createAccount,
     getAccountsFromPublicKey,
     getC14token,
     getPendingAccountData,
-    confirmAccountUpdate,
     getTransactionsFrom,
     requestTokenInfo,
+    setEnvironment,
+    setSDKVersion,
     signContractCallTx,
-    transferTokens,
-    apiCallContractQuery,
-    setSDKVersion
+    transferTokens
 } from "./ApiService";
 import {Network} from "./models/Networks";
 import StringHelpers from "./helpers/StringHelpers";
@@ -50,12 +51,13 @@ import {
     InitData,
     IntegrationUrlData,
     PrivateKeyData,
+    SdkEnvironment,
     SignMessageData,
     SignVerifyMessageData,
     SplitSignatureData,
     TransactionsHistoryData
 } from "./models/Common";
-import config from "./config"
+import config from "./config";
 import {executeUpdateAccountTransactions, processBalanceData} from "./helpers/AccountHelpers";
 import {ParametersBuilder} from "./ParametersBuilder";
 
@@ -82,17 +84,29 @@ export class BladeSDK {
      * @param dAppCode your dAppCode - request specific one by contacting us
      * @param deviceUuid client unique deviceId (uuid)
      * @param visitorId client unique fingerprint (visitorId)
+     * @param sdkEnvironment environment to choose BladeAPI server (Prod, CI)
      * @param sdkVersion used for header X-SDK-VERSION
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {InitData} status: "success" or "error"
      */
-    init(apiKey: string, network: string, dAppCode: string, deviceUuid: string, visitorId: string, sdkVersion: string = config.sdkVersion, completionKey?: string): Promise<InitData> {
+    init(
+        apiKey: string,
+        network: string,
+        dAppCode: string,
+        deviceUuid: string,
+        visitorId: string,
+        sdkEnvironment: SdkEnvironment = SdkEnvironment.Prod,
+        sdkVersion: string = config.sdkVersion,
+        completionKey?: string
+    ): Promise<InitData> {
+        // tODO env prod/ci
         this.apiKey = apiKey;
         this.network = StringHelpers.stringToNetwork(network);
         this.dAppCode = dAppCode;
         this.deviceUuid = deviceUuid;
         this.visitorId = visitorId;
         setSDKVersion(sdkVersion);
+        setEnvironment(sdkEnvironment);
 
         return this.sendMessageToNative(completionKey, {status: "success"});
     }
@@ -137,10 +151,11 @@ export class BladeSDK {
      * @param accountPrivateKey sender's hex-encoded private key with DER-header (302e020100300506032b657004220420...). ECDSA or Ed25519
      * @param receiverID receiver account id (0.0.xxxxx)
      * @param amount of hbars to send (decimal number)
+     * @param memo transaction memo
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {TransactionResponse}
      */
-    transferHbars(accountId: string, accountPrivateKey: string, receiverID: string, amount: string, completionKey?: string): Promise<TransactionResponse> {
+    transferHbars(accountId: string, accountPrivateKey: string, receiverID: string, amount: string, memo: string, completionKey?: string): Promise<TransactionResponse> {
         try {
             const client = this.getClient();
             client.setOperator(accountId, accountPrivateKey);
@@ -319,11 +334,12 @@ export class BladeSDK {
      * @param accountPrivateKey sender's hex-encoded private key with DER-header (302e020100300506032b657004220420...). ECDSA or Ed25519
      * @param receiverID receiver account id (0.0.xxxxx)
      * @param amount of tokens to send (with token-decimals correction)
+     * @param memo transaction memo
      * @param freeTransfer if true, Blade will pay fee transaction. Only for single dApp configured token. In that case tokenId not used
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {TransactionResponse}
      */
-    async transferTokens(tokenId: string, accountId: string, accountPrivateKey: string, receiverID: string, amount: string, freeTransfer: boolean = false, completionKey?: string): Promise<TransactionResponse> {
+    async transferTokens(tokenId: string, accountId: string, accountPrivateKey: string, receiverID: string, amount: string, memo: string, freeTransfer: boolean = false, completionKey?: string): Promise<TransactionResponse> {
         try {
             const client = this.getClient();
             client.setOperator(accountId, accountPrivateKey);
@@ -339,7 +355,7 @@ export class BladeSDK {
                     senderAccountId: accountId,
                     amount: correctedAmount,
                     decimals: null,
-                    memo: ""
+                    memo
                     // no tokenId, backend pick first token from list for currend dApp
                 };
 
@@ -362,6 +378,7 @@ export class BladeSDK {
                 return new TransferTransaction()
                     .addTokenTransfer(tokenId, receiverID, correctedAmount)
                     .addTokenTransfer(tokenId, accountId, -1 * correctedAmount)
+                    .setTransactionMemo(memo)
                     .execute(client)
                     .then(data => {
                         return this.sendMessageToNative(completionKey, data);
