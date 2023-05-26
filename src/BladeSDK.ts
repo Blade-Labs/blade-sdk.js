@@ -16,18 +16,20 @@ import {
 import {Buffer} from "buffer";
 import {hethers} from "@hashgraph/hethers";
 import {
-    checkAccountCreationStatus,
-    createAccount,
     accountInfo,
+    apiCallContractQuery,
+    checkAccountCreationStatus,
+    confirmAccountUpdate,
+    createAccount,
     getAccountsFromPublicKey,
     getC14token,
     getPendingAccountData,
-    confirmAccountUpdate,
     getTransactionsFrom,
     requestTokenInfo,
+    setEnvironment,
+    setSDKVersion,
     signContractCallTx,
-    transferTokens,
-    apiCallContractQuery
+    transferTokens
 } from "./ApiService";
 import {Network} from "./models/Networks";
 import StringHelpers from "./helpers/StringHelpers";
@@ -45,14 +47,16 @@ import {
     C14WidgetConfig,
     ContractCallQueryRecord,
     CreateAccountData,
-    InitData,
+    InfoData,
     IntegrationUrlData,
     PrivateKeyData,
+    SdkEnvironment,
     SignMessageData,
     SignVerifyMessageData,
     SplitSignatureData,
     TransactionsHistoryData
 } from "./models/Common";
+import config from "./config";
 import {executeUpdateAccountTransactions, processBalanceData} from "./helpers/AccountHelpers";
 import {ParametersBuilder} from "./ParametersBuilder";
 
@@ -60,8 +64,11 @@ export class BladeSDK {
     private apiKey: string = "";
     private network: Network = Network.Testnet;
     private dAppCode: string = "";
-    private fingerprint: string = "";
-    private webView: boolean = false;
+    private deviceUuid: string = "";
+    private visitorId: string = "";
+    private sdkEnvironment: SdkEnvironment = SdkEnvironment.Prod;
+    private sdkVersion: string = config.sdkVersion;
+    private readonly webView: boolean = false;
 
     /**
      * BladeSDK constructor.
@@ -76,29 +83,60 @@ export class BladeSDK {
      * @param apiKey Unique key for API provided by Blade team.
      * @param network "Mainnet" or "Testnet" of Hedera network
      * @param dAppCode your dAppCode - request specific one by contacting us
-     * @param fingerprint client unique fingerprint
+     * @param deviceUuid client unique deviceId (uuid)
+     * @param visitorId client unique fingerprint (visitorId)
+     * @param sdkEnvironment environment to choose BladeAPI server (Prod, CI)
+     * @param sdkVersion used for header X-SDK-VERSION
      * @param completionKey optional field bridge between mobile webViews and native apps
-     * @returns {InitData} status: "success" or "error"
+     * @returns {InfoData} status: "success" or "error"
      */
-    init(apiKey: string, network: string, dAppCode: string, fingerprint: string, completionKey?: string): Promise<InitData> {
+    init(
+        apiKey: string,
+        network: string,
+        dAppCode: string,
+        deviceUuid: string,
+        visitorId: string,
+        sdkEnvironment: SdkEnvironment = SdkEnvironment.Prod,
+        sdkVersion: string = config.sdkVersion,
+        completionKey?: string
+    ): Promise<InfoData> {
         this.apiKey = apiKey;
         this.network = StringHelpers.stringToNetwork(network);
         this.dAppCode = dAppCode;
-        this.fingerprint = fingerprint;
+        this.deviceUuid = deviceUuid;
+        this.visitorId = visitorId;
+        this.sdkEnvironment = sdkEnvironment;
+        this.sdkVersion = sdkVersion;
 
-        return this.sendMessageToNative(completionKey, {status: "success"});
+        setEnvironment(sdkEnvironment);
+        setSDKVersion(sdkVersion);
+
+
+        return this.sendMessageToNative(completionKey, {
+            apiKey: this.apiKey,
+            dAppCode: this.dAppCode,
+            network: this.network,
+            visitorId: this.visitorId,
+            deviceUuid: this.deviceUuid,
+            sdkEnvironment: this.sdkEnvironment,
+            sdkVersion: this.sdkVersion,
+            nonce: Math.round(Math.random() * 1000000000)
+        });
     }
 
     /**
      * Returns information about initialized instance of BladeSDK.
      * @returns {InfoData}
      */
-    getInfo(completionKey?: string): Promise<InitData> {
+    getInfo(completionKey?: string): Promise<InfoData> {
         return this.sendMessageToNative(completionKey, {
             apiKey: this.apiKey,
             dAppCode: this.dAppCode,
             network: this.network,
-            fingerprint: this.fingerprint,
+            visitorId: this.visitorId,
+            deviceUuid: this.deviceUuid,
+            sdkEnvironment: this.sdkEnvironment,
+            sdkVersion: this.sdkVersion,
             nonce: Math.round(Math.random() * 1000000000)
         });
     }
@@ -128,10 +166,11 @@ export class BladeSDK {
      * @param accountPrivateKey sender's hex-encoded private key with DER-header (302e020100300506032b657004220420...). ECDSA or Ed25519
      * @param receiverID receiver account id (0.0.xxxxx)
      * @param amount of hbars to send (decimal number)
+     * @param memo transaction memo
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {TransactionResponse}
      */
-    transferHbars(accountId: string, accountPrivateKey: string, receiverID: string, amount: string, completionKey?: string): Promise<TransactionResponse> {
+    transferHbars(accountId: string, accountPrivateKey: string, receiverID: string, amount: string, memo: string, completionKey?: string): Promise<TransactionResponse> {
         try {
             const client = this.getClient();
             client.setOperator(accountId, accountPrivateKey);
@@ -310,11 +349,12 @@ export class BladeSDK {
      * @param accountPrivateKey sender's hex-encoded private key with DER-header (302e020100300506032b657004220420...). ECDSA or Ed25519
      * @param receiverID receiver account id (0.0.xxxxx)
      * @param amount of tokens to send (with token-decimals correction)
+     * @param memo transaction memo
      * @param freeTransfer if true, Blade will pay fee transaction. Only for single dApp configured token. In that case tokenId not used
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {TransactionResponse}
      */
-    async transferTokens(tokenId: string, accountId: string, accountPrivateKey: string, receiverID: string, amount: string, freeTransfer: boolean = false, completionKey?: string): Promise<TransactionResponse> {
+    async transferTokens(tokenId: string, accountId: string, accountPrivateKey: string, receiverID: string, amount: string, memo: string, freeTransfer: boolean = false, completionKey?: string): Promise<TransactionResponse> {
         try {
             const client = this.getClient();
             client.setOperator(accountId, accountPrivateKey);
@@ -330,7 +370,7 @@ export class BladeSDK {
                     senderAccountId: accountId,
                     amount: correctedAmount,
                     decimals: null,
-                    memo: ""
+                    memo
                     // no tokenId, backend pick first token from list for currend dApp
                 };
 
@@ -353,6 +393,7 @@ export class BladeSDK {
                 return new TransferTransaction()
                     .addTokenTransfer(tokenId, receiverID, correctedAmount)
                     .addTokenTransfer(tokenId, accountId, -1 * correctedAmount)
+                    .setTransactionMemo(memo)
                     .execute(client)
                     .then(data => {
                         return this.sendMessageToNative(completionKey, data);
@@ -394,7 +435,8 @@ export class BladeSDK {
 
             const options = {
                 apiKey: this.apiKey,
-                fingerprint: this.fingerprint,
+                deviceUuid: this.deviceUuid,
+                visitorId: this.visitorId,
                 dAppCode: this.dAppCode,
                 deviceId,
                 publicKey
@@ -414,7 +456,8 @@ export class BladeSDK {
                     accountId: id,
                     network: this.network,
                     apiKey: this.apiKey,
-                    fingerprint: this.fingerprint,
+                    deviceUuid: this.deviceUuid,
+                    visitorId: this.visitorId,
                     dAppCode: this.dAppCode
                 });
             }
@@ -465,7 +508,8 @@ export class BladeSDK {
 
             const params = {
                 apiKey: this.apiKey,
-                fingerprint: this.fingerprint,
+                deviceUuid: this.deviceUuid,
+                visitorId: this.visitorId,
                 network: this.network.toLowerCase(),
                 dAppCode: this.dAppCode
             };
@@ -484,7 +528,8 @@ export class BladeSDK {
                     accountId: id,
                     network: this.network,
                     apiKey: this.apiKey,
-                    fingerprint: this.fingerprint,
+                    deviceUuid: this.deviceUuid,
+                    visitorId: this.visitorId,
                     dAppCode: this.dAppCode
                 });
 
@@ -734,7 +779,10 @@ export class BladeSDK {
      */
     async getC14url(asset: string, account: string, amount: string, completionKey?: string): Promise<IntegrationUrlData> {
         try {
-            const {token} = await getC14token({apiKey: this.apiKey});
+            const {token} = await getC14token({
+                apiKey: this.apiKey,
+                network: this.network
+            });
             const url = new URL("https://pay.c14.money/");
             const purchaseParams: C14WidgetConfig = {
                 clientId: token

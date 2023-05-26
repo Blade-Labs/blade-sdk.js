@@ -2,13 +2,26 @@ import {Buffer} from "buffer";
 import {AccountId, PublicKey} from "@hashgraph/sdk";
 import {Network, NetworkMirrorNodes} from "./models/Networks";
 import {AccountInfoMirrorResponse} from "./models/MirrorNode";
-import {ConfirmUpdateAccountData, TransactionData} from "./models/Common";
+import {ConfirmUpdateAccountData, SdkEnvironment, TransactionData} from "./models/Common";
 import {flatArray} from "./helpers/ArrayHelpers";
 import {filterAndFormatTransactions} from "./helpers/TransactionHelpers";
 
-const ApiUrl = process.env['NODE_ENV'] === "test"
-    ? "https://rest.ci.bladewallet.io/openapi/v7"
-    : "https://rest.prod.bladewallet.io/openapi/v7"
+let sdkVersion = ``;
+let environment: SdkEnvironment = SdkEnvironment.Prod;
+
+export const setSDKVersion = (version: string) => {
+    sdkVersion = version;
+}
+
+export const setEnvironment = (sdkEnvironment: SdkEnvironment) => {
+    environment = sdkEnvironment;
+}
+
+const getApiUrl = (): string => {
+    return environment === SdkEnvironment.Prod
+        ? "https://rest.prod.bladewallet.io/openapi/v7"
+        : "https://rest.ci.bladewallet.io/openapi/v7";
+}
 
 const fetchWithRetry = async (url: string, options: RequestInit, maxAttempts = 3) => {
     return new Promise((resolve, reject) => {
@@ -69,12 +82,14 @@ export const GET = (network: Network, route: string) => {
 };
 
 export const createAccount = async (network: Network, params: any) => {
-    const url = `${ApiUrl}/accounts`;
+    const url = `${getApiUrl()}/accounts`;
     const headers: any = {
         "X-SDK-TOKEN": params.apiKey,
-        "X-FINGERPRINT": params.fingerprint,
+        "X-FINGERPRINT": params.deviceUuid, // uuid
+        "X-VISITOR-ID": params.visitorId, // fingerprint (visitorId) (eg.: YoZoVL4XZspaCtLH4GoL)
         "X-NETWORK": network.toUpperCase(),
         "X-DAPP-CODE": params.dAppCode,
+        "X-SDK-VERSION": sdkVersion,
         "Content-Type": "application/json"
     };
     if (params.deviceId) {
@@ -95,14 +110,16 @@ export const createAccount = async (network: Network, params: any) => {
 };
 
 export const checkAccountCreationStatus = async (transactionId: string, network: Network, params: any): Promise<any> => {
-    const url = `${ApiUrl}/accounts/status?transactionId=${transactionId}`;
+    const url = `${getApiUrl()}/accounts/status?transactionId=${transactionId}`;
     const options = {
         method: "GET",
         headers: new Headers({
             "X-SDK-TOKEN": params.apiKey,
-            "X-FINGERPRINT": params.fingerprint,
+            "X-FINGERPRINT": params.deviceUuid,
+            "X-VISITOR-ID": params.visitorId,
             "X-NETWORK": network.toUpperCase(),
             "X-DAPP-CODE": params.dAppCode,
+            "X-SDK-VERSION": sdkVersion,
             "Content-Type": "application/json"
         })
     };
@@ -113,14 +130,16 @@ export const checkAccountCreationStatus = async (transactionId: string, network:
 };
 
 export const getPendingAccountData = async (transactionId: string, network: Network, params: any) => {
-    const url = `${ApiUrl}/accounts/details?transactionId=${transactionId}`;
+    const url = `${getApiUrl()}/accounts/details?transactionId=${transactionId}`;
     const options = {
         method: "GET",
         headers: new Headers({
             "X-SDK-TOKEN": params.apiKey,
-            "X-FINGERPRINT": params.fingerprint,
+            "X-FINGERPRINT": params.deviceUuid,
+            "X-VISITOR-ID": params.visitorId,
             "X-NETWORK": network.toUpperCase(),
             "X-DAPP-CODE": params.dAppCode,
+            "X-SDK-VERSION": sdkVersion,
             "Content-Type": "application/json"
         })
     };
@@ -131,14 +150,16 @@ export const getPendingAccountData = async (transactionId: string, network: Netw
 };
 
 export const confirmAccountUpdate = async (params: ConfirmUpdateAccountData): Promise<Response> => {
-    const url = `${ApiUrl}/accounts/confirm`;
+    const url = `${getApiUrl()}/accounts/confirm`;
     const options = {
         method: "PATCH",
         headers: new Headers({
             "X-SDK-TOKEN": params.apiKey,
-            "X-FINGERPRINT": params.fingerprint,
+            "X-FINGERPRINT": params.deviceUuid,
+            "X-VISITOR-ID": params.visitorId,
             "X-NETWORK": params.network.toUpperCase(),
             "X-DAPP-CODE": params.dAppCode,
+            "X-SDK-VERSION": sdkVersion,
             "Content-Type": "application/json"
         }),
         body: JSON.stringify({
@@ -156,7 +177,7 @@ export const requestTokenInfo = async (network: Network, tokenId: string) => {
 };
 
 export const transferTokens = async (network: Network, params: any) => {
-    const url = `${ApiUrl}/tokens/transfers`;
+    const url = `${getApiUrl()}/tokens/transfers`;
 
     const options = {
         method: "POST",
@@ -164,6 +185,7 @@ export const transferTokens = async (network: Network, params: any) => {
             "X-NETWORK": network.toUpperCase(),
             "X-DAPP-CODE": params.dAppCode,
             "X-SDK-TOKEN": params.apiKey,
+            "X-SDK-VERSION": sdkVersion,
             "Content-Type": "application/json"
         }),
         body: JSON.stringify({
@@ -181,13 +203,14 @@ export const transferTokens = async (network: Network, params: any) => {
 };
 
 export const signContractCallTx = async (network: Network, params: any) => {
-    const url = `${ApiUrl}/smart/contract/sign`;
+    const url = `${getApiUrl()}/smart/contract/sign`;
     const options = {
         method: "POST",
         headers: new Headers({
             "X-NETWORK": network.toUpperCase(),
             "X-DAPP-CODE": params.dAppCode,
             "X-SDK-TOKEN": params.apiKey,
+            "X-SDK-VERSION": sdkVersion,
             "Content-Type": "application/json"
         }),
         body: JSON.stringify({
@@ -204,13 +227,14 @@ export const signContractCallTx = async (network: Network, params: any) => {
 };
 
 export const apiCallContractQuery = async (network: Network, params: any) => {
-    const url = `${ApiUrl}/smart/contract/call`;
+    const url = `${getApiUrl()}/smart/contract/call`;
     const options = {
         method: "POST",
         headers: new Headers({
             "X-NETWORK": network.toUpperCase(),
             "X-DAPP-CODE": params.dAppCode,
             "X-SDK-TOKEN": params.apiKey,
+            "X-SDK-VERSION": sdkVersion,
             "Content-Type": "application/json"
         }),
         body: JSON.stringify({
@@ -227,11 +251,13 @@ export const apiCallContractQuery = async (network: Network, params: any) => {
 };
 
 export const getC14token = async (params: any) => {
-    const url = `${ApiUrl}/c14/data`;
+    const url = `${getApiUrl()}/c14/data`;
     const options = {
         method: "GET",
         headers: new Headers({
             "X-SDK-TOKEN": params.apiKey,
+            "X-SDK-VERSION": sdkVersion,
+            "X-NETWORK": params.network.toUpperCase(),
             "Content-Type": "application/json"
         }),
     };

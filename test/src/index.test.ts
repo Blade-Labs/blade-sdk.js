@@ -4,6 +4,7 @@ import {GET, getTransaction} from "../../src/ApiService";
 import {Network} from "../../src/models/Networks";
 import {isEqual} from "lodash";
 import {Buffer} from "buffer";
+import config from "../../src/config";
 
 const {BladeSDK, ParametersBuilder} = require("../../src/webView");
 require("dotenv").config();
@@ -14,6 +15,7 @@ const {PrivateKey} = require("@hashgraph/sdk");
 const {hethers} = require("@hashgraph/hethers");
 
 const bladeSdk = new BladeSDK(true);
+const sdkVersion = `AutoTest ${config.sdkVersion}`;
 export const completionKey = "completionKey1";
 const privateKey = process.env.PRIVATE_KEY; // ECDSA
 const accountId = process.env.ACCOUNT_ID;
@@ -27,9 +29,24 @@ test('bladeSdk defined', () => {
 });
 
 test('bladeSdk.init', async () => {
-    const result = await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.FINGERPRINT, completionKey);
+    const result = await bladeSdk.init(
+        process.env.API_KEY,
+        process.env.NETWORK,
+        process.env.DAPP_CODE,
+        process.env.DEVICE_UUID,
+        process.env.VISITOR_ID,
+        process.env.SDK_ENV,
+        sdkVersion,
+        completionKey);
     checkResult(result);
-    expect(result.data.status).toEqual("success" );
+    expect(result.data).toHaveProperty("apiKey");
+    expect(result.data).toHaveProperty("dAppCode");
+    expect(result.data).toHaveProperty("network");
+    expect(result.data).toHaveProperty("deviceUuid");
+    expect(result.data).toHaveProperty("visitorId");
+    expect(result.data).toHaveProperty("sdkEnvironment");
+    expect(result.data).toHaveProperty("sdkVersion");
+    expect(result.data).toHaveProperty("nonce");
 });
 
 test('bladeSdk.getBalance', async () => {
@@ -49,7 +66,7 @@ test('bladeSdk.transferHbars', async () => {
     let result = await bladeSdk.getBalance(accountId, completionKey);
     checkResult(result);
     const hbars = result.data.hbars;
-    result = await bladeSdk.transferHbars(accountId, privateKey, accountId2, "1.5", completionKey);
+    result = await bladeSdk.transferHbars(accountId, privateKey, accountId2, "1.5", "custom memo text", completionKey);
     checkResult(result);
 
     expect(result.data).toHaveProperty("nodeId");
@@ -64,11 +81,11 @@ test('bladeSdk.transferHbars', async () => {
     expect(hbars).not.toEqual(result.data.hbars);
 
     // invalid signature
-    result = await bladeSdk.transferHbars(accountId2, privateKey, accountId, "1.5", completionKey);
+    result = await bladeSdk.transferHbars(accountId2, privateKey, accountId, "1.5", "custom memo text", completionKey);
     checkResult(result, false);
 
     // parseFloat exception
-    result = await bladeSdk.transferHbars(accountId, privateKey, accountId, "jhghjhgjghj", completionKey);
+    result = await bladeSdk.transferHbars(accountId, privateKey, accountId, "jhghjhgjghj", "custom memo text", completionKey);
     checkResult(result, false);
 
 }, 60_000);
@@ -79,7 +96,7 @@ test('bladeSdk.contractCallFunction', async () => {
     const client = Client.forTestnet();
     client.setOperator(accountId, privateKey);
 
-    let result = await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.FINGERPRINT, completionKey);
+    let result = await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.DEVICE_UUID, process.env.VISITOR_ID, process.env.SDK_ENV, sdkVersion, completionKey);
     checkResult(result);
 
     let message = `Hello test ${Math.random()}`;
@@ -164,7 +181,7 @@ test('bladeSdk.contractCallQueryFunction', async () => {
     const client = Client.forTestnet();
     client.setOperator(accountId, privateKey);
 
-    let result = await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.FINGERPRINT, completionKey);
+    let result = await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.DEVICE_UUID, process.env.VISITOR_ID, process.env.SDK_ENV, sdkVersion, completionKey);
     checkResult(result);
 
     let message = `Hello DIRECT test ${Math.random()}`;
@@ -244,14 +261,14 @@ test('bladeSdk.transferTokens', async () => {
 
     const amount = 1;
     // invalid signature
-    result = await bladeSdk.transferTokens(tokenId.toString(), accountId2, privateKey, accountId2, amount.toString(), false, completionKey);
+    result = await bladeSdk.transferTokens(tokenId.toString(), accountId2, privateKey, accountId2, amount.toString(), "transfer memo", false, completionKey);
     checkResult(result, false);
 
     // invalid tokenId
-    result = await bladeSdk.transferTokens("invalid token id", accountId2, privateKey, accountId2, amount.toString(), false, completionKey);
+    result = await bladeSdk.transferTokens("invalid token id", accountId2, privateKey, accountId2, amount.toString(), "transfer memo",false, completionKey);
     checkResult(result, false);
 
-    result = await bladeSdk.transferTokens(tokenId.toString(), accountId, privateKey, accountId2, amount.toString(), false, completionKey);
+    result = await bladeSdk.transferTokens(tokenId.toString(), accountId, privateKey, accountId2, amount.toString(), "transfer memo", false, completionKey);
     checkResult(result);
     expect(result.data).toHaveProperty("nodeId");
     expect(result.data).toHaveProperty("transactionHash");
@@ -271,7 +288,7 @@ test('bladeSdk.transferTokens', async () => {
 }, 120_000);
 
 test('bladeSdk.createAccount', async () => {
-    let result = await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.FINGERPRINT, completionKey);
+    let result = await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.DEVICE_UUID, process.env.VISITOR_ID, process.env.SDK_ENV, sdkVersion, completionKey);
     checkResult(result);
 
     result = await bladeSdk.createAccount("device-id", completionKey);
@@ -290,7 +307,7 @@ test('bladeSdk.createAccount', async () => {
 
     expect(result.data.evmAddress).toEqual(evmAddress.toLowerCase());
 
-    result = await bladeSdk.init("wrong api key", process.env.NETWORK, process.env.DAPP_CODE, process.env.FINGERPRINT, completionKey);
+    result = await bladeSdk.init("wrong api key", process.env.NETWORK, process.env.DAPP_CODE, process.env.DEVICE_UUID, process.env.VISITOR_ID, process.env.SDK_ENV, sdkVersion, completionKey);
     checkResult(result);
 
     result = await bladeSdk.createAccount("device-id", completionKey);
@@ -298,7 +315,7 @@ test('bladeSdk.createAccount', async () => {
 }, 60_000);
 
 test('bladeSdk.getAccountInfo', async () => {
-    let result = await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.FINGERPRINT, completionKey);
+    let result = await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.DEVICE_UUID, process.env.VISITOR_ID, process.env.SDK_ENV, sdkVersion, completionKey);
     checkResult(result);
 
     const account = await bladeSdk.createAccount("device-id", completionKey);
@@ -315,7 +332,7 @@ test('bladeSdk.getAccountInfo', async () => {
 }, 60_000);
 
 test('bladeSdk.deleteAccount', async () => {
-    let result = await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.FINGERPRINT, completionKey);
+    let result = await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.DEVICE_UUID, process.env.VISITOR_ID, process.env.SDK_ENV, sdkVersion, completionKey);
     checkResult(result);
 
     result = await bladeSdk.createAccount("device-id", completionKey);
@@ -336,7 +353,7 @@ test('bladeSdk.deleteAccount', async () => {
 }, 60_000);
 
 test('bladeSdk.getKeysFromMnemonic', async () => {
-    await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.FINGERPRINT, completionKey);
+    await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.DEVICE_UUID, process.env.VISITOR_ID, process.env.SDK_ENV, sdkVersion, completionKey);
     let result = await bladeSdk.createAccount("device-id", completionKey);
     checkResult(result);
 
@@ -474,7 +491,7 @@ test('bladeSdk.getParamsSignature', async () => {
 
 test('bladeSdk.getTransactions', async () => {
     // make transaction
-    let result = await bladeSdk.transferHbars(accountId, privateKey, accountId2, "1.5", completionKey);
+    let result = await bladeSdk.transferHbars(accountId, privateKey, accountId2, "1.5", "some tx memo", completionKey);
     checkResult(result);
 
     expect(result.data).toHaveProperty("nodeId");
@@ -547,7 +564,7 @@ test('bladeSdk.getTransactions', async () => {
 }, 30_000);
 
 test('bladeSdk.getC14url', async () => {
-    let result = await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.FINGERPRINT, completionKey);
+    let result = await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.DEVICE_UUID, process.env.VISITOR_ID, process.env.SDK_ENV, sdkVersion, completionKey);
     checkResult(result);
 
     result = await bladeSdk.getC14url("hbar", "0.0.123456", "123", completionKey);

@@ -1,21 +1,25 @@
 import {MirrorNodeTransactionType} from "./TransactionType";
 import {Network} from "./Networks";
 
+export enum SdkEnvironment {
+    Prod = "Prod",
+    CI = "CI"
+}
+
 export interface BridgeResponse {
     completionKey: string,
     data: any,
     error?: any
 }
 
-export interface InitData {
-    status: string
-}
-
 export interface InfoData {
     apiKey: string,
     dAppCode: string,
     network: string,
-    fingerprint: string,
+    deviceUuid: string,
+    visitorId: string,
+    sdkEnvironment: SdkEnvironment,
+    sdkVersion: string,
     nonce: number
 }
 
@@ -128,5 +132,6 @@ export interface ConfirmUpdateAccountData {
     accountId: string,
     dAppCode: string
     apiKey: string,
-    fingerprint: string
+    deviceUuid: string,
+    visitorId: string
 }
