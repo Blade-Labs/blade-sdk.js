@@ -257,6 +257,7 @@ export const getC14token = async (params: any) => {
         headers: new Headers({
             "X-SDK-TOKEN": params.apiKey,
             "X-SDK-VERSION": sdkVersion,
+            "X-NETWORK": params.network.toUpperCase(),
             "Content-Type": "application/json"
         }),
     };

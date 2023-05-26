@@ -779,7 +779,10 @@ export class BladeSDK {
      */
     async getC14url(asset: string, account: string, amount: string, completionKey?: string): Promise<IntegrationUrlData> {
         try {
-            const {token} = await getC14token({apiKey: this.apiKey});
+            const {token} = await getC14token({
+                apiKey: this.apiKey,
+                network: this.network
+            });
             const url = new URL("https://pay.c14.money/");
             const purchaseParams: C14WidgetConfig = {
                 clientId: token
