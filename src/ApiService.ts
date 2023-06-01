@@ -84,10 +84,10 @@ export const GET = (network: Network, route: string) => {
 export const createAccount = async (network: Network, params: any) => {
     const url = `${getApiUrl()}/accounts`;
     const headers: any = {
+        "X-NETWORK": network.toUpperCase(),
         "X-SDK-TOKEN": params.apiKey,
         "X-FINGERPRINT": params.deviceUuid, // uuid
         "X-VISITOR-ID": params.visitorId, // fingerprint (visitorId) (eg.: YoZoVL4XZspaCtLH4GoL)
-        "X-NETWORK": network.toUpperCase(),
         "X-DAPP-CODE": params.dAppCode,
         "X-SDK-VERSION": sdkVersion,
         "Content-Type": "application/json"
@@ -114,10 +114,10 @@ export const checkAccountCreationStatus = async (transactionId: string, network:
     const options = {
         method: "GET",
         headers: new Headers({
+            "X-NETWORK": network.toUpperCase(),
             "X-SDK-TOKEN": params.apiKey,
             "X-FINGERPRINT": params.deviceUuid,
             "X-VISITOR-ID": params.visitorId,
-            "X-NETWORK": network.toUpperCase(),
             "X-DAPP-CODE": params.dAppCode,
             "X-SDK-VERSION": sdkVersion,
             "Content-Type": "application/json"
@@ -134,10 +134,10 @@ export const getPendingAccountData = async (transactionId: string, network: Netw
     const options = {
         method: "GET",
         headers: new Headers({
+            "X-NETWORK": network.toUpperCase(),
             "X-SDK-TOKEN": params.apiKey,
             "X-FINGERPRINT": params.deviceUuid,
             "X-VISITOR-ID": params.visitorId,
-            "X-NETWORK": network.toUpperCase(),
             "X-DAPP-CODE": params.dAppCode,
             "X-SDK-VERSION": sdkVersion,
             "Content-Type": "application/json"
@@ -154,10 +154,10 @@ export const confirmAccountUpdate = async (params: ConfirmUpdateAccountData): Pr
     const options = {
         method: "PATCH",
         headers: new Headers({
+            "X-NETWORK": params.network.toUpperCase(),
             "X-SDK-TOKEN": params.apiKey,
             "X-FINGERPRINT": params.deviceUuid,
             "X-VISITOR-ID": params.visitorId,
-            "X-NETWORK": params.network.toUpperCase(),
             "X-DAPP-CODE": params.dAppCode,
             "X-SDK-VERSION": sdkVersion,
             "Content-Type": "application/json"
@@ -183,8 +183,10 @@ export const transferTokens = async (network: Network, params: any) => {
         method: "POST",
         headers: new Headers({
             "X-NETWORK": network.toUpperCase(),
-            "X-DAPP-CODE": params.dAppCode,
             "X-SDK-TOKEN": params.apiKey,
+            "X-FINGERPRINT": params.deviceUuid,
+            "X-VISITOR-ID": params.visitorId,
+            "X-DAPP-CODE": params.dAppCode,
             "X-SDK-VERSION": sdkVersion,
             "Content-Type": "application/json"
         }),
@@ -208,8 +210,10 @@ export const signContractCallTx = async (network: Network, params: any) => {
         method: "POST",
         headers: new Headers({
             "X-NETWORK": network.toUpperCase(),
-            "X-DAPP-CODE": params.dAppCode,
             "X-SDK-TOKEN": params.apiKey,
+            "X-FINGERPRINT": params.deviceUuid,
+            "X-VISITOR-ID": params.visitorId,
+            "X-DAPP-CODE": params.dAppCode,
             "X-SDK-VERSION": sdkVersion,
             "Content-Type": "application/json"
         }),
@@ -232,8 +236,10 @@ export const apiCallContractQuery = async (network: Network, params: any) => {
         method: "POST",
         headers: new Headers({
             "X-NETWORK": network.toUpperCase(),
-            "X-DAPP-CODE": params.dAppCode,
             "X-SDK-TOKEN": params.apiKey,
+            "X-FINGERPRINT": params.deviceUuid,
+            "X-VISITOR-ID": params.visitorId,
+            "X-DAPP-CODE": params.dAppCode,
             "X-SDK-VERSION": sdkVersion,
             "Content-Type": "application/json"
         }),
@@ -255,9 +261,12 @@ export const getC14token = async (params: any) => {
     const options = {
         method: "GET",
         headers: new Headers({
-            "X-SDK-TOKEN": params.apiKey,
-            "X-SDK-VERSION": sdkVersion,
             "X-NETWORK": params.network.toUpperCase(),
+            "X-SDK-TOKEN": params.apiKey,
+            "X-FINGERPRINT": params.deviceUuid, // uuid
+            "X-VISITOR-ID": params.visitorId, // fingerprint (visitorId) (eg.: YoZoVL4XZspaCtLH4GoL)
+            "X-DAPP-CODE": params.dAppCode,
+            "X-SDK-VERSION": sdkVersion,
             "Content-Type": "application/json"
         }),
     };

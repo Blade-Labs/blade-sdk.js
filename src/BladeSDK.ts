@@ -223,6 +223,8 @@ export class BladeSDK {
                 const options = {
                     dAppCode: this.dAppCode,
                     apiKey: this.apiKey,
+                    visitorId: this.visitorId,
+                    deviceUuid: this.deviceUuid,
                     contractFunctionParameters,
                     contractId,
                     functionName,
@@ -300,6 +302,8 @@ export class BladeSDK {
                     const options = {
                         dAppCode: this.dAppCode,
                         apiKey: this.apiKey,
+                        deviceUuid: this.deviceUuid,
+                        visitorId: this.visitorId,
                         contractFunctionParameters,
                         contractId,
                         functionName,
@@ -332,8 +336,11 @@ export class BladeSDK {
                         .execute(client);
                 }
 
-                const result = await parseContractQueryResponse(response, resultTypes);
-                return this.sendMessageToNative(completionKey, result);
+                const values = await parseContractQueryResponse(response, resultTypes);
+                return this.sendMessageToNative(completionKey, {
+                    values,
+                    gasUsed: parseInt(response.gasUsed.toString(), 10)
+                });
             } catch (error) {
                 return this.sendMessageToNative(completionKey, null, error);
             }
@@ -366,6 +373,8 @@ export class BladeSDK {
                 const options = {
                     dAppCode: this.dAppCode,
                     apiKey: this.apiKey,
+                    deviceUuid: this.deviceUuid,
+                    visitorId: this.visitorId,
                     receiverAccountId: receiverID,
                     senderAccountId: accountId,
                     amount: correctedAmount,
@@ -781,7 +790,10 @@ export class BladeSDK {
         try {
             const {token} = await getC14token({
                 apiKey: this.apiKey,
-                network: this.network
+                network: this.network,
+                deviceUuid: this.deviceUuid,
+                visitorId: this.visitorId,
+                dAppCode: this.dAppCode
             });
             const url = new URL("https://pay.c14.money/");
             const purchaseParams: C14WidgetConfig = {
