@@ -336,8 +336,11 @@ export class BladeSDK {
                         .execute(client);
                 }
 
-                const result = await parseContractQueryResponse(response, resultTypes);
-                return this.sendMessageToNative(completionKey, result);
+                const values = await parseContractQueryResponse(response, resultTypes);
+                return this.sendMessageToNative(completionKey, {
+                    values,
+                    gasUsed: parseInt(response.gasUsed.toString(), 10)
+                });
             } catch (error) {
                 return this.sendMessageToNative(completionKey, null, error);
             }
