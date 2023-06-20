@@ -6,16 +6,17 @@ import {isEqual} from "lodash";
 import {Buffer} from "buffer";
 import config from "../../src/config";
 
-const {BladeSDK, ParametersBuilder} = require("../../src/webView");
-require("dotenv").config();
+import {BladeSDK, ParametersBuilder} from "../../src/webView"
+import dotenv from "dotenv"
+import fetch from "node-fetch"
 
-global.fetch = require("node-fetch");
+import {PrivateKey} from "@hashgraph/sdk";
+import {hethers} from "@hashgraph/hethers";
 
-const {PrivateKey} = require("@hashgraph/sdk");
-const {hethers} = require("@hashgraph/hethers");
 
+dotenv.config();
 const bladeSdk = new BladeSDK(true);
-const sdkVersion = `AutoTest ${config.sdkVersion}`;
+const sdkVersion = `Kotlin@${config.numberVersion}`;
 export const completionKey = "completionKey1";
 const privateKey = process.env.PRIVATE_KEY; // ECDSA
 const accountId = process.env.ACCOUNT_ID;
@@ -23,6 +24,17 @@ const accountId = process.env.ACCOUNT_ID;
 const privateKey2 = process.env.PRIVATE_KEY2; // ECDSA
 const accountId2 = process.env.ACCOUNT_ID2;
 
+import { TextEncoder, TextDecoder } from 'util';
+import crypto from "crypto";
+
+Object.defineProperty(global.self, "crypto", {
+    value: {
+        subtle: crypto.webcrypto.subtle,
+    },
+});
+
+Object.assign(global, { TextDecoder, TextEncoder });
+Object.assign(global, { fetch });
 
 test('bladeSdk defined', () => {
     expect(window["bladeSdk"]).toBeDefined()
@@ -33,7 +45,6 @@ test('bladeSdk.init', async () => {
         process.env.API_KEY,
         process.env.NETWORK,
         process.env.DAPP_CODE,
-        process.env.DEVICE_UUID,
         process.env.VISITOR_ID,
         process.env.SDK_ENV,
         sdkVersion,
@@ -42,7 +53,6 @@ test('bladeSdk.init', async () => {
     expect(result.data).toHaveProperty("apiKey");
     expect(result.data).toHaveProperty("dAppCode");
     expect(result.data).toHaveProperty("network");
-    expect(result.data).toHaveProperty("deviceUuid");
     expect(result.data).toHaveProperty("visitorId");
     expect(result.data).toHaveProperty("sdkEnvironment");
     expect(result.data).toHaveProperty("sdkVersion");
@@ -96,7 +106,7 @@ test('bladeSdk.contractCallFunction', async () => {
     const client = Client.forTestnet();
     client.setOperator(accountId, privateKey);
 
-    let result = await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.DEVICE_UUID, process.env.VISITOR_ID, process.env.SDK_ENV, sdkVersion, completionKey);
+    let result = await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.VISITOR_ID, process.env.SDK_ENV, sdkVersion, completionKey);
     checkResult(result);
 
     let message = `Hello test ${Math.random()}`;
@@ -181,7 +191,7 @@ test('bladeSdk.contractCallQueryFunction', async () => {
     const client = Client.forTestnet();
     client.setOperator(accountId, privateKey);
 
-    let result = await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.DEVICE_UUID, process.env.VISITOR_ID, process.env.SDK_ENV, sdkVersion, completionKey);
+    let result = await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.VISITOR_ID, process.env.SDK_ENV, sdkVersion, completionKey);
     checkResult(result);
 
     let message = `Hello DIRECT test ${Math.random()}`;
@@ -196,13 +206,13 @@ test('bladeSdk.contractCallQueryFunction', async () => {
     result = await bladeSdk.contractCallQueryFunction(contractId, "get_message", params, accountId, privateKey, 100000, false, ["string"], completionKey);
     checkResult(result);
 
-    expect(Array.isArray(result.data)).toEqual(true);
-    expect(result.data.length).toEqual(1);
+    expect(Array.isArray(result.data.values)).toEqual(true);
+    expect(result.data.values.length).toEqual(1);
 
-    expect(result.data[0]).toHaveProperty("type");
-    expect(result.data[0]).toHaveProperty("value");
-    expect(result.data[0].type).toEqual("string");
-    expect(result.data[0].value).toEqual(message);
+    expect(result.data.values[0]).toHaveProperty("type");
+    expect(result.data.values[0]).toHaveProperty("value");
+    expect(result.data.values[0].type).toEqual("string");
+    expect(result.data.values[0].value).toEqual(message);
 
     // call with API
 
@@ -217,13 +227,13 @@ test('bladeSdk.contractCallQueryFunction', async () => {
     result = await bladeSdk.contractCallQueryFunction(contractId, "get_message", params, accountId, privateKey, 100000, true, ["string"], completionKey);
     checkResult(result);
 
-    expect(Array.isArray(result.data)).toEqual(true);
-    expect(result.data.length).toEqual(1);
+    expect(Array.isArray(result.data.values)).toEqual(true);
+    expect(result.data.values.length).toEqual(1);
 
-    expect(result.data[0]).toHaveProperty("type");
-    expect(result.data[0]).toHaveProperty("value");
-    expect(result.data[0].type).toEqual("string");
-    expect(result.data[0].value).toEqual(message);
+    expect(result.data.values[0]).toHaveProperty("type");
+    expect(result.data.values[0]).toHaveProperty("value");
+    expect(result.data.values[0].type).toEqual("string");
+    expect(result.data.values[0].value).toEqual(message);
 }, 120_000);
 
 test('bladeSdk.transferTokens', async () => {
@@ -288,7 +298,7 @@ test('bladeSdk.transferTokens', async () => {
 }, 120_000);
 
 test('bladeSdk.createAccount', async () => {
-    let result = await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.DEVICE_UUID, process.env.VISITOR_ID, process.env.SDK_ENV, sdkVersion, completionKey);
+    let result = await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.VISITOR_ID, process.env.SDK_ENV, sdkVersion, completionKey);
     checkResult(result);
 
     result = await bladeSdk.createAccount("device-id", completionKey);
@@ -307,7 +317,7 @@ test('bladeSdk.createAccount', async () => {
 
     expect(result.data.evmAddress).toEqual(evmAddress.toLowerCase());
 
-    result = await bladeSdk.init("wrong api key", process.env.NETWORK, process.env.DAPP_CODE, process.env.DEVICE_UUID, process.env.VISITOR_ID, process.env.SDK_ENV, sdkVersion, completionKey);
+    result = await bladeSdk.init("wrong api key", process.env.NETWORK, process.env.DAPP_CODE, process.env.VISITOR_ID, process.env.SDK_ENV, sdkVersion, completionKey);
     checkResult(result);
 
     result = await bladeSdk.createAccount("device-id", completionKey);
@@ -315,7 +325,7 @@ test('bladeSdk.createAccount', async () => {
 }, 60_000);
 
 test('bladeSdk.getAccountInfo', async () => {
-    let result = await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.DEVICE_UUID, process.env.VISITOR_ID, process.env.SDK_ENV, sdkVersion, completionKey);
+    let result = await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.VISITOR_ID, process.env.SDK_ENV, sdkVersion, completionKey);
     checkResult(result);
 
     const account = await bladeSdk.createAccount("device-id", completionKey);
@@ -332,7 +342,7 @@ test('bladeSdk.getAccountInfo', async () => {
 }, 60_000);
 
 test('bladeSdk.deleteAccount', async () => {
-    let result = await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.DEVICE_UUID, process.env.VISITOR_ID, process.env.SDK_ENV, sdkVersion, completionKey);
+    let result = await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.VISITOR_ID, process.env.SDK_ENV, sdkVersion, completionKey);
     checkResult(result);
 
     result = await bladeSdk.createAccount("device-id", completionKey);
@@ -353,7 +363,7 @@ test('bladeSdk.deleteAccount', async () => {
 }, 60_000);
 
 test('bladeSdk.getKeysFromMnemonic', async () => {
-    await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.DEVICE_UUID, process.env.VISITOR_ID, process.env.SDK_ENV, sdkVersion, completionKey);
+    await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.VISITOR_ID, process.env.SDK_ENV, sdkVersion, completionKey);
     let result = await bladeSdk.createAccount("device-id", completionKey);
     checkResult(result);
 
@@ -564,7 +574,7 @@ test('bladeSdk.getTransactions', async () => {
 }, 30_000);
 
 test('bladeSdk.getC14url', async () => {
-    let result = await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.DEVICE_UUID, process.env.VISITOR_ID, process.env.SDK_ENV, sdkVersion, completionKey);
+    let result = await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.VISITOR_ID, process.env.SDK_ENV, sdkVersion, completionKey);
     checkResult(result);
 
     result = await bladeSdk.getC14url("hbar", "0.0.123456", "123", completionKey);

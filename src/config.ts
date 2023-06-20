@@ -2,4 +2,5 @@
 
 export default {
     sdkVersion: "BladeSDK.js@0.6.0",
+    numberVersion: "0.6.0",
 };
