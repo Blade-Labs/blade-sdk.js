@@ -33,7 +33,7 @@ const accountId2 = process.env.ACCOUNT_ID2;
 
 
 test('bladeSdk defined', () => {
-    expect(window.bladeSdk).toBeDefined()
+    expect(window["bladeSdk"]).toBeDefined()
 });
 
 test('bladeSdk.init', async () => {
