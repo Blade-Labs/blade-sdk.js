@@ -16,7 +16,6 @@ export interface InfoData {
     apiKey: string,
     dAppCode: string,
     network: string,
-    deviceUuid: string,
     visitorId: string,
     sdkEnvironment: SdkEnvironment,
     sdkVersion: string,
@@ -131,7 +130,5 @@ export interface ConfirmUpdateAccountData {
     network: Network,
     accountId: string,
     dAppCode: string
-    apiKey: string,
-    deviceUuid: string,
     visitorId: string
 }

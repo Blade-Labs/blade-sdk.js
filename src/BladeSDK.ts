@@ -26,6 +26,7 @@ import {
     getPendingAccountData,
     getTransactionsFrom,
     requestTokenInfo,
+    setApiKey,
     setEnvironment,
     setSDKVersion,
     signContractCallTx,
@@ -64,7 +65,6 @@ export class BladeSDK {
     private apiKey: string = "";
     private network: Network = Network.Testnet;
     private dAppCode: string = "";
-    private deviceUuid: string = "";
     private visitorId: string = "";
     private sdkEnvironment: SdkEnvironment = SdkEnvironment.Prod;
     private sdkVersion: string = config.sdkVersion;
@@ -83,7 +83,6 @@ export class BladeSDK {
      * @param apiKey Unique key for API provided by Blade team.
      * @param network "Mainnet" or "Testnet" of Hedera network
      * @param dAppCode your dAppCode - request specific one by contacting us
-     * @param deviceUuid client unique deviceId (uuid)
      * @param visitorId client unique fingerprint (visitorId)
      * @param sdkEnvironment environment to choose BladeAPI server (Prod, CI)
      * @param sdkVersion used for header X-SDK-VERSION
@@ -94,7 +93,6 @@ export class BladeSDK {
         apiKey: string,
         network: string,
         dAppCode: string,
-        deviceUuid: string,
         visitorId: string,
         sdkEnvironment: SdkEnvironment = SdkEnvironment.Prod,
         sdkVersion: string = config.sdkVersion,
@@ -103,21 +101,19 @@ export class BladeSDK {
         this.apiKey = apiKey;
         this.network = StringHelpers.stringToNetwork(network);
         this.dAppCode = dAppCode;
-        this.deviceUuid = deviceUuid;
         this.visitorId = visitorId;
         this.sdkEnvironment = sdkEnvironment;
         this.sdkVersion = sdkVersion;
 
+        setApiKey(apiKey);
         setEnvironment(sdkEnvironment);
         setSDKVersion(sdkVersion);
-
 
         return this.sendMessageToNative(completionKey, {
             apiKey: this.apiKey,
             dAppCode: this.dAppCode,
             network: this.network,
             visitorId: this.visitorId,
-            deviceUuid: this.deviceUuid,
             sdkEnvironment: this.sdkEnvironment,
             sdkVersion: this.sdkVersion,
             nonce: Math.round(Math.random() * 1000000000)
@@ -134,7 +130,6 @@ export class BladeSDK {
             dAppCode: this.dAppCode,
             network: this.network,
             visitorId: this.visitorId,
-            deviceUuid: this.deviceUuid,
             sdkEnvironment: this.sdkEnvironment,
             sdkVersion: this.sdkVersion,
             nonce: Math.round(Math.random() * 1000000000)
@@ -222,9 +217,7 @@ export class BladeSDK {
             if (bladePayFee) {
                 const options = {
                     dAppCode: this.dAppCode,
-                    apiKey: this.apiKey,
                     visitorId: this.visitorId,
-                    deviceUuid: this.deviceUuid,
                     contractFunctionParameters,
                     contractId,
                     functionName,
@@ -301,8 +294,6 @@ export class BladeSDK {
                 if (bladePayFee) {
                     const options = {
                         dAppCode: this.dAppCode,
-                        apiKey: this.apiKey,
-                        deviceUuid: this.deviceUuid,
                         visitorId: this.visitorId,
                         contractFunctionParameters,
                         contractId,
@@ -372,8 +363,6 @@ export class BladeSDK {
             if (freeTransfer) {
                 const options = {
                     dAppCode: this.dAppCode,
-                    apiKey: this.apiKey,
-                    deviceUuid: this.deviceUuid,
                     visitorId: this.visitorId,
                     receiverAccountId: receiverID,
                     senderAccountId: accountId,
@@ -443,8 +432,6 @@ export class BladeSDK {
             const publicKey = privateKey.publicKey.toStringDer();
 
             const options = {
-                apiKey: this.apiKey,
-                deviceUuid: this.deviceUuid,
                 visitorId: this.visitorId,
                 dAppCode: this.dAppCode,
                 deviceId,
@@ -464,8 +451,6 @@ export class BladeSDK {
                 await confirmAccountUpdate({
                     accountId: id,
                     network: this.network,
-                    apiKey: this.apiKey,
-                    deviceUuid: this.deviceUuid,
                     visitorId: this.visitorId,
                     dAppCode: this.dAppCode
                 });
@@ -516,8 +501,6 @@ export class BladeSDK {
             };
 
             const params = {
-                apiKey: this.apiKey,
-                deviceUuid: this.deviceUuid,
                 visitorId: this.visitorId,
                 network: this.network.toLowerCase(),
                 dAppCode: this.dAppCode
@@ -536,8 +519,6 @@ export class BladeSDK {
                 await confirmAccountUpdate({
                     accountId: id,
                     network: this.network,
-                    apiKey: this.apiKey,
-                    deviceUuid: this.deviceUuid,
                     visitorId: this.visitorId,
                     dAppCode: this.dAppCode
                 });
@@ -613,7 +594,7 @@ export class BladeSDK {
 
             return this.sendMessageToNative(completionKey, {
                 accountId,
-                evmAddress: evmAddress,
+                evmAddress,
                 calculatedEvmAddress: hethers.utils.computeAddress(`0x${publicKey}`).toLowerCase()
             });
         } catch (error) {
@@ -632,9 +613,7 @@ export class BladeSDK {
      */
     async getKeysFromMnemonic(mnemonicRaw: string, lookupNames: boolean, completionKey?: string): Promise<PrivateKeyData> {
         try {
-            //TODO support all the different type of private keys
             const mnemonic = await Mnemonic.fromString(mnemonicRaw);
-            //TODO check which type of keys to be used
             const privateKey = await mnemonic.toEcdsaPrivateKey();
             const publicKey = privateKey.publicKey;
             let accounts: string[] = [];
@@ -708,7 +687,7 @@ export class BladeSDK {
                 .signMessage(Buffer.from(messageString, "base64"))
                 .then(signedMessage => {
                     return this.sendMessageToNative(completionKey, {
-                        signedMessage: signedMessage
+                        signedMessage
                     });
                 });
         } catch (error) {
@@ -789,9 +768,7 @@ export class BladeSDK {
     async getC14url(asset: string, account: string, amount: string, completionKey?: string): Promise<IntegrationUrlData> {
         try {
             const {token} = await getC14token({
-                apiKey: this.apiKey,
                 network: this.network,
-                deviceUuid: this.deviceUuid,
                 visitorId: this.visitorId,
                 dAppCode: this.dAppCode
             });
@@ -844,10 +821,10 @@ export class BladeSDK {
         // web-view bridge response
         const responseObject: BridgeResponse = {
             completionKey: completionKey || "",
-            data: data
+            data
         };
         if (error) {
-            responseObject["error"] = {
+            responseObject.error = {
                 name: error?.name || "Error",
                 reason: error.reason || error.message || JSON.stringify(error)
             };

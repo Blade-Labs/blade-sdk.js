@@ -5,8 +5,10 @@ import {AccountInfoMirrorResponse} from "./models/MirrorNode";
 import {ConfirmUpdateAccountData, SdkEnvironment, TransactionData} from "./models/Common";
 import {flatArray} from "./helpers/ArrayHelpers";
 import {filterAndFormatTransactions} from "./helpers/TransactionHelpers";
+import {encrypt} from "./helpers/SecurityHelper";
 
 let sdkVersion = ``;
+let apiKey = ``;
 let environment: SdkEnvironment = SdkEnvironment.Prod;
 
 export const setSDKVersion = (version: string) => {
@@ -15,6 +17,18 @@ export const setSDKVersion = (version: string) => {
 
 export const setEnvironment = (sdkEnvironment: SdkEnvironment) => {
     environment = sdkEnvironment;
+}
+
+export const setApiKey = (token: string) => {
+    apiKey = token;
+}
+
+const getTvteHeader = async () => {
+    // "X-SDK-TVTE-API" - type-version-timestamp-encrypted
+
+    const [platform, version] = sdkVersion.split("@");
+    const encryptedVersion = await encrypt(`${version}@${Date.now()}`, apiKey);
+    return `${platform}@${encryptedVersion}`;
 }
 
 const getApiUrl = (): string => {
@@ -28,6 +42,7 @@ const fetchWithRetry = async (url: string, options: RequestInit, maxAttempts = 3
         let attemptCounter = 0;
 
         const interval = 5000;
+        // tslint:disable-next-line:no-shadowed-variable
         const makeRequest = (url: string, options: RequestInit) => {
             attemptCounter += 1;
             fetch(url, options)
@@ -85,11 +100,9 @@ export const createAccount = async (network: Network, params: any) => {
     const url = `${getApiUrl()}/accounts`;
     const headers: any = {
         "X-NETWORK": network.toUpperCase(),
-        "X-SDK-TOKEN": params.apiKey,
-        "X-FINGERPRINT": params.deviceUuid, // uuid
         "X-VISITOR-ID": params.visitorId, // fingerprint (visitorId) (eg.: YoZoVL4XZspaCtLH4GoL)
         "X-DAPP-CODE": params.dAppCode,
-        "X-SDK-VERSION": sdkVersion,
+        "X-SDK-TVTE-API": await getTvteHeader(),
         "Content-Type": "application/json"
     };
     if (params.deviceId) {
@@ -115,11 +128,9 @@ export const checkAccountCreationStatus = async (transactionId: string, network:
         method: "GET",
         headers: new Headers({
             "X-NETWORK": network.toUpperCase(),
-            "X-SDK-TOKEN": params.apiKey,
-            "X-FINGERPRINT": params.deviceUuid,
             "X-VISITOR-ID": params.visitorId,
             "X-DAPP-CODE": params.dAppCode,
-            "X-SDK-VERSION": sdkVersion,
+            "X-SDK-TVTE-API": await getTvteHeader(),
             "Content-Type": "application/json"
         })
     };
@@ -135,11 +146,9 @@ export const getPendingAccountData = async (transactionId: string, network: Netw
         method: "GET",
         headers: new Headers({
             "X-NETWORK": network.toUpperCase(),
-            "X-SDK-TOKEN": params.apiKey,
-            "X-FINGERPRINT": params.deviceUuid,
             "X-VISITOR-ID": params.visitorId,
             "X-DAPP-CODE": params.dAppCode,
-            "X-SDK-VERSION": sdkVersion,
+            "X-SDK-TVTE-API": await getTvteHeader(),
             "Content-Type": "application/json"
         })
     };
@@ -155,11 +164,9 @@ export const confirmAccountUpdate = async (params: ConfirmUpdateAccountData): Pr
         method: "PATCH",
         headers: new Headers({
             "X-NETWORK": params.network.toUpperCase(),
-            "X-SDK-TOKEN": params.apiKey,
-            "X-FINGERPRINT": params.deviceUuid,
             "X-VISITOR-ID": params.visitorId,
             "X-DAPP-CODE": params.dAppCode,
-            "X-SDK-VERSION": sdkVersion,
+            "X-SDK-TVTE-API": await getTvteHeader(),
             "Content-Type": "application/json"
         }),
         body: JSON.stringify({
@@ -183,11 +190,9 @@ export const transferTokens = async (network: Network, params: any) => {
         method: "POST",
         headers: new Headers({
             "X-NETWORK": network.toUpperCase(),
-            "X-SDK-TOKEN": params.apiKey,
-            "X-FINGERPRINT": params.deviceUuid,
             "X-VISITOR-ID": params.visitorId,
             "X-DAPP-CODE": params.dAppCode,
-            "X-SDK-VERSION": sdkVersion,
+            "X-SDK-TVTE-API": await getTvteHeader(),
             "Content-Type": "application/json"
         }),
         body: JSON.stringify({
@@ -210,11 +215,9 @@ export const signContractCallTx = async (network: Network, params: any) => {
         method: "POST",
         headers: new Headers({
             "X-NETWORK": network.toUpperCase(),
-            "X-SDK-TOKEN": params.apiKey,
-            "X-FINGERPRINT": params.deviceUuid,
             "X-VISITOR-ID": params.visitorId,
             "X-DAPP-CODE": params.dAppCode,
-            "X-SDK-VERSION": sdkVersion,
+            "X-SDK-TVTE-API": await getTvteHeader(),
             "Content-Type": "application/json"
         }),
         body: JSON.stringify({
@@ -236,11 +239,9 @@ export const apiCallContractQuery = async (network: Network, params: any) => {
         method: "POST",
         headers: new Headers({
             "X-NETWORK": network.toUpperCase(),
-            "X-SDK-TOKEN": params.apiKey,
-            "X-FINGERPRINT": params.deviceUuid,
             "X-VISITOR-ID": params.visitorId,
             "X-DAPP-CODE": params.dAppCode,
-            "X-SDK-VERSION": sdkVersion,
+            "X-SDK-TVTE-API": await getTvteHeader(),
             "Content-Type": "application/json"
         }),
         body: JSON.stringify({
@@ -262,11 +263,9 @@ export const getC14token = async (params: any) => {
         method: "GET",
         headers: new Headers({
             "X-NETWORK": params.network.toUpperCase(),
-            "X-SDK-TOKEN": params.apiKey,
-            "X-FINGERPRINT": params.deviceUuid, // uuid
             "X-VISITOR-ID": params.visitorId, // fingerprint (visitorId) (eg.: YoZoVL4XZspaCtLH4GoL)
             "X-DAPP-CODE": params.dAppCode,
-            "X-SDK-VERSION": sdkVersion,
+            "X-SDK-TVTE-API": await getTvteHeader(),
             "Content-Type": "application/json"
         }),
     };
@@ -280,16 +279,16 @@ export const getAccountsFromPublicKey = async (network: Network, publicKey: Publ
     const formatted = publicKey.toStringRaw();
     return GET(network, `api/v1/accounts?account.publickey=${formatted}`)
         .then((x: AccountInfoMirrorResponse) => x.accounts.map(acc => acc.account))
-        .catch(error => {
+        .catch(() => {
             return [];
         });
 };
 
 export const accountInfo = async (network: Network, accountId: string): Promise<{ evmAddress: string, publicKey: string }> => {
-    const accountInfo = await GET(network, `api/v1/accounts/${accountId}`);
+    const info = await GET(network, `api/v1/accounts/${accountId}`);
     return {
-        evmAddress: accountInfo.evm_address ? accountInfo.evm_address : `0x${AccountId.fromString(accountId).toSolidityAddress()}`,
-        publicKey: accountInfo.key.key
+        evmAddress: info.evm_address ? info.evm_address : `0x${AccountId.fromString(accountId).toSolidityAddress()}`,
+        publicKey: info.key.key
     };
 }
 
@@ -359,7 +358,7 @@ export const getTransaction = (network: Network, transactionId: string, accountI
                 consensusTimestamp: t.consensus_timestamp
             };
         }))
-        .catch(err => {
+        .catch(() => {
             return [];
         });
 }
