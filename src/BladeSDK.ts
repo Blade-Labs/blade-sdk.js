@@ -786,6 +786,17 @@ export class BladeSDK {
                     purchaseParams.targetAssetId = "d9b45743-e712-4088-8a31-65ee6f371022";
                     purchaseParams.targetAssetIdLock = true;
                 } break;
+                case "KARATE": {
+                    purchaseParams.targetAssetId = "057d6b35-1af5-4827-bee2-c12842faa49e";
+                    purchaseParams.targetAssetIdLock = true;
+                } break;
+                default: {
+                    // check if asset is an uuid
+                    if (asset.split("-").length === 5) {
+                        purchaseParams.targetAssetId = asset;
+                        purchaseParams.targetAssetIdLock = true;
+                    }
+                } break;
             }
             if (amount) {
                 purchaseParams.sourceAmount = amount;
