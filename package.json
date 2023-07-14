@@ -7,10 +7,12 @@
     "build:esm": "tsc -p config/tsconfig.esm.json",
     "build:cjs": "tsc -p config/tsconfig.cjs.json",
     "build:web-view": "webpack --progress --color --mode production",
+    "build:unity": "cross-env SDK_VERSION=$npm_package_version NODE_ENV=production node utils/fixConfig.js && webpack build --progress --color --config config/webpack.unity.js --mode production",
     "dev": "cross-env SDK_VERSION=$npm_package_version NODE_ENV=development node utils/fixConfig.js && webpack --progress --color --watch --mode development",
     "prepack": "npm run build",
-    "clean": "rimraf lib",
-    "publish:web-view": "cross-env SDK_VERSION=$npm_package_version NODE_ENV=production node utils/fixConfig.js && npm run build:web-view && node utils/publish-sdk-bundle.js",
+    "clean": "rimraf lib dist",
+    "publish:web-view": "npm run clean && cross-env SDK_VERSION=$npm_package_version NODE_ENV=production node utils/fixConfig.js && npm run build:web-view && node utils/publish-sdk-bundle.js --platforms=kotlin,swift",
+    "publish:unity": "npm run clean && cross-env SDK_VERSION=$npm_package_version NODE_ENV=production node utils/fixConfig.js && npm run build:unity && node utils/publish-sdk-bundle.js --platforms=unity",
     "test": "cross-env SDK_VERSION=$npm_package_version NODE_ENV=test node utils/fixConfig.js && jest --coverage",
     "deploy-test-contract": "solcjs --bin --abi test/contract/TestContract.sol -o ./test/contract && node test/contract/deploy.js"
   },
@@ -83,6 +85,7 @@
     "typedoc-plugin-markdown": "^3.14.0",
     "typescript": "^4.7.4",
     "webpack": "^5.76.3",
-    "webpack-cli": "^4.10.0"
+    "webpack-cli": "^4.10.0",
+    "whatwg-fetch": "^3.6.2"
   }
 }
