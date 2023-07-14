@@ -78,7 +78,10 @@ export class BladeUnitySDK {
                     )
                 ).toBytes()
             ).toString('hex');
-            return this.sendMessageToNative({tx});
+            return this.sendMessageToNative({
+                tx,
+                network: this.network,
+            });
         } catch (error) {
             return this.sendMessageToNative(null, error);
         }
