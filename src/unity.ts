@@ -1,13 +1,13 @@
 import 'whatwg-fetch';
 import {
     Client,
-    TransactionResponse,
     TransferTransaction,
     AccountId, PrivateKey
 } from "@hashgraph/sdk";
 import {Buffer} from "buffer";
 import {CustomError} from "./models/Errors";
 import {
+    AccountInfoData,
     BridgeResponse,
     InfoData, SdkEnvironment
 } from "./models/Common";
@@ -15,6 +15,7 @@ import {Network} from "./models/Networks";
 import config from "./config";
 import StringHelpers from "./helpers/StringHelpers";
 import {setApiKey, setEnvironment, setSDKVersion} from "./ApiService";
+import {hethers} from "@hashgraph/hethers";
 
 export class BladeUnitySDK {
     private apiKey: string = "";
@@ -87,6 +88,24 @@ export class BladeUnitySDK {
         }
 
     }
+
+    async getAccountInfo(accountId: string, evmAddress: string, publicKey: string): Promise<string> {
+        try {
+            const result: AccountInfoData = {
+                accountId,
+                evmAddress: (evmAddress ? evmAddress : `0x${AccountId.fromString(accountId).toSolidityAddress()}`),
+                calculatedEvmAddress: hethers.utils.computeAddress(`0x${publicKey}`).toLowerCase()
+            }
+            return this.sendMessageToNative(result);
+        } catch (error) {
+            return this.sendMessageToNative(null, error);
+        }
+    }
+
+
+
+
+
 
     private getClient() {
         return this.network === Network.Testnet ? Client.forTestnet() : Client.forMainnet();
