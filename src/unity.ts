@@ -1,10 +1,15 @@
 import 'whatwg-fetch';
+import {Buffer} from "buffer";
+
+Object.assign(globalThis, {
+    Buffer: Buffer,
+});
+
 import {
     Client,
     TransferTransaction,
     AccountId, PrivateKey
 } from "@hashgraph/sdk";
-import {Buffer} from "buffer";
 import {CustomError} from "./models/Errors";
 import {
     AccountInfoData,
@@ -14,7 +19,7 @@ import {
 import {Network} from "./models/Networks";
 import config from "./config";
 import StringHelpers from "./helpers/StringHelpers";
-import {setApiKey, setEnvironment, setSDKVersion} from "./ApiService";
+import {getTvteHeader, setApiKey, setEnvironment, setSDKVersion} from "./ApiService";
 import {hethers} from "@hashgraph/hethers";
 
 export class BladeUnitySDK {
@@ -70,7 +75,6 @@ export class BladeUnitySDK {
                 (
                     await (
                         new TransferTransaction()
-                            .setNodeAccountIds([AccountId.fromString("0.0.4")])
                             .addHbarTransfer(receiverID, parsedAmount)
                             .addHbarTransfer(accountId, -1 * parsedAmount)
                             .setTransactionMemo(memo)
@@ -86,7 +90,67 @@ export class BladeUnitySDK {
         } catch (error) {
             return this.sendMessageToNative(null, error);
         }
+    }
 
+    async getTvteValue(): Promise<string> {
+        try {
+            return this.sendMessageToNative({
+                tvte: await getTvteHeader("node")
+            });
+        } catch (error) {
+            return this.sendMessageToNative(null, error);
+        }
+    }
+
+    async transferTokens(tokenId: string, accountId: string, accountPrivateKey: string, receiverID: string, correctedAmount: number, memo: string, freeTransfer: boolean = false): Promise<string> {
+        try {
+            const client = this.getClient();
+            client.setOperator(accountId, accountPrivateKey);
+
+            if (freeTransfer) {
+                const options = {
+                    dAppCode: this.dAppCode,
+                    // visitorId: this.visitorId,
+                    receiverAccountId: receiverID,
+                    senderAccountId: accountId,
+                    amount: correctedAmount,
+                    decimals: null,
+                    memo
+                    // no tokenId, backend pick first token from list for currend dApp
+                };
+
+                // const {transactionBytes} = await transferTokens(this.network, options);
+                // const buffer = Buffer.from(transactionBytes, "base64");
+                // const transaction = Transaction.fromBytes(buffer);
+                //
+                // return transaction
+                //     .sign(PrivateKey.fromString(accountPrivateKey))
+                //     .then(signTx => {
+                //         return signTx.execute(client);
+                //     })
+                //     .then(result => {
+                //         return this.sendMessageToNative(completionKey, result);
+                //     })
+                //     .catch(error => {
+                //         return this.sendMessageToNative(completionKey, null, error);
+                //     });
+            } else {
+                const tx = Buffer.from((await (
+                    new TransferTransaction()
+                        .addTokenTransfer(tokenId, receiverID, correctedAmount)
+                        .addTokenTransfer(tokenId, accountId, -1 * correctedAmount)
+                        .setTransactionMemo(memo)
+                        .freezeWith(client)
+                        .sign(PrivateKey.fromString(accountPrivateKey))
+                )).toBytes()).toString('hex');
+                return this.sendMessageToNative({
+                    tx,
+                    network: this.network,
+                });
+            }
+        } catch (error) {
+            return this.sendMessageToNative(null, error);
+        }
     }
 
     async getAccountInfo(accountId: string, evmAddress: string, publicKey: string): Promise<string> {

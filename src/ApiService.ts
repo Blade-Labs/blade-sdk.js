@@ -5,7 +5,7 @@ import {AccountInfoMirrorResponse} from "./models/MirrorNode";
 import {ConfirmUpdateAccountData, SdkEnvironment, TransactionData} from "./models/Common";
 import {flatArray} from "./helpers/ArrayHelpers";
 import {filterAndFormatTransactions} from "./helpers/TransactionHelpers";
-import {encrypt} from "./helpers/SecurityHelper";
+import {encrypt, encryptNode} from "./helpers/SecurityHelper";
 
 let sdkVersion = ``;
 let apiKey = ``;
@@ -23,18 +23,24 @@ export const setApiKey = (token: string) => {
     apiKey = token;
 }
 
-const getTvteHeader = async () => {
+export const getTvteHeader = async (env = "browser") => {
     // "X-SDK-TVTE-API" - type-version-timestamp-encrypted
 
     const [platform, version] = sdkVersion.split("@");
-    const encryptedVersion = await encrypt(`${version}@${Date.now()}`, apiKey);
+    let encryptedVersion = "";
+    if (env === "browser") {
+        encryptedVersion = await encrypt(`${version}@${Date.now()}`, apiKey);
+    } else {
+        encryptedVersion = await encryptNode(`${version}@${Date.now()}`, apiKey);
+    }
     return `${platform}@${encryptedVersion}`;
 }
 
 const getApiUrl = (): string => {
     return environment === SdkEnvironment.Prod
         ? "https://rest.prod.bladewallet.io/openapi/v7"
-        : "https://rest.ci.bladewallet.io/openapi/v7";
+        : "https://api.bld-dev.bladewallet.io/openapi/v7";
+        // : "https://rest.ci.bladewallet.io/openapi/v7";
 }
 
 const fetchWithRetry = async (url: string, options: RequestInit, maxAttempts = 3) => {

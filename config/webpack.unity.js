@@ -1,5 +1,5 @@
-
-var path = require('path')
+var path = require('path');
+var webpack = require('webpack');
 
 module.exports = {
     entry: { JSUnityWrapper: "./src/unity.ts" },
@@ -17,13 +17,29 @@ module.exports = {
         ]
     },
     output: {
-        // path: '/Users/gary/dev/unity/io.bladelabs.unity-sdk/Resources',
+        path: '/Users/gary/dev/unity/io.bladelabs.unity-sdk/Resources',
         filename: "[name].bundle.js",
         library: "[name]",
         libraryTarget: "var",
         chunkFormat: "module"
     },
     resolve: {
-        extensions: ['.tsx', '.ts', '.js']
+        extensions: ['.tsx', '.ts', '.js'],
+        fallback: {
+            'process/browser': require.resolve('process/browser'),
+            'browser': require.resolve('process/browser'),
+            crypto: require.resolve('crypto-browserify'),
+            buffer: require.resolve('buffer'),
+            stream: require.resolve("stream-browserify"),
+        },
+        alias: {
+            process: "process/browser"
+        }
+
     },
+    plugins: [
+        new webpack.ProvidePlugin({
+            process: 'process/browser',
+        }),
+    ],
 };
