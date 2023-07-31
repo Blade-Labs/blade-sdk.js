@@ -1,5 +1,5 @@
 /**
- RUN: npm run test_deploy_contract
+ RUN: npm run deploy-test-contract
  */
 
 require("dotenv").config();

@@ -8,7 +8,7 @@ Object.assign(globalThis, {
 import {
     Client,
     TransferTransaction,
-    AccountId, PrivateKey
+    AccountId, PrivateKey, Transaction
 } from "@hashgraph/sdk";
 import {CustomError} from "./models/Errors";
 import {
@@ -92,6 +92,22 @@ export class BladeUnitySDK {
         }
     }
 
+    async signTransaction(transactionBytes: string, encoding: "hex"|"base64", accountPrivateKey: string): Promise<string> {
+        const buffer = Buffer.from(transactionBytes, encoding);
+        const transaction = Transaction.fromBytes(buffer);
+
+        const tx = Buffer.from(
+            (
+                await transaction.sign(PrivateKey.fromString(accountPrivateKey))
+            ).toBytes()
+        ).toString("hex");
+
+        return this.sendMessageToNative({
+            tx,
+            network: this.network,
+        });
+    }
+
     async getTvteValue(): Promise<string> {
         try {
             return this.sendMessageToNative({
@@ -102,52 +118,23 @@ export class BladeUnitySDK {
         }
     }
 
-    async transferTokens(tokenId: string, accountId: string, accountPrivateKey: string, receiverID: string, correctedAmount: number, memo: string, freeTransfer: boolean = false): Promise<string> {
+    async transferTokens(tokenId: string, accountId: string, accountPrivateKey: string, receiverID: string, correctedAmount: number, memo: string): Promise<string> {
         try {
             const client = this.getClient();
             client.setOperator(accountId, accountPrivateKey);
 
-            if (freeTransfer) {
-                const options = {
-                    dAppCode: this.dAppCode,
-                    // visitorId: this.visitorId,
-                    receiverAccountId: receiverID,
-                    senderAccountId: accountId,
-                    amount: correctedAmount,
-                    decimals: null,
-                    memo
-                    // no tokenId, backend pick first token from list for currend dApp
-                };
-
-                // const {transactionBytes} = await transferTokens(this.network, options);
-                // const buffer = Buffer.from(transactionBytes, "base64");
-                // const transaction = Transaction.fromBytes(buffer);
-                //
-                // return transaction
-                //     .sign(PrivateKey.fromString(accountPrivateKey))
-                //     .then(signTx => {
-                //         return signTx.execute(client);
-                //     })
-                //     .then(result => {
-                //         return this.sendMessageToNative(completionKey, result);
-                //     })
-                //     .catch(error => {
-                //         return this.sendMessageToNative(completionKey, null, error);
-                //     });
-            } else {
-                const tx = Buffer.from((await (
-                    new TransferTransaction()
-                        .addTokenTransfer(tokenId, receiverID, correctedAmount)
-                        .addTokenTransfer(tokenId, accountId, -1 * correctedAmount)
-                        .setTransactionMemo(memo)
-                        .freezeWith(client)
-                        .sign(PrivateKey.fromString(accountPrivateKey))
-                )).toBytes()).toString('hex');
-                return this.sendMessageToNative({
-                    tx,
-                    network: this.network,
-                });
-            }
+            const tx = Buffer.from((await (
+                new TransferTransaction()
+                    .addTokenTransfer(tokenId, receiverID, correctedAmount)
+                    .addTokenTransfer(tokenId, accountId, -1 * correctedAmount)
+                    .setTransactionMemo(memo)
+                    .freezeWith(client)
+                    .sign(PrivateKey.fromString(accountPrivateKey))
+            )).toBytes()).toString('hex');
+            return this.sendMessageToNative({
+                tx,
+                network: this.network,
+            });
         } catch (error) {
             return this.sendMessageToNative(null, error);
         }
@@ -165,11 +152,6 @@ export class BladeUnitySDK {
             return this.sendMessageToNative(null, error);
         }
     }
-
-
-
-
-
 
     private getClient() {
         return this.network === Network.Testnet ? Client.forTestnet() : Client.forMainnet();
