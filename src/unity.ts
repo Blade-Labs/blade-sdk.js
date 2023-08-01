@@ -159,59 +159,13 @@ export class BladeUnitySDK {
             const publicKey = privateKey.publicKey.toStringDer();
             return this.sendMessageToNative({
                 privateKey: privateKey.toStringDer(),
-                publicKey
+                publicKey,
+                evmAddress: hethers.utils.computeAddress(`0x${privateKey.publicKey.toStringRaw()}`)
             });
         } catch (error) {
             return this.sendMessageToNative(null, error);
         }
     }
-
-    // async createAccount(deviceId?: string): Promise<string> {
-    //     try {
-    //         const privateKey: PrivateKey = PrivateKey.generateECDSA();
-    //         const publicKey = privateKey.publicKey.toStringDer();
-    //
-    //         const options = {
-    //             visitorId: this.visitorId,
-    //             dAppCode: this.dAppCode,
-    //             deviceId,
-    //             publicKey
-    //         };
-    //
-    //         const {
-    //             id,
-    //             transactionBytes,
-    //             updateAccountTransactionBytes,
-    //             transactionId
-    //         } = await createAccount(this.network, options);
-    //
-    //         await executeUpdateAccountTransactions(this.getClient(), privateKey, updateAccountTransactionBytes, transactionBytes);
-    //
-    //         if (updateAccountTransactionBytes) {
-    //             await confirmAccountUpdate({
-    //                 accountId: id,
-    //                 network: this.network,
-    //                 visitorId: this.visitorId,
-    //                 dAppCode: this.dAppCode
-    //             });
-    //         }
-    //
-    //         const evmAddress = hethers.utils.computeAddress(`0x${privateKey.publicKey.toStringRaw()}`);
-    //
-    //         const result: CreateAccountData = {
-    //             transactionId,
-    //             status: transactionId ? "PENDING" : "SUCCESS",
-    //             seedPhrase: seedPhrase.toString(),
-    //             publicKey,
-    //             privateKey: privateKey.toStringDer(),
-    //             accountId: id || null,
-    //             evmAddress: evmAddress.toLowerCase()
-    //         };
-    //         return this.sendMessageToNative(completionKey, result);
-    //     } catch (error) {
-    //         return this.sendMessageToNative(completionKey, null, error);
-    //     }
-    // }
 
     private getClient() {
         return this.network === Network.Testnet ? Client.forTestnet() : Client.forMainnet();
