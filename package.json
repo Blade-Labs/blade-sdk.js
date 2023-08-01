@@ -7,7 +7,7 @@
     "build:esm": "tsc -p config/tsconfig.esm.json",
     "build:cjs": "tsc -p config/tsconfig.cjs.json",
     "build:web-view": "webpack --progress --color --mode production",
-    "build:unity": "cross-env SDK_VERSION=$npm_package_version NODE_ENV=production node utils/fixConfig.js && webpack build --progress --color --config config/webpack.unity.js --mode production",
+    "build:unity": "cross-env SDK_VERSION=$npm_package_version NODE_ENV=production node utils/fixConfig.js && webpack build --progress --color --config config/webpack.unity.js --mode development",
     "dev": "cross-env SDK_VERSION=$npm_package_version NODE_ENV=development node utils/fixConfig.js && webpack --progress --color --watch --mode development",
     "prepack": "npm run build",
     "clean": "rimraf lib dist",

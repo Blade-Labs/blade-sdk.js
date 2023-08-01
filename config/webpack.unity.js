@@ -4,10 +4,13 @@ var webpack = require('webpack');
 module.exports = {
     entry: { JSUnityWrapper: "./src/unity.ts" },
     target: ["es5", "web"],
+    optimization: {
+        minimize: false,
+    },
     module: {
         rules: [
             {
-                test: /\.tsx?$/,
+                test: /\.[t|j]sx?$/,
                 loader: 'ts-loader',
                 exclude: /node_modules/,
                 options: {
@@ -33,9 +36,9 @@ module.exports = {
             stream: require.resolve("stream-browserify"),
         },
         alias: {
-            process: "process/browser"
+            process: "process/browser",
+            brorand: path.resolve(__dirname, '../src/fallback/unity/brorand.js'),
         }
-
     },
     plugins: [
         new webpack.ProvidePlugin({

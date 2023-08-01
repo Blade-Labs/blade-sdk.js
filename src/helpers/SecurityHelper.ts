@@ -17,7 +17,7 @@ export const encrypt = async (data: string, token: string): Promise<string> => {
     for (let i = 0; i < CIPHER_KEY_LENGTH; i++) {
         rawKey[i] = tokenArr[(i + tokenIdx) % tokenArr.length]
     }
-    const key = await crypto.subtle.importKey(
+    const key = await window.crypto.subtle.importKey(
         "raw",
         rawKey,
         {
@@ -29,7 +29,7 @@ export const encrypt = async (data: string, token: string): Promise<string> => {
 
     const encoded = encoder.encode(data);
 
-    const cipher = await crypto.subtle.encrypt({
+    const cipher = await window.crypto.subtle.encrypt({
         name: 'AES-GCM',
         iv,
     }, key, encoded);
@@ -77,7 +77,7 @@ export const decrypt = async (cipherStr: string, token: string): Promise<string>
         rawKey[i] = tokenArr[(i + tokenIdx) % tokenArr.length]
     }
 
-    const key = await crypto.subtle.importKey(
+    const key = await window.crypto.subtle.importKey(
         "raw",
         rawKey,
         {
