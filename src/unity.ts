@@ -1,14 +1,17 @@
 import 'whatwg-fetch';
 import {Buffer} from "buffer";
+import {TextEncoder, TextDecoder} from "text-encoding";
 
 Object.assign(globalThis, {
     Buffer: Buffer,
+    TextEncoder,
+    TextDecoder
 });
 
 import {
     Client,
     TransferTransaction,
-    AccountId, PrivateKey, Transaction
+    AccountId, PrivateKey, Transaction, ContractExecuteTransaction
 } from "@hashgraph/sdk";
 import {CustomError} from "./models/Errors";
 import {
@@ -21,6 +24,7 @@ import config from "./config";
 import StringHelpers from "./helpers/StringHelpers";
 import {getTvteHeader, setApiKey, setEnvironment, setSDKVersion} from "./ApiService";
 import {hethers} from "@hashgraph/hethers";
+import {getContractFunctionBytecode} from "./helpers/ContractHelpers";
 
 export class BladeUnitySDK {
     private apiKey: string = "";
@@ -161,6 +165,47 @@ export class BladeUnitySDK {
                 privateKey: privateKey.toStringDer(),
                 publicKey,
                 evmAddress: hethers.utils.computeAddress(`0x${privateKey.publicKey.toStringRaw()}`)
+            });
+        } catch (error) {
+            return this.sendMessageToNative(null, error);
+        }
+    }
+
+    async contractCallFunctionTransaction(
+        contractId: string,
+        functionName: string,
+        paramsEncoded: string,
+        accountId: string,
+        accountPrivateKey: string,
+        gas: number = 100000
+    ): Promise<string> {
+        try {
+            const client = this.getClient();
+            client.setOperator(accountId, accountPrivateKey);
+            const contractFunctionParameters = await getContractFunctionBytecode(functionName, paramsEncoded);
+            const transaction = await ( new ContractExecuteTransaction()
+                    .setContractId(contractId)
+                    .setGas(gas)
+                    .setFunction(functionName)
+                    .setFunctionParameters(contractFunctionParameters)
+                    .freezeWith(client)
+                    .sign(PrivateKey.fromString(accountPrivateKey))
+            );
+            const tx = Buffer.from(transaction.toBytes()).toString('hex');
+            return this.sendMessageToNative({
+                tx,
+                network: this.network,
+            });
+        } catch (error) {
+            return this.sendMessageToNative(null, error);
+        }
+    }
+
+    async getContractCallBytecode(functionName: string, paramsEncoded: string): Promise<string> {
+        try {
+            const contractFunctionParameters = await getContractFunctionBytecode(functionName, paramsEncoded);
+            return this.sendMessageToNative({
+                contractFunctionParameters: contractFunctionParameters.toString('base64')
             });
         } catch (error) {
             return this.sendMessageToNative(null, error);

@@ -21,5 +21,8 @@ module.exports = {
     devtool: "source-map",
     resolve: {
         extensions: ['.tsx', '.ts', '.js'],
+        fallback: {
+            crypto: false,
+        }
     },
 };
