@@ -1,4 +1,3 @@
-import 'whatwg-fetch';
 import {Buffer} from "buffer";
 import {TextEncoder, TextDecoder} from "text-encoding";
 
@@ -11,7 +10,13 @@ Object.assign(globalThis, {
 import {
     Client,
     TransferTransaction,
-    AccountId, PrivateKey, Transaction, ContractExecuteTransaction
+    AccountId,
+    PrivateKey,
+    Transaction,
+    ContractExecuteTransaction,
+    ContractCallQuery,
+    Query,
+    TransactionId, Timestamp, Hbar
 } from "@hashgraph/sdk";
 import {CustomError} from "./models/Errors";
 import {
@@ -25,6 +30,7 @@ import StringHelpers from "./helpers/StringHelpers";
 import {getTvteHeader, setApiKey, setEnvironment, setSDKVersion} from "./ApiService";
 import {hethers} from "@hashgraph/hethers";
 import {getContractFunctionBytecode} from "./helpers/ContractHelpers";
+import {ParametersBuilder} from "@/ParametersBuilder";
 
 export class BladeUnitySDK {
     private apiKey: string = "";
@@ -209,6 +215,71 @@ export class BladeUnitySDK {
             });
         } catch (error) {
             return this.sendMessageToNative(null, error);
+        }
+    }
+
+    async contractCallQueryFunction(
+        contractId: string,
+        functionName: string,
+        paramsEncoded: string | ParametersBuilder,
+        accountId: string,
+        accountPrivateKey: string,
+        gas: number = 100000,
+        fee: number = 10000000,
+        nodeAccountId: string = "0.0.3"
+    ): Promise<string> {
+        try {
+            const stopWhisperingMsg = "All signs are collected. Stop whispering";
+            const privateKey = PrivateKey.fromString(accountPrivateKey);
+            const contractFunctionParameters = await getContractFunctionBytecode(functionName, paramsEncoded);
+            const globalSignedTx: string[] = [];
+            const sharedTimestamp = Date.now();
+            const clientWhisper = this.getClient();
+            clientWhisper.setOperatorWith(
+                accountId,
+                privateKey.publicKey,
+                async buf => {
+                    const signature = Buffer.from(privateKey.sign(buf));
+                    globalSignedTx.push(signature.toString("hex"));
+                    if (globalSignedTx.length >= 1) {
+                        throw new Error(stopWhisperingMsg);
+                    }
+                    return Buffer.from("");
+                }
+            );
+
+            const queryHex = Buffer.from(
+                new ContractCallQuery()
+                    .setContractId(contractId)
+                    .setGas(gas)
+                    .setFunction(functionName)
+                    .setFunctionParameters(contractFunctionParameters)
+                    .toBytes()
+            ).toString("hex");
+
+            const q1 = await Query.fromBytes(Buffer.from(queryHex, "hex"))
+                .setNodeAccountIds([AccountId.fromString(nodeAccountId)])
+                .setQueryPayment(Hbar.fromTinybars(fee))
+                .setPaymentTransactionId(new TransactionId(AccountId.fromString(accountId), Timestamp.fromDate(new Date(sharedTimestamp))));
+            try {
+                await q1.execute(clientWhisper);
+            } catch (error) {
+                if (error.message !== stopWhisperingMsg) {
+                    throw error;
+                }
+                return this.sendMessageToNative({
+                    queryHex,
+                    signedBuffers: globalSignedTx,
+                    sharedTimestamp,
+                    nodeAccountId,
+                    publicKey: privateKey.publicKey.toStringDer(),
+                    accountId,
+                    fee,
+                    network: this.network,
+                });
+            }
+        } catch (error) {
+            return this.sendMessageToNative(null, error)
         }
     }
 
