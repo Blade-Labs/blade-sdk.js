@@ -16,7 +16,7 @@ import {
     ContractExecuteTransaction,
     ContractCallQuery,
     Query,
-    TransactionId, Timestamp, Hbar
+    TransactionId, Timestamp, Hbar, ContractFunctionResult, ContractId
 } from "@hashgraph/sdk";
 import {CustomError} from "./models/Errors";
 import {
@@ -29,7 +29,7 @@ import config from "./config";
 import StringHelpers from "./helpers/StringHelpers";
 import {getTvteHeader, setApiKey, setEnvironment, setSDKVersion} from "./ApiService";
 import {hethers} from "@hashgraph/hethers";
-import {getContractFunctionBytecode} from "./helpers/ContractHelpers";
+import {getContractFunctionBytecode, parseContractQueryResponse} from "./helpers/ContractHelpers";
 import {ParametersBuilder} from "@/ParametersBuilder";
 
 export class BladeUnitySDK {
@@ -280,6 +280,43 @@ export class BladeUnitySDK {
             }
         } catch (error) {
             return this.sendMessageToNative(null, error)
+        }
+    }
+
+    async parseContractCallQueryResponse(
+        contractId: string,
+        gasUsed: number,
+        rawResult: string,
+        resultTypes: string[]
+    ): Promise<string> {
+        try {
+            const response = new ContractFunctionResult({
+                _createResult: false,
+                contractId: ContractId.fromString(contractId),
+                errorMessage: "",
+                bloom: Uint8Array.from([]),
+                logs: [],
+                createdContractIds: [],
+                evmAddress: null,
+                bytes: Buffer.from(rawResult, "base64"),
+                // @ts-ignore
+                gasUsed,
+                // @ts-ignore
+                gas: gasUsed,
+                // @ts-ignore
+                amount: gasUsed,
+                functionParameters: Uint8Array.from([]),
+                senderAccountId: null,
+                stateChanges: [],
+            });
+
+            const values = await parseContractQueryResponse(response, resultTypes);
+            return this.sendMessageToNative({
+                values,
+                gasUsed: parseInt(response.gasUsed.toString(), 10)
+            });
+        } catch (error) {
+            return this.sendMessageToNative(null, error);
         }
     }
 
