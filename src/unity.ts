@@ -351,6 +351,18 @@ export class BladeUnitySDK {
         }
     }
 
+    async hethersSign(messageString: string, privateKey: string, encoding: "hex"|"base64"|"utf8"): Promise<string> {
+        try {
+            const wallet = new hethers.Wallet(privateKey);
+            const signedMessage = wallet.signMessage(Buffer.from(messageString, encoding));
+            return this.sendMessageToNative({
+                signedMessage
+            });
+        } catch (error) {
+            return this.sendMessageToNative(null, error);
+        }
+    }
+
     async splitSignature(signature: string): Promise<string> {
         try {
             const {v, r, s} = hethers.utils.splitSignature(signature);
