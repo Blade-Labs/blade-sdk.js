@@ -345,6 +345,15 @@ export class BladeUnitySDK {
         }
     }
 
+    async splitSignature(signature: string): Promise<string> {
+        try {
+            const {v, r, s} = hethers.utils.splitSignature(signature);
+            return this.sendMessageToNative({v, r, s});
+        } catch (error) {
+            return this.sendMessageToNative(null, error);
+        }
+    }
+
     private getClient() {
         return this.network === Network.Testnet ? Client.forTestnet() : Client.forMainnet();
     }
