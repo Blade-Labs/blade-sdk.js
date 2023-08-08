@@ -2,9 +2,11 @@ import {Buffer} from "buffer";
 import {TextEncoder, TextDecoder} from "text-encoding";
 
 Object.assign(globalThis, {
+    unityEnv: true,
     Buffer: Buffer,
     TextEncoder,
-    TextDecoder
+    TextDecoder,
+    btoa: (str: string) => Buffer.from(str, "binary").toString("base64"),
 });
 
 import {
@@ -29,7 +31,11 @@ import config from "./config";
 import StringHelpers from "./helpers/StringHelpers";
 import {getTvteHeader, setApiKey, setEnvironment, setSDKVersion} from "./ApiService";
 import {hethers} from "@hashgraph/hethers";
-import {getContractFunctionBytecode, parseContractQueryResponse} from "./helpers/ContractHelpers";
+import {
+    getContractFunctionBytecode,
+    parseContractFunctionParams,
+    parseContractQueryResponse
+} from "./helpers/ContractHelpers";
 import {ParametersBuilder} from "@/ParametersBuilder";
 
 export class BladeUnitySDK {
@@ -348,6 +354,23 @@ export class BladeUnitySDK {
     async splitSignature(signature: string): Promise<string> {
         try {
             const {v, r, s} = hethers.utils.splitSignature(signature);
+            return this.sendMessageToNative({v, r, s});
+        } catch (error) {
+            return this.sendMessageToNative(null, error);
+        }
+    }
+
+    async getParamsSignature(paramsEncoded: string, privateKey: string): Promise<string> {
+        try {
+            const {types, values} = await parseContractFunctionParams(paramsEncoded);
+            const hash = hethers.utils.keccak256(
+                hethers.utils.defaultAbiCoder.encode(types, values)
+            );
+            const messageHashBytes = hethers.utils.arrayify(hash);
+            const wallet = new hethers.Wallet(privateKey);
+
+            const signed = await wallet.signMessage(messageHashBytes);
+            const {v, r, s} = hethers.utils.splitSignature(signed);
             return this.sendMessageToNative({v, r, s});
         } catch (error) {
             return this.sendMessageToNative(null, error);
