@@ -320,6 +320,19 @@ export class BladeUnitySDK {
         }
     }
 
+    async sign(messageString: string, privateKey: string, encoding: "hex"|"base64"|"utf8"): Promise<string> {
+        try {
+            const key = PrivateKey.fromString(privateKey);
+            const signed = key.sign(Buffer.from(messageString, encoding));
+
+            return this.sendMessageToNative({
+                signedMessage: Buffer.from(signed).toString("hex")
+            });
+        } catch (error) {
+            return this.sendMessageToNative(null, error);
+        }
+    }
+
     private getClient() {
         return this.network === Network.Testnet ? Client.forTestnet() : Client.forMainnet();
     }
