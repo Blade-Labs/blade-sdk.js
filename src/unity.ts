@@ -16,7 +16,7 @@ import {
     ContractExecuteTransaction,
     ContractCallQuery,
     Query,
-    TransactionId, Timestamp, Hbar, ContractFunctionResult, ContractId
+    TransactionId, Timestamp, Hbar, ContractFunctionResult, ContractId, PublicKey
 } from "@hashgraph/sdk";
 import {CustomError} from "./models/Errors";
 import {
@@ -328,6 +328,18 @@ export class BladeUnitySDK {
             return this.sendMessageToNative({
                 signedMessage: Buffer.from(signed).toString("hex")
             });
+        } catch (error) {
+            return this.sendMessageToNative(null, error);
+        }
+    }
+
+    async signVerify(messageString: string, signature: string, publicKey: string, encoding: "hex"|"base64"|"utf8"): Promise<string> {
+        try {
+            const valid = PublicKey.fromString(publicKey).verify(
+                Buffer.from(messageString, encoding),
+                Buffer.from(signature, "hex")
+            );
+            return this.sendMessageToNative({valid});
         } catch (error) {
             return this.sendMessageToNative(null, error);
         }
