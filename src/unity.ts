@@ -18,7 +18,13 @@ import {
     ContractExecuteTransaction,
     ContractCallQuery,
     Query,
-    TransactionId, Timestamp, Hbar, ContractFunctionResult, ContractId, PublicKey
+    TransactionId,
+    Timestamp,
+    Hbar,
+    ContractFunctionResult,
+    ContractId,
+    PublicKey,
+    AccountDeleteTransaction
 } from "@hashgraph/sdk";
 import {CustomError} from "./models/Errors";
 import {
@@ -177,6 +183,29 @@ export class BladeUnitySDK {
                 privateKey: privateKey.toStringDer(),
                 publicKey,
                 evmAddress: hethers.utils.computeAddress(`0x${privateKey.publicKey.toStringRaw()}`)
+            });
+        } catch (error) {
+            return this.sendMessageToNative(null, error);
+        }
+    }
+
+    async deleteAccount(deleteAccountId: string, deletePrivateKey: string, transferAccountId: string, operatorAccountId: string, operatorPrivateKey: string): Promise<string> {
+        try {
+            const client = this.getClient();
+            const deleteAccountKey = PrivateKey.fromString(deletePrivateKey);
+            const operatorAccountKey = PrivateKey.fromString(operatorPrivateKey);
+            client.setOperator(operatorAccountId, operatorAccountKey);
+
+            const transaction = await (await (new AccountDeleteTransaction()
+                .setAccountId(deleteAccountId)
+                .setTransferAccountId(transferAccountId)
+                .freezeWith(client)
+                .sign(deleteAccountKey)
+            )).sign(operatorAccountKey);
+            const tx = Buffer.from(transaction.toBytes()).toString('hex');
+            return this.sendMessageToNative({
+                tx,
+                network: this.network,
             });
         } catch (error) {
             return this.sendMessageToNative(null, error);
