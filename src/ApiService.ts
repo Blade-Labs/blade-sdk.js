@@ -321,7 +321,7 @@ export const getTransactionsFrom = async (
         let transactions: TransactionData[] = flatArray(Object.values(groupedTransactions))
             .sort((a, b) => new Date(b.time).valueOf() - new Date(a.time).valueOf());
 
-        transactions = filterAndFormatTransactions(transactions, transactionType);
+        transactions = filterAndFormatTransactions(transactions, transactionType, accountId);
 
         result.push(...transactions);
 
@@ -346,7 +346,6 @@ export const getTransaction = (network: Network, transactionId: string, accountI
             return {
                 time: new Date(parseFloat(t.consensus_timestamp) * 1000),
                 transfers: ([...(t.token_transfers || []), ...(t.transfers || [])])
-                    .filter(tt => tt.account !== accountId)
                     .map(tt => {
                         tt.amount = !tt.token_id ? tt.amount / 10 ** 8 : tt.amount; return tt;
                     }),

@@ -1,6 +1,6 @@
 import {TransactionData} from "../models/Common";
 
-export const filterAndFormatTransactions = (transactions: TransactionData[], transactionType: string): TransactionData[] => {
+export const filterAndFormatTransactions = (transactions: TransactionData[], transactionType: string, accountId: string): TransactionData[] => {
 
     switch (transactionType) {
         case "CRYPTOTRANSFERTOKEN": {
@@ -9,18 +9,36 @@ export const filterAndFormatTransactions = (transactions: TransactionData[], tra
                     if (tx.type !== "CRYPTOTRANSFER") {
                         return false;
                     }
-                    const tokenTransfer = tx.transfers.find(transfer => transfer.token_id);
-                    if (tokenTransfer) {
-                        tx.plainData = {
-                            type: transactionType,
-                            token_id: tokenTransfer.token_id,
-                            account: tokenTransfer.account,
-                            amount: tokenTransfer.amount
-                        }
-                        return true;
-                    } else {
+                    const tokenTransfers = tx.transfers
+                        .filter(transfer => transfer.token_id);
+                    if (tokenTransfers.length === 0) {
                         return false;
                     }
+
+                    const senderAccounts = [];
+                    const receiverAccounts = [];
+                    let amount = 0;
+
+                    tokenTransfers.forEach(transfer => {
+                        if (accountId === transfer.account) {
+                            amount = transfer.amount;
+                        }
+
+                        if (transfer.amount > 0) {
+                            receiverAccounts.push(transfer.account);
+                        }   else {
+                            senderAccounts.push(transfer.account);
+                        }
+                    });
+
+                    tx.plainData = {
+                        type: transactionType,
+                        token_id: tokenTransfers[0].token_id,
+                        senders: senderAccounts,
+                        receivers: receiverAccounts,
+                        amount
+                    }
+                    return true;
                 });
         } break;
         default: {
