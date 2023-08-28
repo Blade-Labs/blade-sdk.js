@@ -34,7 +34,7 @@ const getTvteHeader = async () => {
 const getApiUrl = (): string => {
     return environment === SdkEnvironment.Prod
         ? "https://rest.prod.bladewallet.io/openapi/v7"
-        : "https://rest.ci.bladewallet.io/openapi/v7";
+        : "https://api.bld-dev.bladewallet.io/openapi/v7";
 }
 
 const fetchWithRetry = async (url: string, options: RequestInit, maxAttempts = 3) => {

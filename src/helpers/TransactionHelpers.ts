@@ -15,8 +15,8 @@ export const filterAndFormatTransactions = (transactions: TransactionData[], tra
                         return false;
                     }
 
-                    const senderAccounts = [];
-                    const receiverAccounts = [];
+                    const senderAccounts: string[] = [];
+                    const receiverAccounts: string[] = [];
                     let amount = 0;
 
                     tokenTransfers.forEach(transfer => {
@@ -25,9 +25,9 @@ export const filterAndFormatTransactions = (transactions: TransactionData[], tra
                         }
 
                         if (transfer.amount > 0) {
-                            receiverAccounts.push(transfer.account);
+                            receiverAccounts.push(transfer.account.toString());
                         }   else {
-                            senderAccounts.push(transfer.account);
+                            senderAccounts.push(transfer.account.toString());
                         }
                     });
 

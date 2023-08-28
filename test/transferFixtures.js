@@ -34,22 +34,25 @@ const {PrivateKey, Client, TransferTransaction} = require("@hashgraph/sdk");
                                                            45 Token1 -> Account0 + Account1 + Account3
      */
     const tokens = [
-        "0.0.416487", // STT_1m
-        "0.0.416406" // GTT
+        process.env.TOKEN_ID0,
+        process.env.TOKEN_ID1
     ];
 
     const accounts = [{
-        id: "0.0.346533",
-        key: "3030020100300706052b8104000a04220420ebccecef769bb5597d0009123a0fd96d2cdbe041c2a2da937aaf8bdc8731799b"
-    }, {
-        id: "0.0.436560",
-        key: "3030020100300706052b8104000a04220420ba9ae0a421111c07f6ccc6ea56ce01f06acd15c2ee50761befb23324d7a2438e"
-    }, {
-        id: "0.0.346532",
-        key: "302e020100300506032b6570042204201c1fc6ab4f5937bf9261cd3d1f1609cb5f30838d018207b476ff50d97ef8e2a5"
-    }, {
-        id: "0.0.346530",
-        key: "302e020100300506032b657004220420ddffbba40f32e1459bc349175f9b607f2186a0b328daf617cc98487a94c55f9d"
+        id: process.env.ACCOUNT_ID,
+        key: process.env.PRIVATE_KEY
+    },
+    {
+        id: process.env.ACCOUNT_ID1,
+        key: process.env.PRIVATE_KEY1
+    },
+    {
+        id: process.env.ACCOUNT_ID2,
+        key: process.env.PRIVATE_KEY2
+    },
+    {
+        id: process.env.ACCOUNT_ID3,
+        key: process.env.PRIVATE_KEY3
     }];
 
     let client = Client.forTestnet();
