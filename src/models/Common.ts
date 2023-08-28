@@ -3,7 +3,7 @@ import {Network} from "./Networks";
 
 export enum SdkEnvironment {
     Prod = "Prod",
-    CI = "CI"
+    Dev = "Dev"
 }
 
 export interface BridgeResponse {
