@@ -2,45 +2,41 @@ import {Buffer} from "buffer";
 import {AccountId, PublicKey} from "@hashgraph/sdk";
 import {Network, NetworkMirrorNodes} from "./models/Networks";
 import {AccountInfoMirrorResponse} from "./models/MirrorNode";
-import {ConfirmUpdateAccountData, SdkEnvironment, TransactionData} from "./models/Common";
+import {ConfirmUpdateAccountData, EncryptedType, Environment, SdkEnvironment, TransactionData} from "./models/Common";
 import {flatArray} from "./helpers/ArrayHelpers";
 import {filterAndFormatTransactions} from "./helpers/TransactionHelpers";
-import {encrypt, encryptNode} from "./helpers/SecurityHelper";
+import {encrypt} from "./helpers/SecurityHelper";
 
 let sdkVersion = ``;
+let visitorId = ``;
 let apiKey = ``;
 let environment: SdkEnvironment = SdkEnvironment.Prod;
 
-export const setSDKVersion = (version: string) => {
+export const initApiService = async (version: string, visitor: string, token: string, sdkEnvironment: SdkEnvironment) => {
     sdkVersion = version;
-}
-
-export const setEnvironment = (sdkEnvironment: SdkEnvironment) => {
+    visitorId = visitor;
     environment = sdkEnvironment;
-}
-
-export const setApiKey = (token: string) => {
     apiKey = token;
 }
 
-export const getTvteHeader = async (env = "browser") => {
+export const getEncryptedHeader = async (env: Environment = Environment.browser, type: EncryptedType = EncryptedType.tvte) => {
     // "X-SDK-TVTE-API" - type-version-timestamp-encrypted
-
+    // "VTE" - visitorId-timestamp-encrypted
+    let value = "";
     const [platform, version] = sdkVersion.split("@");
-    let encryptedVersion = "";
-    if (env === "browser") {
-        encryptedVersion = await encrypt(`${version}@${Date.now()}`, apiKey);
-    } else {
-        encryptedVersion = await encryptNode(`${version}@${Date.now()}`, apiKey);
+    if (type === 'tvte') {
+        value = `${version}@${Date.now()}`;
+        return `${platform}@${await encrypt(value, apiKey, env)}`;
+    } else if (type === 'vte') {
+        value = `${visitorId}@${Date.now()}`;
+        return await encrypt(value, apiKey, env);
     }
-    return `${platform}@${encryptedVersion}`;
 }
 
 const getApiUrl = (): string => {
     return environment === SdkEnvironment.Prod
         ? "https://rest.prod.bladewallet.io/openapi/v7"
         : "https://api.bld-dev.bladewallet.io/openapi/v7";
-        // : "https://rest.ci.bladewallet.io/openapi/v7";
 }
 
 const fetchWithRetry = async (url: string, options: RequestInit, maxAttempts = 3) => {
@@ -108,7 +104,7 @@ export const createAccount = async (network: Network, params: any) => {
         "X-NETWORK": network.toUpperCase(),
         "X-VISITOR-ID": params.visitorId, // fingerprint (visitorId) (eg.: YoZoVL4XZspaCtLH4GoL)
         "X-DAPP-CODE": params.dAppCode,
-        "X-SDK-TVTE-API": await getTvteHeader(),
+        "X-SDK-TVTE-API": await getEncryptedHeader(),
         "Content-Type": "application/json"
     };
     if (params.deviceId) {
@@ -136,7 +132,7 @@ export const checkAccountCreationStatus = async (transactionId: string, network:
             "X-NETWORK": network.toUpperCase(),
             "X-VISITOR-ID": params.visitorId,
             "X-DAPP-CODE": params.dAppCode,
-            "X-SDK-TVTE-API": await getTvteHeader(),
+            "X-SDK-TVTE-API": await getEncryptedHeader(),
             "Content-Type": "application/json"
         })
     };
@@ -154,7 +150,7 @@ export const getPendingAccountData = async (transactionId: string, network: Netw
             "X-NETWORK": network.toUpperCase(),
             "X-VISITOR-ID": params.visitorId,
             "X-DAPP-CODE": params.dAppCode,
-            "X-SDK-TVTE-API": await getTvteHeader(),
+            "X-SDK-TVTE-API": await getEncryptedHeader(),
             "Content-Type": "application/json"
         })
     };
@@ -172,7 +168,7 @@ export const confirmAccountUpdate = async (params: ConfirmUpdateAccountData): Pr
             "X-NETWORK": params.network.toUpperCase(),
             "X-VISITOR-ID": params.visitorId,
             "X-DAPP-CODE": params.dAppCode,
-            "X-SDK-TVTE-API": await getTvteHeader(),
+            "X-SDK-TVTE-API": await getEncryptedHeader(),
             "Content-Type": "application/json"
         }),
         body: JSON.stringify({
@@ -198,7 +194,7 @@ export const transferTokens = async (network: Network, params: any) => {
             "X-NETWORK": network.toUpperCase(),
             "X-VISITOR-ID": params.visitorId,
             "X-DAPP-CODE": params.dAppCode,
-            "X-SDK-TVTE-API": await getTvteHeader(),
+            "X-SDK-TVTE-API": await getEncryptedHeader(),
             "Content-Type": "application/json"
         }),
         body: JSON.stringify({
@@ -223,7 +219,7 @@ export const signContractCallTx = async (network: Network, params: any) => {
             "X-NETWORK": network.toUpperCase(),
             "X-VISITOR-ID": params.visitorId,
             "X-DAPP-CODE": params.dAppCode,
-            "X-SDK-TVTE-API": await getTvteHeader(),
+            "X-SDK-TVTE-API": await getEncryptedHeader(),
             "Content-Type": "application/json"
         }),
         body: JSON.stringify({
@@ -247,7 +243,7 @@ export const apiCallContractQuery = async (network: Network, params: any) => {
             "X-NETWORK": network.toUpperCase(),
             "X-VISITOR-ID": params.visitorId,
             "X-DAPP-CODE": params.dAppCode,
-            "X-SDK-TVTE-API": await getTvteHeader(),
+            "X-SDK-TVTE-API": await getEncryptedHeader(),
             "Content-Type": "application/json"
         }),
         body: JSON.stringify({
@@ -271,7 +267,7 @@ export const getC14token = async (params: any) => {
             "X-NETWORK": params.network.toUpperCase(),
             "X-VISITOR-ID": params.visitorId, // fingerprint (visitorId) (eg.: YoZoVL4XZspaCtLH4GoL)
             "X-DAPP-CODE": params.dAppCode,
-            "X-SDK-TVTE-API": await getTvteHeader(),
+            "X-SDK-TVTE-API": await getEncryptedHeader(),
             "Content-Type": "application/json"
         }),
     };

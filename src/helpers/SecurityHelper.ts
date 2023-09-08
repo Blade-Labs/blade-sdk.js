@@ -1,11 +1,20 @@
 const crypto = require('crypto');
 import {Buffer} from "buffer";
+import {Environment} from "../models/Common";
 
 const CIPHER_IV_LENGTH = 12;
 const CIPHER_KEY_LENGTH = 32;
 const MAGIC_IV_INDEX = 3;
 
-export const encrypt = async (data: string, token: string): Promise<string> => {
+export const encrypt = async (data: string, token: string, env: Environment): Promise<string> => {
+    if (env === "browser") {
+        return await encryptBrowser(data, token);
+    } else {
+        return await encryptNode(data, token);
+    }
+}
+
+const encryptBrowser = async (data: string, token: string): Promise<string> => {
     const encoder = new TextEncoder();
 
     const ivStr = generateRandomString(CIPHER_IV_LENGTH);
@@ -40,7 +49,7 @@ export const encrypt = async (data: string, token: string): Promise<string> => {
     );
 }
 
-export const encryptNode = async (data: string, token: string): Promise<string> => {
+const encryptNode = async (data: string, token: string): Promise<string> => {
     const ivStr = generateRandomString(CIPHER_IV_LENGTH);
     const iv = Buffer.from(ivStr, 'utf8');
 

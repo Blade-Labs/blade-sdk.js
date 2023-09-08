@@ -1,5 +1,35 @@
 import {Buffer} from "buffer";
-import {TextEncoder, TextDecoder} from "text-encoding";
+import {TextDecoder, TextEncoder} from "text-encoding";
+import {
+    AccountDeleteTransaction,
+    AccountId,
+    Client,
+    ContractCallQuery,
+    ContractExecuteTransaction,
+    ContractFunctionResult,
+    ContractId,
+    Hbar,
+    PrivateKey,
+    PublicKey,
+    Query,
+    Timestamp,
+    Transaction,
+    TransactionId,
+    TransferTransaction
+} from "@hashgraph/sdk";
+import {CustomError} from "./models/Errors";
+import {AccountInfoData, BridgeResponse, EncryptedType, Environment, InfoData, SdkEnvironment} from "./models/Common";
+import {Network} from "./models/Networks";
+import config from "./config";
+import StringHelpers from "./helpers/StringHelpers";
+import {getEncryptedHeader, initApiService} from "./ApiService";
+import {hethers} from "@hashgraph/hethers";
+import {
+    getContractFunctionBytecode,
+    parseContractFunctionParams,
+    parseContractQueryResponse
+} from "./helpers/ContractHelpers";
+import {ParametersBuilder} from "@/ParametersBuilder";
 
 Object.assign(globalThis, {
     unityEnv: true,
@@ -9,46 +39,11 @@ Object.assign(globalThis, {
     btoa: (str: string) => Buffer.from(str, "binary").toString("base64"),
 });
 
-import {
-    Client,
-    TransferTransaction,
-    AccountId,
-    PrivateKey,
-    Transaction,
-    ContractExecuteTransaction,
-    ContractCallQuery,
-    Query,
-    TransactionId,
-    Timestamp,
-    Hbar,
-    ContractFunctionResult,
-    ContractId,
-    PublicKey,
-    AccountDeleteTransaction
-} from "@hashgraph/sdk";
-import {CustomError} from "./models/Errors";
-import {
-    AccountInfoData,
-    BridgeResponse,
-    InfoData, SdkEnvironment
-} from "./models/Common";
-import {Network} from "./models/Networks";
-import config from "./config";
-import StringHelpers from "./helpers/StringHelpers";
-import {getTvteHeader, setApiKey, setEnvironment, setSDKVersion} from "./ApiService";
-import {hethers} from "@hashgraph/hethers";
-import {
-    getContractFunctionBytecode,
-    parseContractFunctionParams,
-    parseContractQueryResponse
-} from "./helpers/ContractHelpers";
-import {ParametersBuilder} from "@/ParametersBuilder";
-
 export class BladeUnitySDK {
     private apiKey: string = "";
     private network: Network = Network.Testnet;
     private dAppCode: string = "";
-    // private visitorId: string = "";
+    private visitorId: string = "";
     private sdkEnvironment: SdkEnvironment = SdkEnvironment.Prod;
     private sdkVersion: string = config.sdkVersion;
 
@@ -56,25 +51,24 @@ export class BladeUnitySDK {
         apiKey: string,
         network: string,
         dAppCode: string,
+        visitorId: string,
         sdkEnvironment: SdkEnvironment = SdkEnvironment.Prod,
         sdkVersion: string = config.sdkVersion
     ): Promise<InfoData> {
         this.apiKey = apiKey;
         this.network = StringHelpers.stringToNetwork(network);
         this.dAppCode = dAppCode;
-        // this.visitorId = visitorId;
+        this.visitorId = visitorId;
         this.sdkEnvironment = sdkEnvironment;
         this.sdkVersion = sdkVersion;
 
-        setApiKey(apiKey);
-        setEnvironment(sdkEnvironment);
-        setSDKVersion(sdkVersion);
+        initApiService(sdkVersion, visitorId, apiKey, sdkEnvironment);
 
         return  {
             apiKey: this.apiKey,
             dAppCode: this.dAppCode,
             network: this.network,
-            visitorId: "not implemented in unity sdk",
+            visitorId: this.visitorId,
             sdkEnvironment: this.sdkEnvironment,
             sdkVersion: this.sdkVersion,
             nonce: Math.round(Math.random() * 1000000000)
@@ -130,10 +124,10 @@ export class BladeUnitySDK {
         });
     }
 
-    async getTvteValue(): Promise<string> {
+    async getEncryptedToken(type: EncryptedType = EncryptedType.tvte): Promise<string> {
         try {
             return this.sendMessageToNative({
-                tvte: await getTvteHeader("node")
+                value: await getEncryptedHeader(Environment.node, type)
             });
         } catch (error) {
             return this.sendMessageToNative(null, error);

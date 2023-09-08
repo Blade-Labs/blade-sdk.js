@@ -6,6 +6,16 @@ export enum SdkEnvironment {
     CI = "CI"
 }
 
+export enum Environment {
+    browser = "browser",
+    node = "node"
+}
+
+export enum EncryptedType {
+    tvte = "tvte",
+    vte = "vte"
+}
+
 export interface BridgeResponse {
     completionKey: string,
     data: any,
