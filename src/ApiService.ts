@@ -12,7 +12,7 @@ let visitorId = ``;
 let apiKey = ``;
 let environment: SdkEnvironment = SdkEnvironment.Prod;
 
-export const initApiService = async (version: string, visitor: string, token: string, sdkEnvironment: SdkEnvironment) => {
+export const initApiService = (version: string, visitor: string, token: string, sdkEnvironment: SdkEnvironment) => {
     sdkVersion = version;
     visitorId = visitor;
     environment = sdkEnvironment;

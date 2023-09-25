@@ -24,7 +24,8 @@ import {
     getAccountsFromPublicKey,
     getC14token,
     getPendingAccountData,
-    getTransactionsFrom, initApiService,
+    getTransactionsFrom,
+    initApiService,
     requestTokenInfo,
     signContractCallTx,
     transferTokens
