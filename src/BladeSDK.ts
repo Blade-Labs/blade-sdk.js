@@ -763,14 +763,21 @@ export class BladeSDK {
      */
     async getC14url(asset: string, account: string, amount: string, completionKey?: string): Promise<IntegrationUrlData> {
         try {
-            const {token} = await getC14token({
-                network: this.network,
-                visitorId: this.visitorId,
-                dAppCode: this.dAppCode
-            });
+            let clientId = "";
+            if (this.dAppCode.includes("karate")) {
+                clientId = "17af1a19-2729-4ecc-8683-324a52eca6fc";
+            } else {
+                const {token} = await getC14token({
+                    network: this.network,
+                    visitorId: this.visitorId,
+                    dAppCode: this.dAppCode
+                });
+                clientId = token;
+            }
+
             const url = new URL("https://pay.c14.money/");
             const purchaseParams: C14WidgetConfig = {
-                clientId: token
+                clientId
             };
 
             switch (asset.toUpperCase()) {
@@ -781,6 +788,17 @@ export class BladeSDK {
                 case "HBAR": {
                     purchaseParams.targetAssetId = "d9b45743-e712-4088-8a31-65ee6f371022";
                     purchaseParams.targetAssetIdLock = true;
+                } break;
+                case "KARATE": {
+                    purchaseParams.targetAssetId = "057d6b35-1af5-4827-bee2-c12842faa49e";
+                    purchaseParams.targetAssetIdLock = true;
+                } break;
+                default: {
+                    // check if asset is an uuid
+                    if (asset.split("-").length === 5) {
+                        purchaseParams.targetAssetId = asset;
+                        purchaseParams.targetAssetIdLock = true;
+                    }
                 } break;
             }
             if (amount) {

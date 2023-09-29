@@ -487,8 +487,8 @@ test('bladeSdk.getParamsSignature', async () => {
     expect(result.data).toHaveProperty("s");
 
     expect(result.data.v).toEqual(28);
-    expect(result.data.r).toEqual("0xeab43f42ad1083979f8c7f05704a6375834ba0431972c209b034ce79c384b640");
-    expect(result.data.s).toEqual("0x6069bf37419fb5941e38ee92505a0cd2ffc0e5fcb99bb31f871709850c0e9245");
+    expect(result.data.r).toEqual("0xe5e662d0564828fd18b2b5b228ade288ad063fadca76812f7902f56cae3e678e");
+    expect(result.data.s).toEqual("0x61b7ceb82dc6695872289b697a1bca73b81c494288abda29fa022bb7b80c84b5");
 
     // invalid paramsEncoded
     result = await bladeSdk.getParamsSignature('[{{{{{{{{{{{"]', privateKey, completionKey);
@@ -554,7 +554,8 @@ test('bladeSdk.getTransactions', async () => {
         expect(result.data.transactions[0]).toHaveProperty("plainData");
         expect(result.data.transactions[0].plainData).toHaveProperty("type");
         expect(result.data.transactions[0].plainData).toHaveProperty("token_id");
-        expect(result.data.transactions[0].plainData).toHaveProperty("account");
+        expect(result.data.transactions[0].plainData).toHaveProperty("senders");
+        expect(result.data.transactions[0].plainData).toHaveProperty("receivers");
         expect(result.data.transactions[0].plainData).toHaveProperty("amount");
     }
 
@@ -616,6 +617,7 @@ test('ParametersBuilder.complicatedCheck', async () => {
     const tuple0 = new ParametersBuilder().addInt64(16).addInt64(32);
     const tuple1 = new ParametersBuilder().addInt64(5).addInt64(10);
     const tuple2 = new ParametersBuilder().addInt64(50).addTupleArray([tuple0, tuple1]);
+    const contractId = process.env.CONTRACT_ID || "";
 
     const params = new ParametersBuilder()
         .addString("Hello, Backend")
@@ -640,7 +642,7 @@ test('ParametersBuilder.complicatedCheck', async () => {
     const paramsEncoded = params.encode();
     expect(paramsEncoded).toEqual(paramsEncodedExample);
 
-    let result = await bladeSdk.contractCallFunction('0.0.8316', "set_message", paramsEncoded, accountId, privateKey, 100000, false, completionKey);
+    let result = await bladeSdk.contractCallFunction(contractId, "set_message", paramsEncoded, accountId, privateKey, 100000, false, completionKey);
     checkResult(result, false);
     expect(result.error.reason.includes("CONTRACT_REVERT_EXECUTED")).toEqual(true);
 
@@ -653,7 +655,7 @@ test('ParametersBuilder.complicatedCheck', async () => {
         .addString(message)
         .addTuple(new ParametersBuilder().addUInt64(num1).addUInt64(num2));
 
-    const contractId = process.env.CONTRACT_ID || "";
+
     result = await bladeSdk.contractCallFunction(contractId, "set_numbers", params1.encode(), accountId, privateKey, 1000000, false, completionKey);
     checkResult(result);
 
