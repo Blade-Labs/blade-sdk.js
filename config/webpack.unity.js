@@ -20,7 +20,7 @@ module.exports = {
         ]
     },
     output: {
-        path: '/Users/gary/dev/unity/io.bladelabs.unity-sdk/Resources',
+        // path: '/Users/gary/dev/unity/io.bladelabs.unity-sdk/Resources',
         filename: "[name].txt",
         library: "[name]",
         libraryTarget: "var",
