@@ -134,7 +134,7 @@ export const checkAccountCreationStatus = async (transactionId: string, network:
             "X-DAPP-CODE": params.dAppCode,
             "X-SDK-TVTE-API": await getEncryptedHeader(),
             "Content-Type": "application/json"
-        })
+        } as HeadersInit)
     };
 
     return fetch(url, options)
@@ -152,7 +152,7 @@ export const getPendingAccountData = async (transactionId: string, network: Netw
             "X-DAPP-CODE": params.dAppCode,
             "X-SDK-TVTE-API": await getEncryptedHeader(),
             "Content-Type": "application/json"
-        })
+        } as HeadersInit)
     };
 
     return fetch(url, options)
@@ -170,7 +170,7 @@ export const confirmAccountUpdate = async (params: ConfirmUpdateAccountData): Pr
             "X-DAPP-CODE": params.dAppCode,
             "X-SDK-TVTE-API": await getEncryptedHeader(),
             "Content-Type": "application/json"
-        }),
+        } as HeadersInit),
         body: JSON.stringify({
             id: params.accountId
         })
@@ -196,7 +196,7 @@ export const transferTokens = async (network: Network, params: any) => {
             "X-DAPP-CODE": params.dAppCode,
             "X-SDK-TVTE-API": await getEncryptedHeader(),
             "Content-Type": "application/json"
-        }),
+        } as HeadersInit),
         body: JSON.stringify({
             receiverAccountId: params.receiverAccountId,
             senderAccountId: params.senderAccountId,
@@ -221,7 +221,7 @@ export const signContractCallTx = async (network: Network, params: any) => {
             "X-DAPP-CODE": params.dAppCode,
             "X-SDK-TVTE-API": await getEncryptedHeader(),
             "Content-Type": "application/json"
-        }),
+        } as HeadersInit),
         body: JSON.stringify({
             functionParametersHash: Buffer.from(params.contractFunctionParameters).toString("base64"),
             contractId: params.contractId,
@@ -245,7 +245,7 @@ export const apiCallContractQuery = async (network: Network, params: any) => {
             "X-DAPP-CODE": params.dAppCode,
             "X-SDK-TVTE-API": await getEncryptedHeader(),
             "Content-Type": "application/json"
-        }),
+        } as HeadersInit),
         body: JSON.stringify({
             functionParametersHash: Buffer.from(params.contractFunctionParameters).toString("base64"),
             contractId: params.contractId,
@@ -269,7 +269,7 @@ export const getC14token = async (params: any) => {
             "X-DAPP-CODE": params.dAppCode,
             "X-SDK-TVTE-API": await getEncryptedHeader(),
             "Content-Type": "application/json"
-        }),
+        } as HeadersInit),
     };
 
     return fetch(url, options)
