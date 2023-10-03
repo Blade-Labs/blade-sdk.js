@@ -2,33 +2,35 @@ import {Buffer} from "buffer";
 import {AccountId, PublicKey} from "@hashgraph/sdk";
 import {Network, NetworkMirrorNodes} from "./models/Networks";
 import {AccountInfoMirrorResponse} from "./models/MirrorNode";
-import {ConfirmUpdateAccountData, SdkEnvironment, TransactionData} from "./models/Common";
+import {ConfirmUpdateAccountData, EncryptedType, Environment, SdkEnvironment, TransactionData} from "./models/Common";
 import {flatArray} from "./helpers/ArrayHelpers";
 import {filterAndFormatTransactions} from "./helpers/TransactionHelpers";
 import {encrypt} from "./helpers/SecurityHelper";
 
 let sdkVersion = ``;
+let visitorId = ``;
 let apiKey = ``;
 let environment: SdkEnvironment = SdkEnvironment.Prod;
 
-export const setSDKVersion = (version: string) => {
+export const initApiService = (version: string, visitor: string, token: string, sdkEnvironment: SdkEnvironment) => {
     sdkVersion = version;
-}
-
-export const setEnvironment = (sdkEnvironment: SdkEnvironment) => {
+    visitorId = visitor;
     environment = sdkEnvironment;
-}
-
-export const setApiKey = (token: string) => {
     apiKey = token;
 }
 
-const getTvteHeader = async () => {
+export const getEncryptedHeader = async (env: Environment = Environment.browser, type: EncryptedType = EncryptedType.tvte) => {
     // "X-SDK-TVTE-API" - type-version-timestamp-encrypted
-
+    // "VTE" - visitorId-timestamp-encrypted
+    let value = "";
     const [platform, version] = sdkVersion.split("@");
-    const encryptedVersion = await encrypt(`${version}@${Date.now()}`, apiKey);
-    return `${platform}@${encryptedVersion}`;
+    if (type === 'tvte') {
+        value = `${version}@${Date.now()}`;
+        return `${platform}@${await encrypt(value, apiKey, env)}`;
+    } else if (type === 'vte') {
+        value = `${visitorId}@${Date.now()}`;
+        return await encrypt(value, apiKey, env);
+    }
 }
 
 const getApiUrl = (): string => {
@@ -102,7 +104,7 @@ export const createAccount = async (network: Network, params: any) => {
         "X-NETWORK": network.toUpperCase(),
         "X-VISITOR-ID": params.visitorId, // fingerprint (visitorId) (eg.: YoZoVL4XZspaCtLH4GoL)
         "X-DAPP-CODE": params.dAppCode,
-        "X-SDK-TVTE-API": await getTvteHeader(),
+        "X-SDK-TVTE-API": await getEncryptedHeader(),
         "Content-Type": "application/json"
     };
     if (params.deviceId) {
@@ -130,9 +132,9 @@ export const checkAccountCreationStatus = async (transactionId: string, network:
             "X-NETWORK": network.toUpperCase(),
             "X-VISITOR-ID": params.visitorId,
             "X-DAPP-CODE": params.dAppCode,
-            "X-SDK-TVTE-API": await getTvteHeader(),
+            "X-SDK-TVTE-API": await getEncryptedHeader(),
             "Content-Type": "application/json"
-        })
+        } as HeadersInit)
     };
 
     return fetch(url, options)
@@ -148,9 +150,9 @@ export const getPendingAccountData = async (transactionId: string, network: Netw
             "X-NETWORK": network.toUpperCase(),
             "X-VISITOR-ID": params.visitorId,
             "X-DAPP-CODE": params.dAppCode,
-            "X-SDK-TVTE-API": await getTvteHeader(),
+            "X-SDK-TVTE-API": await getEncryptedHeader(),
             "Content-Type": "application/json"
-        })
+        } as HeadersInit)
     };
 
     return fetch(url, options)
@@ -166,9 +168,9 @@ export const confirmAccountUpdate = async (params: ConfirmUpdateAccountData): Pr
             "X-NETWORK": params.network.toUpperCase(),
             "X-VISITOR-ID": params.visitorId,
             "X-DAPP-CODE": params.dAppCode,
-            "X-SDK-TVTE-API": await getTvteHeader(),
+            "X-SDK-TVTE-API": await getEncryptedHeader(),
             "Content-Type": "application/json"
-        }),
+        } as HeadersInit),
         body: JSON.stringify({
             id: params.accountId
         })
@@ -192,9 +194,9 @@ export const transferTokens = async (network: Network, params: any) => {
             "X-NETWORK": network.toUpperCase(),
             "X-VISITOR-ID": params.visitorId,
             "X-DAPP-CODE": params.dAppCode,
-            "X-SDK-TVTE-API": await getTvteHeader(),
+            "X-SDK-TVTE-API": await getEncryptedHeader(),
             "Content-Type": "application/json"
-        }),
+        } as HeadersInit),
         body: JSON.stringify({
             receiverAccountId: params.receiverAccountId,
             senderAccountId: params.senderAccountId,
@@ -217,9 +219,9 @@ export const signContractCallTx = async (network: Network, params: any) => {
             "X-NETWORK": network.toUpperCase(),
             "X-VISITOR-ID": params.visitorId,
             "X-DAPP-CODE": params.dAppCode,
-            "X-SDK-TVTE-API": await getTvteHeader(),
+            "X-SDK-TVTE-API": await getEncryptedHeader(),
             "Content-Type": "application/json"
-        }),
+        } as HeadersInit),
         body: JSON.stringify({
             functionParametersHash: Buffer.from(params.contractFunctionParameters).toString("base64"),
             contractId: params.contractId,
@@ -241,9 +243,9 @@ export const apiCallContractQuery = async (network: Network, params: any) => {
             "X-NETWORK": network.toUpperCase(),
             "X-VISITOR-ID": params.visitorId,
             "X-DAPP-CODE": params.dAppCode,
-            "X-SDK-TVTE-API": await getTvteHeader(),
+            "X-SDK-TVTE-API": await getEncryptedHeader(),
             "Content-Type": "application/json"
-        }),
+        } as HeadersInit),
         body: JSON.stringify({
             functionParametersHash: Buffer.from(params.contractFunctionParameters).toString("base64"),
             contractId: params.contractId,
@@ -265,9 +267,9 @@ export const getC14token = async (params: any) => {
             "X-NETWORK": params.network.toUpperCase(),
             "X-VISITOR-ID": params.visitorId, // fingerprint (visitorId) (eg.: YoZoVL4XZspaCtLH4GoL)
             "X-DAPP-CODE": params.dAppCode,
-            "X-SDK-TVTE-API": await getTvteHeader(),
+            "X-SDK-TVTE-API": await getEncryptedHeader(),
             "Content-Type": "application/json"
-        }),
+        } as HeadersInit),
     };
 
     return fetch(url, options)

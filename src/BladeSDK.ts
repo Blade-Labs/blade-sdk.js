@@ -25,10 +25,8 @@ import {
     getC14token,
     getPendingAccountData,
     getTransactionsFrom,
+    initApiService,
     requestTokenInfo,
-    setApiKey,
-    setEnvironment,
-    setSDKVersion,
     signContractCallTx,
     transferTokens
 } from "./ApiService";
@@ -105,9 +103,7 @@ export class BladeSDK {
         this.sdkEnvironment = sdkEnvironment;
         this.sdkVersion = sdkVersion;
 
-        setApiKey(apiKey);
-        setEnvironment(sdkEnvironment);
-        setSDKVersion(sdkVersion);
+        initApiService(sdkVersion, visitorId, apiKey, sdkEnvironment);
 
         return this.sendMessageToNative(completionKey, {
             apiKey: this.apiKey,
@@ -856,3 +852,4 @@ export class BladeSDK {
         return JSON.parse(JSON.stringify(responseObject));
     }
 }
+
