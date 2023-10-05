@@ -9,7 +9,7 @@ const {BladeSDK, ParametersBuilder} = require("../../src/webView");
 import dotenv from "dotenv";
 import fetch from"node-fetch";
 import {PrivateKey} from "@hashgraph/sdk";
-import {hethers} from "@hashgraph/hethers";
+import {ethers} from "ethers";
 import { TextEncoder, TextDecoder } from 'util';
 import crypto from "crypto";
 
@@ -309,7 +309,7 @@ test('bladeSdk.createAccount', async () => {
     await sleep(25_000);
 
     const publicKey = PrivateKey.fromString(result.data.privateKey).publicKey.toStringRaw();
-    const evmAddress = hethers.utils.computeAddress(`0x${publicKey}`);
+    const evmAddress = ethers.utils.computeAddress(`0x${publicKey}`);
 
     expect(result.data.evmAddress).toEqual(evmAddress.toLowerCase());
 
@@ -428,25 +428,25 @@ test('bladeSdk.sign + signVerify', async () => {
     checkResult(resultInvalid, false);
 });
 
-test('bladeSdk.hethersSign', async () => {
+test('bladeSdk.ethersSign', async () => {
     const message = "hello";
     const messageString = Buffer.from(message).toString("base64");
-    const wallet = new hethers.Wallet(privateKey);
+    const wallet = new ethers.Wallet(PrivateKey.fromString(privateKey).toStringRaw());
 
-    let result = await bladeSdk.hethersSign(messageString, privateKey, completionKey);
+    let result = await bladeSdk.ethersSign(messageString, privateKey, completionKey);
     checkResult(result);
 
     expect(result.data).toHaveProperty("signedMessage");
     expect(result.data.signedMessage).toEqual(await wallet.signMessage(Buffer.from(message)));
 
-    const signerAddress = hethers.utils.verifyMessage(message, result.data.signedMessage);
-    expect(signerAddress).toEqual(wallet.publicKey);
+    const signerAddress = ethers.utils.verifyMessage(message, result.data.signedMessage);
+    expect(signerAddress).toEqual(ethers.utils.computeAddress(wallet.publicKey));
 
     // invalid calls
-    result = await bladeSdk.hethersSign(messageString, "invalid privateKey", completionKey);
+    result = await bladeSdk.ethersSign(messageString, "invalid privateKey", completionKey);
     checkResult(result, false);
 
-    result = await bladeSdk.hethersSign(123, privateKey, completionKey);
+    result = await bladeSdk.ethersSign(123, privateKey, completionKey);
     checkResult(result, false);
 });
 
@@ -454,7 +454,7 @@ test('bladeSdk.splitSignature', async () => {
     const message = "hello";
     const messageString = Buffer.from(message).toString("base64");
 
-    let result = await bladeSdk.hethersSign(messageString, privateKey, completionKey);
+    let result = await bladeSdk.ethersSign(messageString, privateKey, completionKey);
     checkResult(result);
     expect(result.data).toHaveProperty("signedMessage");
     const signature = result.data.signedMessage;
@@ -465,7 +465,7 @@ test('bladeSdk.splitSignature', async () => {
     const v: number = result.data.v;
     const r: string = result.data.r;
     const s: string = result.data.s;
-    expect(signature).toEqual(hethers.utils.joinSignature({v, r, s}));
+    expect(signature).toEqual(ethers.utils.joinSignature({v, r, s}));
 
     // invalid signature
     result = await bladeSdk.splitSignature("invalid signature", completionKey);

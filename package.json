@@ -1,6 +1,6 @@
 {
   "name": "@bladelabs/blade-sdk.js",
-  "version": "0.6.3",
+  "version": "0.6.5",
   "description": "Hedera SDK wrapper with Blade features",
   "scripts": {
     "build": "cross-env SDK_VERSION=$npm_package_version NODE_ENV=production node utils/fixConfig.js && npm run clean && npm run build:esm && npm run build:cjs && npm run build:web-view",
@@ -54,9 +54,9 @@
   ],
   "license": "Apache-2.0",
   "dependencies": {
-    "@hashgraph/hethers": "^1.2.2",
     "@hashgraph/sdk": "^2.19.2",
-    "buffer": "^6.0.3"
+    "buffer": "^6.0.3",
+    "ethers": "^5.7.2"
   },
   "devDependencies": {
     "@babel/preset-typescript": "^7.18.6",
