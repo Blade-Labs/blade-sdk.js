@@ -1,5 +1,5 @@
-import {Client, Hbar, PrivateKey, TokenAssociateTransaction, TokenCreateTransaction, TokenId} from "@hashgraph/sdk";
-import {GET} from "../../src/ApiService";
+import {Client, Hbar, PrivateKey, TokenAssociateTransaction, TokenCreateTransaction} from "@hashgraph/sdk";
+import {GET} from "../../src/services/ApiService";
 import {Network} from "../../src/models/Networks";
 import {completionKey} from "./index.test";
 
@@ -7,8 +7,9 @@ export const privateKeyFromString = (privateKey: string): PrivateKey => {
   // TODO TRY different keys in different format (ecdsa, ed25, .raw, .der)
     try {
         return PrivateKey.fromStringECDSA(privateKey);
-    } catch (e) {}
-    return PrivateKey.fromStringED25519(privateKey);
+    } catch (e) {
+        return PrivateKey.fromStringED25519(privateKey);
+    }
 }
 
 export const createToken = async (accountId: string, privateKey: string, tokenName: string): Promise<string> => {
@@ -17,26 +18,26 @@ export const createToken = async (accountId: string, privateKey: string, tokenNa
     const key = PrivateKey.fromString(privateKey);
 
 
-    //Create the transaction and freeze for manual signing
+    // Create the transaction and freeze for manual signing
     const transaction = await new TokenCreateTransaction()
         .setTokenName(tokenName)
         .setTokenSymbol("JTT")
         .setTreasuryAccountId(accountId)
         .setInitialSupply(1000000000)
         .setAdminKey(key.publicKey)
-        .setMaxTransactionFee(new Hbar(30)) //Change the default max transaction fee
+        .setMaxTransactionFee(new Hbar(30)) // Change the default max transaction fee
         .freezeWith(client);
 
-    //Sign the transaction with the token adminKey and the token treasury account private key
+    // Sign the transaction with the token adminKey and the token treasury account private key
     const signTx =  await (await transaction.sign(key)).sign(key);
 
-    //Sign the transaction with the client operator private key and submit to a Hedera network
+    // Sign the transaction with the client operator private key and submit to a Hedera network
     const txResponse = await signTx.execute(client);
 
-    //Get the receipt of the transaction
+    // Get the receipt of the transaction
     const receipt = await txResponse.getReceipt(client);
 
-    //Get the token ID from the receipt
+    // Get the token ID from the receipt
     return  receipt.tokenId?.toString() || "";
 }
 
@@ -46,7 +47,7 @@ export const associateToken = async (tokenId: string, accountId: string, private
     const key = privateKeyFromString(privateKey);
     client.setOperator(accountId, key);
 
-    //Associate a token to an account and freeze the unsigned transaction for signing
+    // Associate a token to an account and freeze the unsigned transaction for signing
     const transaction = await new TokenAssociateTransaction()
         .setAccountId(accountId)
         .setTokenIds([tokenId])
@@ -55,6 +56,7 @@ export const associateToken = async (tokenId: string, accountId: string, private
     const signTx = await transaction.sign(key);
 
     return await signTx.execute(client).catch(err => {
+        // tslint:disable-next-line:no-console
         console.log(err);
         return null;
     });
@@ -62,6 +64,7 @@ export const associateToken = async (tokenId: string, accountId: string, private
 
 export const getTokenInfo = async (tokenId: string) => {
     return GET(Network.Testnet, `api/v1/tokens/${tokenId}`).catch(err => {
+        // tslint:disable-next-line:no-console
         console.log(err);
         return null;
     });
@@ -71,12 +74,12 @@ export function sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-//utils
+// utils
 export function checkResult(result: any, success = true) {
     // console.log(success, JSON.parse(JSON.stringify(result)));
     expect(result).toEqual(
         expect.objectContaining({
-            completionKey: completionKey,
+            completionKey,
         }),
     );
     if (success) {

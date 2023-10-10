@@ -1,11 +1,17 @@
 import {Buffer} from "buffer";
 import {AccountId, PublicKey} from "@hashgraph/sdk";
-import {Network, NetworkMirrorNodes} from "./models/Networks";
-import {AccountInfoMirrorResponse} from "./models/MirrorNode";
-import {ConfirmUpdateAccountData, SdkEnvironment, TransactionData} from "./models/Common";
-import {flatArray} from "./helpers/ArrayHelpers";
-import {filterAndFormatTransactions} from "./helpers/TransactionHelpers";
-import {encrypt} from "./helpers/SecurityHelper";
+import {Network, NetworkMirrorNodes} from "../models/Networks";
+import {AccountInfoMirrorResponse} from "../models/MirrorNode";
+import {ConfirmUpdateAccountData, SdkEnvironment, TransactionData} from "../models/Common";
+import {flatArray} from "../helpers/ArrayHelpers";
+import {filterAndFormatTransactions} from "../helpers/TransactionHelpers";
+import {encrypt} from "../helpers/SecurityHelper";
+import {
+    CryptoFlowRoutes, CryptoFlowServiceStrategy, ICryptoFlowAssets,
+    ICryptoFlowAssetsParams, ICryptoFlowQuote,
+    ICryptoFlowQuoteParams,
+    ICryptoFlowTransaction, ICryptoFlowTransactionParams
+} from "../models/CryptoFlow";
 
 let sdkVersion = ``;
 let apiKey = ``;
@@ -18,6 +24,11 @@ export const setSDKVersion = (version: string) => {
 export const setEnvironment = (sdkEnvironment: SdkEnvironment) => {
     environment = sdkEnvironment;
 }
+
+export const getEnvironment = () => {
+    return environment;
+}
+
 
 export const setApiKey = (token: string) => {
     apiKey = token;
@@ -268,6 +279,42 @@ export const getC14token = async (params: any) => {
             "X-SDK-TVTE-API": await getTvteHeader(),
             "Content-Type": "application/json"
         }),
+    };
+
+    return fetch(url, options)
+        .then(statusCheck)
+        .then(x => x.json());
+};
+
+export const getCryptoFlowData = async (
+    network: Network,
+    visitorId: string,
+    route: CryptoFlowRoutes,
+    params: ICryptoFlowAssetsParams | ICryptoFlowQuoteParams | ICryptoFlowTransactionParams | any,
+    strategy?: CryptoFlowServiceStrategy
+): Promise<ICryptoFlowAssets | ICryptoFlowQuote[] | ICryptoFlowTransaction> => {
+    const url = new URL(`${getApiUrl()}/exchange/v2/`);
+    const searchParams = new URLSearchParams();
+
+    for (const key in params) {
+      if (params.hasOwnProperty(key) && params[key] !== undefined && params[key] !== "") {
+        searchParams.append(key, params[key]);
+      }
+    }
+
+    const path = strategy ? `${route}/${strategy.toLowerCase()}` : route;
+    url.pathname += path;
+    url.search = searchParams.toString();
+
+    const options = {
+      method: "GET",
+      headers: new Headers({
+        "X-NETWORK": network.toUpperCase(),
+        "X-VISITOR-ID": visitorId,
+        // "X-DAPP-CODE": params.dAppCode,
+        // "X-SDK-TVTE-API": await getTvteHeader(),
+        "Content-Type": "application/json"
+      })
     };
 
     return fetch(url, options)

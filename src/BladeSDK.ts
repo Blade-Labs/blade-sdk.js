@@ -23,6 +23,7 @@ import {
     createAccount,
     getAccountsFromPublicKey,
     getC14token,
+    getCryptoFlowData,
     getPendingAccountData,
     getTransactionsFrom,
     requestTokenInfo,
@@ -31,7 +32,8 @@ import {
     setSDKVersion,
     signContractCallTx,
     transferTokens
-} from "./ApiService";
+} from "./services/ApiService";
+import CryptoFlowService from "./services/CryptoFlowService";
 import {Network} from "./models/Networks";
 import StringHelpers from "./helpers/StringHelpers";
 import {
@@ -50,16 +52,25 @@ import {
     CreateAccountData,
     InfoData,
     IntegrationUrlData,
+    KnownChain,
+    KnownChainIds,
     PrivateKeyData,
     SdkEnvironment,
     SignMessageData,
     SignVerifyMessageData,
     SplitSignatureData,
+    SwapQuotesData,
     TransactionsHistoryData
 } from "./models/Common";
 import config from "./config";
 import {executeUpdateAccountTransactions, processBalanceData} from "./helpers/AccountHelpers";
 import {ParametersBuilder} from "./ParametersBuilder";
+import {
+    CryptoFlowRoutes,
+    CryptoFlowServiceStrategy,
+    ICryptoFlowQuote,
+    ICryptoFlowTransaction
+} from "./models/CryptoFlow";
 
 export class BladeSDK {
     private apiKey: string = "";
@@ -770,7 +781,7 @@ export class BladeSDK {
      */
     async getC14url(asset: string, account: string, amount: string, completionKey?: string): Promise<IntegrationUrlData> {
         try {
-            let clientId = "";
+            let clientId;
             if (this.dAppCode.includes("karate")) {
                 clientId = "17af1a19-2729-4ecc-8683-324a52eca6fc";
             } else {
@@ -819,6 +830,122 @@ export class BladeSDK {
 
             url.search = new URLSearchParams(purchaseParams as Record<keyof C14WidgetConfig, any>).toString();
             return this.sendMessageToNative(completionKey, {url: url.toString()});
+        } catch (error) {
+            return this.sendMessageToNative(completionKey, null, error);
+        }
+    }
+
+    /**
+     * Get swap quotes from different services
+     * @param sourceCode name (HBAR, KARATE, other token code)
+     * @param sourceAmount amount to swap
+     * @param targetCode name (HBAR, KARATE, other token code)
+     * @param completionKey optional field bridge between mobile webViews and native apps
+     * @returns {SwapQuotesData}
+     */
+    async swapTokensGetQuote(
+        sourceCode: string,
+        sourceAmount: number,
+        targetCode: string,
+        completionKey?: string
+    ):Promise<SwapQuotesData> {
+        try {
+            const useTestnet = this.network === Network.Testnet;
+            const chainId = KnownChainIds[useTestnet ? KnownChain.HEDERA_TESTNET : KnownChain.HEDERA_MAINNET];
+            const quotes = await getCryptoFlowData(
+                this.network,
+                this.visitorId,
+                CryptoFlowRoutes.QUOTES,
+                {
+                    sourceCode,
+                    sourceChainId: chainId,
+                    sourceAmount,
+                    targetCode,
+                    targetChainId: chainId,
+                    useTestnet,
+                },
+                CryptoFlowServiceStrategy.SWAP
+            );
+            return this.sendMessageToNative(completionKey, {quotes});
+        } catch (error) {
+            return this.sendMessageToNative(completionKey, null, error);
+        }
+    }
+
+    /**
+     * Swap tokens
+     * @param accountId account id
+     * @param accountPrivateKey account private key
+     * @param sourceCode name (HBAR, KARATE, other token code)
+     * @param sourceAmount amount to swap
+     * @param targetCode name (HBAR, KARATE, other token code)
+     * @param slippage slippage in percents. Transaction will revert if the price changes unfavorably by more than this percentage.
+     * @param serviceId service id to use for swap (saucerswap, etc)
+     * @param completionKey optional field bridge between mobile webViews and native apps
+     * @returns {success: boolean}
+     */
+    async swapTokens(
+        accountId: string,
+        accountPrivateKey: string,
+        sourceCode: string,
+        sourceAmount: number,
+        targetCode: string,
+        slippage: number,
+        serviceId: string,
+        completionKey?: string
+    ): Promise<{success: boolean}> {
+        try {
+            const client = this.getClient();
+            client.setOperator(accountId, accountPrivateKey);
+
+            const useTestnet = this.network === Network.Testnet;
+            const chainId = KnownChainIds[useTestnet ? KnownChain.HEDERA_TESTNET : KnownChain.HEDERA_MAINNET];
+            const quotes = await getCryptoFlowData(
+                this.network,
+                this.visitorId,
+                CryptoFlowRoutes.QUOTES,
+                {
+                    sourceCode,
+                    sourceChainId: chainId,
+                    sourceAmount,
+                    targetCode,
+                    targetChainId: chainId,
+                    useTestnet,
+                },
+                CryptoFlowServiceStrategy.SWAP
+            ) as ICryptoFlowQuote[];
+            const selectedQuote = quotes.find((quote) => quote.service.id === serviceId);
+            if (!selectedQuote) {
+                throw new Error("Quote not found");
+            }
+
+            const txData: ICryptoFlowTransaction = await getCryptoFlowData(
+                this.network,
+                this.visitorId,
+                CryptoFlowRoutes.TRANSACTION,
+                {
+                    serviceId,
+                    sourceCode,
+                    sourceChainId: chainId,
+                    sourceAddress: selectedQuote.source.asset.address,
+                    sourceAmount,
+                    targetCode,
+                    targetChainId: chainId,
+                    targetAddress: selectedQuote.target.asset.address,
+                    walletAddress: accountId,
+                    slippage,
+                    useTestnet
+                }
+            ) as ICryptoFlowTransaction;
+
+            if (await CryptoFlowService.validateMessage(txData)) {
+                await CryptoFlowService.executeAllowanceApprove(selectedQuote, accountId, this.network, client);
+                await CryptoFlowService.executeHederaSwapTx(txData.calldata, client);
+                await CryptoFlowService.executeHederaBladeFeeTx(selectedQuote, accountId, this.network, client);
+            } else {
+                throw new Error("Invalid signature of txData");
+            }
+            return this.sendMessageToNative(completionKey, {success: true});
         } catch (error) {
             return this.sendMessageToNative(completionKey, null, error);
         }

@@ -1,6 +1,6 @@
 import {AccountId, Client, ContractCallQuery, Hbar, Mnemonic} from "@hashgraph/sdk";
 import {associateToken, checkResult, createToken, getTokenInfo, sleep} from "./helpers";
-import {GET, getTransaction} from "../../src/ApiService";
+import {GET, getTransaction} from "../../src/services/ApiService";
 import {Network} from "../../src/models/Networks";
 import {isEqual} from "lodash";
 import {Buffer} from "buffer";
@@ -241,8 +241,9 @@ test('bladeSdk.transferTokens', async () => {
     checkResult(result);
 
     let tokenId = null;
-    for (let i = 0; i < result.data.tokens.length; i++) {
-        const tokenInfo = await getTokenInfo(result.data.tokens[i].tokenId);
+    // for (let i = 0; i < result.data.tokens.length; i++) {
+    for (const token of result.data.tokens) {
+        const tokenInfo = await getTokenInfo(token.tokenId);
         if (tokenInfo.name === tokenName) {
             tokenId = tokenInfo.token_id;
             break;
