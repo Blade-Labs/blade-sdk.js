@@ -1,6 +1,6 @@
 import {MirrorNodeTransactionType} from "./TransactionType";
 import {Network} from "./Networks";
-import {ICryptoFlowQuote} from "@/models/CryptoFlow";
+import {ICryptoFlowQuote} from "./CryptoFlow";
 
 export enum SdkEnvironment {
     Prod = "Prod",

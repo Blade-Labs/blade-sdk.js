@@ -15,23 +15,20 @@ import {
 
 let sdkVersion = ``;
 let apiKey = ``;
+let dAppCode = ``;
 let environment: SdkEnvironment = SdkEnvironment.Prod;
+let network: Network = Network.Testnet;
 
-export const setSDKVersion = (version: string) => {
-    sdkVersion = version;
-}
-
-export const setEnvironment = (sdkEnvironment: SdkEnvironment) => {
-    environment = sdkEnvironment;
-}
-
-export const getEnvironment = () => {
-    return environment;
-}
-
-
-export const setApiKey = (token: string) => {
+export const initApiService = (token: string, code: string, sdkEnvironment: SdkEnvironment, version: string, net: Network) => {
     apiKey = token;
+    dAppCode = code;
+    environment = sdkEnvironment;
+    sdkVersion = version;
+    network = net;
+}
+
+export const getEnvironment = (): SdkEnvironment => {
+    return environment;
 }
 
 const getTvteHeader = async () => {
@@ -106,6 +103,24 @@ export const GET = (network: Network, route: string) => {
         .then(statusCheck)
         .then(x => x.json());
 };
+
+export const getBladeConfig = async () => {
+    const url = `${getApiUrl()}/sdk/config`;
+    const options = {
+        method: "GET",
+        headers: new Headers({
+            "X-NETWORK": network.toUpperCase(),
+            // "X-VISITOR-ID": params.visitorId,
+            "X-DAPP-CODE": dAppCode,
+            "X-SDK-VERSION": sdkVersion,
+            "Content-Type": "application/json"
+        })
+    };
+
+    return fetch(url, options)
+        .then(statusCheck)
+        .then(x => x.json());
+}
 
 export const createAccount = async (network: Network, params: any) => {
     const url = `${getApiUrl()}/accounts`;

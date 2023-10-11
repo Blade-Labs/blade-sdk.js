@@ -1,23 +1,25 @@
-import {getEnvironment} from "./ApiService";
+import {getBladeConfig, getEnvironment} from "./ApiService";
 import {SdkEnvironment} from "../models/Common";
 
-export const getConfig = async (key: string): Promise<string> => {
-    // TODO: implement requests to BladeAPI
-    const environment: SdkEnvironment = getEnvironment();
+let config: any = null;
 
+export const getConfig = async (key: string): Promise<string> => {
+    if (!config) {
+        config = await getBladeConfig();
+    }
+    if (config[key] !== undefined) {
+        return config[key];
+    }
+
+
+    const environment = getEnvironment()
     switch (key) {
-        case "exchangeServiceSignerPubKey":
-            return environment === SdkEnvironment.CI
-                ? `7b226b65795f6f7073223a5b22766572696679225d2c22657874223a747275652c226b7479223a224543222c2278223a223437725f43765a426e31797466757468586f324b72616c53626f6e444e733730424b67347051676d387267222c2279223a227a465944632d42796c6d483758317a4634393677734f6371384342332d4d64374651754d6f343969426959222c22637276223a22502d323536227d`
-                : `7b226b65795f6f7073223a5b22766572696679225d2c22657874223a747275652c226b7479223a224543222c2278223a226243387242346d47616b3574306f3364417045726b6f73705a2d62414176635a4748674c6f4c55447a6273222c2279223a225733714b4e4146554c6a5f38666446394179342d52794a565a75576d754e4c4f624655355f557461354e73222c22637276223a22502d323536227d`;
-        case "swapContract":
-            return `{ "Testnet": "0.0.59615", "Mainnet": "0.0.3045981" }`;
-        case "swapWrapHbar":
-            return `{ "Testnet": ["0.0.59042"], "Mainnet": ["0.0.1456986"] }`;
         case "feesConfig":
             return environment === SdkEnvironment.CI
                 ? `{"Mainnet": {"AccountCreate": {"collector": "0.0.1753455","min": 0.44,"amount": 0,"max": 0.44,"limitsCurrency": "usd"},"TradeNFT": {"collector": "0.0.1454571","min": 0.5,"amount": 2,"max": 1000,"limitsCurrency": "usd"},"TransferHBAR": {"collector": "0.0.1753448","min": 0.02,"amount": 2,"max": 0.2,"limitsCurrency": "usd"},"TransferToken": {"collector": "0.0.1753458","min": 0.02,"amount": 2,"max": 0.2,"limitsCurrency": "usd"},"TransferNFT": {"collector": "0.0.1753576","min": 0.1,"amount": 0,"max": 0.1,"limitsCurrency": "usd"},"ScheduledTransferHBAR": {"collector": "0.0.1753448","min": 0.01,"amount": 2,"max": 0.1,"limitsCurrency": "usd"},"ScheduledTransferToken": {"collector": "0.0.1753458","min": 0.01,"amount": 2,"max": 0.1,"limitsCurrency": "usd"},"StakingClaim": {"collector": "0.0.1753459","min": 0,"amount": 2,"max": 0.01,"limitsCurrency": "usd"},"Swap": {"collector": "0.0.1487713","min": 0.1,"amount": 2,"max": 1000,"limitsCurrency": "usd"},"Default": {"collector": "0.0.831364","min": 0.001,"amount": 0,"max": 0.001,"limitsCurrency": "usd"}},"Testnet": {"AccountCreate": {"collector": "0.0.1131","min": 0.44,"amount": 0,"max": 0.44,"limitsCurrency": "usd"},"TradeNFT": {"collector": "0.0.1131","min": 0.5,"amount": 2,"max": 1000,"limitsCurrency": "usd"},"TransferHBAR": {"collector": "0.0.1131","min": 0.02,"amount": 2,"max": 0.2,"limitsCurrency": "usd"},"TransferToken": {"collector": "0.0.1131","min": 0.02,"amount": 2,"max": 0.2,"limitsCurrency": "usd"},"TransferNFT": {"collector": "0.0.1131","min": 0.1,"amount": 0,"max": 0.1,"limitsCurrency": "usd"},"ScheduledTransferHBAR": {"collector": "0.0.1131","min": 0.01,"amount": 2,"max": 0.1,"limitsCurrency": "usd"},"ScheduledTransferToken": {"collector": "0.0.1131","min": 0.01,"amount": 2,"max": 0.1,"limitsCurrency": "usd"},"StakingClaim": {"collector": "0.0.1131","min": 0,"amount": 2,"max": 0.01,"limitsCurrency": "usd"},"Swap": {"collector": "0.0.1131","min": 0.1,"amount": 2,"max": 1000,"limitsCurrency": "usd"},"Default": {"collector": "0.0.1131","min": 0.001,"amount": 0,"max": 0.001,"limitsCurrency": "usd"}}}`
                 : `{"Mainnet":{"AccountCreate":{"collector":"0.0.1753455","min":0,"amount":0,"max":0.44,"limitsCurrency":"usd"},"TradeNFT":{"collector":"0.0.1454571","min":0,"amount":0,"max":1000,"limitsCurrency":"usd"},"TransferHBAR":{"collector":"0.0.1753448","min":0,"amount":0,"max":0.2,"limitsCurrency":"usd"},"TransferToken":{"collector":"0.0.1753458","min":0,"amount":0,"max":0.2,"limitsCurrency":"usd"},"TransferNFT":{"collector":"0.0.1753576","min":0,"amount":0,"max":0.1,"limitsCurrency":"usd"},"ScheduledTransferHBAR":{"collector":"0.0.1753448","min":0,"amount":0,"max":0.1,"limitsCurrency":"usd"},"ScheduledTransferToken":{"collector":"0.0.1753458","min":0,"amount":0,"max":0.1,"limitsCurrency":"usd"},"StakingClaim":{"collector":"0.0.1753459","min":1,"amount":1,"max":1,"limitsCurrency":"tinyhbar"},"Swap":{"collector":"0.0.1487713","min":0,"amount":0,"max":1000,"limitsCurrency":"usd"},"Default":{"collector":"0.0.831364","min":0,"amount":0,"max":0.001,"limitsCurrency":"usd"}},"Testnet":{"AccountCreate":{"collector":"0.0.1267","min":0,"amount":0,"max":0.44,"limitsCurrency":"usd"},"TradeNFT":{"collector":"0.0.1267","min":0,"amount":0,"max":1000,"limitsCurrency":"usd"},"TransferHBAR":{"collector":"0.0.1267","min":0,"amount":0,"max":0.2,"limitsCurrency":"usd"},"TransferToken":{"collector":"0.0.1267","min":0,"amount":0,"max":0.2,"limitsCurrency":"usd"},"TransferNFT":{"collector":"0.0.1267","min":0,"amount":0,"max":0.1,"limitsCurrency":"usd"},"ScheduledTransferHBAR":{"collector":"0.0.1267","min":0,"amount":0,"max":0.1,"limitsCurrency":"usd"},"ScheduledTransferToken":{"collector":"0.0.1267","min":0,"amount":0,"max":0.1,"limitsCurrency":"usd"},"StakingClaim":{"collector":"0.0.1267","min":0,"amount":0,"max":0.01,"limitsCurrency":"usd"},"Swap":{"collector":"0.0.1267","min":0,"amount":0,"max":1000,"limitsCurrency":"usd"},"Default":{"collector":"0.0.1267","min":0,"amount":0,"max":0.001,"limitsCurrency":"usd"}}}`;
+        case "saucerswapApi":
+            return `{"Testnet": "https://test-api.saucerswap.finance/","Mainnet": "https://api.saucerswap.finance/"}`
         default:
             throw new Error(`Unknown key "${key}" in configService`);
     }

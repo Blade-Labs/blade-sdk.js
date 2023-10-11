@@ -27,9 +27,7 @@ import {
     getPendingAccountData,
     getTransactionsFrom,
     requestTokenInfo,
-    setApiKey,
-    setEnvironment,
-    setSDKVersion,
+    initApiService,
     signContractCallTx,
     transferTokens
 } from "./services/ApiService";
@@ -116,9 +114,7 @@ export class BladeSDK {
         this.sdkEnvironment = sdkEnvironment;
         this.sdkVersion = sdkVersion;
 
-        setApiKey(apiKey);
-        setEnvironment(sdkEnvironment);
-        setSDKVersion(sdkVersion);
+        initApiService(apiKey, dAppCode, sdkEnvironment, sdkVersion, this.network);
 
         return this.sendMessageToNative(completionKey, {
             apiKey: this.apiKey,
