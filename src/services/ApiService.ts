@@ -27,10 +27,6 @@ export const initApiService = (token: string, code: string, sdkEnvironment: SdkE
     network = net;
 }
 
-export const getEnvironment = (): SdkEnvironment => {
-    return environment;
-}
-
 const getTvteHeader = async () => {
     // "X-SDK-TVTE-API" - type-version-timestamp-encrypted
 
