@@ -834,13 +834,13 @@ export class BladeSDK {
     /**
      * Get swap quotes from different services
      * @param sourceCode name (HBAR, KARATE, other token code)
-     * @param sourceAmount amount to swap
-     * @param targetCode name (HBAR, KARATE, other token code)
+     * @param sourceAmount amount to swap, buy or sell
+     * @param targetCode name (HBAR, KARATE, USDC, other token code)
      * @param strategy one of enum CryptoFlowServiceStrategy (Buy, Sell, Swap)
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {SwapQuotesData}
      */
-    async swapTokensGetQuote(
+    async exchangeGetQuotes(
         sourceCode: string,
         sourceAmount: number,
         targetCode: string,
@@ -978,11 +978,11 @@ export class BladeSDK {
     }
 
     /**
-     * Buy / sell tokens / fiat
+     * Get configured url to buy or sell tokens or fiat
      * @param strategy Buy / Sell
      * @param accountId account id
      * @param sourceCode name (HBAR, KARATE, USDC, other token code)
-     * @param sourceAmount amount to swap
+     * @param sourceAmount amount to buy/sell
      * @param targetCode name (HBAR, KARATE, USDC, other token code)
      * @param slippage slippage in percents. Transaction will revert if the price changes unfavorably by more than this percentage.
      * @param serviceId service id to use for swap (saucerswap, onmeta, etc)
