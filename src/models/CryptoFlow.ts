@@ -48,6 +48,8 @@ export interface ICryptoFlowQuoteParams {
     slippage?: string;
     countryCode?: string;
     walletAddress: string;
+
+    useTestnet?: boolean;
 }
 
 export interface ICryptoFlowTransactionParams {

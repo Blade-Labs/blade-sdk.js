@@ -65,9 +65,9 @@ import {executeUpdateAccountTransactions, processBalanceData} from "./helpers/Ac
 import {ParametersBuilder} from "./ParametersBuilder";
 import {
     CryptoFlowRoutes,
-    CryptoFlowServiceStrategy,
-    ICryptoFlowQuote,
-    ICryptoFlowTransaction
+    CryptoFlowServiceStrategy, ICryptoFlowAssets, ICryptoFlowAssetsParams,
+    ICryptoFlowQuote, ICryptoFlowQuoteParams,
+    ICryptoFlowTransaction, ICryptoFlowTransactionParams
 } from "./models/CryptoFlow";
 
 export class BladeSDK {
@@ -836,6 +836,7 @@ export class BladeSDK {
      * @param sourceCode name (HBAR, KARATE, other token code)
      * @param sourceAmount amount to swap
      * @param targetCode name (HBAR, KARATE, other token code)
+     * @param strategy one of enum CryptoFlowServiceStrategy (Buy, Sell, Swap)
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {SwapQuotesData}
      */
@@ -843,24 +844,53 @@ export class BladeSDK {
         sourceCode: string,
         sourceAmount: number,
         targetCode: string,
+        strategy: CryptoFlowServiceStrategy,
         completionKey?: string
     ):Promise<SwapQuotesData> {
         try {
             const useTestnet = this.network === Network.Testnet;
-            const chainId = KnownChainIds[useTestnet ? KnownChain.HEDERA_TESTNET : KnownChain.HEDERA_MAINNET];
+            const chainId = parseInt(KnownChainIds[useTestnet ? KnownChain.HEDERA_TESTNET : KnownChain.HEDERA_MAINNET], 10);
+            const params: ICryptoFlowAssetsParams | ICryptoFlowQuoteParams | ICryptoFlowTransactionParams | any = {
+                sourceCode,
+                sourceAmount,
+                targetCode,
+                useTestnet,
+            }
+
+            switch (strategy.toLowerCase()) {
+                case CryptoFlowServiceStrategy.BUY.toLowerCase(): {
+                    params.targetChainId = chainId;
+                    break;
+                }
+                case CryptoFlowServiceStrategy.SELL.toLowerCase(): {
+                    params.sourceChainId = chainId;
+                    const assets = await getCryptoFlowData(
+                        this.network,
+                        this.visitorId,
+                        CryptoFlowRoutes.ASSETS,
+                        params,
+                        strategy
+                    ) as ICryptoFlowAssets;
+
+                    if (assets.limits.rates.length > 0) {
+                        params.targetAmount = assets.limits.rates[0] * sourceAmount;
+                    }
+                    break;
+                }
+                case CryptoFlowServiceStrategy.SWAP.toLowerCase(): {
+                    params.sourceChainId = chainId;
+                    params.targetChainId = chainId;
+                    break;
+
+                }
+            }
+
             const quotes = await getCryptoFlowData(
                 this.network,
                 this.visitorId,
                 CryptoFlowRoutes.QUOTES,
-                {
-                    sourceCode,
-                    sourceChainId: chainId,
-                    sourceAmount,
-                    targetCode,
-                    targetChainId: chainId,
-                    useTestnet,
-                },
-                CryptoFlowServiceStrategy.SWAP
+                params,
+                strategy
             );
             return this.sendMessageToNative(completionKey, {quotes});
         } catch (error) {
@@ -942,6 +972,80 @@ export class BladeSDK {
                 throw new Error("Invalid signature of txData");
             }
             return this.sendMessageToNative(completionKey, {success: true});
+        } catch (error) {
+            return this.sendMessageToNative(completionKey, null, error);
+        }
+    }
+
+    /**
+     * Buy / sell tokens / fiat
+     * @param strategy Buy / Sell
+     * @param accountId account id
+     * @param sourceCode name (HBAR, KARATE, USDC, other token code)
+     * @param sourceAmount amount to swap
+     * @param targetCode name (HBAR, KARATE, USDC, other token code)
+     * @param slippage slippage in percents. Transaction will revert if the price changes unfavorably by more than this percentage.
+     * @param serviceId service id to use for swap (saucerswap, onmeta, etc)
+     * @param completionKey optional field bridge between mobile webViews and native apps
+     * @returns {IntegrationUrlData}
+     */
+    async getTradeUrl(
+        strategy: CryptoFlowServiceStrategy,
+        accountId: string,
+        sourceCode: string,
+        sourceAmount: number,
+        targetCode: string,
+        slippage: number,
+        serviceId: string,
+        completionKey?: string
+    ): Promise<IntegrationUrlData> {
+        try {
+            const useTestnet = this.network === Network.Testnet;
+            const chainId = KnownChainIds[useTestnet ? KnownChain.HEDERA_TESTNET : KnownChain.HEDERA_MAINNET];
+            const params: ICryptoFlowAssetsParams | ICryptoFlowQuoteParams | ICryptoFlowTransactionParams | any = {
+                sourceCode,
+                sourceAmount,
+                targetCode,
+                useTestnet,
+                walletAddress: accountId,
+                slippage
+            }
+
+            switch (strategy.toLowerCase()) {
+                case CryptoFlowServiceStrategy.BUY.toLowerCase(): {
+                    params.targetChainId = chainId;
+                    break;
+                }
+                case CryptoFlowServiceStrategy.SELL.toLowerCase(): {
+                    params.sourceChainId = chainId;
+                    const assets = await getCryptoFlowData(
+                        this.network,
+                        this.visitorId,
+                        CryptoFlowRoutes.ASSETS,
+                        params,
+                        strategy
+                    ) as ICryptoFlowAssets;
+
+                    if (assets.limits.rates.length > 0) {
+                        params.targetAmount = assets.limits.rates[0] * sourceAmount;
+                    }
+                    break;
+                }
+            }
+
+            const quotes = await getCryptoFlowData(
+                this.network,
+                this.visitorId,
+                CryptoFlowRoutes.QUOTES,
+                params,
+                strategy
+            ) as ICryptoFlowQuote[];
+            const selectedQuote = quotes.find((quote) => quote.service.id === serviceId);
+            if (!selectedQuote) {
+                throw new Error("Quote not found");
+            }
+
+            return this.sendMessageToNative(completionKey, {url: selectedQuote.widgetUrl});
         } catch (error) {
             return this.sendMessageToNative(completionKey, null, error);
         }
