@@ -872,7 +872,7 @@ export class BladeSDK {
                         strategy
                     ) as ICryptoFlowAssets;
 
-                    if (assets.limits.rates.length > 0) {
+                    if (assets?.limits?.rates && assets.limits.rates.length > 0) {
                         params.targetAmount = assets.limits.rates[0] * sourceAmount;
                     }
                     break;
@@ -1026,7 +1026,7 @@ export class BladeSDK {
                         strategy
                     ) as ICryptoFlowAssets;
 
-                    if (assets.limits.rates.length > 0) {
+                    if (assets?.limits?.rates && assets.limits.rates.length > 0) {
                         params.targetAmount = assets.limits.rates[0] * sourceAmount;
                     }
                     break;
