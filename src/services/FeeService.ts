@@ -5,6 +5,8 @@ import BigNumber from "bignumber.js";
 import Long from "long";
 import {getConfig} from "./ConfigService";
 
+export const HbarTokenId = "0.0.0";
+
 type FeatureFeeConfig = {
     collector: string,
     min: number,
@@ -77,7 +79,7 @@ async function calculateFeeAmount(
     let spentAmount: BigNumber = BigNumber(0);
     let rate = BigNumber(1);
     let decimals = 8;
-    if (manualOptions.amountTokenId !== "0.0.0") {
+    if (manualOptions.amountTokenId !== HbarTokenId) {
         rate = await getHBARRateByTokenId(network, manualOptions.amountTokenId);
         decimals = await getDecimalsForTokenId(network, manualOptions.amountTokenId);
     }

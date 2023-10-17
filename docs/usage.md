@@ -488,7 +488,7 @@ Get configured url to buy or sell tokens or fiat
 | `sourceAmount`      | `string` | source amount to buy/sell                                                                                          |
 | `targetCode`        | `string` | source asset code (HBAR, KARATE, USDC, EUR, other token or fiat code)                                              |
 | `slippage`          | `string` | slippage in percents (0.5). Transaction will revert if the price changes unfavorably by more than this percentage. |
-| `serviceId`         | `string` | service id to use for swap (saucerswap, etc)                                                                       |
+| `serviceId`         | `string` | service id to use for buy/sell (c14, etc)                                                                          |
 | `completionKey?`    | `string` | optional field bridge between mobile webViews and native apps                                                      |
 
 #### Returns

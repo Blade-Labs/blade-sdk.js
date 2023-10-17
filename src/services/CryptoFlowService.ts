@@ -9,10 +9,8 @@ import BigNumber from "bignumber.js";
 import {flattenDeep} from "lodash";
 import {AccountAllowanceApproveTransaction, Client, Status, Transaction} from "@hashgraph/sdk";
 import {Network} from "../models/Networks";
-import {createFeeTransaction} from "./FeeService";
+import {createFeeTransaction, HbarTokenId} from "./FeeService";
 import {getConfig} from "./ConfigService";
-
-export const HbarTokenId = "0.0.0"; // TODO rename to be appropriate for ethereum as well
 
 export const validateMessage = async (tx: ICryptoFlowTransaction) => {
     try {
