@@ -29,7 +29,7 @@ import {
     requestTokenInfo,
     initApiService,
     signContractCallTx,
-    transferTokens
+    transferTokens, getAccountBalance
 } from "./services/ApiService";
 import CryptoFlowService from "./services/CryptoFlowService";
 import {Network} from "./models/Networks";
@@ -61,7 +61,7 @@ import {
     TransactionsHistoryData
 } from "./models/Common";
 import config from "./config";
-import {executeUpdateAccountTransactions, processBalanceData} from "./helpers/AccountHelpers";
+import {executeUpdateAccountTransactions} from "./helpers/AccountHelpers";
 import {ParametersBuilder} from "./ParametersBuilder";
 import {
     CryptoFlowRoutes,
@@ -149,17 +149,12 @@ export class BladeSDK {
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {BalanceData} hbars: number, tokens: [{tokenId: string, balance: number}]
      */
-    getBalance(accountId: string, completionKey?: string): Promise<BalanceData> {
-        const client = this.getClient();
-
-        return new AccountBalanceQuery()
-            .setAccountId(accountId)
-            .execute(client)
-            .then((data) => {
-                return this.sendMessageToNative(completionKey, processBalanceData(data));
-            }).catch(error => {
-                return this.sendMessageToNative(completionKey, null, error);
-            });
+    async getBalance(accountId: string, completionKey?: string): Promise<BalanceData> {
+        try {
+            return this.sendMessageToNative(completionKey, await getAccountBalance(accountId));
+        } catch (error) {
+            return this.sendMessageToNative(completionKey, null, error);
+        }
     }
 
     /**

@@ -18,6 +18,7 @@ let apiKey = ``;
 let dAppCode = ``;
 let environment: SdkEnvironment = SdkEnvironment.Prod;
 let network: Network = Network.Testnet;
+const tokenInfoCache: { [key: string]: any } = {};
 
 export const initApiService = (token: string, code: string, sdkEnvironment: SdkEnvironment, version: string, net: Network) => {
     apiKey = token;
@@ -95,6 +96,9 @@ const statusCheck = async (res: Response|any): Promise<Response> => {
 };
 
 export const GET = (network: Network, route: string) => {
+    if (route.indexOf("/") === 0) {
+        route = route.slice(1);
+    }
     return fetchWithRetry(`${NetworkMirrorNodes[network]}/${route}`, {})
         .then(statusCheck)
         .then(x => x.json());
@@ -200,9 +204,38 @@ export const confirmAccountUpdate = async (params: ConfirmUpdateAccountData): Pr
         .then(statusCheck);
 };
 
+export const getAccountBalance = async (accountId: string) => {
+    const account = await GET(network, `api/v1/accounts/${accountId}`);
+    const tokens = await getAccountTokens(accountId);
+    return {
+        hbars: account.balance.balance / 10 ** 8,
+        tokens
+    };
+}
+
+const getAccountTokens = async (accountId: string) => {
+    const result = [];
+    let nextPage = `api/v1/accounts/${accountId}/tokens`;
+    while (nextPage != null) {
+        const response = await GET(network, nextPage);
+        nextPage = response.links.next ?? null;
+
+        for (const token of response.tokens) {
+            const tokenInfo = await requestTokenInfo(network, token.token_id);
+            result.push({
+                tokenId: token.token_id,
+                balance: token.balance / 10 ** tokenInfo.decimals,
+            });
+        }
+    }
+    return result;
+};
 
 export const requestTokenInfo = async (network: Network, tokenId: string) => {
-    return GET(network,`api/v1/tokens/${tokenId}`);
+    if (!tokenInfoCache[tokenId]) {
+        tokenInfoCache[tokenId] = await GET(network,`api/v1/tokens/${tokenId}`);
+    }
+    return tokenInfoCache[tokenId];
 };
 
 export const transferTokens = async (network: Network, params: any) => {
