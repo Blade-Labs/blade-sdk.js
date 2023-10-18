@@ -18,7 +18,11 @@ let apiKey = ``;
 let dAppCode = ``;
 let environment: SdkEnvironment = SdkEnvironment.Prod;
 let network: Network = Network.Testnet;
-const tokenInfoCache: { [key: string]: any } = {};
+
+const tokenInfoCache: {[key in Network]: { [key: string]: any }} = {
+    [Network.Mainnet]: {},
+    [Network.Testnet]: {}
+};
 
 export const initApiService = (token: string, code: string, sdkEnvironment: SdkEnvironment, version: string, net: Network) => {
     apiKey = token;
@@ -232,10 +236,10 @@ const getAccountTokens = async (accountId: string) => {
 };
 
 export const requestTokenInfo = async (network: Network, tokenId: string) => {
-    if (!tokenInfoCache[tokenId]) {
-        tokenInfoCache[tokenId] = await GET(network,`api/v1/tokens/${tokenId}`);
+    if (!tokenInfoCache[network][tokenId]) {
+        tokenInfoCache[network][tokenId] = await GET(network,`api/v1/tokens/${tokenId}`);
     }
-    return tokenInfoCache[tokenId];
+    return tokenInfoCache[network][tokenId];
 };
 
 export const transferTokens = async (network: Network, params: any) => {
