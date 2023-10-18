@@ -80,7 +80,7 @@ test('bladeSdk.transferHbars', async () => {
     expect(result.data).toHaveProperty("transactionId");
 
     // wait for balance update
-    await sleep(5_000);
+    await sleep(20_000);
 
     result = await bladeSdk.getBalance(accountId, completionKey);
     checkResult(result);
@@ -281,7 +281,7 @@ test('bladeSdk.transferTokens', async () => {
     expect(result.data).toHaveProperty("transactionHash");
     expect(result.data).toHaveProperty("transactionId");
 
-    await sleep(5_000);
+    await sleep(20_000);
 
     account1Balance = await bladeSdk.getBalance(accountId, completionKey);
     checkResult(account1Balance);
