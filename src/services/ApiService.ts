@@ -1,26 +1,35 @@
 import {Buffer} from "buffer";
 import {AccountId, PublicKey} from "@hashgraph/sdk";
-import {Network, NetworkMirrorNodes} from "./models/Networks";
-import {AccountInfoMirrorResponse} from "./models/MirrorNode";
-import {ConfirmUpdateAccountData, SdkEnvironment, TransactionData} from "./models/Common";
-import {flatArray} from "./helpers/ArrayHelpers";
-import {filterAndFormatTransactions} from "./helpers/TransactionHelpers";
-import {encrypt} from "./helpers/SecurityHelper";
+import {Network, NetworkMirrorNodes} from "../models/Networks";
+import {AccountInfoMirrorResponse} from "../models/MirrorNode";
+import {ConfirmUpdateAccountData, SdkEnvironment, TransactionData} from "../models/Common";
+import {flatArray} from "../helpers/ArrayHelpers";
+import {filterAndFormatTransactions} from "../helpers/TransactionHelpers";
+import {encrypt} from "../helpers/SecurityHelper";
+import {
+    CryptoFlowRoutes, CryptoFlowServiceStrategy, ICryptoFlowAssets,
+    ICryptoFlowAssetsParams, ICryptoFlowQuote,
+    ICryptoFlowQuoteParams,
+    ICryptoFlowTransaction, ICryptoFlowTransactionParams
+} from "../models/CryptoFlow";
 
 let sdkVersion = ``;
 let apiKey = ``;
+let dAppCode = ``;
 let environment: SdkEnvironment = SdkEnvironment.Prod;
+let network: Network = Network.Testnet;
 
-export const setSDKVersion = (version: string) => {
-    sdkVersion = version;
-}
+const tokenInfoCache: {[key in Network]: { [key: string]: any }} = {
+    [Network.Mainnet]: {},
+    [Network.Testnet]: {}
+};
 
-export const setEnvironment = (sdkEnvironment: SdkEnvironment) => {
-    environment = sdkEnvironment;
-}
-
-export const setApiKey = (token: string) => {
+export const initApiService = (token: string, code: string, sdkEnvironment: SdkEnvironment, version: string, net: Network) => {
     apiKey = token;
+    dAppCode = code;
+    environment = sdkEnvironment;
+    sdkVersion = version;
+    network = net;
 }
 
 const getTvteHeader = async () => {
@@ -91,10 +100,31 @@ const statusCheck = async (res: Response|any): Promise<Response> => {
 };
 
 export const GET = (network: Network, route: string) => {
+    if (route.indexOf("/") === 0) {
+        route = route.slice(1);
+    }
     return fetchWithRetry(`${NetworkMirrorNodes[network]}/${route}`, {})
         .then(statusCheck)
         .then(x => x.json());
 };
+
+export const getBladeConfig = async () => {
+    const url = `${getApiUrl()}/sdk/config`;
+    const options = {
+        method: "GET",
+        headers: new Headers({
+            "X-NETWORK": network.toUpperCase(),
+            // "X-VISITOR-ID": params.visitorId,
+            "X-DAPP-CODE": dAppCode,
+            "X-SDK-VERSION": sdkVersion,
+            "Content-Type": "application/json"
+        })
+    };
+
+    return fetch(url, options)
+        .then(statusCheck)
+        .then(x => x.json());
+}
 
 export const createAccount = async (network: Network, params: any) => {
     const url = `${getApiUrl()}/accounts`;
@@ -178,9 +208,38 @@ export const confirmAccountUpdate = async (params: ConfirmUpdateAccountData): Pr
         .then(statusCheck);
 };
 
+export const getAccountBalance = async (accountId: string) => {
+    const account = await GET(network, `api/v1/accounts/${accountId}`);
+    const tokens = await getAccountTokens(accountId);
+    return {
+        hbars: account.balance.balance / 10 ** 8,
+        tokens
+    };
+}
+
+const getAccountTokens = async (accountId: string) => {
+    const result = [];
+    let nextPage = `api/v1/accounts/${accountId}/tokens`;
+    while (nextPage != null) {
+        const response = await GET(network, nextPage);
+        nextPage = response.links.next ?? null;
+
+        for (const token of response.tokens) {
+            const tokenInfo = await requestTokenInfo(network, token.token_id);
+            result.push({
+                tokenId: token.token_id,
+                balance: token.balance / 10 ** tokenInfo.decimals,
+            });
+        }
+    }
+    return result;
+};
 
 export const requestTokenInfo = async (network: Network, tokenId: string) => {
-    return GET(network,`api/v1/tokens/${tokenId}`);
+    if (!tokenInfoCache[network][tokenId]) {
+        tokenInfoCache[network][tokenId] = await GET(network,`api/v1/tokens/${tokenId}`);
+    }
+    return tokenInfoCache[network][tokenId];
 };
 
 export const transferTokens = async (network: Network, params: any) => {
@@ -268,6 +327,42 @@ export const getC14token = async (params: any) => {
             "X-SDK-TVTE-API": await getTvteHeader(),
             "Content-Type": "application/json"
         }),
+    };
+
+    return fetch(url, options)
+        .then(statusCheck)
+        .then(x => x.json());
+};
+
+export const getCryptoFlowData = async (
+    network: Network,
+    visitorId: string,
+    route: CryptoFlowRoutes,
+    params: ICryptoFlowAssetsParams | ICryptoFlowQuoteParams | ICryptoFlowTransactionParams | any,
+    strategy?: CryptoFlowServiceStrategy
+): Promise<ICryptoFlowAssets | ICryptoFlowQuote[] | ICryptoFlowTransaction> => {
+    const url = new URL(`${getApiUrl()}/exchange/v2/`);
+    const searchParams = new URLSearchParams();
+
+    for (const key in params) {
+      if (params.hasOwnProperty(key) && params[key] !== undefined && params[key] !== "") {
+        searchParams.append(key, params[key]);
+      }
+    }
+
+    const path = strategy ? `${route}/${strategy.toLowerCase()}` : route;
+    url.pathname += path;
+    url.search = searchParams.toString();
+
+    const options = {
+      method: "GET",
+      headers: new Headers({
+        "X-NETWORK": network.toUpperCase(),
+        "X-VISITOR-ID": visitorId,
+        // "X-DAPP-CODE": params.dAppCode,
+        // "X-SDK-TVTE-API": await getTvteHeader(),
+        "Content-Type": "application/json"
+      })
     };
 
     return fetch(url, options)

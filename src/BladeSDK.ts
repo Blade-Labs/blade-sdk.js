@@ -14,7 +14,7 @@ import {
     TransferTransaction
 } from "@hashgraph/sdk";
 import {Buffer} from "buffer";
-import {hethers} from "@hashgraph/hethers";
+import {ethers} from "ethers";
 import {
     accountInfo,
     apiCallContractQuery,
@@ -23,15 +23,15 @@ import {
     createAccount,
     getAccountsFromPublicKey,
     getC14token,
+    getCryptoFlowData,
     getPendingAccountData,
     getTransactionsFrom,
     requestTokenInfo,
-    setApiKey,
-    setEnvironment,
-    setSDKVersion,
+    initApiService,
     signContractCallTx,
-    transferTokens
-} from "./ApiService";
+    transferTokens, getAccountBalance
+} from "./services/ApiService";
+import CryptoFlowService from "./services/CryptoFlowService";
 import {Network} from "./models/Networks";
 import StringHelpers from "./helpers/StringHelpers";
 import {
@@ -50,16 +50,25 @@ import {
     CreateAccountData,
     InfoData,
     IntegrationUrlData,
+    KnownChain,
+    KnownChainIds,
     PrivateKeyData,
     SdkEnvironment,
     SignMessageData,
     SignVerifyMessageData,
     SplitSignatureData,
+    SwapQuotesData,
     TransactionsHistoryData
 } from "./models/Common";
 import config from "./config";
-import {executeUpdateAccountTransactions, processBalanceData} from "./helpers/AccountHelpers";
+import {executeUpdateAccountTransactions} from "./helpers/AccountHelpers";
 import {ParametersBuilder} from "./ParametersBuilder";
+import {
+    CryptoFlowRoutes,
+    CryptoFlowServiceStrategy, ICryptoFlowAssets, ICryptoFlowAssetsParams,
+    ICryptoFlowQuote, ICryptoFlowQuoteParams,
+    ICryptoFlowTransaction, ICryptoFlowTransactionParams
+} from "./models/CryptoFlow";
 
 export class BladeSDK {
     private apiKey: string = "";
@@ -105,9 +114,7 @@ export class BladeSDK {
         this.sdkEnvironment = sdkEnvironment;
         this.sdkVersion = sdkVersion;
 
-        setApiKey(apiKey);
-        setEnvironment(sdkEnvironment);
-        setSDKVersion(sdkVersion);
+        initApiService(apiKey, dAppCode, sdkEnvironment, sdkVersion, this.network);
 
         return this.sendMessageToNative(completionKey, {
             apiKey: this.apiKey,
@@ -142,17 +149,12 @@ export class BladeSDK {
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {BalanceData} hbars: number, tokens: [{tokenId: string, balance: number}]
      */
-    getBalance(accountId: string, completionKey?: string): Promise<BalanceData> {
-        const client = this.getClient();
-
-        return new AccountBalanceQuery()
-            .setAccountId(accountId)
-            .execute(client)
-            .then((data) => {
-                return this.sendMessageToNative(completionKey, processBalanceData(data));
-            }).catch(error => {
-                return this.sendMessageToNative(completionKey, null, error);
-            });
+    async getBalance(accountId: string, completionKey?: string): Promise<BalanceData> {
+        try {
+            return this.sendMessageToNative(completionKey, await getAccountBalance(accountId));
+        } catch (error) {
+            return this.sendMessageToNative(completionKey, null, error);
+        }
     }
 
     /**
@@ -174,6 +176,7 @@ export class BladeSDK {
             return new TransferTransaction()
                 .addHbarTransfer(receiverID, parsedAmount)
                 .addHbarTransfer(accountId, -1 * parsedAmount)
+                .setTransactionMemo(memo)
                 .execute(client)
                 .then(data => {
                     return this.sendMessageToNative(completionKey, data);
@@ -456,7 +459,7 @@ export class BladeSDK {
                 });
             }
 
-            const evmAddress = hethers.utils.computeAddress(`0x${privateKey.publicKey.toStringRaw()}`);
+            const evmAddress = ethers.utils.computeAddress(`0x${privateKey.publicKey.toStringRaw()}`);
 
             const result = {
                 transactionId,
@@ -487,7 +490,7 @@ export class BladeSDK {
             const seedPhrase = await Mnemonic.fromString(mnemonic);
             const privateKey = await seedPhrase.toEcdsaPrivateKey();
             const publicKey = privateKey.publicKey.toStringDer();
-            let evmAddress = hethers.utils.computeAddress(`0x${privateKey.publicKey.toStringRaw()}`);
+            let evmAddress = ethers.utils.computeAddress(`0x${privateKey.publicKey.toStringRaw()}`);
 
             const result = {
                 transactionId: transactionId || null,
@@ -523,7 +526,7 @@ export class BladeSDK {
                     dAppCode: this.dAppCode
                 });
 
-                evmAddress = hethers.utils.computeAddress(`0x${originalPublicKey ? originalPublicKey.slice(-66) : privateKey.publicKey.toStringRaw()}`);
+                evmAddress = ethers.utils.computeAddress(`0x${originalPublicKey ? originalPublicKey.slice(-66) : privateKey.publicKey.toStringRaw()}`);
 
                 result.transactionId = null;
                 result.status = status;
@@ -595,7 +598,7 @@ export class BladeSDK {
             return this.sendMessageToNative(completionKey, {
                 accountId,
                 evmAddress,
-                calculatedEvmAddress: hethers.utils.computeAddress(`0x${publicKey}`).toLowerCase()
+                calculatedEvmAddress: ethers.utils.computeAddress(`0x${publicKey}`).toLowerCase()
             });
         } catch (error) {
             return this.sendMessageToNative(completionKey, null, error);
@@ -626,7 +629,7 @@ export class BladeSDK {
                 privateKey: privateKey.toStringDer(),
                 publicKey: publicKey.toStringDer(),
                 accounts,
-                evmAddress: hethers.utils.computeAddress(`0x${publicKey.toStringRaw()}`).toLowerCase()
+                evmAddress: ethers.utils.computeAddress(`0x${publicKey.toStringRaw()}`).toLowerCase()
             });
         } catch (error) {
             return this.sendMessageToNative(completionKey, null, error);
@@ -674,15 +677,16 @@ export class BladeSDK {
     }
 
     /**
-     * Sign base64-encoded message with private key using hethers lib. Returns hex-encoded signature.
+     * Sign base64-encoded message with private key using ethers lib. Returns hex-encoded signature.
      * @param messageString base64-encoded message to sign
      * @param privateKey hex-encoded private key with DER header
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {SignMessageData}
      */
-    hethersSign(messageString: string, privateKey: string, completionKey?: string): Promise<SignMessageData> {
+    ethersSign(messageString: string, privateKey: string, completionKey?: string): Promise<SignMessageData> {
         try {
-            const wallet = new hethers.Wallet(privateKey);
+            const key = PrivateKey.fromString(privateKey);
+            const wallet = new ethers.Wallet(key.toStringRaw());
             return wallet
                 .signMessage(Buffer.from(messageString, "base64"))
                 .then(signedMessage => {
@@ -704,7 +708,7 @@ export class BladeSDK {
      */
     splitSignature(signature: string, completionKey?: string): Promise<SplitSignatureData> {
         try {
-            const {v, r, s} = hethers.utils.splitSignature(signature);
+            const {v, r, s} = ethers.utils.splitSignature(signature);
             return this.sendMessageToNative(completionKey, {v, r, s});
         } catch (error) {
             return this.sendMessageToNative(completionKey, null, error);
@@ -721,15 +725,16 @@ export class BladeSDK {
     async getParamsSignature(paramsEncoded: string | ParametersBuilder, privateKey: string, completionKey?: string): Promise<SplitSignatureData> {
         try {
             const {types, values} = await parseContractFunctionParams(paramsEncoded);
-            const hash = hethers.utils.keccak256(
-                hethers.utils.defaultAbiCoder.encode(types, values)
+            const hash = ethers.utils.keccak256(
+                ethers.utils.defaultAbiCoder.encode(types, values)
             );
-            const messageHashBytes = hethers.utils.arrayify(hash);
+            const messageHashBytes = ethers.utils.arrayify(hash);
 
-            const wallet = new hethers.Wallet(privateKey);
+            const key = PrivateKey.fromString(privateKey);
+            const wallet = new ethers.Wallet(key.toStringRaw());
             const signed = await wallet.signMessage(messageHashBytes);
 
-            const {v, r, s} = hethers.utils.splitSignature(signed);
+            const {v, r, s} = ethers.utils.splitSignature(signed);
             return this.sendMessageToNative(completionKey, {v, r, s});
         } catch (error) {
             return this.sendMessageToNative(completionKey, null, error);
@@ -767,7 +772,7 @@ export class BladeSDK {
      */
     async getC14url(asset: string, account: string, amount: string, completionKey?: string): Promise<IntegrationUrlData> {
         try {
-            let clientId = "";
+            let clientId;
             if (this.dAppCode.includes("karate")) {
                 clientId = "17af1a19-2729-4ecc-8683-324a52eca6fc";
             } else {
@@ -816,6 +821,226 @@ export class BladeSDK {
 
             url.search = new URLSearchParams(purchaseParams as Record<keyof C14WidgetConfig, any>).toString();
             return this.sendMessageToNative(completionKey, {url: url.toString()});
+        } catch (error) {
+            return this.sendMessageToNative(completionKey, null, error);
+        }
+    }
+
+    /**
+     * Get swap quotes from different services
+     * @param sourceCode name (HBAR, KARATE, other token code)
+     * @param sourceAmount amount to swap, buy or sell
+     * @param targetCode name (HBAR, KARATE, USDC, other token code)
+     * @param strategy one of enum CryptoFlowServiceStrategy (Buy, Sell, Swap)
+     * @param completionKey optional field bridge between mobile webViews and native apps
+     * @returns {SwapQuotesData}
+     */
+    async exchangeGetQuotes(
+        sourceCode: string,
+        sourceAmount: number,
+        targetCode: string,
+        strategy: CryptoFlowServiceStrategy,
+        completionKey?: string
+    ):Promise<SwapQuotesData> {
+        try {
+            const useTestnet = this.network === Network.Testnet;
+            const chainId = parseInt(KnownChainIds[useTestnet ? KnownChain.HEDERA_TESTNET : KnownChain.HEDERA_MAINNET], 10);
+            const params: ICryptoFlowAssetsParams | ICryptoFlowQuoteParams | ICryptoFlowTransactionParams | any = {
+                sourceCode,
+                sourceAmount,
+                targetCode,
+                useTestnet,
+            }
+
+            switch (strategy.toLowerCase()) {
+                case CryptoFlowServiceStrategy.BUY.toLowerCase(): {
+                    params.targetChainId = chainId;
+                    break;
+                }
+                case CryptoFlowServiceStrategy.SELL.toLowerCase(): {
+                    params.sourceChainId = chainId;
+                    const assets = await getCryptoFlowData(
+                        this.network,
+                        this.visitorId,
+                        CryptoFlowRoutes.ASSETS,
+                        params,
+                        strategy
+                    ) as ICryptoFlowAssets;
+
+                    if (assets?.limits?.rates && assets.limits.rates.length > 0) {
+                        params.targetAmount = assets.limits.rates[0] * sourceAmount;
+                    }
+                    break;
+                }
+                case CryptoFlowServiceStrategy.SWAP.toLowerCase(): {
+                    params.sourceChainId = chainId;
+                    params.targetChainId = chainId;
+                    break;
+
+                }
+            }
+
+            const quotes = await getCryptoFlowData(
+                this.network,
+                this.visitorId,
+                CryptoFlowRoutes.QUOTES,
+                params,
+                strategy
+            );
+            return this.sendMessageToNative(completionKey, {quotes});
+        } catch (error) {
+            return this.sendMessageToNative(completionKey, null, error);
+        }
+    }
+
+    /**
+     * Swap tokens
+     * @param accountId account id
+     * @param accountPrivateKey account private key
+     * @param sourceCode name (HBAR, KARATE, other token code)
+     * @param sourceAmount amount to swap
+     * @param targetCode name (HBAR, KARATE, other token code)
+     * @param slippage slippage in percents. Transaction will revert if the price changes unfavorably by more than this percentage.
+     * @param serviceId service id to use for swap (saucerswap, etc)
+     * @param completionKey optional field bridge between mobile webViews and native apps
+     * @returns {success: boolean}
+     */
+    async swapTokens(
+        accountId: string,
+        accountPrivateKey: string,
+        sourceCode: string,
+        sourceAmount: number,
+        targetCode: string,
+        slippage: number,
+        serviceId: string,
+        completionKey?: string
+    ): Promise<{success: boolean}> {
+        try {
+            const client = this.getClient();
+            client.setOperator(accountId, accountPrivateKey);
+
+            const useTestnet = this.network === Network.Testnet;
+            const chainId = KnownChainIds[useTestnet ? KnownChain.HEDERA_TESTNET : KnownChain.HEDERA_MAINNET];
+            const quotes = await getCryptoFlowData(
+                this.network,
+                this.visitorId,
+                CryptoFlowRoutes.QUOTES,
+                {
+                    sourceCode,
+                    sourceChainId: chainId,
+                    sourceAmount,
+                    targetCode,
+                    targetChainId: chainId,
+                    useTestnet,
+                },
+                CryptoFlowServiceStrategy.SWAP
+            ) as ICryptoFlowQuote[];
+            const selectedQuote = quotes.find((quote) => quote.service.id === serviceId);
+            if (!selectedQuote) {
+                throw new Error("Quote not found");
+            }
+
+            const txData: ICryptoFlowTransaction = await getCryptoFlowData(
+                this.network,
+                this.visitorId,
+                CryptoFlowRoutes.TRANSACTION,
+                {
+                    serviceId,
+                    sourceCode,
+                    sourceChainId: chainId,
+                    sourceAddress: selectedQuote.source.asset.address,
+                    sourceAmount,
+                    targetCode,
+                    targetChainId: chainId,
+                    targetAddress: selectedQuote.target.asset.address,
+                    walletAddress: accountId,
+                    slippage,
+                    useTestnet
+                }
+            ) as ICryptoFlowTransaction;
+
+            if (await CryptoFlowService.validateMessage(txData)) {
+                await CryptoFlowService.executeAllowanceApprove(selectedQuote, accountId, this.network, client);
+                await CryptoFlowService.executeHederaSwapTx(txData.calldata, client);
+                await CryptoFlowService.executeHederaBladeFeeTx(selectedQuote, accountId, this.network, client);
+            } else {
+                throw new Error("Invalid signature of txData");
+            }
+            return this.sendMessageToNative(completionKey, {success: true});
+        } catch (error) {
+            return this.sendMessageToNative(completionKey, null, error);
+        }
+    }
+
+    /**
+     * Get configured url to buy or sell tokens or fiat
+     * @param strategy Buy / Sell
+     * @param accountId account id
+     * @param sourceCode name (HBAR, KARATE, USDC, other token code)
+     * @param sourceAmount amount to buy/sell
+     * @param targetCode name (HBAR, KARATE, USDC, other token code)
+     * @param slippage slippage in percents. Transaction will revert if the price changes unfavorably by more than this percentage.
+     * @param serviceId service id to use for swap (saucerswap, onmeta, etc)
+     * @param completionKey optional field bridge between mobile webViews and native apps
+     * @returns {IntegrationUrlData}
+     */
+    async getTradeUrl(
+        strategy: CryptoFlowServiceStrategy,
+        accountId: string,
+        sourceCode: string,
+        sourceAmount: number,
+        targetCode: string,
+        slippage: number,
+        serviceId: string,
+        completionKey?: string
+    ): Promise<IntegrationUrlData> {
+        try {
+            const useTestnet = this.network === Network.Testnet;
+            const chainId = KnownChainIds[useTestnet ? KnownChain.HEDERA_TESTNET : KnownChain.HEDERA_MAINNET];
+            const params: ICryptoFlowAssetsParams | ICryptoFlowQuoteParams | ICryptoFlowTransactionParams | any = {
+                sourceCode,
+                sourceAmount,
+                targetCode,
+                useTestnet,
+                walletAddress: accountId,
+                slippage
+            }
+
+            switch (strategy.toLowerCase()) {
+                case CryptoFlowServiceStrategy.BUY.toLowerCase(): {
+                    params.targetChainId = chainId;
+                    break;
+                }
+                case CryptoFlowServiceStrategy.SELL.toLowerCase(): {
+                    params.sourceChainId = chainId;
+                    const assets = await getCryptoFlowData(
+                        this.network,
+                        this.visitorId,
+                        CryptoFlowRoutes.ASSETS,
+                        params,
+                        strategy
+                    ) as ICryptoFlowAssets;
+
+                    if (assets?.limits?.rates && assets.limits.rates.length > 0) {
+                        params.targetAmount = assets.limits.rates[0] * sourceAmount;
+                    }
+                    break;
+                }
+            }
+
+            const quotes = await getCryptoFlowData(
+                this.network,
+                this.visitorId,
+                CryptoFlowRoutes.QUOTES,
+                params,
+                strategy
+            ) as ICryptoFlowQuote[];
+            const selectedQuote = quotes.find((quote) => quote.service.id === serviceId);
+            if (!selectedQuote) {
+                throw new Error("Quote not found");
+            }
+
+            return this.sendMessageToNative(completionKey, {url: selectedQuote.widgetUrl});
         } catch (error) {
             return this.sendMessageToNative(completionKey, null, error);
         }

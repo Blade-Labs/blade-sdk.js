@@ -27,6 +27,9 @@ description: More details on how to use Blade-SDK.js
 * [hethersSign](usage.md#hetherssign)
 * [splitSignature](usage.md#splitsignature)
 * [getC14url](usage.md#getc14url)
+* [exchangeGetQuotes](usage.md#exchangeGetQuotes)
+* [swapTokens](usage.md#swapTokens)
+* [getTradeUrl](usage.md#getTradeUrl)
 * [sendMessageToNative](usage.md#sendmessagetonative)
 
 ## Methods
@@ -420,6 +423,76 @@ Get configured url for C14 integration (iframe or popup)
 
 #### Returns
 
+`Promise<IntegrationUrlData>`
+
+### exchangeGetQuotes
+
+▸ **exchangeGetQuotes**(`sourceCode`, `sourceAmount`, `targetCode`, `strategy`, `completionKey?`): `Promise<SwapQuotesData>`
+
+Get swap quotes from different services
+
+#### Parameters
+
+| Name             | Type     | Description                                                        |
+| ---------------- | -------- |--------------------------------------------------------------------|
+| `sourceCode`     | `string` | name (HBAR, KARATE, other token code)                              |
+| `sourceAmount`   | `string` | source amount swap, buy or sell                                    |
+| `targetCode`     | `string` | target asset code (HBAR, KARATE, USDC, other token code)           |
+| `strategy`       | `string` | strategy one of enum `CryptoFlowServiceStrategy` (Buy, Sell, Swap) |
+| `completionKey?` | `string` | optional field bridge between mobile webViews and native apps      |
+
+#### Returns
+
+`Promise<SwapQuotesData>`
+
+***
+
+### swapTokens
+
+▸ **swapTokens**(`accountId`, `accountPrivateKey`, `sourceCode`, `sourceAmount`, `targetCode`, `slippage`, `serviceId`, `completionKey?`): `Promise<{success: boolean}>`
+
+Swap tokens
+
+#### Parameters
+
+| Name                | Type     | Description                                                                                                         |
+|---------------------| -------- |---------------------------------------------------------------------------------------------------------------------|
+| `accountId`         | `string` | account id (0.0.xxxxx)                                                                                              |
+| `accountPrivateKey` | `string` | hex-encoded private key with DER header                                                                             |
+| `sourceCode`        | `string` | source asset code (HBAR, KARATE, other token code)                                                                  |
+| `sourceAmount`      | `string` | source amount to swap                                                                                               |
+| `targetCode`        | `string` | target asset code (HBAR, KARATE, USDC, other token code)                                                            |
+| `slippage`          | `string` | slippage in percents (0.5). Transaction will revert if the price changes unfavorably by more than this percentage.  |
+| `serviceId`         | `string` | service id to use for swap (saucerswap, etc)                                                                                             |
+| `completionKey?`    | `string` | optional field bridge between mobile webViews and native apps                                                       |
+
+#### Returns
+
+`Promise<{success: boolean}>`
+
+***
+
+### getTradeUrl
+
+▸ **getTradeUrl**(`strategy`, `accountId`, `sourceCode`, `sourceAmount`, `targetCode`, `slippage`, `serviceId`, `completionKey?`): `Promise<IntegrationUrlData>`
+
+Get configured url to buy or sell tokens or fiat
+
+#### Parameters
+
+| Name                | Type     | Description                                                                                                        |
+|---------------------| -------- |--------------------------------------------------------------------------------------------------------------------|
+| `strategy`          | `string` | strategy (`buy` or `sell`)                                                                                         |
+| `accountId`         | `string` | account id (0.0.xxxxx)                                                                                             |
+| `sourceCode`        | `string` | source asset code (HBAR, KARATE, USDC, EUR, other token or fiat code)                                              |
+| `sourceAmount`      | `string` | source amount to buy/sell                                                                                          |
+| `targetCode`        | `string` | source asset code (HBAR, KARATE, USDC, EUR, other token or fiat code)                                              |
+| `slippage`          | `string` | slippage in percents (0.5). Transaction will revert if the price changes unfavorably by more than this percentage. |
+| `serviceId`         | `string` | service id to use for buy/sell (c14, etc)                                                                          |
+| `completionKey?`    | `string` | optional field bridge between mobile webViews and native apps                                                      |
+
+#### Returns
+    
 `Promise<IntegrationUrlData>`
 
 ***
