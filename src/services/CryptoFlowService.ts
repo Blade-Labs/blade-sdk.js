@@ -6,11 +6,11 @@ import {
 } from "../models/CryptoFlow";
 import {Buffer} from "buffer";
 import BigNumber from "bignumber.js";
-import {flattenDeep} from "lodash";
 import {AccountAllowanceApproveTransaction, Client, Status, Transaction} from "@hashgraph/sdk";
 import {Network} from "../models/Networks";
 import {createFeeTransaction, HbarTokenId} from "./FeeService";
 import {getConfig} from "./ConfigService";
+import {flatArray} from "../helpers/ArrayHelpers";
 
 export const validateMessage = async (tx: ICryptoFlowTransaction) => {
     try {
@@ -117,7 +117,7 @@ export const executeHederaBladeFeeTx = async (selectedQuote: ICryptoFlowQuote, a
 
 async function isHbar(tokenId: string): Promise<boolean> {
     const WHBARs = JSON.parse(await getConfig("swapWrapHbar"));
-    const arr: string[] = flattenDeep(Object.values(WHBARs));
+    const arr: string[] = flatArray(Object.values(WHBARs));
     arr.push(HbarTokenId);
     return arr.includes(tokenId);
 }

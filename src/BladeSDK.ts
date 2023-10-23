@@ -29,7 +29,7 @@ import {
     requestTokenInfo,
     initApiService,
     signContractCallTx,
-    transferTokens, getAccountBalance
+    transferTokens, getAccountBalance, getBladeConfig
 } from "./services/ApiService";
 import CryptoFlowService from "./services/CryptoFlowService";
 import {Network} from "./models/Networks";
@@ -69,6 +69,7 @@ import {
     ICryptoFlowQuote, ICryptoFlowQuoteParams,
     ICryptoFlowTransaction, ICryptoFlowTransactionParams
 } from "./models/CryptoFlow";
+import * as FingerprintJS from '@fingerprintjs/fingerprintjs-pro'
 
 export class BladeSDK {
     private apiKey: string = "";
@@ -98,7 +99,7 @@ export class BladeSDK {
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {InfoData} status: "success" or "error"
      */
-    init(
+    async init(
         apiKey: string,
         network: string,
         dAppCode: string,
@@ -115,6 +116,15 @@ export class BladeSDK {
         this.sdkVersion = sdkVersion;
 
         initApiService(apiKey, dAppCode, sdkEnvironment, sdkVersion, this.network);
+        if (!visitorId) {
+            try {
+                const bladeConfig = await getBladeConfig()
+                const fpPromise = await FingerprintJS.load({ apiKey: bladeConfig.fpApiKey })
+                this.visitorId = (await fpPromise.get()).visitorId;
+            } catch (error) {
+                console.log("failed to get visitor id", error);
+            }
+        }
 
         return this.sendMessageToNative(completionKey, {
             apiKey: this.apiKey,
