@@ -1,5 +1,4 @@
 import {
-    AccountBalanceQuery,
     AccountDeleteTransaction,
     Client,
     ContractCallQuery,
@@ -970,8 +969,13 @@ export class BladeSDK {
             ) as ICryptoFlowTransaction;
 
             if (await CryptoFlowService.validateMessage(txData)) {
-                await CryptoFlowService.executeAllowanceApprove(selectedQuote, accountId, this.network, client);
-                await CryptoFlowService.executeHederaSwapTx(txData.calldata, client);
+                await CryptoFlowService.executeAllowanceApprove(selectedQuote, accountId, this.network, client, true);
+                try {
+                    await CryptoFlowService.executeHederaSwapTx(txData.calldata, client);
+                } catch (e) {
+                    await CryptoFlowService.executeAllowanceApprove(selectedQuote, accountId, this.network, client, false);
+                    throw e
+                }
                 await CryptoFlowService.executeHederaBladeFeeTx(selectedQuote, accountId, this.network, client);
             } else {
                 throw new Error("Invalid signature of txData");
