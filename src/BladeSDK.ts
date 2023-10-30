@@ -20,15 +20,17 @@ import {
     checkAccountCreationStatus,
     confirmAccountUpdate,
     createAccount,
+    getAccountBalance,
     getAccountsFromPublicKey,
+    getBladeConfig,
     getC14token,
     getCryptoFlowData,
     getPendingAccountData,
     getTransactionsFrom,
-    requestTokenInfo,
     initApiService,
+    requestTokenInfo,
     signContractCallTx,
-    transferTokens, getAccountBalance, getBladeConfig
+    transferTokens
 } from "./services/ApiService";
 import CryptoFlowService from "./services/CryptoFlowService";
 import {Network} from "./models/Networks";
@@ -625,7 +627,7 @@ export class BladeSDK {
      */
     async getKeysFromMnemonic(mnemonicRaw: string, lookupNames: boolean, completionKey?: string): Promise<PrivateKeyData> {
         try {
-            const mnemonic = await Mnemonic.fromString(mnemonicRaw);
+            const mnemonic = await Mnemonic.fromString(mnemonicRaw.toLowerCase());
             const privateKey = await mnemonic.toEcdsaPrivateKey();
             const publicKey = privateKey.publicKey;
             let accounts: string[] = [];
