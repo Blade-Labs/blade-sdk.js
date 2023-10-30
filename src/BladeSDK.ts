@@ -627,7 +627,12 @@ export class BladeSDK {
      */
     async getKeysFromMnemonic(mnemonicRaw: string, lookupNames: boolean, completionKey?: string): Promise<PrivateKeyData> {
         try {
-            const mnemonic = await Mnemonic.fromString(mnemonicRaw.toLowerCase());
+            const mnemonic = await Mnemonic.fromString(mnemonicRaw
+                .toLowerCase()
+                .split(" ")
+                .filter(word => word)
+                .join(" ")
+            );
             const privateKey = await mnemonic.toEcdsaPrivateKey();
             const publicKey = privateKey.publicKey;
             let accounts: string[] = [];
