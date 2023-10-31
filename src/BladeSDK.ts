@@ -1,5 +1,4 @@
 import {
-    AccountBalanceQuery,
     AccountDeleteTransaction,
     Client,
     ContractCallQuery,
@@ -21,15 +20,17 @@ import {
     checkAccountCreationStatus,
     confirmAccountUpdate,
     createAccount,
+    getAccountBalance,
     getAccountsFromPublicKey,
+    getBladeConfig,
     getC14token,
     getCryptoFlowData,
     getPendingAccountData,
     getTransactionsFrom,
-    requestTokenInfo,
     initApiService,
+    requestTokenInfo,
     signContractCallTx,
-    transferTokens, getAccountBalance, getBladeConfig
+    transferTokens
 } from "./services/ApiService";
 import CryptoFlowService from "./services/CryptoFlowService";
 import {Network} from "./models/Networks";
@@ -626,7 +627,12 @@ export class BladeSDK {
      */
     async getKeysFromMnemonic(mnemonicRaw: string, lookupNames: boolean, completionKey?: string): Promise<PrivateKeyData> {
         try {
-            const mnemonic = await Mnemonic.fromString(mnemonicRaw);
+            const mnemonic = await Mnemonic.fromString(mnemonicRaw
+                .toLowerCase()
+                .split(" ")
+                .filter(word => word)
+                .join(" ")
+            );
             const privateKey = await mnemonic.toEcdsaPrivateKey();
             const publicKey = privateKey.publicKey;
             let accounts: string[] = [];
@@ -970,8 +976,13 @@ export class BladeSDK {
             ) as ICryptoFlowTransaction;
 
             if (await CryptoFlowService.validateMessage(txData)) {
-                await CryptoFlowService.executeAllowanceApprove(selectedQuote, accountId, this.network, client);
-                await CryptoFlowService.executeHederaSwapTx(txData.calldata, client);
+                await CryptoFlowService.executeAllowanceApprove(selectedQuote, accountId, this.network, client, true);
+                try {
+                    await CryptoFlowService.executeHederaSwapTx(txData.calldata, client);
+                } catch (e) {
+                    await CryptoFlowService.executeAllowanceApprove(selectedQuote, accountId, this.network, client, false);
+                    throw e
+                }
                 await CryptoFlowService.executeHederaBladeFeeTx(selectedQuote, accountId, this.network, client);
             } else {
                 throw new Error("Invalid signature of txData");

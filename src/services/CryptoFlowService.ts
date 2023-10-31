@@ -45,7 +45,7 @@ export const validateMessage = async (tx: ICryptoFlowTransaction) => {
     }
 }
 
-export const executeAllowanceApprove = async(selectedQuote: ICryptoFlowQuote, activeAccount: string, network: Network, client: Client): Promise<void> => {
+export const executeAllowanceApprove = async(selectedQuote: ICryptoFlowQuote, activeAccount: string, network: Network, client: Client, approve: boolean = true): Promise<void> => {
     const sourceToken = selectedQuote.source.asset;
     if (!sourceToken.address)
         return;
@@ -54,11 +54,13 @@ export const executeAllowanceApprove = async(selectedQuote: ICryptoFlowQuote, ac
 
     if (!isTokenHbar) {
         const swapContract = JSON.parse(await getConfig("swapContract"));
-        const amount = Math.ceil(
-            Math.pow(10, sourceToken!.decimals!) * (
-                selectedQuote.source.amountExpected! * 1.2 // with a little buffer
+        const amount = approve
+            ? Math.ceil(
+                Math.pow(10, sourceToken!.decimals!) * (
+                    selectedQuote.source.amountExpected! * 1.2 // with a little buffer
+                )
             )
-        );
+            : 0;
 
         const tx = new AccountAllowanceApproveTransaction()
             .setMaxTransactionFee(100)
