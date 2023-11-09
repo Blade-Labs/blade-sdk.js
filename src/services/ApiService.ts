@@ -2,7 +2,7 @@ import {Buffer} from "buffer";
 import {AccountId, PublicKey} from "@hashgraph/sdk";
 import {Network, NetworkMirrorNodes} from "../models/Networks";
 import {AccountInfoMirrorResponse} from "../models/MirrorNode";
-import {ConfirmUpdateAccountData, SdkEnvironment, TransactionData} from "../models/Common";
+import {BladeConfig, ConfirmUpdateAccountData, DAppConfig, SdkEnvironment, TransactionData} from "../models/Common";
 import {flatArray} from "../helpers/ArrayHelpers";
 import {filterAndFormatTransactions} from "../helpers/TransactionHelpers";
 import {encrypt} from "../helpers/SecurityHelper";
@@ -16,6 +16,7 @@ import {
 let sdkVersion = ``;
 let apiKey = ``;
 let dAppCode = ``;
+let visitorId = ``;
 let environment: SdkEnvironment = SdkEnvironment.Prod;
 let network: Network = Network.Testnet;
 
@@ -24,12 +25,17 @@ const tokenInfoCache: {[key in Network]: { [key: string]: any }} = {
     [Network.Testnet]: {}
 };
 
-export const initApiService = (token: string, code: string, sdkEnvironment: SdkEnvironment, version: string, net: Network) => {
+export const initApiService = (token: string, code: string, sdkEnvironment: SdkEnvironment, version: string, net: Network, fingerprint: string) => {
     apiKey = token;
     dAppCode = code;
     environment = sdkEnvironment;
     sdkVersion = version;
     network = net;
+    visitorId = fingerprint;
+}
+
+export const setVisitorId = (fingerprint: string) => {
+    visitorId = fingerprint;
 }
 
 const getTvteHeader = async () => {
@@ -108,7 +114,7 @@ export const GET = (network: Network, route: string) => {
         .then(x => x.json());
 };
 
-export const getBladeConfig = async () => {
+export const getBladeConfig = async (): Promise<BladeConfig> => {
     const url = `${getApiUrl()}/sdk/config`;
     const options = {
         method: "GET",
@@ -124,6 +130,26 @@ export const getBladeConfig = async () => {
     return fetch(url, options)
         .then(statusCheck)
         .then(x => x.json());
+}
+
+export const getDappConfig = async (): Promise<DAppConfig> => {
+    const url = `${getApiUrl()}/${dAppCode}/config`;
+    const options = {
+        method: "GET",
+        headers: new Headers({
+            "X-NETWORK": network.toUpperCase(),
+            "X-VISITOR-ID": visitorId,
+            "X-SDK-TVTE-API": await getTvteHeader(),
+            "Content-Type": "application/json"
+        })
+    };
+
+    return fetch(url, options)
+        .then(statusCheck)
+        .then(x => x.json())
+        .then(config => {
+            return config[dAppCode];
+        })
 }
 
 export const createAccount = async (network: Network, params: any) => {

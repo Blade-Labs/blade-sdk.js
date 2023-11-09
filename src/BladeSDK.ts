@@ -29,6 +29,7 @@ import {
     getTransactionsFrom,
     initApiService,
     requestTokenInfo,
+    setVisitorId,
     signContractCallTx,
     transferTokens
 } from "./services/ApiService";
@@ -116,12 +117,13 @@ export class BladeSDK {
         this.sdkEnvironment = sdkEnvironment;
         this.sdkVersion = sdkVersion;
 
-        initApiService(apiKey, dAppCode, sdkEnvironment, sdkVersion, this.network);
+        initApiService(apiKey, dAppCode, sdkEnvironment, sdkVersion, this.network, visitorId);
         if (!visitorId) {
             try {
                 const bladeConfig = await getBladeConfig()
-                const fpPromise = await FingerprintJS.load({ apiKey: bladeConfig.fpApiKey })
+                const fpPromise = await FingerprintJS.load({ apiKey: bladeConfig.fpApiKey! })
                 this.visitorId = (await fpPromise.get()).visitorId;
+                setVisitorId(this.visitorId);
             } catch (error) {
                 console.log("failed to get visitor id", error);
             }

@@ -28,6 +28,64 @@ export const KnownChainNames = {
     [KnownChainIds[KnownChain.HEDERA_TESTNET]]: "Hedera Testnet"
 }
 
+export interface BladeConfig {
+    fpApiKey?: string,
+    exchangeServiceSignerPubKey?: string,
+    swapContract?: string,
+    swapWrapHbar?: string,
+    saucerswapApi?: string,
+    [key: string]: string | undefined; // Index signature
+}
+
+export interface FeeFeatureConfig {
+    collector: string, // "0.0.1753455"
+    min: number, // 0.44
+    amount: number, // 0
+    max: number, // 0.44,
+    limitsCurrency: string, // "usd"
+}
+
+export interface FeeConfig {
+    AccountCreate: FeeFeatureConfig,
+    TradeNFT: FeeFeatureConfig,
+    TransferHBAR: FeeFeatureConfig,
+    TransferToken: FeeFeatureConfig,
+    TransferNFT: FeeFeatureConfig,
+    ScheduledTransferHBAR: FeeFeatureConfig,
+    ScheduledTransferToken: FeeFeatureConfig,
+    StakingClaim: FeeFeatureConfig,
+    Swap: FeeFeatureConfig,
+    Default: FeeFeatureConfig
+}
+
+export interface TokensConfig {
+    association: string[],
+    ftTransfer: string[],
+    nftTransfer: string[],
+    kycNeeded: string[]
+}
+
+export interface DAppConfig {
+    autoAssociate: string, // boolean
+    displayName: string,
+    redirectUrl: string,
+    smartContract: string, // boolean
+    freeSchedules: string, // boolean
+    freeAssociate: string, // boolean
+    freeTransfer: string, // boolean
+    autoAssociatePresetTokens: string, // boolean
+    automaticTokenAssociations: string, // boolean
+    fees: {
+        mainnet: FeeConfig,
+        testnet: FeeConfig
+    },
+    tokens: {
+        mainnet: TokensConfig,
+        testnet: TokensConfig
+    },
+    [key: string]: any | undefined; // Index signature
+}
+
 
 export interface BridgeResponse {
     completionKey: string,
