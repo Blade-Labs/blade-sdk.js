@@ -59,8 +59,8 @@ export const addBladeFee = async <T extends Transaction>(
         }
 
         const feature: FeeType = manualOptions.type;// || detectFeeType(tx);
-        const feesConfig = JSON.parse(await getConfig("feesConfig"));
-        const featureConfig = feesConfig[network][feature];
+        const feesConfig = await getConfig("fees");
+        const featureConfig = feesConfig[network.toLowerCase()][feature];
         const feeAmount = await calculateFeeAmount(tx, network, featureConfig, manualOptions);
         modifyTransactionWithFee(tx, payerAccount, featureConfig.collector, feeAmount);
 
