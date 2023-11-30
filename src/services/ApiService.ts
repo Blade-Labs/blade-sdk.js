@@ -2,7 +2,14 @@ import {Buffer} from "buffer";
 import {AccountId, PublicKey} from "@hashgraph/sdk";
 import {Network, NetworkMirrorNodes} from "../models/Networks";
 import {AccountInfoMirrorResponse} from "../models/MirrorNode";
-import {BladeConfig, ConfirmUpdateAccountData, DAppConfig, SdkEnvironment, TransactionData} from "../models/Common";
+import {
+    BladeConfig, CoinData,
+    CoinInfoRaw,
+    ConfirmUpdateAccountData,
+    DAppConfig,
+    SdkEnvironment,
+    TransactionData
+} from "../models/Common";
 import {flatArray} from "../helpers/ArrayHelpers";
 import {filterAndFormatTransactions} from "../helpers/TransactionHelpers";
 import {encrypt} from "../helpers/SecurityHelper";
@@ -242,6 +249,42 @@ export const getAccountBalance = async (accountId: string) => {
         tokens
     };
 }
+
+export const getCoins = async (params: any): Promise<CoinInfoRaw[]> => {
+    const url = `${getApiUrl()}/prices/coins/list?include_platform=true`;
+    const options = {
+        method: "GET",
+        headers: new Headers({
+            "X-NETWORK": network.toUpperCase(),
+            "X-VISITOR-ID": params.visitorId,
+            "X-DAPP-CODE": params.dAppCode,
+            "X-SDK-TVTE-API": await getTvteHeader(),
+            "Content-Type": "application/json"
+        })
+    };
+
+    return fetch(url, options)
+        .then(statusCheck)
+        .then(x => x.json());
+};
+
+export const getCoinInfo = async (coinId: string, params: any): Promise<CoinData> => {
+    const url = `${getApiUrl()}/prices/coins/${coinId}?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false`;
+    const options = {
+        method: "GET",
+        headers: new Headers({
+            "X-NETWORK": network.toUpperCase(),
+            "X-VISITOR-ID": params.visitorId,
+            "X-DAPP-CODE": params.dAppCode,
+            "X-SDK-TVTE-API": await getTvteHeader(),
+            "Content-Type": "application/json"
+        })
+    };
+
+    return fetch(url, options)
+        .then(statusCheck)
+        .then(x => x.json());
+};
 
 const getAccountTokens = async (accountId: string) => {
     const result = [];

@@ -11,6 +11,8 @@ description: More details on how to use Blade-SDK.js
 * [constructor](usage.md#constructor)
 * [init](usage.md#init)
 * [getBalance](usage.md#getbalance)
+* [getCoinList](usage.md#getcoinlist)
+* [getCoinPrice](usage.md#getcoinprice)
 * [createAccount](usage.md#createaccount)
 * [getPendingAccount](usage.md#getpendingaccount)
 * [getAccountInfo](usage.md#getaccountinfo)
@@ -84,6 +86,44 @@ Get hbar and token balances for specific account.
 #### Returns
 
 `Promise<BalanceData>` hbars, tokens\[]
+
+***
+
+### getCoinList
+
+▸ **getCoinList**(`completionKey?`): `Promise<CoinListData>`
+
+Get list of all available coins on CoinGecko.
+
+#### Parameters
+
+| Name             | Type     | Description                                                   |
+| ---------------- | -------- | ------------------------------------------------------------- |
+| `completionKey?` | `string` | optional field bridge between mobile webViews and native apps |
+
+#### Returns
+
+`Promise<CoinListData>` coin list, with id, name, symbol, platforms.
+
+
+***
+
+### getCoinPrice
+
+▸ **getCoinPrice**(`search`, `completionKey?`): `Promise<CoinInfoData>`
+
+Get coin price and coin info from CoinGecko. Search can be coin id or address in one of the coin platforms.
+
+#### Parameters
+
+| Name             | Type     | Description                                                                                                 |
+|------------------| -------- |-------------------------------------------------------------------------------------------------------------|
+| `search`         | `string` | CoinGecko coinId, or address in one of the coin platforms or `hbar` (default, alias for `hedera-hashgraph`) |
+| `completionKey?` | `string` | optional field bridge between mobile webViews and native apps                                               |
+
+#### Returns
+
+`Promise<CoinInfoData>` coin price in USD and all coin info from CoinGecko.
 
 ***
 
