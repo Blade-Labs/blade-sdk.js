@@ -333,8 +333,6 @@ export class BladeSDK {
                         contractId: txReceipt.contractId?.toString(),
                         topicSequenceNumber: txReceipt.topicSequenceNumber?.toString(),
                         totalSupply: txReceipt.totalSupply?.toString(),
-                        // TODO check if we need serial
-                        serial: txReceipt.serials?.map(value => value.toString())
                     };
                     return this.sendMessageToNative(completionKey, result);
                 })
@@ -420,7 +418,7 @@ export class BladeSDK {
                 return this.sendMessageToNative(completionKey, null, error);
             }
         } catch (error) {
-            return this.sendMessageToNative(completionKey, null, error)
+            return this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -655,8 +653,6 @@ export class BladeSDK {
                 contractId: txReceipt.contractId?.toString(),
                 topicSequenceNumber: txReceipt.topicSequenceNumber?.toString(),
                 totalSupply: txReceipt.totalSupply?.toString(),
-                // TODO check if we need serial
-                serial: txReceipt.serials?.map(value => value.toString())
             };
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {

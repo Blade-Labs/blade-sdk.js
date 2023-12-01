@@ -54,9 +54,14 @@ const getTvteHeader = async () => {
 }
 
 const getApiUrl = (): string => {
-    return environment === SdkEnvironment.Prod
-        ? "https://rest.prod.bladewallet.io/openapi/v7"
-        : "https://api.bld-dev.bladewallet.io/openapi/v7";
+    if (environment === SdkEnvironment.Prod) {
+        return "https://rest.prod.bladewallet.io/openapi/v7";
+    }
+    if (process.env.NODE_ENV === "test" && environment === SdkEnvironment.Test) {
+        return "https://localhost:8080/openapi/v7";
+    }
+    // CI
+    return "https://api.bld-dev.bladewallet.io/openapi/v7";
 }
 
 const fetchWithRetry = async (url: string, options: RequestInit, maxAttempts = 3) => {

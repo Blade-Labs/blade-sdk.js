@@ -4,7 +4,8 @@ import {ICryptoFlowQuote} from "./CryptoFlow";
 
 export enum SdkEnvironment {
     Prod = "Prod",
-    CI = "CI"
+    CI = "CI",
+    Test = "Test"
 }
 
 export enum KnownChain {
