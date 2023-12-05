@@ -446,7 +446,7 @@ test('bladeSdk.getAccountInfo', async () => {
     checkResult(account);
     const newAccountId = account.data.accountId;
 
-    await sleep(7_000);
+    await sleep(15_000);
 
     let accountInfo = await bladeSdk.getAccountInfo(newAccountId, completionKey);
     checkResult(accountInfo);
