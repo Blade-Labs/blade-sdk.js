@@ -2,7 +2,6 @@ import {Network} from "../models/Networks";
 import {AccountId, Hbar, ScheduleCreateTransaction, Transaction, TransferTransaction} from "@hashgraph/sdk";
 import {FeeManualOptions, FeeType} from "../models/CryptoFlow";
 import BigNumber from "bignumber.js";
-import Long from "long";
 import {getConfig} from "./ConfigService";
 
 export const HbarTokenId = "0.0.0";
