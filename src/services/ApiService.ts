@@ -3,7 +3,8 @@ import {AccountId, PublicKey} from "@hashgraph/sdk";
 import {Network, NetworkMirrorNodes} from "../models/Networks";
 import {AccountInfoMirrorResponse} from "../models/MirrorNode";
 import {
-    BladeConfig, CoinData,
+    BladeConfig,
+    CoinData,
     CoinInfoRaw,
     ConfirmUpdateAccountData,
     DAppConfig,
@@ -288,7 +289,16 @@ export const getCoinInfo = async (coinId: string, params: any): Promise<CoinData
 
     return fetch(url, options)
         .then(statusCheck)
-        .then(x => x.json());
+        .then(x => x.json())
+        .then(coinInfo => {
+            return {
+                ...coinInfo,
+                platforms: Object.keys(coinInfo.platforms).map(name => ({
+                    name,
+                    address: coinInfo.platforms[name]
+                }))
+            };
+        })
 };
 
 const getAccountTokens = async (accountId: string) => {

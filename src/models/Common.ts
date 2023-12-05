@@ -251,6 +251,10 @@ export interface CoinData { // partial
         small: string,
         large: string
     },
+    platforms: {
+        name: string,
+        address: string
+    }[],
     market_data: {
         current_price: {
             [key: string]: number
