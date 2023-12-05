@@ -46,7 +46,7 @@ beforeEach(async () => {
     checkResult(result);
 });
 
-test('bladeSdk defined', () => {
+test('bladeSdk.defined', () => {
     expect(window["bladeSdk"]).toBeDefined()
 });
 
@@ -772,30 +772,48 @@ test('bladeSdk.exchangeGetQuotes', async () => {
     result = await bladeSdk.exchangeGetQuotes("USDC", 30, "PHP", "Sell", completionKey);
     checkResult(result);
 
-    // TODO make it work
-    // result = await bladeSdk.exchangeGetQuotes("HBAR", 5, "USDC", "Swap", completionKey);
-    // checkResult(result);
-    // console.log(result);
+    result = await bladeSdk.exchangeGetQuotes("HBAR", 5, "USDC", "Swap", completionKey);
+    checkResult(result);
 
     result = await bladeSdk.exchangeGetQuotes("aaaaaaa", 0, "bbbbbb", "FFFF", completionKey);
     checkResult(result, false);
 }, 50_000);
 
 test('bladeSdk.swapTokens', async () => {
-    // TODO make it work after fixing the issue with the exchangeGetQuotes for swap
+    let result = await bladeSdk.init(
+        process.env.API_KEY,
+        process.env.NETWORK,
+        process.env.DAPP_CODE,
+        process.env.VISITOR_ID,
+        process.env.SDK_ENV,
+        sdkVersion,
+        completionKey);
+    checkResult(result);
 
-    // let result = await bladeSdk.swapTokens(
-    //     "0.0.3045589",
-    //             privateKey,
-    //             "USDC",
-    //             0.01,
-    //             "HBAR",
-    //             0.5,
-    //             "saucerswap",
-    //             completionKey
-    // );
-    // checkResult(result);
-});
+    result = await bladeSdk.swapTokens(
+        process.env.ACCOUNT_ID_ED25519,
+        process.env.PRIVATE_KEY_ED25519,
+        "USDC",
+        0.00001,
+        "HBAR",
+        0.5,
+        "saucerswap",
+        completionKey
+    );
+    checkResult(result);
+
+    result = await bladeSdk.swapTokens(
+        process.env.ACCOUNT_ID_ED25519,
+        process.env.PRIVATE_KEY_ED25519,
+        "USDC",
+        0.00001,
+        "HBAR",
+        0.5,
+        "unknown-service-id",
+        completionKey
+    );
+    checkResult(result, false);
+}, 60_000);
 
 test('bladeSdk.getTradeUrl', async () => {
     let result = await bladeSdk.init(

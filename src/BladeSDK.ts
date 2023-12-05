@@ -399,6 +399,7 @@ export class BladeSDK {
                         functionParameters: Uint8Array.from([]),
                         senderAccountId: null,
                         stateChanges: [],
+                        contractNonces: []
                     });
                 } else {
                     response = await new ContractCallQuery()

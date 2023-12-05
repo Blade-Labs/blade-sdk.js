@@ -12,5 +12,9 @@ const config: Config.InitialOptions = {
     setupFiles: ["core-js"],
     setupFilesAfterEnv: ["<rootDir>/test/src/helpers.ts"],
     maxConcurrency: 5,
+    globals: {
+        Uint8Array: Uint8Array,
+        ArrayBuffer: ArrayBuffer
+    }
 };
 export default config;

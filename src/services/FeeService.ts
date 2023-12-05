@@ -112,26 +112,6 @@ function modifyTransactionWithFee(
     }
 }
 
-async function getHBAREquivalentAmountFromTransferTransaction(tx: TransferTransaction, network: Network): Promise<BigNumber> {
-    let amount: BigNumber = BigNumber(0);
-    if (tx.tokenTransfers?.size > 0) {
-        for (const [tokenId, accountMap] of tx.tokenTransfers) {
-            const spentAmount = [...accountMap.values()]
-                .filter(v => v.gt(0))
-                .reduce((summ, val) => summ.add(val), Long.ZERO);
-            const rate = await getHBARRateByTokenId(network, tokenId.toString());
-            amount = amount.plus(BigNumber(spentAmount.toNumber()).multipliedBy(rate));
-        }
-    }
-    if (tx.hbarTransfers?.size > 0) {
-        const spentAmount = [...tx.hbarTransfers.values()]
-            .filter(h => !h.isNegative())
-            .reduce((summ, h) => summ.plus(h.toTinybars().toNumber()), BigNumber(0));
-        amount = amount.plus(spentAmount);
-    }
-    return amount;
-}
-
 async function applyLimits(amount: BigNumber, network: Network, config: FeatureFeeConfig): Promise<Hbar> {
     const minInTinyHbars = await convertAmountToTinyBarsByCurrencyType(network, config.min, config.limitsCurrency);
     const maxInTinyHbars = await convertAmountToTinyBarsByCurrencyType(network, config.max, config.limitsCurrency);

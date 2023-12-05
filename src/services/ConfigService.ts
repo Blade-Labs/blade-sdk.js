@@ -19,7 +19,7 @@ export const getConfig = async (key: string): Promise<any> => {
         return config[key];
     }
 
-    if (!dAppConfig.fees) { // check if dAppConfig is empty
+    if (!dAppConfig?.fees) { // check if dAppConfig is empty
         dAppConfig = await getDappConfig();
     }
     if (dAppConfig[key] !== undefined) {
