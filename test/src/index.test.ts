@@ -1,4 +1,4 @@
-import {AccountId, Client, ContractCallQuery, Hbar, Mnemonic} from "@hashgraph/sdk";
+import {AccountId, Client, ContractCallQuery, Hbar, Mnemonic, PrivateKey} from "@hashgraph/sdk";
 import {associateToken, checkResult, createToken, getTokenInfo, sleep} from "./helpers";
 import {GET, getTransaction} from "../../src/services/ApiService";
 import {Network} from "../../src/models/Networks";
@@ -7,11 +7,14 @@ import {Buffer} from "buffer";
 import config from "../../src/config";
 const {BladeSDK, ParametersBuilder} = require("../../src/webView");
 import dotenv from "dotenv";
-import fetch from"node-fetch";
-import {PrivateKey} from "@hashgraph/sdk";
+import fetch from "node-fetch";
 import {ethers} from "ethers";
-import { TextEncoder, TextDecoder } from 'util';
+import {TextDecoder, TextEncoder} from 'util';
 import crypto from "crypto";
+import {flatArray} from "../../src/helpers/ArrayHelpers";
+import {parseContractFunctionParams} from "../../src/helpers/ContractHelpers";
+import {decrypt, encrypt} from "../../src/helpers/SecurityHelper";
+import {SdkEnvironment} from "../../src/models/Common";
 
 Object.defineProperty(global.self, "crypto", {
     value: {
@@ -31,12 +34,7 @@ const accountId = process.env.ACCOUNT_ID;
 const privateKey2 = process.env.PRIVATE_KEY2; // ECDSA
 const accountId2 = process.env.ACCOUNT_ID2;
 
-
-test('bladeSdk defined', () => {
-    expect(window["bladeSdk"]).toBeDefined()
-});
-
-test('bladeSdk.init', async () => {
+beforeEach(async () => {
     const result = await bladeSdk.init(
         process.env.API_KEY,
         process.env.NETWORK,
@@ -45,6 +43,54 @@ test('bladeSdk.init', async () => {
         process.env.SDK_ENV,
         sdkVersion,
         completionKey);
+    checkResult(result);
+});
+
+test('bladeSdk.defined', () => {
+    expect(window["bladeSdk"]).toBeDefined()
+});
+
+test('bladeSdk.init', async () => {
+    let result = await bladeSdk.init(
+        process.env.API_KEY,
+        process.env.NETWORK,
+        process.env.DAPP_CODE,
+        "", // empty visitor id,
+        process.env.SDK_ENV,
+        sdkVersion,
+        completionKey);
+    checkResult(result);
+    expect(result.data).toHaveProperty("apiKey");
+    expect(result.data).toHaveProperty("dAppCode");
+    expect(result.data).toHaveProperty("network");
+    expect(result.data).toHaveProperty("visitorId");
+    expect(result.data).toHaveProperty("sdkEnvironment");
+    expect(result.data).toHaveProperty("sdkVersion");
+    expect(result.data).toHaveProperty("nonce");
+
+    result = await bladeSdk.init(
+        process.env.API_KEY,
+        process.env.NETWORK,
+        process.env.DAPP_CODE,
+        process.env.VISITOR_ID,
+        SdkEnvironment.Prod,
+        sdkVersion,
+        completionKey);
+    checkResult(result);
+
+    result = await bladeSdk.init(
+        process.env.API_KEY,
+        process.env.NETWORK,
+        process.env.DAPP_CODE,
+        "",
+        "test",
+        sdkVersion,
+        completionKey);
+    checkResult(result);
+});
+
+test('bladeSdk.getInfo', async () => {
+    const result = await bladeSdk.getInfo(completionKey);
     checkResult(result);
     expect(result.data).toHaveProperty("apiKey");
     expect(result.data).toHaveProperty("dAppCode");
@@ -67,6 +113,64 @@ test('bladeSdk.getBalance', async () => {
     result = await bladeSdk.getBalance("0.0.0", completionKey);
     checkResult(result, false);
 });
+
+test('bladeSdk.getCoinList', async () => {
+    let result = await bladeSdk.getCoinList(completionKey);
+    checkResult(result);
+
+    expect(result.data).toHaveProperty("coins");
+    expect(Array.isArray(result.data.coins)).toEqual(true);
+    const coin = result.data.coins[0];
+    expect(coin).toHaveProperty("id");
+    expect(coin).toHaveProperty("symbol");
+    expect(coin).toHaveProperty("name");
+    expect(coin).toHaveProperty("platforms");
+    expect(Array.isArray(coin.platforms)).toEqual(true);
+
+    result = await bladeSdk.init(
+        process.env.API_KEY,
+        process.env.NETWORK,
+        process.env.DAPP_CODE,
+        "",
+        "test",
+        sdkVersion,
+        completionKey);
+    checkResult(result);
+
+    result = await bladeSdk.getCoinList(completionKey);
+    checkResult(result, false);
+});
+
+test('bladeSdk.getCoinPrice', async () => {
+    let result = await bladeSdk.getCoinPrice("Hbar", completionKey);
+    checkResult(result);
+
+    expect(result.data).toHaveProperty("priceUsd");
+    expect(result.data).toHaveProperty("coin");
+    const coin = result.data.coin;
+    expect(coin.id).toEqual("hedera-hashgraph");
+    expect(coin.symbol).toEqual("hbar");
+    expect(coin.market_data.current_price.usd).toEqual(result.data.priceUsd);
+
+    result = await bladeSdk.getCoinPrice("0.0.0", completionKey);
+    checkResult(result);
+    expect(result.data.coin.symbol).toEqual("hbar");
+
+    result = await bladeSdk.getCoinPrice("0x80008bcd713c38af90a9930288d446bc3bd2e684", completionKey);
+    checkResult(result);
+    expect(result.data.coin.symbol).toEqual("karate");
+
+    result = await bladeSdk.getCoinPrice("0.0.2283230", completionKey);
+    checkResult(result);
+    expect(result.data.coin.symbol).toEqual("karate");
+
+    result = await bladeSdk.getCoinPrice("karate-combat", completionKey);
+    checkResult(result);
+    expect(result.data.coin.symbol).toEqual("karate");
+
+    result = await bladeSdk.getCoinPrice("unknown token", completionKey);
+    checkResult(result, false);
+}, 10_000);
 
 test('bladeSdk.transferHbars', async () => {
     let result = await bladeSdk.getBalance(accountId, completionKey);
@@ -230,6 +334,16 @@ test('bladeSdk.contractCallQueryFunction', async () => {
     expect(result.data.values[0]).toHaveProperty("value");
     expect(result.data.values[0].type).toEqual("string");
     expect(result.data.values[0].value).toEqual(message);
+
+    params = new ParametersBuilder();
+    result = await bladeSdk.contractCallQueryFunction(contractId, "unknown function", params, accountId, privateKey, 100000, true, ["string"], completionKey);
+    checkResult(result, false);
+
+    result = await bladeSdk.contractCallQueryFunction(contractId, "get_message", params, "0.0.3", privateKey2, 100000, false, ["string"], completionKey);
+    checkResult(result, false);
+
+    result = await bladeSdk.contractCallQueryFunction(contractId, "get_message", params, accountId, privateKey, 100000, false, ["bytes32", "unknown-type"], completionKey);
+    checkResult(result, false);
 }, 120_000);
 
 test('bladeSdk.transferTokens', async () => {
@@ -292,6 +406,9 @@ test('bladeSdk.transferTokens', async () => {
 
     expect(account1TokenBalance).toEqual(account1TokenBalanceNew + amount);
     expect(account2TokenBalance).toEqual(account2TokenBalanceNew - amount);
+
+    result = await bladeSdk.transferTokens(tokenId.toString(), accountId, privateKey, accountId2, amount.toString(), "transfer memo", true, completionKey);
+    checkResult(result);
 }, 120_000);
 
 test('bladeSdk.createAccount', async () => {
@@ -329,13 +446,16 @@ test('bladeSdk.getAccountInfo', async () => {
     checkResult(account);
     const newAccountId = account.data.accountId;
 
-    await sleep(7_000);
+    await sleep(15_000);
 
-    const accountInfo = await bladeSdk.getAccountInfo(newAccountId, completionKey);
+    let accountInfo = await bladeSdk.getAccountInfo(newAccountId, completionKey);
     checkResult(accountInfo);
 
     expect(accountInfo.data.evmAddress).toEqual(`0x${AccountId.fromString(newAccountId).toSolidityAddress()}`);
     expect(accountInfo.data.calculatedEvmAddress).toEqual(account.data.evmAddress);
+
+    accountInfo = await bladeSdk.getAccountInfo("0.0.9999999999999999999999999", completionKey);
+    checkResult(accountInfo, false);
 }, 60_000);
 
 test('bladeSdk.deleteAccount', async () => {
@@ -607,7 +727,116 @@ test('bladeSdk.getC14url', async () => {
     expect(url.includes("quoteAmountLock")).toEqual(false);
     expect(url.includes("targetAddress")).toEqual(false);
     expect(url.includes("targetAddressLock")).toEqual(false);
+
+    await bladeSdk.init(
+        process.env.API_KEY,
+        process.env.NETWORK,
+        "karate-kitten",
+        "", // empty visitor id,
+        process.env.SDK_ENV,
+        sdkVersion,
+        completionKey);
+
+    result = await bladeSdk.getC14url("karate", "0.0.13421", "10", completionKey);
+    checkResult(result);
+    result = await bladeSdk.getC14url("1b487a96-a14a-47d1-a1e0-09c18d409671", "0.0.13421", "10", completionKey);
+    checkResult(result);
+
+    await bladeSdk.init(
+        process.env.API_KEY,
+        process.env.NETWORK,
+        process.env.DAPP_CODE,
+        "", // empty visitor id,
+        "test",
+        sdkVersion,
+        completionKey);
+
+    result = await bladeSdk.getC14url("1b487a96-a14a-47d1-a1e0-09c18d409671", "0.0.13421", "10", completionKey);
+    checkResult(result, false);
 });
+
+test('bladeSdk.exchangeGetQuotes', async () => {
+    let result = await bladeSdk.init(
+        process.env.API_KEY_MAINNET,
+        "mainnet",
+        process.env.DAPP_CODE,
+        process.env.VISITOR_ID,
+        process.env.SDK_ENV,
+        sdkVersion,
+        completionKey);
+    checkResult(result);
+
+    result = await bladeSdk.exchangeGetQuotes("EUR", 50, "HBAR", "Buy", completionKey);
+    checkResult(result);
+
+    result = await bladeSdk.exchangeGetQuotes("USDC", 30, "PHP", "Sell", completionKey);
+    checkResult(result);
+
+    result = await bladeSdk.exchangeGetQuotes("HBAR", 5, "USDC", "Swap", completionKey);
+    checkResult(result);
+
+    result = await bladeSdk.exchangeGetQuotes("aaaaaaa", 0, "bbbbbb", "FFFF", completionKey);
+    checkResult(result, false);
+}, 50_000);
+
+test('bladeSdk.swapTokens', async () => {
+    let result = await bladeSdk.init(
+        process.env.API_KEY,
+        process.env.NETWORK,
+        process.env.DAPP_CODE,
+        process.env.VISITOR_ID,
+        process.env.SDK_ENV,
+        sdkVersion,
+        completionKey);
+    checkResult(result);
+
+    result = await bladeSdk.swapTokens(
+        process.env.ACCOUNT_ID_ED25519,
+        process.env.PRIVATE_KEY_ED25519,
+        "USDC",
+        0.00001,
+        "HBAR",
+        0.5,
+        "saucerswap",
+        completionKey
+    );
+    checkResult(result);
+
+    result = await bladeSdk.swapTokens(
+        process.env.ACCOUNT_ID_ED25519,
+        process.env.PRIVATE_KEY_ED25519,
+        "USDC",
+        0.00001,
+        "HBAR",
+        0.5,
+        "unknown-service-id",
+        completionKey
+    );
+    checkResult(result, false);
+}, 60_000);
+
+test('bladeSdk.getTradeUrl', async () => {
+    let result = await bladeSdk.init(
+        process.env.API_KEY_MAINNET,
+        "mainnet",
+        process.env.DAPP_CODE,
+        process.env.VISITOR_ID,
+        process.env.SDK_ENV,
+        sdkVersion,
+        completionKey);
+    checkResult(result);
+
+    result = await bladeSdk.getTradeUrl("buy", accountId, "EUR", 50, "HBAR", 0.5, "moonpay", completionKey);
+    checkResult(result);
+    expect(result.data).toHaveProperty("url");
+
+    result = await bladeSdk.getTradeUrl("sell", accountId, "USDC", 50, "PHP", 0.5, "onmeta", completionKey);
+    checkResult(result);
+    expect(result.data).toHaveProperty("url");
+
+    result = await bladeSdk.getTradeUrl("buy", accountId, "EUR", 50, "HBAR", 0.5, "unknown-service-id", completionKey);
+    checkResult(result, false);
+}, 30_000);
 
 test('ParametersBuilder.defined', async () => {
     expect(new ParametersBuilder() != null).toEqual(true);
@@ -664,7 +893,38 @@ test('ParametersBuilder.complicatedCheck', async () => {
     result = await bladeSdk.contractCallFunction(contractId, "set_numbers", params1, accountId, privateKey, 1000000, false, completionKey);
     checkResult(result);
 
+    try {
+        new ParametersBuilder()
+            .addStringArray(["Hello", "World"])
+            .addBytes32([0x00, 0x01, 0x02])
+        ;
+    } catch (e) {
+        expect(e.message.includes("Bytes32 must be 32 bytes long")).toEqual(true);
+    }
 
+    try {
+        const tpl1 = new ParametersBuilder().addStringArray(["Hello", "World"]);
+        const tpl2 = new ParametersBuilder().addAddressArray(["0.0.1"])
+        await parseContractFunctionParams(new ParametersBuilder().addTupleArray([tpl1, tpl2]))
+    } catch (e) {
+        expect(JSON.stringify(e).includes("Tuple structure in array must be the same")).toEqual(true);
+    }
+
+    try {
+        await parseContractFunctionParams("W3sidHlwZSI6InN0cmluZ1tdIiwidmFsdWUiOlsiSGVsbG8iLCJXb3JsZCJdfSx7InR5cGUiOiJzdHJpbmciLCJ2YWx1ZSI6WyI1NSJdfSx7InR5cGUiOiJHYXJ5RHUiLCJ2YWx1ZSI6WzQyXX1d");
+    } catch (e) {
+        expect(JSON.stringify(e).includes("Type \\\"GaryDu\\\" not implemented on JS")).toEqual(true);
+    }
 
 }, 120_000);
 
+test("utils", async () => {
+    const arr = flatArray([1,2,3, [4,5,6,[7,8,9, [10], [11]], [12]]]);
+    expect(Array.isArray(arr)).toEqual(true);
+
+    const originalString = "hello";
+    const encrypted = await encrypt(originalString, process.env.API_KEY);
+    expect(await decrypt(encrypted, process.env.API_KEY)).toEqual(originalString);
+
+    expect((await GET(Network.Testnet, `/api/v1/accounts/${accountId}`)).account).toEqual(accountId)
+});

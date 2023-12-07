@@ -4,7 +4,8 @@ import {ICryptoFlowQuote} from "./CryptoFlow";
 
 export enum SdkEnvironment {
     Prod = "Prod",
-    CI = "CI"
+    CI = "CI",
+    Test = "Test"
 }
 
 export enum KnownChain {
@@ -210,10 +211,58 @@ export interface ContractFunctionParameter {
 export interface ConfirmUpdateAccountData {
     network: Network,
     accountId: string,
-    dAppCode: string
+    dAppCode: string,
     visitorId: string
 }
 
 export interface SwapQuotesData {
     quotes: ICryptoFlowQuote[]
+}
+
+export interface CoinInfoRaw {
+    id: string,
+    symbol: string,
+    name: string,
+    platforms: {[key: string]: string}
+}
+
+export interface CoinListData {
+    coins: {
+        id: string,
+        symbol: string,
+        name: string,
+        platforms: {
+            name: string,
+            address: string
+        }[],
+    }[]
+}
+
+export interface CoinData { // partial
+    id: string,
+    symbol: string,
+    name: string,
+    web_slug: string,
+    description: {
+        en: string
+    },
+    image: {
+        thumb: string,
+        small: string,
+        large: string
+    },
+    platforms: {
+        name: string,
+        address: string
+    }[],
+    market_data: {
+        current_price: {
+            [key: string]: number
+        },
+    },
+}
+
+export interface CoinInfoData {
+    coin: CoinData,
+    priceUsd: number
 }

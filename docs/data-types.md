@@ -256,4 +256,48 @@ export enum FeeType {
     AccountCreate = "AccountCreate",
     Default = "Default"
 }
+
+export interface CoinInfoRaw {
+    id: string,
+    symbol: string,
+    name: string,
+    platforms: {[key: string]: string}
+}
+
+export interface CoinListData {
+    coins: {
+        id: string,
+        symbol: string,
+        name: string,
+        platforms: {
+            name: string,
+            address: string
+        }[],
+    }[]
+}
+
+export interface CoinData { // partial
+    id: string,
+    symbol: string,
+    name: string,
+    web_slug: string,
+    description: {
+        en: string
+    },
+    image: {
+        thumb: string,
+        small: string,
+        large: string
+    },
+    market_data: {
+        current_price: {
+            [key: string]: number
+        },
+    },
+}
+
+export interface CoinInfoData {
+    coin: CoinData,
+    priceUsd: number
+}
 ```

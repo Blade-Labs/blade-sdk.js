@@ -24,6 +24,8 @@ import {
     getAccountsFromPublicKey,
     getBladeConfig,
     getC14token,
+    getCoinInfo,
+    getCoins,
     getCryptoFlowData,
     getPendingAccountData,
     getTransactionsFrom,
@@ -34,6 +36,7 @@ import {
     transferTokens
 } from "./services/ApiService";
 import CryptoFlowService from "./services/CryptoFlowService";
+import {HbarTokenId} from "./services/FeeService";
 import {Network} from "./models/Networks";
 import StringHelpers from "./helpers/StringHelpers";
 import {
@@ -48,6 +51,10 @@ import {
     BalanceData,
     BridgeResponse,
     C14WidgetConfig,
+    CoinData,
+    CoinListData,
+    CoinInfoData,
+    CoinInfoRaw,
     ContractCallQueryRecord,
     CreateAccountData,
     InfoData,
@@ -170,6 +177,67 @@ export class BladeSDK {
         }
     }
 
+    async getCoinList(completionKey?: string): Promise<CoinListData> {
+        try {
+            const coinList: CoinInfoRaw[] = await getCoins({
+                dAppCode: this.dAppCode,
+                visitorId: this.visitorId,
+            });
+
+            const result: CoinListData = {
+                coins: coinList.map(coin => {
+                    return {
+                        ...coin,
+                        platforms: Object.keys(coin.platforms).map(name => {
+                            return {
+                                name,
+                                address: coin.platforms[name]
+                            }
+                        })
+                    }
+                })
+            };
+            return this.sendMessageToNative(completionKey, result);
+        } catch (error) {
+            return this.sendMessageToNative(completionKey, null, error);
+        }
+    }
+
+    async getCoinPrice(search: string = "hbar", completionKey?: string): Promise<CoinInfoData> {
+        try {
+            if (search === HbarTokenId || search.toLowerCase() === "hbar") {
+                search = "hedera-hashgraph"
+            }
+
+            const params = {
+                dAppCode: this.dAppCode,
+                visitorId: this.visitorId,
+            };
+
+            let coinInfo: CoinData | null = null;
+            try {
+                // try to get coin info from CoinGecko
+                coinInfo = await getCoinInfo(search, params);
+            } catch (error) {
+                // on fail try to get coin info from CoinGecko and match by address
+                const coinList: CoinInfoRaw[] = await getCoins(params);
+                const coin = coinList.find(item => Object.values(item.platforms).includes(search));
+                if (!coin) {
+                    throw new Error(`Coin with address ${search} not found`);
+                }
+                coinInfo = await getCoinInfo(coin.id, params);
+            }
+
+            const result: CoinInfoData = {
+                priceUsd: coinInfo.market_data.current_price.usd,
+                coin: coinInfo
+            };
+            return this.sendMessageToNative(completionKey, result);
+        } catch (error) {
+            return this.sendMessageToNative(completionKey, null, error);
+        }
+    }
+
     /**
      * Send hbars to specific account.
      * @param accountId sender account id (0.0.xxxxx)
@@ -265,8 +333,6 @@ export class BladeSDK {
                         contractId: txReceipt.contractId?.toString(),
                         topicSequenceNumber: txReceipt.topicSequenceNumber?.toString(),
                         totalSupply: txReceipt.totalSupply?.toString(),
-                        // TODO check if we need serial
-                        serial: txReceipt.serials?.map(value => value.toString())
                     };
                     return this.sendMessageToNative(completionKey, result);
                 })
@@ -333,6 +399,7 @@ export class BladeSDK {
                         functionParameters: Uint8Array.from([]),
                         senderAccountId: null,
                         stateChanges: [],
+                        contractNonces: []
                     });
                 } else {
                     response = await new ContractCallQuery()
@@ -352,7 +419,7 @@ export class BladeSDK {
                 return this.sendMessageToNative(completionKey, null, error);
             }
         } catch (error) {
-            return this.sendMessageToNative(completionKey, null, error)
+            return this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -587,8 +654,6 @@ export class BladeSDK {
                 contractId: txReceipt.contractId?.toString(),
                 topicSequenceNumber: txReceipt.topicSequenceNumber?.toString(),
                 totalSupply: txReceipt.totalSupply?.toString(),
-                // TODO check if we need serial
-                serial: txReceipt.serials?.map(value => value.toString())
             };
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
