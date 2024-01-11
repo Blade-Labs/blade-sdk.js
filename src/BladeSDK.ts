@@ -4,9 +4,16 @@ import {
     ContractCallQuery,
     ContractExecuteTransaction,
     ContractFunctionResult,
+    Hbar,
+    HbarUnit,
     Mnemonic,
     PrivateKey,
     PublicKey,
+    Status,
+    TokenCreateTransaction,
+    TokenMintTransaction,
+    TokenSupplyType,
+    TokenType,
     Transaction,
     TransactionReceipt,
     TransactionResponse,
@@ -52,13 +59,15 @@ import {
     BridgeResponse,
     C14WidgetConfig,
     CoinData,
-    CoinListData,
     CoinInfoData,
     CoinInfoRaw,
+    CoinListData,
     ContractCallQueryRecord,
     CreateAccountData,
     InfoData,
     IntegrationUrlData,
+    KeyRecord,
+    KeyType,
     KnownChain,
     KnownChainIds,
     PrivateKeyData,
@@ -71,14 +80,20 @@ import {
 } from "./models/Common";
 import config from "./config";
 import {executeUpdateAccountTransactions} from "./helpers/AccountHelpers";
+import {dataURLtoFile} from "./helpers/FileHelper";
 import {ParametersBuilder} from "./ParametersBuilder";
 import {
     CryptoFlowRoutes,
-    CryptoFlowServiceStrategy, ICryptoFlowAssets, ICryptoFlowAssetsParams,
-    ICryptoFlowQuote, ICryptoFlowQuoteParams,
-    ICryptoFlowTransaction, ICryptoFlowTransactionParams
+    CryptoFlowServiceStrategy,
+    ICryptoFlowAssets,
+    ICryptoFlowAssetsParams,
+    ICryptoFlowQuote,
+    ICryptoFlowQuoteParams,
+    ICryptoFlowTransaction,
+    ICryptoFlowTransactionParams
 } from "./models/CryptoFlow";
 import * as FingerprintJS from '@fingerprintjs/fingerprintjs-pro'
+import {NFTStorage, File} from 'nft.storage';
 
 export class BladeSDK {
     private apiKey: string = "";
@@ -429,19 +444,34 @@ export class BladeSDK {
      * @param accountId sender account id (0.0.xxxxx)
      * @param accountPrivateKey sender's hex-encoded private key with DER-header (302e020100300506032b657004220420...). ECDSA or Ed25519
      * @param receiverID receiver account id (0.0.xxxxx)
-     * @param amount of tokens to send (with token-decimals correction)
+     * @param amountOrSerial amount of fungible tokens to send (with token-decimals correction) on NFT serial number
      * @param memo transaction memo
-     * @param freeTransfer if true, Blade will pay fee transaction. Only for single dApp configured token. In that case tokenId not used
+     * @param freeTransfer if true, Blade will pay fee transaction. Only for single dApp configured fungible-token. In that case tokenId not used
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {TransactionResponse}
      */
-    async transferTokens(tokenId: string, accountId: string, accountPrivateKey: string, receiverID: string, amount: string, memo: string, freeTransfer: boolean = false, completionKey?: string): Promise<TransactionResponse> {
+    async transferTokens(
+        tokenId: string,
+        accountId: string,
+        accountPrivateKey: string,
+        receiverID: string,
+        amountOrSerial: string,
+        memo: string,
+        freeTransfer: boolean = false,
+        completionKey?: string
+    ): Promise<TransactionResponse> {
         try {
             const client = this.getClient();
             client.setOperator(accountId, accountPrivateKey);
 
             const meta = await requestTokenInfo(this.network, tokenId);
-            const correctedAmount = parseFloat(amount) * (10 ** parseInt(meta.decimals, 10));
+            let isNFT = false;
+            if (meta.type === "NON_FUNGIBLE_UNIQUE") {
+                isNFT = true;
+                freeTransfer = false;
+            }
+
+            const correctedAmount = parseFloat(amountOrSerial) * (10 ** parseInt(meta.decimals, 10));
 
             if (freeTransfer) {
                 const options = {
@@ -471,10 +501,18 @@ export class BladeSDK {
                         return this.sendMessageToNative(completionKey, null, error);
                     });
             } else {
-                return new TransferTransaction()
-                    .addTokenTransfer(tokenId, receiverID, correctedAmount)
-                    .addTokenTransfer(tokenId, accountId, -1 * correctedAmount)
-                    .setTransactionMemo(memo)
+                const tokenTransferTx = new TransferTransaction()
+                    .setTransactionMemo(memo);
+
+                if (isNFT) {
+                    tokenTransferTx
+                        .addNftTransfer(tokenId, parseInt(amountOrSerial, 10), accountId, receiverID);
+                } else {
+                    tokenTransferTx
+                        .addTokenTransfer(tokenId, receiverID, correctedAmount)
+                        .addTokenTransfer(tokenId, accountId, -1 * correctedAmount);
+                }
+                return tokenTransferTx
                     .execute(client)
                     .then(data => {
                         return this.sendMessageToNative(completionKey, data);
@@ -1129,6 +1167,149 @@ export class BladeSDK {
             }
 
             return this.sendMessageToNative(completionKey, {url: selectedQuote.widgetUrl});
+        } catch (error) {
+            return this.sendMessageToNative(completionKey, null, error);
+        }
+    }
+
+    async createToken(
+        treasuryAccountId: string,
+        supplyPrivateKey: string,
+        tokenName: string,
+        tokenSymbol: string,
+        isNft: boolean,
+        keys: KeyRecord[] | string,
+        decimals: number,
+        initialSupply: number,
+        maxSupply: number = 250,
+        completionKey?: string
+    ): Promise<{tokenId: string}> {
+        try {
+            const client = this.getClient();
+            client.setOperator(treasuryAccountId, supplyPrivateKey);
+            const supplyKey = PrivateKey.fromString(supplyPrivateKey);
+            let adminKey = supplyKey;
+
+            const tokenType = isNft ? TokenType.NonFungibleUnique : TokenType.FungibleCommon;
+            if (isNft) {
+                decimals = 0;
+                initialSupply = 0;
+            }
+
+            if (typeof keys === "string") {
+                keys = JSON.parse(keys) as KeyRecord[];
+            }
+
+            const nftCreate = new TokenCreateTransaction()
+                .setTokenName(tokenName)
+                .setTokenSymbol(tokenSymbol)
+                .setTokenType(tokenType)
+                .setDecimals(decimals)
+                .setInitialSupply(initialSupply)
+                .setTreasuryAccountId(treasuryAccountId)
+                .setSupplyType(TokenSupplyType.Finite)
+                .setMaxSupply(maxSupply)
+                .setSupplyKey(supplyKey)
+            ;
+
+            for (const key of keys) {
+                const privateKey = PrivateKey.fromString(key.privateKey);
+
+                switch (key.type) {
+                    case KeyType.admin:
+                        nftCreate.setAdminKey(privateKey);
+                        adminKey = privateKey;
+                        break;
+                    case KeyType.kyc:
+                        nftCreate.setKycKey(privateKey);
+                        break;
+                    case KeyType.freeze:
+                        nftCreate.setFreezeKey(privateKey);
+                        break;
+                    case KeyType.wipe:
+                        nftCreate.setWipeKey(privateKey);
+                        break;
+                    case KeyType.pause:
+                        nftCreate.setPauseKey(privateKey);
+                        break;
+                    case KeyType.feeSchedule:
+                        nftCreate.setFeeScheduleKey(privateKey);
+                        break;
+                    default:
+                        throw new Error("Unknown key type");
+                }
+            }
+            nftCreate.freezeWith(client);
+
+            const nftCreateTxSign = await nftCreate.sign(adminKey);
+            const nftCreateSubmit = await nftCreateTxSign.execute(client);
+            const nftCreateRx = await nftCreateSubmit.getReceipt(client);
+
+            const tokenId = nftCreateRx.tokenId?.toString();
+            return this.sendMessageToNative(completionKey, {tokenId}, null);
+        } catch (error) {
+            return this.sendMessageToNative(completionKey, null, error);
+        }
+    }
+
+    async nftMint(
+        tokenId: string,
+        accountId: string,
+        accountPrivateKey: string,
+        file: File | string,
+        metadata: {},
+        completionKey?: string
+    ): Promise<any> {
+        try {
+            if (typeof file === "string") {
+                file = dataURLtoFile(file, "filename");
+            }
+            if (typeof metadata === "string") {
+                metadata = JSON.parse(metadata);
+            }
+
+            const groupSize = 1;
+            const amount = 1;
+            const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6ZXRocjoweDZFNzY0ZmM0ZkZFOEJhNjdCNjc1NDk1Q2NEREFiYjk0NTE4Njk0QjYiLCJpc3MiOiJuZnQtc3RvcmFnZSIsImlhdCI6MTcwNDQ2NDUxODQ2MiwibmFtZSI6IkJsYWRlU0RLLXRlc3RrZXkifQ.t1wCiEuiTvcYOwssdZgiYaug4aF8ZrvMBdkTASojWGU"; // temporary key. will be removed soon
+
+            const client = this.getClient();
+            client.setOperator(accountId, accountPrivateKey);
+            const privateKey = PrivateKey.fromString(accountPrivateKey);
+
+            const storageClient = new NFTStorage({token});
+            const fileName = file.name;
+            const dirCID = await storageClient.storeDirectory([file]);
+
+            metadata = {
+                name: fileName,
+                type: file.type,
+                creator: 'Blade Labs',
+                ...metadata as {},
+                image: `ipfs://${dirCID}/${encodeURIComponent(fileName)}`,
+            }
+            const metadataCID = await storageClient.storeBlob(
+                new File([JSON.stringify(metadata)], 'metadata.json', {type: 'application/json'}),
+            )
+
+            const CIDs = [metadataCID];
+            const mdArray = (new Array(amount)).fill(0).map(
+                (el, index) => Buffer.from(CIDs[index % CIDs.length]),
+            );
+            const mdGroup = mdArray.splice(0, groupSize);
+
+            const mintTx = new TokenMintTransaction()
+                .setTokenId(tokenId)
+                .setMetadata(mdGroup)
+                .setMaxTransactionFee(Hbar.from(2 * groupSize, HbarUnit.Hbar))
+                .freezeWith(client)
+            const mintTxSign = await mintTx.sign(privateKey)
+            const result = await mintTxSign.execute(client)
+            const receipt = await result.getReceipt(client)
+            if (receipt.status !== Status.Success) {
+                throw new Error(`Mint failed`)
+            }
+
+            return this.sendMessageToNative(completionKey, receipt, null);
         } catch (error) {
             return this.sendMessageToNative(completionKey, null, error);
         }
