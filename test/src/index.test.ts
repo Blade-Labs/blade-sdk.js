@@ -30,14 +30,14 @@ const sdkVersion = `Kotlin@${config.numberVersion}`;
 export const completionKey = "completionKey1";
 const privateKey = process.env.PRIVATE_KEY || ""; // ECDSA
 const accountId = process.env.ACCOUNT_ID || "";
-const privateKey1 = process.env.PRIVATE_KEY1;
+const privateKey1 = process.env.PRIVATE_KEY1 || "";
 const accountId1 = process.env.ACCOUNT_ID1;
 const privateKey2 = process.env.PRIVATE_KEY2 || ""; // ECDSA
 const accountId2 = process.env.ACCOUNT_ID2 || "";
-const privateKey3 = process.env.PRIVATE_KEY3;
-const accountId3 = process.env.ACCOUNT_ID3;
-const privateKey4 = process.env.PRIVATE_KEY_ED25519;
-const accountId4 = process.env.ACCOUNT_ID_ED25519;
+const privateKey3 = process.env.PRIVATE_KEY3 || "";
+const accountId3 = process.env.ACCOUNT_ID3 || "";
+const privateKey4 = process.env.PRIVATE_KEY_ED25519 || "";
+const accountId4 = process.env.ACCOUNT_ID_ED25519 || "";
 
 
 beforeEach(async () => {
@@ -929,7 +929,7 @@ test('bladeSdk.createToken', async () => {
             tokenId,
             treasuryAccountId,
             supplyKey,
-            "file data url", // TODO upload file base64
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==", // TODO upload file base64
             {
                 author: "GaryDu",
             },
@@ -1010,7 +1010,7 @@ test('ParametersBuilder.complicatedCheck', async () => {
             .addStringArray(["Hello", "World"])
             .addBytes32([0x00, 0x01, 0x02])
         ;
-    } catch (e) {
+    } catch (e: any) {
         expect(e.message.includes("Bytes32 must be 32 bytes long")).toEqual(true);
     }
 
