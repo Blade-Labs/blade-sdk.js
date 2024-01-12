@@ -70,6 +70,8 @@ import {
     KeyType,
     KnownChain,
     KnownChainIds,
+    NFTStorageConfig,
+    NFTStorageProvider,
     PrivateKeyData,
     SdkEnvironment,
     SignMessageData,
@@ -94,6 +96,7 @@ import {
 } from "./models/CryptoFlow";
 import * as FingerprintJS from '@fingerprintjs/fingerprintjs-pro'
 import {NFTStorage, File} from 'nft.storage';
+import {decrypt, encrypt} from "./helpers/SecurityHelper";
 
 export class BladeSDK {
     private apiKey: string = "";
@@ -140,11 +143,17 @@ export class BladeSDK {
         this.sdkVersion = sdkVersion;
 
         initApiService(apiKey, dAppCode, sdkEnvironment, sdkVersion, this.network, visitorId);
+        try {
+            visitorId = await decrypt(localStorage.getItem("BladeSDK.visitorId") || "", this.apiKey);
+        } catch (e) {
+            // console.log("failed to decrypt visitor id", e);
+        }
         if (!visitorId) {
             try {
                 const bladeConfig = await getBladeConfig()
                 const fpPromise = await FingerprintJS.load({ apiKey: bladeConfig.fpApiKey! })
                 this.visitorId = (await fpPromise.get()).visitorId;
+                localStorage.setItem("BladeSDK.visitorId", await encrypt(this.visitorId, this.apiKey));
                 setVisitorId(this.visitorId);
             } catch (error) {
                 console.log("failed to get visitor id", error);
@@ -1258,6 +1267,7 @@ export class BladeSDK {
         accountPrivateKey: string,
         file: File | string,
         metadata: {},
+        storageConfig: NFTStorageConfig,
         completionKey?: string
     ): Promise<any> {
         try {
@@ -1270,13 +1280,20 @@ export class BladeSDK {
 
             const groupSize = 1;
             const amount = 1;
-            const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6ZXRocjoweDZFNzY0ZmM0ZkZFOEJhNjdCNjc1NDk1Q2NEREFiYjk0NTE4Njk0QjYiLCJpc3MiOiJuZnQtc3RvcmFnZSIsImlhdCI6MTcwNDQ2NDUxODQ2MiwibmFtZSI6IkJsYWRlU0RLLXRlc3RrZXkifQ.t1wCiEuiTvcYOwssdZgiYaug4aF8ZrvMBdkTASojWGU"; // temporary key. will be removed soon
 
             const client = this.getClient();
             client.setOperator(accountId, accountPrivateKey);
             const privateKey = PrivateKey.fromString(accountPrivateKey);
 
-            const storageClient = new NFTStorage({token});
+            let storageClient;
+            if (storageConfig.provider === NFTStorageProvider.nftStorage) {
+                // TODO implement through interfaces
+                storageClient = new NFTStorage({token: storageConfig.apiKey});
+            } else {
+                throw new Error("Unknown nft storage provider");
+            }
+
+
             const fileName = file.name;
             const dirCID = await storageClient.storeDirectory([file]);
 

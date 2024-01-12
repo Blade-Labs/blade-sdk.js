@@ -38,6 +38,10 @@ export enum KeyType {
     feeSchedule = "feeSchedule",
 }
 
+export enum NFTStorageProvider {
+    nftStorage = "nftStorage"
+}
+
 export interface BladeConfig {
     fpApiKey?: string,
     exchangeServiceSignerPubKey?: string,
@@ -99,6 +103,11 @@ export interface DAppConfig {
 export interface KeyRecord {
     privateKey: string,
     type: KeyType
+}
+
+export interface NFTStorageConfig {
+    provider: NFTStorageProvider,
+    apiKey: string
 }
 
 export interface BridgeResponse {

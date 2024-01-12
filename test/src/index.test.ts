@@ -1,4 +1,12 @@
-import {AccountId, Client, ContractCallQuery, Hbar, Mnemonic, PrivateKey, TokenAssociateTransaction} from "@hashgraph/sdk";
+import {
+    AccountId,
+    Client,
+    ContractCallQuery,
+    Hbar,
+    Mnemonic,
+    PrivateKey,
+    TokenAssociateTransaction
+} from "@hashgraph/sdk";
 import {associateToken, checkResult, createToken, getTokenInfo, sleep} from "./helpers";
 import {GET, getTransaction} from "../../src/services/ApiService";
 import {Network} from "../../src/models/Networks";
@@ -13,7 +21,7 @@ import crypto from "crypto";
 import {flatArray} from "../../src/helpers/ArrayHelpers";
 import {parseContractFunctionParams} from "../../src/helpers/ContractHelpers";
 import {decrypt, encrypt} from "../../src/helpers/SecurityHelper";
-import {KeyRecord, KeyType, SdkEnvironment} from "../../src/models/Common";
+import {KeyRecord, KeyType, NFTStorageProvider, SdkEnvironment} from "../../src/models/Common";
 const {BladeSDK, ParametersBuilder} = require("../../src/webView");
 
 Object.defineProperty(global.self, "crypto", {
@@ -926,14 +934,17 @@ test('bladeSdk.createToken', async () => {
 
     // MINT NFT
     result = await bladeSdk.nftMint(
-            tokenId,
-            treasuryAccountId,
-            supplyKey,
-            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==", // TODO upload file base64
-            {
-                author: "GaryDu",
-            },
-
+        tokenId,
+        treasuryAccountId,
+        supplyKey,
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==", // TODO upload file base64
+        {
+            author: "GaryDu",
+        },
+        {
+            provider: NFTStorageProvider.nftStorage,
+            apiKey: process.env.NFT_STORAGE_TOKEN,
+        },
         completionKey
     );
     checkResult(result);
