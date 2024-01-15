@@ -1,4 +1,5 @@
-import {TransactionData} from "../models/Common";
+import {TransactionReceipt} from "@hashgraph/sdk";
+import {TransactionData, TransactionReceiptData} from "../models/Common";
 
 export const filterAndFormatTransactions = (transactions: TransactionData[], transactionType: string, accountId: string): TransactionData[] => {
 
@@ -51,4 +52,12 @@ export const filterAndFormatTransactions = (transactions: TransactionData[], tra
     return  transactions;
 };
 
-
+export const formatReceipt = (txReceipt: TransactionReceipt): TransactionReceiptData => {
+    return {
+        status: txReceipt.status?.toString(),
+        contractId: txReceipt.contractId?.toString(),
+        topicSequenceNumber: txReceipt.topicSequenceNumber?.toString(),
+        totalSupply: txReceipt.totalSupply?.toString(),
+        serials: txReceipt.serials?.map(serial => serial.toString()),
+    }
+}

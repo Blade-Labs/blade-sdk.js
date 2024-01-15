@@ -924,11 +924,13 @@ test('bladeSdk.createToken', async () => {
     const client = Client.forTestnet();
     client.setOperator(accountId2, privateKey2);
 
-    await new TokenAssociateTransaction()
-        .setAccountId(accountId2)
-        .setTokenIds([tokenId])
-        .freezeWith(client)
-        .execute(client);
+    result = await bladeSdk.associateToken(
+        tokenId,
+        accountId2,
+        privateKey2,
+        completionKey
+    );
+    checkResult(result);
 
     await sleep(5_000);
 

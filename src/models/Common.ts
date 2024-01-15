@@ -288,3 +288,11 @@ export interface CoinInfoData {
     coin: CoinData,
     priceUsd: number
 }
+
+export interface TransactionReceiptData {
+    status: string,
+    contractId?: string,
+    topicSequenceNumber?: string,
+    totalSupply?: string,
+    serials: string[],
+}

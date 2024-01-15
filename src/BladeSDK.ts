@@ -10,6 +10,7 @@ import {
     PrivateKey,
     PublicKey,
     Status,
+    TokenAssociateTransaction,
     TokenCreateTransaction,
     TokenMintTransaction,
     TokenSupplyType,
@@ -78,6 +79,7 @@ import {
     SignVerifyMessageData,
     SplitSignatureData,
     SwapQuotesData,
+    TransactionReceiptData,
     TransactionsHistoryData
 } from "./models/Common";
 import config from "./config";
@@ -97,6 +99,7 @@ import {
 import * as FingerprintJS from '@fingerprintjs/fingerprintjs-pro'
 import {NFTStorage, File} from 'nft.storage';
 import {decrypt, encrypt} from "./helpers/SecurityHelper";
+import {formatReceipt} from "./helpers/TransactionHelpers";
 
 export class BladeSDK {
     private apiKey: string = "";
@@ -315,7 +318,7 @@ export class BladeSDK {
         gas: number = 100000,
         bladePayFee: boolean = false,
         completionKey?: string
-    ): Promise<Partial<TransactionReceipt>> {
+    ): Promise<TransactionReceiptData> {
         try {
             const client = this.getClient();
             client.setOperator(accountId, accountPrivateKey);
@@ -345,20 +348,10 @@ export class BladeSDK {
 
             return transaction
                 .sign(PrivateKey.fromString(accountPrivateKey))
-                .then(signTx => {
-                    return signTx.execute(client);
-                })
-                .then(executedTx => {
-                    return executedTx.getReceipt(client);
-                })
+                .then(signTx => signTx.execute(client))
+                .then(executedTx => executedTx.getReceipt(client))
                 .then(txReceipt => {
-                    const result = {
-                        status: txReceipt.status?.toString(),
-                        contractId: txReceipt.contractId?.toString(),
-                        topicSequenceNumber: txReceipt.topicSequenceNumber?.toString(),
-                        totalSupply: txReceipt.totalSupply?.toString(),
-                    };
-                    return this.sendMessageToNative(completionKey, result);
+                    return this.sendMessageToNative(completionKey, formatReceipt(txReceipt));
                 })
                 .catch(error => {
                     return this.sendMessageToNative(completionKey, null, error);
@@ -679,7 +672,7 @@ export class BladeSDK {
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {TransactionReceipt}
      */
-    async deleteAccount(deleteAccountId: string, deletePrivateKey: string, transferAccountId: string, operatorAccountId: string, operatorPrivateKey: string, completionKey?: string): Promise<TransactionReceipt> {
+    async deleteAccount(deleteAccountId: string, deletePrivateKey: string, transferAccountId: string, operatorAccountId: string, operatorPrivateKey: string, completionKey?: string): Promise<TransactionReceiptData> {
         try {
             const client = this.getClient();
             const deleteAccountKey = PrivateKey.fromString(deletePrivateKey);
@@ -696,13 +689,7 @@ export class BladeSDK {
             const txResponse = await signTx.execute(client);
             const txReceipt = await txResponse.getReceipt(client);
 
-            const result = {
-                status: txReceipt.status?.toString(),
-                contractId: txReceipt.contractId?.toString(),
-                topicSequenceNumber: txReceipt.topicSequenceNumber?.toString(),
-                totalSupply: txReceipt.totalSupply?.toString(),
-            };
-            return this.sendMessageToNative(completionKey, result);
+            return this.sendMessageToNative(completionKey, formatReceipt(txReceipt));
         } catch (error) {
             return this.sendMessageToNative(completionKey, null, error);
         }
@@ -1181,6 +1168,20 @@ export class BladeSDK {
         }
     }
 
+    /**
+     * Create token (NFT or Fungible Token)
+     * @param treasuryAccountId: treasury account id
+     * @param supplyPrivateKey: supply account private key
+     * @param tokenName: token name (string up to 100 bytes)
+     * @param tokenSymbol: token symbol (string up to 100 bytes)
+     * @param isNft: set token type NFT
+     * @param keys: token keys
+     * @param decimals: token decimals (0 for nft)
+     * @param initialSupply: token initial supply (0 for nft)
+     * @param maxSupply: token max supply
+     * @param completionKey: optional field bridge between mobile webViews and native apps
+     * @returns {tokenId: string}
+     */
     async createToken(
         treasuryAccountId: string,
         supplyPrivateKey: string,
@@ -1261,6 +1262,59 @@ export class BladeSDK {
         }
     }
 
+    /**
+     * Associate token to account
+     *
+     * @param tokenId: token id
+     * @param accountId: account id to associate token
+     * @param accountPrivateKey: account private key
+     * @param completionKey: optional field bridge between mobile webViews and native apps
+     */
+    async associateToken(
+        tokenId: string,
+        accountId: string,
+        accountPrivateKey: string,
+        completionKey?: string
+    ): Promise<TransactionReceiptData> {
+        try {
+            const client = this.getClient();
+            client.setOperator(accountId, accountPrivateKey);
+            const privateKey = PrivateKey.fromString(accountPrivateKey);
+
+            const tx = await new TokenAssociateTransaction()
+                .setAccountId(accountId)
+                .setTokenIds([tokenId])
+                .freezeWith(client);
+
+            return tx
+                .sign(privateKey)
+                .then(signTx => signTx.execute(client))
+                .then(executedTx => executedTx.getReceipt(client))
+                .then(txReceipt => {
+                    if (txReceipt.status !== Status.Success) {
+                        throw new Error(`Association failed`)
+                    }
+                    return this.sendMessageToNative(completionKey, formatReceipt(txReceipt));
+                })
+                .catch(error => {
+                    return this.sendMessageToNative(completionKey, null, error);
+                });
+        } catch (error) {
+            return this.sendMessageToNative(completionKey, null, error);
+        }
+    }
+
+    /**
+     * Mint one NFT
+     *
+     * @param tokenId: token id to mint NFT
+     * @param accountId: token supply account id
+     * @param accountPrivateKey: token supply private key
+     * @param file: image to mint (File or bas64 DataUrl image, eg.: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAA...)
+     * @param metadata: NFT metadata (JSON object)
+     * @param storageConfig: {NFTStorageConfig} IPFS provider config
+     * @param completionKey: optional field bridge between mobile webViews and native apps
+     */
     async nftMint(
         tokenId: string,
         accountId: string,
@@ -1269,7 +1323,7 @@ export class BladeSDK {
         metadata: {},
         storageConfig: NFTStorageConfig,
         completionKey?: string
-    ): Promise<any> {
+    ): Promise<TransactionReceiptData> {
         try {
             if (typeof file === "string") {
                 file = dataURLtoFile(file, "filename");
@@ -1292,7 +1346,6 @@ export class BladeSDK {
             } else {
                 throw new Error("Unknown nft storage provider");
             }
-
 
             const fileName = file.name;
             const dirCID = await storageClient.storeDirectory([file]);
@@ -1319,14 +1372,20 @@ export class BladeSDK {
                 .setMetadata(mdGroup)
                 .setMaxTransactionFee(Hbar.from(2 * groupSize, HbarUnit.Hbar))
                 .freezeWith(client)
-            const mintTxSign = await mintTx.sign(privateKey)
-            const result = await mintTxSign.execute(client)
-            const receipt = await result.getReceipt(client)
-            if (receipt.status !== Status.Success) {
-                throw new Error(`Mint failed`)
-            }
 
-            return this.sendMessageToNative(completionKey, receipt, null);
+            return mintTx
+                .sign(privateKey)
+                .then(signTx => signTx.execute(client))
+                .then(executedTx => executedTx.getReceipt(client))
+                .then(txReceipt => {
+                    if (txReceipt.status !== Status.Success) {
+                        throw new Error(`Mint failed`)
+                    }
+                    return this.sendMessageToNative(completionKey, formatReceipt(txReceipt));
+                })
+                .catch(error => {
+                    return this.sendMessageToNative(completionKey, null, error);
+                });
         } catch (error) {
             return this.sendMessageToNative(completionKey, null, error);
         }
