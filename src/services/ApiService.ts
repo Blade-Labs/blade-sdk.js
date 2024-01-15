@@ -310,6 +310,7 @@ const getAccountTokens = async (accountId: string) => {
 
         for (const token of response.tokens) {
             const tokenInfo = await requestTokenInfo(network, token.token_id);
+            // @ts-ignore
             result.push({
                 tokenId: token.token_id,
                 balance: token.balance / 10 ** tokenInfo.decimals,

@@ -1,11 +1,18 @@
-import {AccountId, Client, ContractCallQuery, Hbar, Mnemonic, PrivateKey} from "@hashgraph/sdk";
+import {
+    AccountId,
+    Client,
+    ContractCallQuery,
+    Hbar,
+    Mnemonic,
+    PrivateKey,
+    TokenAssociateTransaction
+} from "@hashgraph/sdk";
 import {associateToken, checkResult, createToken, getTokenInfo, sleep} from "./helpers";
 import {GET, getTransaction} from "../../src/services/ApiService";
 import {Network} from "../../src/models/Networks";
 import {isEqual} from "lodash";
 import {Buffer} from "buffer";
 import config from "../../src/config";
-const {BladeSDK, ParametersBuilder} = require("../../src/webView");
 import dotenv from "dotenv";
 import fetch from "node-fetch";
 import {ethers} from "ethers";
@@ -14,7 +21,8 @@ import crypto from "crypto";
 import {flatArray} from "../../src/helpers/ArrayHelpers";
 import {parseContractFunctionParams} from "../../src/helpers/ContractHelpers";
 import {decrypt, encrypt} from "../../src/helpers/SecurityHelper";
-import {SdkEnvironment} from "../../src/models/Common";
+import {KeyRecord, KeyType, NFTStorageProvider, SdkEnvironment} from "../../src/models/Common";
+const {BladeSDK, ParametersBuilder} = require("../../src/webView");
 
 Object.defineProperty(global.self, "crypto", {
     value: {
@@ -28,11 +36,17 @@ dotenv.config();
 const bladeSdk = new BladeSDK(true);
 const sdkVersion = `Kotlin@${config.numberVersion}`;
 export const completionKey = "completionKey1";
-const privateKey = process.env.PRIVATE_KEY; // ECDSA
-const accountId = process.env.ACCOUNT_ID;
+const privateKey = process.env.PRIVATE_KEY || ""; // ECDSA
+const accountId = process.env.ACCOUNT_ID || "";
+const privateKey1 = process.env.PRIVATE_KEY1 || "";
+const accountId1 = process.env.ACCOUNT_ID1;
+const privateKey2 = process.env.PRIVATE_KEY2 || ""; // ECDSA
+const accountId2 = process.env.ACCOUNT_ID2 || "";
+const privateKey3 = process.env.PRIVATE_KEY3 || "";
+const accountId3 = process.env.ACCOUNT_ID3 || "";
+const privateKey4 = process.env.PRIVATE_KEY_ED25519 || "";
+const accountId4 = process.env.ACCOUNT_ID_ED25519 || "";
 
-const privateKey2 = process.env.PRIVATE_KEY2; // ECDSA
-const accountId2 = process.env.ACCOUNT_ID2;
 
 beforeEach(async () => {
     const result = await bladeSdk.init(
@@ -112,7 +126,7 @@ test('bladeSdk.getBalance', async () => {
     // invalid accountId
     result = await bladeSdk.getBalance("0.0.0", completionKey);
     checkResult(result, false);
-});
+}, 20_000);
 
 test('bladeSdk.getCoinList', async () => {
     let result = await bladeSdk.getCoinList(completionKey);
@@ -354,7 +368,7 @@ test('bladeSdk.transferTokens', async () => {
     let result = await bladeSdk.getBalance(accountId, completionKey);
     checkResult(result);
 
-    let tokenId = null;
+    let tokenId: string|null = null;
     // for (let i = 0; i < result.data.tokens.length; i++) {
     for (const token of result.data.tokens) {
         const tokenInfo = await getTokenInfo(token.tokenId);
@@ -382,7 +396,7 @@ test('bladeSdk.transferTokens', async () => {
 
     const amount = 1;
     // invalid signature
-    result = await bladeSdk.transferTokens(tokenId.toString(), accountId2, privateKey, accountId2, amount.toString(), "transfer memo", false, completionKey);
+    result = await bladeSdk.transferTokens(tokenId?.toString(), accountId2, privateKey, accountId2, amount.toString(), "transfer memo", false, completionKey);
     checkResult(result, false);
 
     // invalid tokenId
@@ -838,6 +852,117 @@ test('bladeSdk.getTradeUrl', async () => {
     checkResult(result, false);
 }, 30_000);
 
+// create token
+test('bladeSdk.createToken', async () => {
+    const treasuryAccountId = accountId;
+    const treasuryPrivateKey = privateKey;
+
+
+    const supplyKey = privateKey;
+    const adminKey = privateKey;
+    const kycKey = privateKey1;
+    const freezeKey = privateKey2;
+    const wipeKey = privateKey3;
+    const pauseKey = privateKey4;
+    const feeScheduleKey = privateKey1;
+
+    // CREATE TOKEN
+
+    let result = await bladeSdk.getBalance(treasuryAccountId, completionKey);
+    checkResult(result);
+
+    const tokenCount = result.data.tokens.length;
+
+    const tokenName = `SDK NFT test ${tokenCount}`;
+    const tokenSymbol = `N++ ${tokenCount}`;
+
+    const keys: KeyRecord[] = [
+        {type: KeyType.admin, privateKey: adminKey},
+        // {type: KeyType.kyc, privateKey: kycKey},
+        {type: KeyType.freeze, privateKey: freezeKey},
+        {type: KeyType.wipe, privateKey: wipeKey},
+        {type: KeyType.pause, privateKey: pauseKey},
+        {type: KeyType.feeSchedule, privateKey: feeScheduleKey},
+    ];
+
+    result = await bladeSdk.createToken(
+        treasuryAccountId, // treasuryAccountId
+        supplyKey, // supplyPrivateKey
+        tokenName,
+        tokenSymbol,
+        true, // isNft
+        keys,
+        0, // decimals
+        0, // initialSupply
+        250, // maxSupply
+        completionKey
+    );
+    checkResult(result);
+
+    expect(result.data).toHaveProperty("tokenId");
+    const tokenId = result.data.tokenId;
+
+    await sleep(20_000);
+    const tokenInfo = await getTokenInfo(tokenId);
+
+    expect(tokenInfo.admin_key.key).toEqual(PrivateKey.fromString(adminKey).publicKey.toStringRaw());
+    expect(tokenInfo.fee_schedule_key.key).toEqual(PrivateKey.fromString(feeScheduleKey).publicKey.toStringRaw());
+    expect(tokenInfo.freeze_key.key).toEqual(PrivateKey.fromString(freezeKey).publicKey.toStringRaw());
+    // expect(tokenInfo.kyc_key.key).toEqual(PrivateKey.fromString(kycKey).publicKey.toStringRaw());
+    expect(tokenInfo.pause_key.key).toEqual(PrivateKey.fromString(pauseKey).publicKey.toStringRaw());
+    expect(tokenInfo.supply_key.key).toEqual(PrivateKey.fromString(supplyKey).publicKey.toStringRaw());
+    expect(tokenInfo.wipe_key.key).toEqual(PrivateKey.fromString(wipeKey).publicKey.toStringRaw());
+    expect(tokenInfo.decimals).toEqual("0");
+    expect(tokenInfo.initial_supply).toEqual("0");
+    expect(tokenInfo.max_supply).toEqual("250");
+    expect(tokenInfo.name).toEqual(tokenName);
+    expect(tokenInfo.symbol).toEqual(tokenSymbol);
+    expect(tokenInfo.treasury_account_id).toEqual(treasuryAccountId);
+    expect(tokenInfo.type).toEqual('NON_FUNGIBLE_UNIQUE');
+
+    // associate token with receiver account
+    const client = Client.forTestnet();
+    client.setOperator(accountId2, privateKey2);
+
+    result = await bladeSdk.associateToken(
+        tokenId,
+        accountId2,
+        privateKey2,
+        completionKey
+    );
+    checkResult(result);
+
+    await sleep(5_000);
+
+    // MINT NFT
+    result = await bladeSdk.nftMint(
+        tokenId,
+        treasuryAccountId,
+        supplyKey,
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==", // TODO upload file base64
+        {
+            author: "GaryDu",
+        },
+        {
+            provider: NFTStorageProvider.nftStorage,
+            apiKey: process.env.NFT_STORAGE_TOKEN,
+        },
+        completionKey
+    );
+    checkResult(result);
+
+    const serialNumber = result.data.serials[0];
+
+    // TRANSFER NFT
+    await sleep(20_000);
+
+    result = await bladeSdk.transferTokens(tokenId, treasuryAccountId, treasuryPrivateKey, accountId2, serialNumber, "transfer NFT memo", false, completionKey);
+    checkResult(result);
+
+
+
+}, 180_000);
+
 test('ParametersBuilder.defined', async () => {
     expect(new ParametersBuilder() != null).toEqual(true);
 });
@@ -898,7 +1023,7 @@ test('ParametersBuilder.complicatedCheck', async () => {
             .addStringArray(["Hello", "World"])
             .addBytes32([0x00, 0x01, 0x02])
         ;
-    } catch (e) {
+    } catch (e: any) {
         expect(e.message.includes("Bytes32 must be 32 bytes long")).toEqual(true);
     }
 
@@ -923,8 +1048,8 @@ test("utils", async () => {
     expect(Array.isArray(arr)).toEqual(true);
 
     const originalString = "hello";
-    const encrypted = await encrypt(originalString, process.env.API_KEY);
-    expect(await decrypt(encrypted, process.env.API_KEY)).toEqual(originalString);
+    const encrypted = await encrypt(originalString, process.env.API_KEY || "");
+    expect(await decrypt(encrypted, process.env.API_KEY || "")).toEqual(originalString);
 
     expect((await GET(Network.Testnet, `/api/v1/accounts/${accountId}`)).account).toEqual(accountId)
 });

@@ -29,6 +29,19 @@ export const KnownChainNames = {
     [KnownChainIds[KnownChain.HEDERA_TESTNET]]: "Hedera Testnet"
 }
 
+export enum KeyType {
+    admin = "admin",
+    kyc = "kyc",
+    freeze = "freeze",
+    wipe = "wipe",
+    pause = "pause",
+    feeSchedule = "feeSchedule",
+}
+
+export enum NFTStorageProvider {
+    nftStorage = "nftStorage"
+}
+
 export interface BladeConfig {
     fpApiKey?: string,
     exchangeServiceSignerPubKey?: string,
@@ -87,6 +100,15 @@ export interface DAppConfig {
     [key: string]: any | undefined; // Index signature
 }
 
+export interface KeyRecord {
+    privateKey: string,
+    type: KeyType
+}
+
+export interface NFTStorageConfig {
+    provider: NFTStorageProvider,
+    apiKey: string
+}
 
 export interface BridgeResponse {
     completionKey: string,
@@ -265,4 +287,12 @@ export interface CoinData { // partial
 export interface CoinInfoData {
     coin: CoinData,
     priceUsd: number
+}
+
+export interface TransactionReceiptData {
+    status: string,
+    contractId?: string,
+    topicSequenceNumber?: string,
+    totalSupply?: string,
+    serials: string[],
 }
