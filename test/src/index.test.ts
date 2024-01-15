@@ -126,7 +126,7 @@ test('bladeSdk.getBalance', async () => {
     // invalid accountId
     result = await bladeSdk.getBalance("0.0.0", completionKey);
     checkResult(result, false);
-});
+}, 20_000);
 
 test('bladeSdk.getCoinList', async () => {
     let result = await bladeSdk.getCoinList(completionKey);

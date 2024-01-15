@@ -104,8 +104,6 @@ export interface SwapQuotesData {
     quotes: ICryptoFlowQuote[]
 }
 
-import BigNumber from "bignumber.js";
-
 export enum ICryptoFlowNetworkType {
     ETHEREUM = "Ethereum",
     HEDERA = "Hedera",
@@ -299,5 +297,36 @@ export interface CoinData { // partial
 export interface CoinInfoData {
     coin: CoinData,
     priceUsd: number
+}
+
+export enum KeyType {
+    admin = "admin",
+    kyc = "kyc",
+    freeze = "freeze",
+    wipe = "wipe",
+    pause = "pause",
+    feeSchedule = "feeSchedule",
+}
+
+export enum NFTStorageProvider {
+    nftStorage = "nftStorage"
+}
+
+export interface KeyRecord {
+    privateKey: string,
+    type: KeyType
+}
+
+export interface NFTStorageConfig {
+    provider: NFTStorageProvider,
+    apiKey: string
+}
+
+export interface TransactionReceiptData {
+    status: string,
+    contractId?: string,
+    topicSequenceNumber?: string,
+    totalSupply?: string,
+    serials: string[],
 }
 ```

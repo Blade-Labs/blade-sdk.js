@@ -21,6 +21,9 @@ description: More details on how to use Blade-SDK.js
 * [transferTokens](usage.md#transfertokens)
 * [getTransactions](usage.md#gettransactions)
 * [deleteAccount](usage.md#deleteaccount)
+* [createToken](usage.md#createtoken)
+* [associateToken](usage.md#associatetoken)
+* [nftMint](usage.md#nftmint)
 * [contractCallFunction](usage.md#contractcallfunction)
 * [contractCallQueryFunction](usage.md#contractcallqueryfunction)
 * [getParamsSignature](usage.md#getparamssignature)
@@ -228,19 +231,19 @@ Send hbars to specific account.
 
 ### transferTokens
 
-▸ **transferTokens**(`tokenId`, `accountId`, `accountPrivateKey`, `receiverID`, `amount`, `freeTransfer?`, `completionKey?`): `Promise<TransactionResponse>`
+▸ **transferTokens**(`tokenId`, `accountId`, `accountPrivateKey`, `receiverID`, `amountOrSerial`, `freeTransfer?`, `completionKey?`): `Promise<TransactionResponse>`
 
 Send token to specific account.
 
 #### Parameters
 
 | Name                | Type      | Default value | Description                                                                                                   |
-| ------------------- | --------- | ------------- | ------------------------------------------------------------------------------------------------------------- |
+| ------------------- | --------- | ------------- |---------------------------------------------------------------------------------------------------------------|
 | `tokenId`           | `string`  | `undefined`   | token id to send (0.0.xxxxx)                                                                                  |
 | `accountId`         | `string`  | `undefined`   | sender account id (0.0.xxxxx)                                                                                 |
 | `accountPrivateKey` | `string`  | `undefined`   | sender's hex-encoded private key with DER-header (302e020100300506032b657004220420...). ECDSA or Ed25519      |
 | `receiverID`        | `string`  | `undefined`   | receiver account id (0.0.xxxxx)                                                                               |
-| `amount`            | `string`  | `undefined`   | of tokens to send (with token-decimals correction)                                                            |
+| `amountOrSerial`    | `string`  | `undefined`   | mount of fungible tokens to send (with token-decimals correction) on NFT serial number                        |
 | `freeTransfer`      | `boolean` | `false`       | if true, Blade will pay fee transaction. Only for single dApp configured token. In that case tokenId not used |
 | `completionKey?`    | `string`  | `undefined`   | optional field bridge between mobile webViews and native apps                                                 |
 
@@ -274,7 +277,7 @@ Get transactions history for account. Can be filtered by transaction type. Trans
 
 ### deleteAccount
 
-▸ **deleteAccount**(`deleteAccountId`, `deletePrivateKey`, `transferAccountId`, `operatorAccountId`, `operatorPrivateKey`, `completionKey?`): `Promise<TransactionReceipt>`
+▸ **deleteAccount**(`deleteAccountId`, `deletePrivateKey`, `transferAccountId`, `operatorAccountId`, `operatorPrivateKey`, `completionKey?`): `Promise<TransactionReceiptData>`
 
 Delete Hedera account
 
@@ -291,13 +294,85 @@ Delete Hedera account
 
 #### Returns
 
-`Promise<TransactionReceipt>`
+`Promise<TransactionReceiptData>`
+
+***
+
+### createToken
+
+▸ **createToken**(`treasuryAccountId`, `supplyPrivateKey`, `tokenName`, `tokenSymbol`, `isNft`, `keys`, `decimals`, `initialSupply`, `maxSupply`, `completionKey?`): `Promise<{tokenId: string}>`
+
+Create token (NFT or Fungible Token)
+
+#### Parameters
+
+| Name                | Type          | Description                                                   |
+|---------------------|---------------|---------------------------------------------------------------|
+| `treasuryAccountId` | `string`      | treasury account id                                           |
+| `supplyPrivateKey`  | `string`      | supply account private key                                    |
+| `tokenName`         | `string`      | token name (string up to 100 bytes)                           |
+| `tokenSymbol`       | `string`      | token symbol (string up to 100 bytes)                         |
+| `isNft`             | `boolean`     | set token type NFT                                            |
+| `keys`              | `KeyRecord[]` | token keys                                                    |
+| `decimals`          | `number`      | token decimals (0 for nft)                                    |
+| `initialSupply`     | `number`      | token initial supply (0 for nft)                              |
+| `maxSupply`         | `number`      | token max supply                                              |
+| `completionKey`     | `string`      | optional field bridge between mobile webViews and native apps |
+
+#### Returns
+
+`Promise<{tokenId: string}>`
+
+***
+
+### associateToken
+
+▸ **associateToken**(`tokenId`, `accountId`, `accountPrivateKey`, `completionKey?`): `Promise<TransactionReceiptData>`
+
+Associate token to account
+
+#### Parameters
+
+| Name                | Type      | Description                                                   |
+|---------------------|-----------|---------------------------------------------------------------|
+| `tokenId`           | `string`  | token id                                                      |
+| `accountId`         | `string`  | account id to associate token                                 |
+| `accountPrivateKey` | `string`  | account private key                                           |
+| `completionKey`     | `string`  | optional field bridge between mobile webViews and native apps |
+
+#### Returns
+
+`Promise<TransactionReceiptData>`
+
+***
+
+### nftMint
+
+▸ **nftMint**(`tokenId`, `accountId`, `accountPrivateKey`, `file`: , `metadata`, `storageConfig`, `completionKey`): `Promise<TransactionReceiptData>`
+
+Mint one NFT
+
+#### Parameters
+
+| Name                | Type               | Description                                                                                                               |
+|---------------------|--------------------|---------------------------------------------------------------------------------------------------------------------------|
+| `tokenId`           | `string`           | token id to mint NFT                                                                                                      |
+| `accountId`         | `string`           | token supply account id                                                                                                   |
+| `accountPrivateKey` | `string`           | token supply private key                                                                                                  |
+| `file`              | `string`           | image to mint (File or bas64 DataUrl image, eg.: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAA...) |
+| `metadata`          | `string`, `any{}`  | NFT metadata (JSON object)                                                                                                |
+| `storageConfig`     | `NFTStorageConfig` | {NFTStorageConfig} IPFS provider config                                                                                   |
+| `completionKey`     | `string`           | optional field bridge between mobile webViews and native apps                                                             |
+
+#### Returns
+
+`Promise<TransactionReceiptData>`
 
 ***
 
 ### contractCallFunction
 
-▸ **contractCallFunction**(`contractId`, `functionName`, `paramsEncoded`, `accountId`, `accountPrivateKey`, `gas?`, `bladePayFee?`, `completionKey?`): `Promise<Partial<TransactionReceipt>>`
+▸ **contractCallFunction**(`contractId`, `functionName`, `paramsEncoded`, `accountId`, `accountPrivateKey`, `gas?`, `bladePayFee?`, `completionKey?`): `Promise<TransactionReceiptData>`
 
 Call contract function. Directly or via Blade Payer account (fee will be paid by Blade), depending on your dApp configuration.
 
@@ -316,7 +391,7 @@ Call contract function. Directly or via Blade Payer account (fee will be paid by
 
 #### Returns
 
-`Promise<Partial<TransactionReceipt>>`
+`Promise<TransactionReceiptData>`
 
 ***
 
