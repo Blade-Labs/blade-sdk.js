@@ -8,6 +8,11 @@ export enum SdkEnvironment {
     Test = "Test"
 }
 
+export enum AccountProvider {
+    Hedera = "Hedera",
+    Magic = "Magic",
+}
+
 export enum KnownChain {
     ETHEREUM_MAINNET,
     ETHEREUM_SEPOLIA,

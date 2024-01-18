@@ -17,8 +17,7 @@ import {
     TokenType,
     Transaction,
     TransactionReceipt,
-    TransactionResponse,
-    TransferTransaction
+    TransferTransaction,
 } from "@hashgraph/sdk";
 import {Buffer} from "buffer";
 import {ethers} from "ethers";
@@ -55,6 +54,7 @@ import {
 import {CustomError} from "./models/Errors";
 import {
     AccountInfoData,
+    AccountProvider,
     AccountStatus,
     BalanceData,
     BridgeResponse,
@@ -97,9 +97,13 @@ import {
     ICryptoFlowTransactionParams
 } from "./models/CryptoFlow";
 import * as FingerprintJS from '@fingerprintjs/fingerprintjs-pro'
-import {NFTStorage, File} from 'nft.storage';
+import {File, NFTStorage} from 'nft.storage';
 import {decrypt, encrypt} from "./helpers/SecurityHelper";
 import {formatReceipt} from "./helpers/TransactionHelpers";
+import {Magic} from 'magic-sdk';
+import {HederaExtension} from '@magic-ext/hedera';
+import {MagicSigner} from "./signers/magic/MagicSigner";
+import {HederaProvider, HederaSigner} from "./signers/hedera";
 
 export class BladeSDK {
     private apiKey: string = "";
@@ -109,6 +113,11 @@ export class BladeSDK {
     private sdkEnvironment: SdkEnvironment = SdkEnvironment.Prod;
     private sdkVersion: string = config.sdkVersion;
     private readonly webView: boolean = false;
+    private accountProvider: AccountProvider;
+    private signer;
+    private magic;
+    private userAccountId: string;
+    private userPrivateKey: string;
 
     /**
      * BladeSDK constructor.
@@ -141,27 +150,30 @@ export class BladeSDK {
         this.apiKey = apiKey;
         this.network = StringHelpers.stringToNetwork(network);
         this.dAppCode = dAppCode;
-        this.visitorId = visitorId;
         this.sdkEnvironment = sdkEnvironment;
         this.sdkVersion = sdkVersion;
 
         initApiService(apiKey, dAppCode, sdkEnvironment, sdkVersion, this.network, visitorId);
-        try {
-            visitorId = await decrypt(localStorage.getItem("BladeSDK.visitorId") || "", this.apiKey);
-        } catch (e) {
-            // console.log("failed to decrypt visitor id", e);
+        if (!visitorId) {
+            try {
+                visitorId = await decrypt(localStorage.getItem("BladeSDK.visitorId") || "", this.apiKey);
+            } catch (e) {
+                // console.log("failed to decrypt visitor id", e);
+            }
         }
         if (!visitorId) {
             try {
                 const bladeConfig = await getBladeConfig()
                 const fpPromise = await FingerprintJS.load({ apiKey: bladeConfig.fpApiKey! })
-                this.visitorId = (await fpPromise.get()).visitorId;
-                localStorage.setItem("BladeSDK.visitorId", await encrypt(this.visitorId, this.apiKey));
-                setVisitorId(this.visitorId);
+                visitorId = (await fpPromise.get()).visitorId;
+                localStorage.setItem("BladeSDK.visitorId", await encrypt(visitorId, this.apiKey));
+
             } catch (error) {
                 console.log("failed to get visitor id", error);
             }
         }
+        setVisitorId(visitorId);
+        this.visitorId = visitorId;
 
         return this.sendMessageToNative(completionKey, {
             apiKey: this.apiKey,
@@ -188,6 +200,80 @@ export class BladeSDK {
             sdkVersion: this.sdkVersion,
             nonce: Math.round(Math.random() * 1000000000)
         });
+    }
+
+
+    async setUser(accountProvider: AccountProvider, accountIdOrEmail: string, privateKey?: string, completionKey?: string): Promise<{ accountId: string, accountProvider: AccountProvider }> {
+        try {
+            switch (accountProvider) {
+                case AccountProvider.Hedera:
+                    this.userAccountId = accountIdOrEmail;
+                    this.userPrivateKey = privateKey;
+                    const provider = new HederaProvider({client: this.getClient()})
+                    this.signer = new HederaSigner(this.userAccountId, PrivateKey.fromString(this.userPrivateKey), provider);
+                    break;
+                case AccountProvider.Magic:
+                    let userInfo;
+                    if (!this.magic) {
+                        this.initMagic();
+                    }
+
+                    if (await this.magic.user.isLoggedIn()) {
+                        userInfo = await this.magic.user.getInfo()
+                        if (userInfo.email !== accountIdOrEmail) {
+                            this.magic.user.logout()
+                            await this.magic.auth.loginWithMagicLink({ email: accountIdOrEmail, showUI: false })
+                            userInfo = await this.magic.user.getInfo()
+                        }
+                    } else {
+                        await this.magic.auth.loginWithMagicLink({ email: accountIdOrEmail, showUI: false })
+                        userInfo = await this.magic.user.getInfo()
+                    }
+
+                    if (!await this.magic.user.isLoggedIn()) {
+                        throw new Error('Not logged in Magic. Please call magicLogin() first');
+                    }
+
+                    this.userAccountId = userInfo.publicAddress;
+                    const { publicKeyDer } = await this.magic.hedera.getPublicKey();
+                    const magicSign = message => this.magic.hedera.sign(message);
+                    this.signer = new MagicSigner(this.userAccountId, this.network, publicKeyDer, magicSign);
+                    break;
+                default:
+                    break;
+            }
+            this.accountProvider = accountProvider;
+
+            return this.sendMessageToNative(completionKey, {
+                accountId: this.userAccountId,
+                accountProvider: this.accountProvider,
+            });
+
+        } catch (error) {
+            return this.sendMessageToNative(completionKey, null, error);
+        }
+    }
+
+    async resetUser(completionKey?: string): Promise<{ success: boolean }> {
+        try {
+            this.userPrivateKey = '';
+            this.userAccountId = '';
+            this.signer = null;
+            if (this.accountProvider === AccountProvider.Magic) {
+                if (!this.magic) {
+                    this.initMagic();
+                }
+                await this.magic.user.logout();
+            }
+            this.accountProvider = null;
+
+            return this.sendMessageToNative(completionKey, {
+                success: true
+            });
+
+        } catch (error) {
+            return this.sendMessageToNative(completionKey, null, error);
+        }
     }
 
     /**
@@ -269,25 +355,32 @@ export class BladeSDK {
      * Send hbars to specific account.
      * @param accountId sender account id (0.0.xxxxx)
      * @param accountPrivateKey sender's hex-encoded private key with DER-header (302e020100300506032b657004220420...). ECDSA or Ed25519
-     * @param receiverID receiver account id (0.0.xxxxx)
+     * @param receiverId receiver account id (0.0.xxxxx)
      * @param amount of hbars to send (decimal number)
      * @param memo transaction memo
      * @param completionKey optional field bridge between mobile webViews and native apps
-     * @returns {TransactionResponse}
+     * @returns Promise<TransactionReceiptData>
      */
-    transferHbars(accountId: string, accountPrivateKey: string, receiverID: string, amount: string, memo: string, completionKey?: string): Promise<TransactionResponse> {
+    async transferHbars(accountId: string, accountPrivateKey: string, receiverId: string, amount: string, memo: string, completionKey?: string): Promise<TransactionReceiptData> {
         try {
-            const client = this.getClient();
-            client.setOperator(accountId, accountPrivateKey);
+            if (accountId && accountPrivateKey) {
+                await this.setUser(AccountProvider.Hedera, accountId, accountPrivateKey);
+            }
+            if (!this.signer) {
+                throw new Error("No user, please call setUser() first")
+            }
 
             const parsedAmount = parseFloat(amount);
             return new TransferTransaction()
-                .addHbarTransfer(receiverID, parsedAmount)
-                .addHbarTransfer(accountId, -1 * parsedAmount)
+                .addHbarTransfer(this.userAccountId, -1 * parsedAmount)
+                .addHbarTransfer(receiverId, parsedAmount)
                 .setTransactionMemo(memo)
-                .execute(client)
+                .freezeWithSigner(this.signer)
+                .then(tx => tx.signWithSigner(this.signer))
+                .then(tx => tx.executeWithSigner(this.signer))
+                .then(result => result.getReceiptWithSigner(this.signer))
                 .then(data => {
-                    return this.sendMessageToNative(completionKey, data);
+                    return this.sendMessageToNative(completionKey, formatReceipt(data));
                 }).catch(error => {
                     return this.sendMessageToNative(completionKey, null, error);
                 });
@@ -450,7 +543,7 @@ export class BladeSDK {
      * @param memo transaction memo
      * @param freeTransfer if true, Blade will pay fee transaction. Only for single dApp configured fungible-token. In that case tokenId not used
      * @param completionKey optional field bridge between mobile webViews and native apps
-     * @returns {TransactionResponse}
+     * @returns Promise<TransactionReceiptData>
      */
     async transferTokens(
         tokenId: string,
@@ -461,7 +554,7 @@ export class BladeSDK {
         memo: string,
         freeTransfer: boolean = false,
         completionKey?: string
-    ): Promise<TransactionResponse> {
+    ): Promise<TransactionReceiptData> {
         try {
             const client = this.getClient();
             client.setOperator(accountId, accountPrivateKey);
@@ -493,9 +586,8 @@ export class BladeSDK {
 
                 return transaction
                     .sign(PrivateKey.fromString(accountPrivateKey))
-                    .then(signTx => {
-                        return signTx.execute(client);
-                    })
+                    .then(tx => tx.execute(client))
+                    .then(executedTx => executedTx.getReceipt(client))
                     .then(result => {
                         return this.sendMessageToNative(completionKey, result);
                     })
@@ -514,11 +606,12 @@ export class BladeSDK {
                         .addTokenTransfer(tokenId, receiverID, correctedAmount)
                         .addTokenTransfer(tokenId, accountId, -1 * correctedAmount);
                 }
-                return tokenTransferTx
-                    .execute(client)
-                    .then(data => {
-                        return this.sendMessageToNative(completionKey, data);
-                    }).catch(error => {
+                return tokenTransferTx.execute(client)
+                    .then(executedTx => executedTx.getReceipt(client))
+                    .then(txReceipt => {
+                        return this.sendMessageToNative(completionKey, formatReceipt(txReceipt));
+                    })
+                    .catch(error => {
                         return this.sendMessageToNative(completionKey, null, error);
                     });
             }
@@ -1310,7 +1403,7 @@ export class BladeSDK {
      * @param tokenId: token id to mint NFT
      * @param accountId: token supply account id
      * @param accountPrivateKey: token supply private key
-     * @param file: image to mint (File or bas64 DataUrl image, eg.: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAA...)
+     * @param file: image to mint (File or base64 DataUrl image, eg.: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAA...)
      * @param metadata: NFT metadata (JSON object)
      * @param storageConfig: {NFTStorageConfig} IPFS provider config
      * @param completionKey: optional field bridge between mobile webViews and native apps
@@ -1389,6 +1482,16 @@ export class BladeSDK {
         } catch (error) {
             return this.sendMessageToNative(completionKey, null, error);
         }
+    }
+
+    private initMagic() {
+        const magicLinkPublicKey = "pk_live_46696EF18CA8E36C";
+
+        this.magic = new Magic(magicLinkPublicKey, {
+            extensions: [new HederaExtension({
+                network: this.network.toLowerCase()
+            })]
+        });
     }
 
     private getClient() {

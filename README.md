@@ -45,7 +45,7 @@ import {BladeSDK} from '@bladelabs/blade-sdk.js';
 
 ...
 const bladeSDK = new BladeSDK();
-await bladeSDK.init("Blade apiKey", "testnet", "dAppCode", "client unique fingerprint or empty string", "CI");
+await bladeSDK.init("Blade apiKey", "testnet", "dAppCode", "client unique fingerprint or empty string", "Prod");
 const balance = await bladeSDK.getBalance("0.0.8235");
 console.log(balance);
 ```
