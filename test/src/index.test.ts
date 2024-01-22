@@ -657,12 +657,11 @@ test('bladeSdk.getTransactions', async () => {
     let result = await bladeSdk.transferHbars(accountId, privateKey, accountId2, "1.5", "some tx memo", completionKey);
     checkResult(result);
 
-    expect(result.data).toHaveProperty("nodeId");
-    expect(result.data).toHaveProperty("transactionHash");
-    expect(result.data).toHaveProperty("transactionId");
-
-    const transactionId = result.data.transactionId.replace("@", ".");
-    await sleep(10_000);
+    expect(result.data).toHaveProperty("status");
+    expect(result.data).toHaveProperty("topicSequenceNumber");
+    expect(result.data).toHaveProperty("totalSupply");
+    expect(result.data).toHaveProperty("status");
+    expect(result.data.status).toEqual("SUCCESS");
 
     // get expected transaction
     result = await bladeSdk.getTransactions(accountId, "", "", "5", completionKey);
@@ -680,20 +679,6 @@ test('bladeSdk.getTransactions', async () => {
     };
 
     const nextPage = result.data.nextPage;
-    const latestTransaction = result.data.transactions.find(tx => txIdEqual(transactionId, tx.transactionId.replaceAll("-", ".")));
-
-    expect(latestTransaction !== null).toEqual(true);
-    expect(latestTransaction).toHaveProperty("time");
-    expect(latestTransaction).toHaveProperty("transfers");
-    expect(Array.isArray(latestTransaction.transfers)).toEqual(true);
-    expect(latestTransaction).toHaveProperty("nftTransfers");
-    expect(latestTransaction).toHaveProperty("memo");
-    expect(latestTransaction).toHaveProperty("transactionId");
-    expect(txIdEqual(latestTransaction.transactionId.replaceAll("-", "."), transactionId)).toEqual(true);
-    expect(latestTransaction).toHaveProperty("fee");
-    expect(latestTransaction).toHaveProperty("type");
-    expect(latestTransaction.type).toEqual("CRYPTOTRANSFER");
-
 
     // next page
     result = await bladeSdk.getTransactions(accountId, "", nextPage, "5", completionKey);

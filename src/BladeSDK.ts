@@ -1000,7 +1000,11 @@ export class BladeSDK {
     async getC14url(asset: string, account: string, amount: string, completionKey?: string): Promise<IntegrationUrlData> {
         try {
             if (!account) {
-                account = this.getUser().accountId;
+                try {
+                    account = this.getUser().accountId;
+                } catch (e) {
+                    // ignore, account is optional
+                }
             }
             let clientId;
             if (this.dAppCode.includes("karate")) {
