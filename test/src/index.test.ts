@@ -483,7 +483,7 @@ test('bladeSdk.getAccountInfo', async () => {
     expect(accountInfo.data.evmAddress).toEqual(`0x${AccountId.fromString(newAccountId).toSolidityAddress()}`);
     expect(accountInfo.data.calculatedEvmAddress).toEqual(account.data.evmAddress);
 
-    accountInfo = await bladeSdk.getAccountInfo("", completionKey);
+    accountInfo = await bladeSdk.getAccountInfo("////", completionKey);
     checkResult(accountInfo, false);
     result = await bladeSdk.setUser(AccountProvider.Hedera, accountId, privateKey, completionKey);
     checkResult(result);
