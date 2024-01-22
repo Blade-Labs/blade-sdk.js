@@ -1,12 +1,4 @@
-import {
-    AccountId,
-    Client,
-    ContractCallQuery,
-    Hbar,
-    Mnemonic,
-    PrivateKey,
-    TokenAssociateTransaction
-} from "@hashgraph/sdk";
+import {AccountId, Client, ContractCallQuery, Hbar, Mnemonic, PrivateKey} from "@hashgraph/sdk";
 import {associateToken, checkResult, createToken, getTokenInfo, sleep} from "./helpers";
 import {GET, getTransaction} from "../../src/services/ApiService";
 import {Network} from "../../src/models/Networks";
@@ -21,7 +13,7 @@ import crypto from "crypto";
 import {flatArray} from "../../src/helpers/ArrayHelpers";
 import {parseContractFunctionParams} from "../../src/helpers/ContractHelpers";
 import {decrypt, encrypt} from "../../src/helpers/SecurityHelper";
-import {KeyRecord, KeyType, NFTStorageProvider, SdkEnvironment} from "../../src/models/Common";
+import {AccountProvider, KeyRecord, KeyType, NFTStorageProvider, SdkEnvironment} from "../../src/models/Common";
 const {BladeSDK, ParametersBuilder} = require("../../src/webView");
 
 Object.defineProperty(global.self, "crypto", {
@@ -123,6 +115,15 @@ test('bladeSdk.getBalance', async () => {
     expect(result.data).toHaveProperty("tokens");
     expect(Array.isArray(result.data.tokens)).toEqual(true);
 
+    result = await bladeSdk.setUser(AccountProvider.Hedera, accountId, privateKey, completionKey);
+    checkResult(result);
+    result = await bladeSdk.getBalance("", completionKey);
+    checkResult(result);
+
+    expect(result.data).toHaveProperty("hbars");
+    expect(result.data).toHaveProperty("tokens");
+    expect(Array.isArray(result.data.tokens)).toEqual(true);
+
     // invalid accountId
     result = await bladeSdk.getBalance("0.0.0", completionKey);
     checkResult(result, false);
@@ -193,9 +194,11 @@ test('bladeSdk.transferHbars', async () => {
     result = await bladeSdk.transferHbars(accountId, privateKey, accountId2, "1.5", "custom memo text", completionKey);
     checkResult(result);
 
-    expect(result.data).toHaveProperty("nodeId");
-    expect(result.data).toHaveProperty("transactionHash");
-    expect(result.data).toHaveProperty("transactionId");
+    expect(result.data).toHaveProperty("status");
+    expect(result.data).toHaveProperty("topicSequenceNumber");
+    expect(result.data).toHaveProperty("totalSupply");
+    expect(result.data).toHaveProperty("status");
+    expect(result.data.status).toEqual("SUCCESS");
 
     // wait for balance update
     await sleep(20_000);
@@ -203,6 +206,11 @@ test('bladeSdk.transferHbars', async () => {
     result = await bladeSdk.getBalance(accountId, completionKey);
     checkResult(result);
     expect(hbars).not.toEqual(result.data.hbars);
+
+    result = await bladeSdk.setUser(AccountProvider.Hedera, accountId, privateKey, completionKey);
+    checkResult(result);
+    result = await bladeSdk.transferHbars("", "", accountId2, "1.5", "custom memo text", completionKey);
+    checkResult(result);
 
     // invalid signature
     result = await bladeSdk.transferHbars(accountId2, privateKey, accountId, "1.5", "custom memo text", completionKey);
@@ -405,9 +413,11 @@ test('bladeSdk.transferTokens', async () => {
 
     result = await bladeSdk.transferTokens(tokenId.toString(), accountId, privateKey, accountId2, amount.toString(), "transfer memo", false, completionKey);
     checkResult(result);
-    expect(result.data).toHaveProperty("nodeId");
-    expect(result.data).toHaveProperty("transactionHash");
-    expect(result.data).toHaveProperty("transactionId");
+    expect(result.data).toHaveProperty("status");
+    expect(result.data).toHaveProperty("topicSequenceNumber");
+    expect(result.data).toHaveProperty("totalSupply");
+    expect(result.data).toHaveProperty("status");
+    expect(result.data.status).toEqual("SUCCESS");
 
     await sleep(20_000);
 
@@ -422,6 +432,11 @@ test('bladeSdk.transferTokens', async () => {
     expect(account2TokenBalance).toEqual(account2TokenBalanceNew - amount);
 
     result = await bladeSdk.transferTokens(tokenId.toString(), accountId, privateKey, accountId2, amount.toString(), "transfer memo", true, completionKey);
+    checkResult(result);
+
+    result = await bladeSdk.setUser(AccountProvider.Hedera, accountId, privateKey, completionKey);
+    checkResult(result);
+    result = await bladeSdk.transferTokens(tokenId.toString(), "", "", accountId2, amount.toString(), "transfer memo (setUser)", true, completionKey);
     checkResult(result);
 }, 120_000);
 
@@ -453,7 +468,7 @@ test('bladeSdk.createAccount', async () => {
 }, 60_000);
 
 test('bladeSdk.getAccountInfo', async () => {
-    const result = await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.VISITOR_ID, process.env.SDK_ENV, sdkVersion, completionKey);
+    let result = await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.VISITOR_ID, process.env.SDK_ENV, sdkVersion, completionKey);
     checkResult(result);
 
     const account = await bladeSdk.createAccount("device-id", completionKey);
@@ -467,6 +482,13 @@ test('bladeSdk.getAccountInfo', async () => {
 
     expect(accountInfo.data.evmAddress).toEqual(`0x${AccountId.fromString(newAccountId).toSolidityAddress()}`);
     expect(accountInfo.data.calculatedEvmAddress).toEqual(account.data.evmAddress);
+
+    accountInfo = await bladeSdk.getAccountInfo("", completionKey);
+    checkResult(accountInfo, false);
+    result = await bladeSdk.setUser(AccountProvider.Hedera, accountId, privateKey, completionKey);
+    checkResult(result);
+    accountInfo = await bladeSdk.getAccountInfo("", completionKey);
+    checkResult(accountInfo);
 
     accountInfo = await bladeSdk.getAccountInfo("0.0.9999999999999999999999999", completionKey);
     checkResult(accountInfo, false);
@@ -939,7 +961,7 @@ test('bladeSdk.createToken', async () => {
         tokenId,
         treasuryAccountId,
         supplyKey,
-        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==", // TODO upload file base64
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAARUlEQVR42u3PMREAAAgEIO1fzU5vBlcPGtCVTD3QIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIXCyqyi6fIALs1AAAAAElFTkSuQmCC", // TODO upload file base64
         {
             author: "GaryDu",
         },

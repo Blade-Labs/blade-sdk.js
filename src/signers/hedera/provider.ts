@@ -11,7 +11,7 @@ export default class HederaProvider implements Provider {
         throw new Error("HederaProvider requires client to be set");
     }
 
-    static fromClient(client) {
+    static fromClient(client: Client) {
         return new HederaProvider({ client });
     }
 
@@ -27,38 +27,38 @@ export default class HederaProvider implements Provider {
         return this._client.mirrorNetwork;
     }
 
-    getAccountBalance(accountId) {
+    getAccountBalance(accountId: any) {
         return new AccountBalanceQuery()
             .setAccountId(accountId)
             .execute(this._client);
     }
 
-    getAccountInfo(accountId) {
+    getAccountInfo(accountId: any) {
         return new AccountInfoQuery()
             .setAccountId(accountId)
             .execute(this._client);
     }
 
-    getAccountRecords(accountId) {
+    getAccountRecords(accountId: any) {
         return new AccountRecordsQuery()
             .setAccountId(accountId)
             .execute(this._client);
     }
 
-    getTransactionReceipt(transactionId) {
+    getTransactionReceipt(transactionId: any) {
         return new TransactionReceiptQuery()
             .setTransactionId(transactionId)
             .execute(this._client);
     }
 
-    waitForReceipt(response) {
+    waitForReceipt(response: any) {
         return new TransactionReceiptQuery()
             .setNodeAccountIds([response.nodeId])
             .setTransactionId(response.transactionId)
             .execute(this._client);
     }
 
-    call(request) {
+    call(request: any) {
         return request.execute(this._client);
     }
 

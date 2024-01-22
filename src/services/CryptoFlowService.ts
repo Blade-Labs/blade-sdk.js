@@ -6,7 +6,7 @@ import {
 } from "../models/CryptoFlow";
 import {Buffer} from "buffer";
 import BigNumber from "bignumber.js";
-import {AccountAllowanceApproveTransaction, Client, Status, Transaction} from "@hashgraph/sdk";
+import {AccountAllowanceApproveTransaction,  Signer, Status, Transaction} from "@hashgraph/sdk";
 import {Network} from "../models/Networks";
 import {createFeeTransaction, HbarTokenId} from "./FeeService";
 import {getConfig} from "./ConfigService";
@@ -45,7 +45,7 @@ export const validateMessage = async (tx: ICryptoFlowTransaction) => {
     }
 }
 
-export const executeAllowanceApprove = async(selectedQuote: ICryptoFlowQuote, activeAccount: string, network: Network, client: Client, approve: boolean = true): Promise<void> => {
+export const executeAllowanceApprove = async(selectedQuote: ICryptoFlowQuote, activeAccount: string, network: Network, signer: Signer, approve: boolean = true): Promise<void> => {
     const sourceToken = selectedQuote.source.asset;
     if (!sourceToken.address)
         return;
@@ -70,9 +70,10 @@ export const executeAllowanceApprove = async(selectedQuote: ICryptoFlowQuote, ac
                 swapContract[network],
                 amount
             );
-        const signedTx = await tx.signWithOperator(client);
-        const txResponse = await signedTx.execute(client);
-        const receipt = await txResponse.getReceipt(client);
+        const freezedTx = await tx.freezeWithSigner(signer);
+        const signedTx = await freezedTx.signWithSigner(signer);
+        const txResponse = await signedTx.executeWithSigner(signer);
+        const receipt = await txResponse.getReceiptWithSigner(signer);
 
         if (receipt?.status !== Status.Success) {
             throw new Error("Allowance giving failed");
@@ -80,26 +81,27 @@ export const executeAllowanceApprove = async(selectedQuote: ICryptoFlowQuote, ac
     }
 }
 
-export const executeHederaSwapTx = async (txHex: string, client: Client) => {
+export const executeHederaSwapTx = async (txHex: string, signer: Signer) => {
     const buffer: Buffer = Buffer.from(txHex, "hex");
     const transaction = await Transaction
         .fromBytes(buffer)
-        .signWithOperator(client);
-    const response = await transaction.execute(client);
-    const receipt = await response.getReceipt(client);
+        .freezeWithSigner(signer);
+    const signedTx = await transaction.signWithSigner(signer);
+    const txResponse = await signedTx.executeWithSigner(signer);
+    const receipt = await txResponse.getReceiptWithSigner(signer);
 
     if (receipt?.status !== Status.Success) {
         throw new Error("Swap transaction failed");
     }
 }
 
-export const executeHederaBladeFeeTx = async (selectedQuote: ICryptoFlowQuote, activeAccount: string, network: Network, client: Client) => {
+export const executeHederaBladeFeeTx = async (selectedQuote: ICryptoFlowQuote, activeAccount: string, network: Network, signer: Signer) => {
     const feeOptions: FeeManualOptions = {
         type: FeeType.Swap,
         amount: BigNumber(selectedQuote.source.amountExpected),
         amountTokenId: selectedQuote.source.asset.address as string
     };
-    const transaction = await createFeeTransaction(
+    let transaction = await createFeeTransaction(
         network,
         activeAccount,
         feeOptions
@@ -107,10 +109,10 @@ export const executeHederaBladeFeeTx = async (selectedQuote: ICryptoFlowQuote, a
     if (!transaction) {
         return;
     }
-    transaction.setTransactionMemo("Swap Blade Fee");
-    const signedTx = await transaction.signWithOperator(client);
-    const response = await signedTx.execute(client);
-    const receiptFee = await response.getReceipt(client);
+    transaction = await transaction.setTransactionMemo("Swap Blade Fee").freezeWithSigner(signer);
+    const signedTx = await transaction.signWithSigner(signer);
+    const response = await signedTx.executeWithSigner(signer);
+    const receiptFee = await response.getReceiptWithSigner(signer);
 
     if (receiptFee?.status !== Status.Success) {
         throw new Error("Fee transfer execution failed");

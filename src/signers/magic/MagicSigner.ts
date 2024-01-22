@@ -17,7 +17,7 @@ export class MagicSigner implements Signer {
     private readonly provider: MagicProvider;
     private readonly accountId: AccountId;
 
-    constructor(accountId: AccountId | string, network: string, publicKey: string, magicSign: (Uint8Array) => Promise<Uint8Array>) {
+    constructor(accountId: AccountId | string, network: string, publicKey: string, magicSign: (messages: Uint8Array) => Promise<Uint8Array>) {
         this.publicKey = PublicKey.fromString(publicKey);
         this.signer = magicSign;
         this.provider = new MagicProvider(network);
@@ -48,7 +48,7 @@ export class MagicSigner implements Signer {
         return this.provider == null ? [] : this.provider.getMirrorNetwork();
     }
 
-    async sign(messages) {
+    async sign(messages: any) {
         const sigantures = [];
 
         for (const message of messages) {
@@ -80,11 +80,11 @@ export class MagicSigner implements Signer {
         );
     }
 
-    signTransaction(transaction) {
+    signTransaction(transaction: any) {
         return transaction.signWith(this.publicKey, this.signer);
     }
 
-    checkTransaction(transaction) {
+    checkTransaction(transaction: any) {
         const transactionId = transaction.transactionId;
         if (
             transactionId != null &&
@@ -102,14 +102,14 @@ export class MagicSigner implements Signer {
 
         const nodeAccountIds = (
             transaction.nodeAccountIds != null ? transaction.nodeAccountIds : []
-        ).map((nodeAccountId) => nodeAccountId.toString());
+        ).map((nodeAccountId: any) => nodeAccountId.toString());
         const network = Object.values(this.provider.getNetwork()).map(
             (nodeAccountId) => nodeAccountId.toString()
         );
 
         if (
             !nodeAccountIds.reduce(
-                (previous, current) => previous && network.includes(current),
+                (previous: any, current: any) => previous && network.includes(current),
                 true
             )
         ) {
@@ -121,7 +121,7 @@ export class MagicSigner implements Signer {
         return Promise.resolve(transaction);
     }
 
-    populateTransaction(transaction) {
+    populateTransaction(transaction: any) {
         transaction._freezeWithAccountId(this.accountId);
 
         if (transaction.transactionId == null) {
@@ -152,7 +152,7 @@ export class MagicSigner implements Signer {
         return Promise.resolve(transaction.freeze());
     }
 
-    call(request) {
+    call(request: any) {
         if (this.provider == null) {
             throw new Error(
                 "cannot send request with an wallet that doesn't contain a provider"
