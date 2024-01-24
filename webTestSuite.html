@@ -37,16 +37,16 @@
     const ParametersBuilder = window.ParametersBuilder;
 
     const userProviders = [
-        {
-            userProvider: "Hedera",
-            accountIdOrEmail: accountId,
-            accountPrivateKey: privateKey
-        },
-        {
-            userProvider: "Magic",
-            accountIdOrEmail: "the.gary.du+sdk@gmail.com",
-            accountPrivateKey: ""
-        },
+        // {
+        //     userProvider: "Hedera",
+        //     accountIdOrEmail: accountId,
+        //     accountPrivateKey: privateKey
+        // },
+        // {
+        //     userProvider: "Magic",
+        //     accountIdOrEmail: "the.gary.du+sdk@gmail.com",
+        //     accountPrivateKey: ""
+        // },
         {
             userProvider: "Direct",
             accountIdOrEmail: accountId,
@@ -191,6 +191,13 @@
         }
     });
 
+    addTest("exchangeGetQuotes", async (completionKey) => {
+        log(await bladeSdk.init(apiKeyTestnet, "Mainnet", dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
+        log(await bladeSdk.exchangeGetQuotes("EUR", 50, "HBAR", "Buy", completionKey));
+        log(await bladeSdk.exchangeGetQuotes("USDC", 30, "PHP", "Sell", completionKey));
+        log(await bladeSdk.exchangeGetQuotes("HBAR", 5, "USDC", "Swap", completionKey));
+    });
+
     addTest("createAndMintNFT", async (completionKey) => {
         for await (const {userProvider, accountIdOrEmail, accountPrivateKey} of userProviders) {
             log(await bladeSdk.init(apiKeyTestnet, "Testnet", dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
@@ -252,6 +259,7 @@
         // "getC14url", // ok
         // "swapTokens", // ok with magic, try reconfigure hedera gor ed25519 account
         // "getTradeUrl", // ok
+        // "exchangeGetQuotes", // ok
         // "createAndMintNFT", // ok
         // "associateToken", // ok
     ]);
