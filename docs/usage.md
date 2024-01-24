@@ -18,6 +18,8 @@ description: More details on how to use Blade-SDK.js
 * [createAccount](usage.md#createaccount)
 * [getPendingAccount](usage.md#getpendingaccount)
 * [getAccountInfo](usage.md#getaccountinfo)
+* [getNodeList](usage.md#getnodelist)
+* [stakeToNode](usage.md#staketonode)
 * [getKeysFromMnemonic](usage.md#getkeysfrommnemonic)
 * [transferHbars](usage.md#transferhbars)
 * [transferTokens](usage.md#transfertokens)
@@ -225,6 +227,45 @@ Get account info. EvmAddress is address of Hedera account if exists. Else accoun
 #### Returns
 
 `Promise<AccountInfoData>`
+
+***
+
+### getNodeList
+
+▸ **getNodeList**(`completionKey?`): `Promise<{nodes: NodeList[]}>`
+
+Get Node list
+
+#### Parameters
+
+| Name             | Type     | Description                                                   |
+| ---------------- | -------- | ------------------------------------------------------------- |
+| `completionKey?` | `string` | optional field bridge between mobile webViews and native apps |
+
+#### Returns
+
+`Promise<{nodes: NodeList[]}>`
+
+***
+
+### stakeToNode
+
+▸ **stakeToNode**(`accountId`, `accountPrivateKey`, `nodeId`, `completionKey?`): `Promise<TransactionReceiptData>`
+
+Stake/unstake account
+
+#### Parameters
+
+| Name                | Type     | Description                                                        |
+|---------------------| -------- |--------------------------------------------------------------------|
+| `accountId`         | `string` | Hedera account id (0.0.xxxxx)                                      |
+| `accountPrivateKey` | `string` | account private key (DER encoded hex string)                       |
+| `nodeId`            | `string` | node id to stake to. If negative or null, account will be unstaked |
+| `completionKey?`    | `string` | optional field bridge between mobile webViews and native apps      |
+
+#### Returns
+
+`Promise<TransactionReceiptData>`
 
 ***
 
