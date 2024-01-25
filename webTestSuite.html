@@ -37,21 +37,21 @@
     const ParametersBuilder = window.ParametersBuilder;
 
     const userProviders = [
-        // {
-        //     userProvider: "Hedera",
-        //     accountIdOrEmail: accountId,
-        //     accountPrivateKey: privateKey
-        // },
+        {
+            userProvider: "Hedera",
+            accountIdOrEmail: accountId,
+            accountPrivateKey: privateKey
+        },
         // {
         //     userProvider: "Magic",
         //     accountIdOrEmail: "the.gary.du+sdk@gmail.com",
         //     accountPrivateKey: ""
         // },
-        {
-            userProvider: "Direct",
-            accountIdOrEmail: accountId,
-            accountPrivateKey: privateKey
-        }
+        // {
+        //     userProvider: "Direct",
+        //     accountIdOrEmail: accountId,
+        //     accountPrivateKey: privateKey
+        // }
     ];
     const tests = [];
 
@@ -253,7 +253,7 @@
         // "transferHbars", // ok
         // "contractCallFunction", // ok
         // "contractCallQueryFunction", // ok
-        // "transferTokens", // ok
+        "transferTokens", // ok
         // "getAccountInfo", // ok
         // "getTransactions", // ok
         // "getC14url", // ok

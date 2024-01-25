@@ -32,6 +32,11 @@ It's important to note that these are just a few examples, and there may be othe
 
 ## Getting Started
 
+### Requirements
+
+- Node.js 16.x or higher (MacOS/Linux)
+- Node.js 16.x to 18.x (Windows)
+
 ### Install
 
 ```
