@@ -100,6 +100,7 @@ import {
     ICryptoFlowTransaction,
     ICryptoFlowTransactionParams
 } from "./models/CryptoFlow";
+import {NodeInfo} from "./models/MirrorNode";
 import * as FingerprintJS from '@fingerprintjs/fingerprintjs-pro'
 import {File, NFTStorage} from 'nft.storage';
 import {decrypt, encrypt} from "./helpers/SecurityHelper";
@@ -844,7 +845,7 @@ export class BladeSDK {
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {nodes: NodeList[]}
      */
-    async getNodeList(completionKey?: string): Promise<{nodes: NodeList[]}> {
+    async getNodeList(completionKey?: string): Promise<{nodes: NodeInfo[]}> {
         try {
             const nodeList = await getNodeList(this.network);
             return this.sendMessageToNative(completionKey, {nodes: nodeList});
@@ -1615,7 +1616,7 @@ export class BladeSDK {
      * Message that sends response back to native handler
      */
     private sendMessageToNative(completionKey: string | undefined, data: any | null, error: Partial<CustomError>|any|null = null) {
-        if (!this.webView) {
+        if (!this.webView || !completionKey) {
             if (error) {
                 throw error;
             }
