@@ -156,27 +156,27 @@ export class BladeSDK {
         this.dAppCode = dAppCode;
         this.sdkEnvironment = sdkEnvironment;
         this.sdkVersion = sdkVersion;
+        this.visitorId = visitorId;
 
         initApiService(apiKey, dAppCode, sdkEnvironment, sdkVersion, this.network, visitorId);
-        if (!visitorId) {
+        if (!this.visitorId) {
             try {
-                visitorId = await decrypt(localStorage.getItem("BladeSDK.visitorId") || "", this.apiKey);
+                this.visitorId = await decrypt(localStorage.getItem("BladeSDK.visitorId") || "", this.apiKey);
             } catch (e) {
                 // console.log("failed to decrypt visitor id", e);
             }
         }
-        if (!visitorId) {
+        if (!this.visitorId) {
             try {
                 await this.fetchBladeConfig();
                 const fpPromise = await FingerprintJS.load({ apiKey: this.config?.fpApiKey! })
-                visitorId = (await fpPromise.get()).visitorId;
-                localStorage.setItem("BladeSDK.visitorId", await encrypt(visitorId, this.apiKey));
+                this.visitorId = (await fpPromise.get()).visitorId;
+                localStorage.setItem("BladeSDK.visitorId", await encrypt(this.visitorId, this.apiKey));
             } catch (error) {
                 console.log("failed to get visitor id", error);
             }
         }
-        setVisitorId(visitorId);
-        this.visitorId = visitorId;
+        setVisitorId(this.visitorId);
 
         return this.sendMessageToNative(completionKey, {
             apiKey: this.apiKey,
