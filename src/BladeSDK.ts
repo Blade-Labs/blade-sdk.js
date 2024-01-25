@@ -60,6 +60,7 @@ import {
     AccountProvider,
     AccountStatus,
     BalanceData,
+    BladeConfig,
     BridgeResponse,
     C14WidgetConfig,
     CoinData,
@@ -116,6 +117,7 @@ export class BladeSDK {
     private sdkEnvironment: SdkEnvironment = SdkEnvironment.Prod;
     private sdkVersion: string = config.sdkVersion;
     private readonly webView: boolean = false;
+    private config: BladeConfig | null = null;
     private accountProvider: AccountProvider | null = null;
     private signer: Signer | null = null;
     private magic: any;
@@ -136,7 +138,7 @@ export class BladeSDK {
      * @param apiKey Unique key for API provided by Blade team.
      * @param network "Mainnet" or "Testnet" of Hedera network
      * @param dAppCode your dAppCode - request specific one by contacting us
-     * @param visitorId client unique fingerprint (visitorId)
+     * @param visitorId client unique id. If not provided, SDK will try to get it using fingerprintjs-pro library
      * @param sdkEnvironment environment to choose BladeAPI server (Prod, CI)
      * @param sdkVersion used for header X-SDK-VERSION
      * @param completionKey optional field bridge between mobile webViews and native apps
@@ -156,28 +158,27 @@ export class BladeSDK {
         this.dAppCode = dAppCode;
         this.sdkEnvironment = sdkEnvironment;
         this.sdkVersion = sdkVersion;
+        this.visitorId = visitorId;
 
         initApiService(apiKey, dAppCode, sdkEnvironment, sdkVersion, this.network, visitorId);
-        if (!visitorId) {
+        if (!this.visitorId) {
             try {
-                visitorId = await decrypt(localStorage.getItem("BladeSDK.visitorId") || "", this.apiKey);
+                this.visitorId = await decrypt(localStorage.getItem("BladeSDK.visitorId") || "", this.apiKey);
             } catch (e) {
                 // console.log("failed to decrypt visitor id", e);
             }
         }
-        if (!visitorId) {
+        if (!this.visitorId) {
             try {
-                const bladeConfig = await getBladeConfig()
-                const fpPromise = await FingerprintJS.load({ apiKey: bladeConfig.fpApiKey! })
-                visitorId = (await fpPromise.get()).visitorId;
-                localStorage.setItem("BladeSDK.visitorId", await encrypt(visitorId, this.apiKey));
-
+                await this.fetchBladeConfig();
+                const fpPromise = await FingerprintJS.load({ apiKey: this.config?.fpApiKey! })
+                this.visitorId = (await fpPromise.get()).visitorId;
+                localStorage.setItem("BladeSDK.visitorId", await encrypt(this.visitorId, this.apiKey));
             } catch (error) {
                 console.log("failed to get visitor id", error);
             }
         }
-        setVisitorId(visitorId);
-        this.visitorId = visitorId;
+        setVisitorId(this.visitorId);
 
         return this.sendMessageToNative(completionKey, {
             apiKey: this.apiKey,
@@ -220,10 +221,10 @@ export class BladeSDK {
                 case AccountProvider.Magic:
                     let userInfo;
                     if (!this.magic) {
-                        this.initMagic();
+                        await this.initMagic();
                     }
 
-                    if (await this.magic.user.isLoggedIn()) {
+                    if (await this.magic?.user.isLoggedIn()) {
                         userInfo = await this.magic.user.getInfo()
                         if (userInfo.email !== accountIdOrEmail) {
                             this.magic.user.logout()
@@ -231,11 +232,11 @@ export class BladeSDK {
                             userInfo = await this.magic.user.getInfo()
                         }
                     } else {
-                        await this.magic.auth.loginWithMagicLink({ email: accountIdOrEmail, showUI: false })
-                        userInfo = await this.magic.user.getInfo()
+                        await this.magic?.auth.loginWithMagicLink({ email: accountIdOrEmail, showUI: false })
+                        userInfo = await this.magic?.user.getInfo()
                     }
 
-                    if (!await this.magic.user.isLoggedIn()) {
+                    if (!await this.magic?.user.isLoggedIn()) {
                         throw new Error('Not logged in Magic. Please call magicLogin() first');
                     }
 
@@ -256,6 +257,11 @@ export class BladeSDK {
             });
 
         } catch (error) {
+            this.userAccountId = "";
+            this.userPrivateKey = "";
+            this.userPublicKey = "";
+            this.signer = null;
+            this.magic = null;
             return this.sendMessageToNative(completionKey, null, error);
         }
     }
@@ -268,7 +274,7 @@ export class BladeSDK {
             this.signer = null;
             if (this.accountProvider === AccountProvider.Magic) {
                 if (!this.magic) {
-                    this.initMagic();
+                    await this.initMagic();
                 }
                 await this.magic.user.logout();
             }
@@ -1574,14 +1580,19 @@ export class BladeSDK {
         }
     }
 
-    private initMagic() {
-        const magicLinkPublicKey = "pk_live_46696EF18CA8E36C";
-
-        this.magic = new Magic(magicLinkPublicKey, {
+    private async initMagic() {
+        await this.fetchBladeConfig();
+        this.magic = new Magic(this.config?.magicLinkPublicKey!, {
             extensions: [new HederaExtension({
                 network: this.network.toLowerCase()
             })]
         });
+    }
+
+    private async fetchBladeConfig() {
+        if (!this.config) {
+            this.config = await getBladeConfig()
+        }
     }
 
     private getUser(): {signer: Signer, accountId: string, privateKey: string, publicKey: string} {

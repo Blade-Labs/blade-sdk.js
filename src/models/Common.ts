@@ -53,6 +53,7 @@ export interface BladeConfig {
     swapContract?: string,
     swapWrapHbar?: string,
     saucerswapApi?: string,
+    magicLinkPublicKey?: string,
     [key: string]: string | undefined; // Index signature
 }
 
