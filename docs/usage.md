@@ -182,7 +182,8 @@ Create Hedera account (ECDSA). Only for configured dApps. Depending on dApp conf
 #### Parameters
 
 | Name             | Type     | Description                                                   |
-| ---------------- | -------- | ------------------------------------------------------------- |
+|------------------| -------- |---------------------------------------------------------------|
+| `deviceId?`      | `string` | optional header for backend check                             |
 | `completionKey?` | `string` | optional field bridge between mobile webViews and native apps |
 
 #### Returns

@@ -1,3 +1,6 @@
+import { injectable, inject } from 'inversify';
+import 'reflect-metadata';
+
 import {
     AccountDeleteTransaction,
     AccountUpdateTransaction,
@@ -23,28 +26,7 @@ import {
 } from "@hashgraph/sdk";
 import {Buffer} from "buffer";
 import {ethers} from "ethers";
-import {
-    apiCallContractQuery,
-    checkAccountCreationStatus,
-    confirmAccountUpdate,
-    createAccount,
-    getAccountBalance,
-    getAccountInfo,
-    getAccountsFromPublicKey,
-    getBladeConfig,
-    getC14token,
-    getCoinInfo,
-    getCoins,
-    getCryptoFlowData,
-    getNodeList,
-    getPendingAccountData,
-    getTransactionsFrom,
-    initApiService,
-    requestTokenInfo,
-    setVisitorId,
-    signContractCallTx,
-    transferTokens
-} from "./services/ApiService";
+import ApiService from "./services/ApiService";
 import CryptoFlowService from "./services/CryptoFlowService";
 import {HbarTokenId} from "./services/FeeService";
 import {Network} from "./models/Networks";
@@ -110,6 +92,7 @@ import {HederaExtension} from '@magic-ext/hedera';
 import {MagicSigner} from "./signers/magic/MagicSigner";
 import {HederaProvider, HederaSigner} from "./signers/hedera";
 
+@injectable()
 export class BladeSDK {
     private apiKey: string = "";
     private network: Network = Network.Testnet;
@@ -128,9 +111,15 @@ export class BladeSDK {
 
     /**
      * BladeSDK constructor.
+     * @param apiService - instance of ApiService
+     * @param cryptoFlowService - instance of CryptoFlowService
      * @param isWebView - true if you are using this SDK in webview of native app. It changes the way of communication with native app.
      */
-    constructor(isWebView = false) {
+    constructor(
+        @inject('apiService') private readonly apiService: ApiService,
+        @inject('cryptoFlowService') private readonly cryptoFlowService: CryptoFlowService,
+        @inject("isWebView") private readonly isWebView: boolean
+    ) {
         this.webView = isWebView;
     }
 
@@ -161,7 +150,7 @@ export class BladeSDK {
         this.sdkVersion = sdkVersion;
         this.visitorId = visitorId;
 
-        initApiService(apiKey, dAppCode, sdkEnvironment, sdkVersion, this.network, visitorId);
+        this.apiService.initApiService(apiKey, dAppCode, sdkEnvironment, sdkVersion, this.network, visitorId);
         if (!this.visitorId) {
             try {
                 this.visitorId = await decrypt(localStorage.getItem("BladeSDK.visitorId") || "", this.apiKey);
@@ -179,7 +168,7 @@ export class BladeSDK {
                 console.log("failed to get visitor id", error);
             }
         }
-        setVisitorId(this.visitorId);
+        this.apiService.setVisitorId(this.visitorId);
 
         return this.sendMessageToNative(completionKey, {
             apiKey: this.apiKey,
@@ -301,7 +290,7 @@ export class BladeSDK {
             if (!accountId) {
                 accountId = this.getUser().accountId;
             }
-            return this.sendMessageToNative(completionKey, await getAccountBalance(accountId));
+            return this.sendMessageToNative(completionKey, await this.apiService.getAccountBalance(accountId));
         } catch (error) {
             return this.sendMessageToNative(completionKey, null, error);
         }
@@ -309,7 +298,7 @@ export class BladeSDK {
 
     async getCoinList(completionKey?: string): Promise<CoinListData> {
         try {
-            const coinList: CoinInfoRaw[] = await getCoins({
+            const coinList: CoinInfoRaw[] = await this.apiService.getCoins({
                 dAppCode: this.dAppCode,
                 visitorId: this.visitorId,
             });
@@ -347,15 +336,15 @@ export class BladeSDK {
             let coinInfo: CoinData | null = null;
             try {
                 // try to get coin info from CoinGecko
-                coinInfo = await getCoinInfo(search, params);
+                coinInfo = await this.apiService.getCoinInfo(search, params);
             } catch (error) {
                 // on fail try to get coin info from CoinGecko and match by address
-                const coinList: CoinInfoRaw[] = await getCoins(params);
+                const coinList: CoinInfoRaw[] = await this.apiService.getCoins(params);
                 const coin = coinList.find(item => Object.values(item.platforms).includes(search));
                 if (!coin) {
                     throw new Error(`Coin with address ${search} not found`);
                 }
-                coinInfo = await getCoinInfo(coin.id, params);
+                coinInfo = await this.apiService.getCoinInfo(coin.id, params);
             }
 
             const result: CoinInfoData = {
@@ -444,7 +433,7 @@ export class BladeSDK {
                     gas
                 };
 
-                const {transactionBytes} = await signContractCallTx(this.network, options);
+                const {transactionBytes} = await this.apiService.signContractCallTx(this.network, options);
                 transaction = Transaction.fromBytes(Buffer.from(transactionBytes, "base64"));
             } else {
                 transaction = new ContractExecuteTransaction()
@@ -508,7 +497,7 @@ export class BladeSDK {
                         functionName,
                         gas
                     };
-                    const {contractFunctionResult, rawResult} = await apiCallContractQuery(this.network, options);
+                    const {contractFunctionResult, rawResult} = await this.apiService.apiCallContractQuery(this.network, options);
 
                     response = new ContractFunctionResult({
                         _createResult: false,
@@ -577,7 +566,7 @@ export class BladeSDK {
             }
             accountId = this.getUser().accountId;
 
-            const meta = await requestTokenInfo(this.network, tokenId);
+            const meta = await this.apiService.requestTokenInfo(this.network, tokenId);
             let isNFT = false;
             if (meta.type === "NON_FUNGIBLE_UNIQUE") {
                 isNFT = true;
@@ -598,7 +587,7 @@ export class BladeSDK {
                     // no tokenId, backend pick first token from list for currend dApp
                 };
 
-                const {transactionBytes} = await transferTokens(this.network, options);
+                const {transactionBytes} = await this.apiService.transferTokens(this.network, options);
                 const buffer = Buffer.from(transactionBytes, "base64");
                 const transaction = Transaction.fromBytes(buffer);
 
@@ -679,12 +668,12 @@ export class BladeSDK {
                 transactionBytes,
                 updateAccountTransactionBytes,
                 transactionId
-            } = await createAccount(this.network, options);
+            } = await this.apiService.createAccount(this.network, options);
 
             await executeUpdateAccountTransactions(this.getClient(), privateKey, updateAccountTransactionBytes, transactionBytes);
 
             if (updateAccountTransactionBytes) {
-                await confirmAccountUpdate({
+                await this.apiService.confirmAccountUpdate({
                     accountId: id,
                     network: this.network,
                     visitorId: this.visitorId,
@@ -741,18 +730,18 @@ export class BladeSDK {
                 network: this.network.toLowerCase(),
                 dAppCode: this.dAppCode
             };
-            const {status, queueNumber} = await checkAccountCreationStatus(transactionId, this.network, params);
+            const {status, queueNumber} = await this.apiService.checkAccountCreationStatus(transactionId, this.network, params);
             if (status === AccountStatus.SUCCESS) {
                 const {
                     id,
                     transactionBytes,
                     updateAccountTransactionBytes,
                     originalPublicKey
-                } = await getPendingAccountData(transactionId, this.network, params);
+                } = await this.apiService.getPendingAccountData(transactionId, this.network, params);
 
                 await executeUpdateAccountTransactions(this.getClient(), privateKey, updateAccountTransactionBytes, transactionBytes);
 
-                await confirmAccountUpdate({
+                await this.apiService.confirmAccountUpdate({
                     accountId: id,
                     network: this.network,
                     visitorId: this.visitorId,
@@ -821,7 +810,7 @@ export class BladeSDK {
             if (!accountId) {
                 accountId = this.getUser().accountId;
             }
-            const account = await getAccountInfo(this.network, accountId);
+            const account = await this.apiService.getAccountInfo(this.network, accountId);
 
             const publicKey = account.key._type === "ECDSA_SECP256K1" ? PublicKey.fromStringECDSA(account.key.key) : PublicKey.fromStringED25519(account.key.key);
             return this.sendMessageToNative(completionKey, {
@@ -847,7 +836,7 @@ export class BladeSDK {
      */
     async getNodeList(completionKey?: string): Promise<{nodes: NodeInfo[]}> {
         try {
-            const nodeList = await getNodeList(this.network);
+            const nodeList = await this.apiService.getNodeList(this.network);
             return this.sendMessageToNative(completionKey, {nodes: nodeList});
         } catch (error) {
             return this.sendMessageToNative(completionKey, null, error);
@@ -915,7 +904,7 @@ export class BladeSDK {
             let accounts: string[] = [];
 
             if (lookupNames) {
-                accounts = await getAccountsFromPublicKey(this.network, publicKey);
+                accounts = await this.apiService.getAccountsFromPublicKey(this.network, publicKey);
             }
 
             return this.sendMessageToNative(completionKey, {
@@ -1051,7 +1040,7 @@ export class BladeSDK {
             if (!accountId) {
                 accountId = this.getUser().accountId;
             }
-            const transactionData = await getTransactionsFrom(this.network, accountId, transactionType, nextPage, transactionsLimit);
+            const transactionData = await this.apiService.getTransactionsFrom(this.network, accountId, transactionType, nextPage, transactionsLimit);
             return this.sendMessageToNative(completionKey, transactionData);
         } catch (error) {
             return this.sendMessageToNative(completionKey, null, error);
@@ -1072,7 +1061,7 @@ export class BladeSDK {
             if (this.dAppCode.includes("karate")) {
                 clientId = "17af1a19-2729-4ecc-8683-324a52eca6fc";
             } else {
-                const {token} = await getC14token({
+                const {token} = await this.apiService.getC14token({
                     network: this.network,
                     visitorId: this.visitorId,
                     dAppCode: this.dAppCode
@@ -1155,7 +1144,7 @@ export class BladeSDK {
                 }
                 case CryptoFlowServiceStrategy.SELL.toLowerCase(): {
                     params.sourceChainId = chainId;
-                    const assets = await getCryptoFlowData(
+                    const assets = await this.apiService.getCryptoFlowData(
                         this.network,
                         this.visitorId,
                         CryptoFlowRoutes.ASSETS,
@@ -1176,7 +1165,7 @@ export class BladeSDK {
                 }
             }
 
-            const quotes = await getCryptoFlowData(
+            const quotes = await this.apiService.getCryptoFlowData(
                 this.network,
                 this.visitorId,
                 CryptoFlowRoutes.QUOTES,
@@ -1219,7 +1208,7 @@ export class BladeSDK {
 
             const useTestnet = this.network === Network.Testnet;
             const chainId = KnownChainIds[useTestnet ? KnownChain.HEDERA_TESTNET : KnownChain.HEDERA_MAINNET];
-            const quotes = await getCryptoFlowData(
+            const quotes = await this.apiService.getCryptoFlowData(
                 this.network,
                 this.visitorId,
                 CryptoFlowRoutes.QUOTES,
@@ -1238,7 +1227,7 @@ export class BladeSDK {
                 throw new Error("Quote not found");
             }
 
-            const txData: ICryptoFlowTransaction = await getCryptoFlowData(
+            const txData: ICryptoFlowTransaction = await this.apiService.getCryptoFlowData(
                 this.network,
                 this.visitorId,
                 CryptoFlowRoutes.TRANSACTION,
@@ -1257,15 +1246,15 @@ export class BladeSDK {
                 }
             ) as ICryptoFlowTransaction;
 
-            if (await CryptoFlowService.validateMessage(txData)) {
-                await CryptoFlowService.executeAllowanceApprove(selectedQuote, accountId, this.network, this.signer!, true);
+            if (await this.cryptoFlowService.validateMessage(txData)) {
+                await this.cryptoFlowService.executeAllowanceApprove(selectedQuote, accountId, this.network, this.signer!, true);
                 try {
-                    await CryptoFlowService.executeHederaSwapTx(txData.calldata, this.signer!);
+                    await this.cryptoFlowService.executeHederaSwapTx(txData.calldata, this.signer!);
                 } catch (e) {
-                    await CryptoFlowService.executeAllowanceApprove(selectedQuote, accountId, this.network, this.signer!, false);
+                    await this.cryptoFlowService.executeAllowanceApprove(selectedQuote, accountId, this.network, this.signer!, false);
                     throw e
                 }
-                await CryptoFlowService.executeHederaBladeFeeTx(selectedQuote, accountId, this.network, this.signer!);
+                await this.cryptoFlowService.executeHederaBladeFeeTx(selectedQuote, accountId, this.network, this.signer!);
             } else {
                 throw new Error("Invalid signature of txData");
             }
@@ -1319,7 +1308,7 @@ export class BladeSDK {
                 }
                 case CryptoFlowServiceStrategy.SELL.toLowerCase(): {
                     params.sourceChainId = chainId;
-                    const assets = await getCryptoFlowData(
+                    const assets = await this.apiService.getCryptoFlowData(
                         this.network,
                         this.visitorId,
                         CryptoFlowRoutes.ASSETS,
@@ -1334,7 +1323,7 @@ export class BladeSDK {
                 }
             }
 
-            const quotes = await getCryptoFlowData(
+            const quotes = await this.apiService.getCryptoFlowData(
                 this.network,
                 this.visitorId,
                 CryptoFlowRoutes.QUOTES,
@@ -1592,7 +1581,7 @@ export class BladeSDK {
 
     private async fetchBladeConfig() {
         if (!this.config) {
-            this.config = await getBladeConfig()
+            this.config = await this.apiService.getBladeConfig()
         }
     }
 

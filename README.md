@@ -46,12 +46,12 @@ npm i @bladelabs/blade-sdk.js
 ## Usage
 
 ```
-import {BladeSDK} from '@bladelabs/blade-sdk.js';
+import {bladeContainer, BladeSDK, SdkEnvironment} from '@bladelabs/blade-sdk.js';
 
 ...
-const bladeSDK = new BladeSDK();
-await bladeSDK.init("Blade apiKey", "testnet", "dAppCode", "client unique fingerprint or empty string", "Prod");
-const balance = await bladeSDK.getBalance("0.0.8235");
+const bladeSdk = bladeContainer.get(BladeSDK);
+await bladeSdk.init("Blade apiKey", "testnet", "dAppCode", "client unique fingerprint or empty string", SdkEnvironment.Prod);
+const balance = await bladeSdk.getBalance("0.0.8235");
 console.log(balance);
 ```
 

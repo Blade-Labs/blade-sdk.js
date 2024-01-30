@@ -1,6 +1,10 @@
 import {AccountId, Client, ContractCallQuery, Hbar, Mnemonic, PrivateKey} from "@hashgraph/sdk";
-import {associateToken, checkResult, createToken, getTokenInfo, sleep} from "./helpers";
-import {GET, getTransaction} from "../../src/services/ApiService";
+import {associateToken, checkResult, createToken, sleep} from "./helpers";
+import ApiService from "../../src/services/ApiService";
+import CryptoFlowService from "../../src/services/CryptoFlowService";
+import ConfigService from "../../src/services/ConfigService";
+import FeeService from "../../src/services/FeeService";
+import StringHelpers from "../../src/helpers/StringHelpers";
 import {Network} from "../../src/models/Networks";
 import {isEqual} from "lodash";
 import {Buffer} from "buffer";
@@ -25,7 +29,12 @@ Object.defineProperty(global.self, "crypto", {
 Object.assign(global, { TextDecoder, TextEncoder, fetch });
 
 dotenv.config();
-const bladeSdk = new BladeSDK(true);
+const apiService = new ApiService();
+const configService = new ConfigService(apiService);
+const feeService = new FeeService(configService);
+const cryptoFlowService = new CryptoFlowService(configService, feeService);
+const bladeSdk = new BladeSDK(apiService, cryptoFlowService, true);
+
 const sdkVersion = `Kotlin@${config.numberVersion}`;
 export const completionKey = "completionKey1";
 const privateKey = process.env.PRIVATE_KEY || ""; // ECDSA
@@ -379,7 +388,7 @@ test('bladeSdk.transferTokens', async () => {
     let tokenId: string|null = null;
     // for (let i = 0; i < result.data.tokens.length; i++) {
     for (const token of result.data.tokens) {
-        const tokenInfo = await getTokenInfo(token.tokenId);
+        const tokenInfo = await apiService.requestTokenInfo(StringHelpers.stringToNetwork(process.env.NETWORK), token.tokenId);
         if (tokenInfo.name === tokenName) {
             tokenId = tokenInfo.token_id;
             break;
@@ -507,7 +516,7 @@ test('bladeSdk.deleteAccount', async () => {
     checkResult(result);
 
     await sleep(15_000);
-    result = await GET(Network.Testnet, `api/v1/accounts/${newAccountId}`);
+    result = await apiService.GET(Network.Testnet, `api/v1/accounts/${newAccountId}`);
     expect(result.deleted).toEqual(true);
 
     // invalid request (already deleted)
@@ -706,7 +715,7 @@ test('bladeSdk.getTransactions', async () => {
     checkResult(result, false);
 
     // invalid tx
-    result = await getTransaction(Network.Testnet, "wrong tx id", accountId);
+    result = await apiService.getTransaction(Network.Testnet, "wrong tx id", accountId);
     expect(Array.isArray(result));
     expect(result.length).toEqual(0)
 
@@ -910,7 +919,7 @@ test('bladeSdk.createToken', async () => {
     const tokenId = result.data.tokenId;
 
     await sleep(20_000);
-    const tokenInfo = await getTokenInfo(tokenId);
+    const tokenInfo = await apiService.requestTokenInfo(StringHelpers.stringToNetwork(process.env.NETWORK), tokenId);
 
     expect(tokenInfo.admin_key.key).toEqual(PrivateKey.fromString(adminKey).publicKey.toStringRaw());
     expect(tokenInfo.fee_schedule_key.key).toEqual(PrivateKey.fromString(feeScheduleKey).publicKey.toStringRaw());
@@ -1058,5 +1067,5 @@ test("utils", async () => {
     const encrypted = await encrypt(originalString, process.env.API_KEY || "");
     expect(await decrypt(encrypted, process.env.API_KEY || "")).toEqual(originalString);
 
-    expect((await GET(Network.Testnet, `/api/v1/accounts/${accountId}`)).account).toEqual(accountId)
+    expect((await apiService.GET(Network.Testnet, `/api/v1/accounts/${accountId}`)).account).toEqual(accountId)
 });

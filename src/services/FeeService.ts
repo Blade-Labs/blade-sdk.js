@@ -1,8 +1,11 @@
+import { injectable, inject } from 'inversify';
+import 'reflect-metadata';
+
 import {Network} from "../models/Networks";
 import {AccountId, Hbar, ScheduleCreateTransaction, Transaction, TransferTransaction} from "@hashgraph/sdk";
 import {FeeManualOptions, FeeType} from "../models/CryptoFlow";
 import BigNumber from "bignumber.js";
-import {getConfig} from "./ConfigService";
+import ConfigService from "./ConfigService";
 
 export const HbarTokenId = "0.0.0";
 
@@ -36,167 +39,176 @@ type APIRateData = {
     timestampSecondsLastListingChange: number
 }
 
-export const createFeeTransaction = async (
-    network: Network,
-    payerAccount: AccountId | string,
-    manualOptions: FeeManualOptions
-): Promise<TransferTransaction | null> => {
-    const tx = new TransferTransaction();
-    const txWithFee = await addBladeFee<TransferTransaction>(tx, network, payerAccount, manualOptions);
-    return txWithFee.hbarTransfers.size > 0 ? txWithFee : null;
-}
+@injectable()
+export default class FeeService {
+    private cryptoExchangeRates: Record<Network, Record<string, RateData>> = {
+        [Network.Mainnet]: {},
+        [Network.Testnet]: {}
+    }
 
-export const addBladeFee = async <T extends Transaction>(
-    tx: T,
-    network: Network,
-    payerAccount: AccountId | string,
-    manualOptions: FeeManualOptions
-): Promise<T> => {
-    try {
-        if (tx.isFrozen()) {
+    constructor(
+        @inject('configService') private readonly configService: ConfigService,
+    ) {}
+
+    async createFeeTransaction(
+        network: Network,
+        payerAccount: AccountId | string,
+        manualOptions: FeeManualOptions
+    ): Promise<TransferTransaction | null> {
+        const tx = new TransferTransaction();
+        const txWithFee = await this.addBladeFee<TransferTransaction>(tx, network, payerAccount, manualOptions);
+        return txWithFee.hbarTransfers.size > 0 ? txWithFee : null;
+    }
+
+    async addBladeFee<T extends Transaction>(
+        tx: T,
+        network: Network,
+        payerAccount: AccountId | string,
+        manualOptions: FeeManualOptions
+    ): Promise<T> {
+        try {
+            if (tx.isFrozen()) {
+                return tx;
+            }
+
+            const feature: FeeType = manualOptions.type;// || detectFeeType(tx);
+            const feesConfig = await this.configService.getConfig("fees");
+            const featureConfig = feesConfig[network.toLowerCase()][feature];
+            const feeAmount = await this.calculateFeeAmount(tx, network, featureConfig, manualOptions);
+            this.modifyTransactionWithFee(tx, payerAccount, featureConfig.collector, feeAmount);
+
+            return tx;
+        } catch (e) {
             return tx;
         }
-
-        const feature: FeeType = manualOptions.type;// || detectFeeType(tx);
-        const feesConfig = await getConfig("fees");
-        const featureConfig = feesConfig[network.toLowerCase()][feature];
-        const feeAmount = await calculateFeeAmount(tx, network, featureConfig, manualOptions);
-        modifyTransactionWithFee(tx, payerAccount, featureConfig.collector, feeAmount);
-
-        return tx;
-    } catch (e) {
-        return tx;
-    }
-}
-
-async function calculateFeeAmount(
-    tx: Transaction,
-    network: Network,
-    config: FeatureFeeConfig,
-    manualOptions: FeeManualOptions
-): Promise<Hbar> {
-    let spentAmount: BigNumber = BigNumber(0);
-    let rate = BigNumber(1);
-    let decimals = 8;
-    if (manualOptions.amountTokenId !== HbarTokenId) {
-        rate = await getHBARRateByTokenId(network, manualOptions.amountTokenId);
-        decimals = await getDecimalsForTokenId(network, manualOptions.amountTokenId);
-    }
-    spentAmount = BigNumber(manualOptions.amount).shiftedBy(decimals).multipliedBy(rate);
-    const feeAmount = spentAmount.multipliedBy(config.amount / 100);
-    return applyLimits(feeAmount, network, config);
-}
-
-function modifyTransactionWithFee(
-    tx: Transaction,
-    payerAccount: AccountId | string,
-    collectorAccount: AccountId | string,
-    amount: Hbar
-): void {
-    if (amount.toBigNumber().eq(0) || amount.toBigNumber().lt(0)) {
-        return;
     }
 
-    if (tx instanceof ScheduleCreateTransaction) {
-        const schedule = (tx as ScheduleCreateTransaction);
-        // @ts-ignore
-        const scheduledTransaction = schedule._scheduledTransaction;
-        if (scheduledTransaction instanceof TransferTransaction) {
-            scheduledTransaction.addHbarTransfer(collectorAccount, amount);
-            scheduledTransaction.addHbarTransfer(payerAccount, amount.negated());
+    private async calculateFeeAmount(
+        tx: Transaction,
+        network: Network,
+        config: FeatureFeeConfig,
+        manualOptions: FeeManualOptions
+    ): Promise<Hbar> {
+        let spentAmount: BigNumber = BigNumber(0);
+        let rate = BigNumber(1);
+        let decimals = 8;
+        if (manualOptions.amountTokenId !== HbarTokenId) {
+            rate = await this.getHBARRateByTokenId(network, manualOptions.amountTokenId);
+            decimals = await this.getDecimalsForTokenId(network, manualOptions.amountTokenId);
         }
-    } else if (tx instanceof TransferTransaction) {
-        tx.addHbarTransfer(collectorAccount, amount);
-        tx.addHbarTransfer(payerAccount, amount.negated());
-    }
-}
-
-async function applyLimits(amount: BigNumber, network: Network, config: FeatureFeeConfig): Promise<Hbar> {
-    const minInTinyHbars = await convertAmountToTinyBarsByCurrencyType(network, config.min, config.limitsCurrency);
-    const maxInTinyHbars = await convertAmountToTinyBarsByCurrencyType(network, config.max, config.limitsCurrency);
-    const limitedAmount = BigNumber.min(BigNumber.max(minInTinyHbars, amount), maxInTinyHbars);
-
-    if (!limitedAmount.isFinite()) {
-        return Hbar.fromTinybars(0);
+        spentAmount = BigNumber(manualOptions.amount).shiftedBy(decimals).multipliedBy(rate);
+        const feeAmount = spentAmount.multipliedBy(config.amount / 100);
+        return this.applyLimits(feeAmount, network, config);
     }
 
-    return Hbar.fromTinybars(limitedAmount.toFixed(0, BigNumber.ROUND_CEIL));
-}
+    private modifyTransactionWithFee(
+        tx: Transaction,
+        payerAccount: AccountId | string,
+        collectorAccount: AccountId | string,
+        amount: Hbar
+    ): void {
+        if (amount.toBigNumber().eq(0) || amount.toBigNumber().lt(0)) {
+            return;
+        }
 
-async function convertAmountToTinyBarsByCurrencyType(
-    network: Network,
-    amount: number,
-    type: string = "tinyhbar"
-): Promise<BigNumber> {
-    let rate = BigNumber(1);
-    let decimalMultiplier = 8;
-
-    switch (type) {
-        case "usd": {
-            rate = BigNumber(1).div(await getUSDRateForHBAR(network));
-            break;
-        }
-        case "tinyhbar": {
-            decimalMultiplier = 0;
-            break;
-        }
-        case "hbar": {
-            break;
-        }
-        default: {
-            decimalMultiplier = await getDecimalsForTokenId(network, type);
-            rate = await getHBARRateByTokenId(network, type);
+        if (tx instanceof ScheduleCreateTransaction) {
+            const schedule = (tx as ScheduleCreateTransaction);
+            // @ts-ignore
+            const scheduledTransaction = schedule._scheduledTransaction;
+            if (scheduledTransaction instanceof TransferTransaction) {
+                scheduledTransaction.addHbarTransfer(collectorAccount, amount);
+                scheduledTransaction.addHbarTransfer(payerAccount, amount.negated());
+            }
+        } else if (tx instanceof TransferTransaction) {
+            tx.addHbarTransfer(collectorAccount, amount);
+            tx.addHbarTransfer(payerAccount, amount.negated());
         }
     }
 
-    return BigNumber(amount).multipliedBy(rate).shiftedBy(decimalMultiplier);
-}
+    private async applyLimits(amount: BigNumber, network: Network, config: FeatureFeeConfig): Promise<Hbar> {
+        const minInTinyHbars = await this.convertAmountToTinyBarsByCurrencyType(network, config.min, config.limitsCurrency);
+        const maxInTinyHbars = await this.convertAmountToTinyBarsByCurrencyType(network, config.max, config.limitsCurrency);
+        const limitedAmount = BigNumber.min(BigNumber.max(minInTinyHbars, amount), maxInTinyHbars);
 
-const cryptoExchangeRates: Record<Network, Record<string, RateData>> = {
-    [Network.Mainnet]: {},
-    [Network.Testnet]: {}
-}
+        if (!limitedAmount.isFinite()) {
+            return Hbar.fromTinybars(0);
+        }
 
-async function getHBARRateByTokenId(network: Network, tokenId: string): Promise<BigNumber> {
-    if (!cryptoExchangeRates || !cryptoExchangeRates[network] || !cryptoExchangeRates[network][tokenId]) {
-        await loadRatesPerNetwork(network);
-    }
-    return cryptoExchangeRates[network][tokenId]?.hbarPrice || BigNumber(0);
-}
-
-async function loadRatesPerNetwork(network: Network): Promise<void> {
-    const apiRates = await fetchRates(network);
-    cryptoExchangeRates[network] = apiRates
-        .reduce((rates, rate) => {
-            rates[rate.id] = {
-                hbarPrice: BigNumber(rate.price).shiftedBy(-rate.decimals),
-                usdPrice: BigNumber(rate.priceUsd),
-                decimals: rate.decimals
-            };
-            return rates;
-        }, {} as Record<string, RateData>);
-}
-
-async function fetchRates(network: Network): Promise<APIRateData[]> {
-    const saucerswapApi = JSON.parse(await getConfig("saucerswapApi"));
-    const url = `${saucerswapApi[network]}tokens`;
-    return fetch(url).then(result => result.json()).catch(() => []) as Promise<APIRateData[]>;
-}
-
-async function getDecimalsForTokenId(network: Network, tokenId: string): Promise<number> {
-    if (!cryptoExchangeRates || !cryptoExchangeRates[network] || !cryptoExchangeRates[network][tokenId]) {
-        await loadRatesPerNetwork(network);
-    }
-    return cryptoExchangeRates[network][tokenId]?.decimals || 0;
-}
-
-async function getUSDRateForHBAR(network: Network): Promise<BigNumber | string> {
-    const wrapHbar = JSON.parse(await getConfig("swapWrapHbar"));
-    const tokenId = wrapHbar[network][0];
-
-    if (!cryptoExchangeRates || !cryptoExchangeRates[network] || !cryptoExchangeRates[network][tokenId]) {
-        await loadRatesPerNetwork(network);
+        return Hbar.fromTinybars(limitedAmount.toFixed(0, BigNumber.ROUND_CEIL));
     }
 
-    return cryptoExchangeRates[network][tokenId]?.usdPrice || BigNumber(0);
+    private async convertAmountToTinyBarsByCurrencyType(
+        network: Network,
+        amount: number,
+        type: string = "tinyhbar"
+    ): Promise<BigNumber> {
+        let rate = BigNumber(1);
+        let decimalMultiplier = 8;
+
+        switch (type) {
+            case "usd": {
+                rate = BigNumber(1).div(await this.getUSDRateForHBAR(network));
+                break;
+            }
+            case "tinyhbar": {
+                decimalMultiplier = 0;
+                break;
+            }
+            case "hbar": {
+                break;
+            }
+            default: {
+                decimalMultiplier = await this.getDecimalsForTokenId(network, type);
+                rate = await this.getHBARRateByTokenId(network, type);
+            }
+        }
+
+        return BigNumber(amount).multipliedBy(rate).shiftedBy(decimalMultiplier);
+    }
+
+
+
+    private async getHBARRateByTokenId(network: Network, tokenId: string): Promise<BigNumber> {
+        if (!this.cryptoExchangeRates || !this.cryptoExchangeRates[network] || !this.cryptoExchangeRates[network][tokenId]) {
+            await this.loadRatesPerNetwork(network);
+        }
+        return this.cryptoExchangeRates[network][tokenId]?.hbarPrice || BigNumber(0);
+    }
+
+    private async loadRatesPerNetwork(network: Network): Promise<void> {
+        const apiRates = await this.fetchRates(network);
+        this.cryptoExchangeRates[network] = apiRates
+            .reduce((rates, rate) => {
+                rates[rate.id] = {
+                    hbarPrice: BigNumber(rate.price).shiftedBy(-rate.decimals),
+                    usdPrice: BigNumber(rate.priceUsd),
+                    decimals: rate.decimals
+                };
+                return rates;
+            }, {} as Record<string, RateData>);
+    }
+
+    private async fetchRates(network: Network): Promise<APIRateData[]> {
+        const saucerswapApi = JSON.parse(await this.configService.getConfig("saucerswapApi"));
+        const url = `${saucerswapApi[network]}tokens`;
+        return fetch(url).then(result => result.json()).catch(() => []) as Promise<APIRateData[]>;
+    }
+
+    private async getDecimalsForTokenId(network: Network, tokenId: string): Promise<number> {
+        if (!this.cryptoExchangeRates || !this.cryptoExchangeRates[network] || !this.cryptoExchangeRates[network][tokenId]) {
+            await this.loadRatesPerNetwork(network);
+        }
+        return this.cryptoExchangeRates[network][tokenId]?.decimals || 0;
+    }
+
+    private async getUSDRateForHBAR(network: Network): Promise<BigNumber | string> {
+        const wrapHbar = JSON.parse(await this.configService.getConfig("swapWrapHbar"));
+        const tokenId = wrapHbar[network][0];
+
+        if (!this.cryptoExchangeRates || !this.cryptoExchangeRates[network] || !this.cryptoExchangeRates[network][tokenId]) {
+            await this.loadRatesPerNetwork(network);
+        }
+
+        return this.cryptoExchangeRates[network][tokenId]?.usdPrice || BigNumber(0);
+    }
 }
