@@ -10,6 +10,8 @@ description: More details on how to use Blade-SDK.js
 
 * [constructor](usage.md#constructor)
 * [init](usage.md#init)
+* [setUser](usage.md#setuser)
+* [resetUser](usage.md#resetuser)
 * [getBalance](usage.md#getbalance)
 * [getCoinList](usage.md#getcoinlist)
 * [getCoinPrice](usage.md#getcoinprice)
@@ -73,6 +75,45 @@ Inits instance of BladeSDK for correct work with Blade API and Hedera network.
 
 ***
 
+### setUser
+
+▸ **setUser**(`accountProvider`, `accountIdOrEmail`, `privateKey?`, `completionKey?`): `Promise<{accountId, accountProvider}>`
+
+Set account and privateKey as current user. SDK will use that credentials in case of empty `accountId`, `accountPrivateKey` in some methods. 
+
+#### Parameters
+
+| Name               | Type              | Description                                                                                                              |
+|--------------------|-------------------|--------------------------------------------------------------------------------------------------------------------------|
+| `accountProvider`  | `AccountProvider` | Enum of values [`Magic`](https://magic.link), `Hedera`...                                                                |
+| `accountIdOrEmail` | `string`          | Hedera account id (0.0.xxxxx) or email (user@domain) in case of Magic `accountProvider` == [`Magic`](https://magic.link) |
+| `privateKey?`      | `string`          | optional field in case of using Magic provider                                                                           |
+| `completionKey?`   | `string`          | optional field bridge between mobile webViews and native apps                                                            |
+
+#### Returns
+
+`Promise<{accountId, accountProvider}>`
+
+***
+
+### resetUser
+
+▸ **resetUser**(`completionKey?`): `Promise<success>`
+
+Clears current user credentials.
+
+#### Parameters
+
+| Name             | Type     | Description                                                   |
+| ---------------- | -------- | ------------------------------------------------------------- |
+| `completionKey?` | `string` | optional field bridge between mobile webViews and native apps |
+
+#### Returns
+
+`Promise<success>`
+
+***
+
 ### getBalance
 
 ▸ **getBalance**(`accountId`, `completionKey?`): `Promise<BalanceData>`
@@ -88,7 +129,7 @@ Get hbar and token balances for specific account.
 
 #### Returns
 
-`Promise<BalanceData>` hbars, tokens\[]
+`Promise<BalanceData>`
 
 ***
 

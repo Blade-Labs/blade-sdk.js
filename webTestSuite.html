@@ -1,0 +1,271 @@
+<html>
+    <head>
+        <script src="dist/JSWrapper.bundle.js"></script>
+    </head>
+    <body>
+<script>
+(async () => {
+    // tests for different user providers
+    // 1. direct account (accountId, privateKey)
+    // 2. setUser(magic, email), call methods
+    // 3. setUser(hedera, accountId, privateKey), call methods
+
+    const sdkVersion = 'Kotlin@0.6.11';
+    const completionKey = "completionKey1";
+    const privateKey = "3030020100300706052b8104000a04220420ebccecef769bb5597d0009123a0fd96d2cdbe041c2a2da937aaf8bdc8731799b";
+    const accountId = "0.0.346533";
+    const privateKey1 = "3030020100300706052b8104000a04220420ba9ae0a421111c07f6ccc6ea56ce01f06acd15c2ee50761befb23324d7a2438e";
+    const accountId1 = "0.0.436560";
+    const privateKey2 = "3030020100300706052b8104000a04220420f9b7e8442fcd7a57bee72bff3bcf7e7b11f8663a897e85f04cad1bee58137a2e";
+    const accountId2 = "0.0.346535";
+    const privateKey3 = "302e020100300506032b657004220420ddffbba40f32e1459bc349175f9b607f2186a0b328daf617cc98487a94c55f9d";
+    const accountId3 = "0.0.346530";
+    const privateKey4 = "302e020100300506032b6570042204201c1fc6ab4f5937bf9261cd3d1f1609cb5f30838d018207b476ff50d97ef8e2a5";
+    const accountId4 = "0.0.346532";
+    const contractId = "0.0.416245";
+    const magicAccountId = "";
+
+    const tokenId = "0.0.416487";
+
+    const dAppCode = "unitysdktest";
+    const visitorId = "19HVCJox2Fprej5WJM3h";
+    const bladeEnv = "CI";
+
+    const apiKeyTestnet = "FG9dUBQcBaBAPgCHz7DqmNZzrJyhewAMJytjwp3VFIEMFTXQyVSIDq6wRvtPcSAt";
+
+    const bladeSdk = window.bladeSdk;
+    const ParametersBuilder = window.ParametersBuilder;
+
+    const userProviders = [
+        {
+            userProvider: "Hedera",
+            accountIdOrEmail: accountId,
+            accountPrivateKey: privateKey
+        },
+        // {
+        //     userProvider: "Magic",
+        //     accountIdOrEmail: "the.gary.du+sdk@gmail.com",
+        //     accountPrivateKey: ""
+        // },
+        // {
+        //     userProvider: "Direct",
+        //     accountIdOrEmail: accountId,
+        //     accountPrivateKey: privateKey
+        // }
+    ];
+    const tests = [];
+
+    function addTest(name, test) {
+        tests.push({
+            name,
+            test
+        });
+    }
+
+    async function runTests(testNames) {
+        for (const test of tests) {
+            if (testNames.includes(test.name)) {
+                await test.test(test.name);
+                log("test " + test.name + " - passed");
+            }
+        }
+    }
+
+    function log(message) {
+        console.log(message);
+    }
+
+    async function customSetUser(userProvider, accountIdOrEmail, accountPrivateKey, completionKey) {
+        if (userProvider === "Hedera") {
+            await bladeSdk.setUser(userProvider, accountIdOrEmail, accountPrivateKey, completionKey);
+            return {
+                accountId: "",
+                privateKey: ""
+            };
+        } else if (userProvider === "Magic") {
+            await bladeSdk.setUser(userProvider, accountIdOrEmail, undefined, completionKey);
+            return {
+                accountId: "",
+                privateKey: ""
+            };
+        } else {
+            return {
+                accountId: accountIdOrEmail,
+                privateKey: accountPrivateKey
+            };
+        }
+    }
+
+    addTest("getBalance", async (completionKey) => {
+        for await (const {userProvider, accountIdOrEmail, accountPrivateKey} of userProviders) {
+            log(await bladeSdk.init(apiKeyTestnet, "Testnet", dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
+            const {accountId, privateKey} = await customSetUser(userProvider, accountIdOrEmail, accountPrivateKey, completionKey);
+            log(await bladeSdk.getBalance(accountId, completionKey));
+        }
+    });
+
+    addTest("transferHbars", async (completionKey) => {
+        for await (const {userProvider, accountIdOrEmail, accountPrivateKey} of userProviders) {
+            log(await bladeSdk.init(apiKeyTestnet, "Testnet", dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
+            const {accountId, privateKey} = await customSetUser(userProvider, accountIdOrEmail, accountPrivateKey, completionKey);
+            log(await bladeSdk.transferHbars(accountId, privateKey, accountId2, "0.000001", "test transfer hbars", completionKey));
+        }
+    });
+
+    addTest("contractCallFunction", async (completionKey) => {
+        for await (const {userProvider, accountIdOrEmail, accountPrivateKey} of userProviders) {
+            log(await bladeSdk.init(apiKeyTestnet, "Testnet", dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
+            const {accountId, privateKey} = await customSetUser(userProvider, accountIdOrEmail, accountPrivateKey, completionKey);
+
+            const message = `Hello test ${Math.random()}`;
+            const params = new ParametersBuilder().addString(message).encode();
+            log(await bladeSdk.contractCallFunction(contractId, "set_message", params, accountId, privateKey, 1000000, true, completionKey));
+            log(await bladeSdk.contractCallFunction(contractId, "set_message", params, accountId, privateKey, 1000000, false, completionKey));
+        }
+    });
+
+    addTest("contractCallQueryFunction", async (completionKey) => {
+        for await (const {userProvider, accountIdOrEmail, accountPrivateKey} of userProviders) {
+            log(await bladeSdk.init(apiKeyTestnet, "Testnet", dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
+            const {accountId, privateKey} = await customSetUser(userProvider, accountIdOrEmail, accountPrivateKey, completionKey);
+
+            const params = new ParametersBuilder();
+            log(await bladeSdk.contractCallQueryFunction(contractId, "get_message", params, accountId, privateKey, 100000, false, ["string"], completionKey));
+        }
+    });
+
+    addTest("transferTokens", async (completionKey) => {
+        for await (const {userProvider, accountIdOrEmail, accountPrivateKey} of userProviders) {
+            log(await bladeSdk.init(apiKeyTestnet, "Testnet", dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
+            const {accountId, privateKey} = await customSetUser(userProvider, accountIdOrEmail, accountPrivateKey, completionKey);
+            log(await bladeSdk.transferTokens(tokenId, accountId, privateKey, accountId2, "0.001", "transfer memo", false, completionKey));
+        }
+    });
+
+    addTest("getAccountInfo", async (completionKey) => {
+        for await (const {userProvider, accountIdOrEmail, accountPrivateKey} of userProviders) {
+            log(await bladeSdk.init(apiKeyTestnet, "Testnet", dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
+            const {accountId, privateKey} = await customSetUser(userProvider, accountIdOrEmail, accountPrivateKey, completionKey);
+            log(await bladeSdk.getAccountInfo(accountId, completionKey));
+        }
+    });
+
+    addTest("getTransactions", async (completionKey) => {
+        for await (const {userProvider, accountIdOrEmail, accountPrivateKey} of userProviders) {
+            log(await bladeSdk.init(apiKeyTestnet, "Testnet", dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
+            const {accountId, privateKey} = await customSetUser(userProvider, accountIdOrEmail, accountPrivateKey, completionKey);
+            log(await bladeSdk.getTransactions(accountId, "", "", 5, completionKey));
+        }
+    });
+
+    addTest("getC14url", async (completionKey) => {
+        for await (const {userProvider, accountIdOrEmail, accountPrivateKey} of userProviders) {
+            log(await bladeSdk.init(apiKeyTestnet, "Testnet", dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
+            const {accountId, privateKey} = await customSetUser(userProvider, accountIdOrEmail, accountPrivateKey, completionKey);
+            log(await bladeSdk.getC14url("hbar", accountId, "123", completionKey));
+        }
+    });
+
+    addTest("associateToken", async (completionKey) => {
+        for await (const {userProvider, accountIdOrEmail, accountPrivateKey} of userProviders) {
+            log(await bladeSdk.init(apiKeyTestnet, "Testnet", dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
+            const {accountId, privateKey} = await customSetUser(userProvider, accountIdOrEmail, accountPrivateKey, completionKey);
+            log(await bladeSdk.associateToken(tokenId, accountId, privateKey, completionKey));
+        }
+    });
+
+    addTest("swapTokens", async (completionKey) => {
+        for await (const {userProvider, accountIdOrEmail, accountPrivateKey} of userProviders) {
+            log(await bladeSdk.init(apiKeyTestnet, "Testnet", dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
+            const {accountId, privateKey} = await customSetUser(userProvider, accountIdOrEmail, accountPrivateKey, completionKey);
+            log(await bladeSdk.swapTokens(accountId, privateKey, "USDC", 0.00001, "HBAR", 0.5, "saucerswap", completionKey));
+        }
+    });
+
+    addTest("getTradeUrl", async (completionKey) => {
+        for await (const {userProvider, accountIdOrEmail, accountPrivateKey} of userProviders) {
+            log(await bladeSdk.init(apiKeyTestnet, "Mainnet", dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
+            const {accountId, privateKey} = await customSetUser(userProvider, accountIdOrEmail, accountPrivateKey, completionKey);
+            log(await bladeSdk.getTradeUrl("buy", accountId, "EUR", 50, "HBAR", 0.5, "moonpay", completionKey));
+            log(await bladeSdk.getTradeUrl("sell", accountId, "USDC", 50, "PHP", 0.5, "onmeta", completionKey));
+        }
+    });
+
+    addTest("exchangeGetQuotes", async (completionKey) => {
+        log(await bladeSdk.init(apiKeyTestnet, "Mainnet", dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
+        log(await bladeSdk.exchangeGetQuotes("EUR", 50, "HBAR", "Buy", completionKey));
+        log(await bladeSdk.exchangeGetQuotes("USDC", 30, "PHP", "Sell", completionKey));
+        log(await bladeSdk.exchangeGetQuotes("HBAR", 5, "USDC", "Swap", completionKey));
+    });
+
+    addTest("createAndMintNFT", async (completionKey) => {
+        for await (const {userProvider, accountIdOrEmail, accountPrivateKey} of userProviders) {
+            log(await bladeSdk.init(apiKeyTestnet, "Testnet", dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
+            const {accountId, privateKey} = await customSetUser(userProvider, accountIdOrEmail, accountPrivateKey, completionKey);
+
+            const id = Date.now();
+            const tokenName = `SDK NFT test ${id}`;
+            const tokenSymbol = `N++ ${id}`;
+
+            const keys = [
+                {type: "admin", privateKey: privateKey3},
+                {type: "freeze", privateKey: privateKey4},
+                {type: "wipe", privateKey: privateKey2},
+                {type: "pause", privateKey: privateKey1},
+            ];
+
+            const result = await bladeSdk.createToken(
+                accountId, // treasuryAccountId
+                privateKey, // supplyPrivateKey
+                tokenName,
+                tokenSymbol,
+                true, // isNft
+                keys,
+                0, // decimals
+                0, // initialSupply
+                250, // maxSupply
+                completionKey
+            );
+            log(result);
+
+            log(
+                await bladeSdk.nftMint(
+                    result.data.tokenId,
+                    accountId,
+                    privateKey,
+                    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAARUlEQVR42u3PMREAAAgEIO1fzU5vBlcPGtCVTD3QIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIXCyqyi6fIALs1AAAAAElFTkSuQmCC", // TODO upload file base64
+                    {
+                        author: "GaryDu",
+                    },
+                    {
+                        provider: "nftStorage",
+                        apiKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6ZXRocjoweDZFNzY0ZmM0ZkZFOEJhNjdCNjc1NDk1Q2NEREFiYjk0NTE4Njk0QjYiLCJpc3MiOiJuZnQtc3RvcmFnZSIsImlhdCI6MTcwNDQ2NDUxODQ2MiwibmFtZSI6IkJsYWRlU0RLLXRlc3RrZXkifQ.t1wCiEuiTvcYOwssdZgiYaug4aF8ZrvMBdkTASojWGU",
+                    },
+                    completionKey
+                )
+            )
+        }
+    });
+
+
+    runTests([
+        // "getBalance", // ok
+        // "transferHbars", // ok
+        // "contractCallFunction", // ok
+        // "contractCallQueryFunction", // ok
+        "transferTokens", // ok
+        // "getAccountInfo", // ok
+        // "getTransactions", // ok
+        // "getC14url", // ok
+        // "swapTokens", // ok with magic, try reconfigure hedera gor ed25519 account
+        // "getTradeUrl", // ok
+        // "exchangeGetQuotes", // ok
+        // "createAndMintNFT", // ok
+        // "associateToken", // ok
+    ]);
+
+})();
+</script>
+    Open console to see results
+</body>
+</html>

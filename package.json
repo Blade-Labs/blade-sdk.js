@@ -55,9 +55,11 @@
   "license": "Apache-2.0",
   "dependencies": {
     "@fingerprintjs/fingerprintjs-pro": "^3.8.6",
-    "@hashgraph/sdk": "^2.38.0",
+    "@hashgraph/sdk": "2.40.0",
+    "@magic-ext/hedera": "^1.0.3",
     "buffer": "6.0.3",
     "ethers": "^5.7.2",
+    "magic-sdk": "^21.5.0",
     "nft.storage": "^7.1.1"
   },
   "devDependencies": {
@@ -84,7 +86,7 @@
     "typedoc": "^0.23.28",
     "typedoc-plugin-markdown": "^3.14.0",
     "typescript": "^4.7.4",
-    "webpack": "^5.76.3",
-    "webpack-cli": "^4.10.0"
+    "webpack": "^5.89.0",
+    "webpack-cli": "^5.1.4"
   }
 }

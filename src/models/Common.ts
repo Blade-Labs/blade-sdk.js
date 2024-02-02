@@ -8,6 +8,11 @@ export enum SdkEnvironment {
     Test = "Test"
 }
 
+export enum AccountProvider {
+    Hedera = "Hedera",
+    Magic = "Magic",
+}
+
 export enum KnownChain {
     ETHEREUM_MAINNET,
     ETHEREUM_SEPOLIA,
@@ -48,6 +53,7 @@ export interface BladeConfig {
     swapContract?: string,
     swapWrapHbar?: string,
     saucerswapApi?: string,
+    magicLinkPublicKey?: string,
     [key: string]: string | undefined; // Index signature
 }
 

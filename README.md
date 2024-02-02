@@ -32,23 +32,40 @@ It's important to note that these are just a few examples, and there may be othe
 
 ## Getting Started
 
+### Requirements
+
+- Node.js 16.x or higher (MacOS/Linux)
+- Node.js 16.x to 18.x (Windows)
+
 ### Install
 
 ```
 npm i @bladelabs/blade-sdk.js
 ```
 
-## Use
+## Usage
 
 ```
 import {BladeSDK} from '@bladelabs/blade-sdk.js';
 
 ...
 const bladeSDK = new BladeSDK();
-await bladeSDK.init("Blade apiKey", "testnet", "dAppCode", "client unique fingerprint or empty string", "CI");
+await bladeSDK.init("Blade apiKey", "testnet", "dAppCode", "client unique fingerprint or empty string", "Prod");
 const balance = await bladeSDK.getBalance("0.0.8235");
 console.log(balance);
 ```
+
+## Providing account credentials
+
+There are two ways passing `accountId` and `accountPrivateKey` arguments to the SDK methods:
+
+1. Pass `accountId` and `accountPrivateKey` as parameters to the SDK methods as strings. Make sure that private keys contain DER prefix (like: `302e020100300506032b657004220420` and are hex-encoded)
+2. Pass empty `accountId` and `accountPrivateKey` in case you called `setUser()` before. That credentials stored in SDK memory and will be used for all SDK methods calls until you destroy instance of BladeSDK or call `resetUser()` or `setUser()` again. Currently `setUser()` support next user providers:
+   1. `Magic` - [Magic.link](https://magic.link). Example: `setUser("Magic", "your_email@domain.com")`
+   2. `Hedera` - enter `accountId` and `accountPrivateKey`. Example: `setUser("Hedera", "0.0.45467464", "302e020100300506032b6570042204204323472EA5374E80B07346243234DEADBEEF25235235...")`
+
+In case of calling method with `accountId` and `accountPrivateKey` arguments, SDK will override current user with this credentials.
+
 
 ## Documentation
 

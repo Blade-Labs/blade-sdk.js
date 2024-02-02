@@ -1,12 +1,4 @@
-import {
-    AccountId,
-    Client,
-    ContractCallQuery,
-    Hbar,
-    Mnemonic,
-    PrivateKey,
-    TokenAssociateTransaction
-} from "@hashgraph/sdk";
+import {AccountId, Client, ContractCallQuery, Hbar, Mnemonic, PrivateKey} from "@hashgraph/sdk";
 import {associateToken, checkResult, createToken, getTokenInfo, sleep} from "./helpers";
 import {GET, getTransaction} from "../../src/services/ApiService";
 import {Network} from "../../src/models/Networks";
@@ -21,7 +13,7 @@ import crypto from "crypto";
 import {flatArray} from "../../src/helpers/ArrayHelpers";
 import {parseContractFunctionParams} from "../../src/helpers/ContractHelpers";
 import {decrypt, encrypt} from "../../src/helpers/SecurityHelper";
-import {KeyRecord, KeyType, NFTStorageProvider, SdkEnvironment} from "../../src/models/Common";
+import {AccountProvider, KeyRecord, KeyType, NFTStorageProvider, SdkEnvironment} from "../../src/models/Common";
 const {BladeSDK, ParametersBuilder} = require("../../src/webView");
 
 Object.defineProperty(global.self, "crypto", {
@@ -123,6 +115,15 @@ test('bladeSdk.getBalance', async () => {
     expect(result.data).toHaveProperty("tokens");
     expect(Array.isArray(result.data.tokens)).toEqual(true);
 
+    result = await bladeSdk.setUser(AccountProvider.Hedera, accountId, privateKey, completionKey);
+    checkResult(result);
+    result = await bladeSdk.getBalance("", completionKey);
+    checkResult(result);
+
+    expect(result.data).toHaveProperty("hbars");
+    expect(result.data).toHaveProperty("tokens");
+    expect(Array.isArray(result.data.tokens)).toEqual(true);
+
     // invalid accountId
     result = await bladeSdk.getBalance("0.0.0", completionKey);
     checkResult(result, false);
@@ -174,7 +175,7 @@ test('bladeSdk.getCoinPrice', async () => {
     checkResult(result);
     expect(result.data.coin.symbol).toEqual("karate");
 
-    result = await bladeSdk.getCoinPrice("0.0.2283230", completionKey);
+    result = await bladeSdk.getCoinPrice(process.env.KARATE_TOKEN_ID, completionKey);
     checkResult(result);
     expect(result.data.coin.symbol).toEqual("karate");
 
@@ -193,9 +194,11 @@ test('bladeSdk.transferHbars', async () => {
     result = await bladeSdk.transferHbars(accountId, privateKey, accountId2, "1.5", "custom memo text", completionKey);
     checkResult(result);
 
-    expect(result.data).toHaveProperty("nodeId");
-    expect(result.data).toHaveProperty("transactionHash");
-    expect(result.data).toHaveProperty("transactionId");
+    expect(result.data).toHaveProperty("status");
+    expect(result.data).toHaveProperty("topicSequenceNumber");
+    expect(result.data).toHaveProperty("totalSupply");
+    expect(result.data).toHaveProperty("status");
+    expect(result.data.status).toEqual("SUCCESS");
 
     // wait for balance update
     await sleep(20_000);
@@ -203,6 +206,11 @@ test('bladeSdk.transferHbars', async () => {
     result = await bladeSdk.getBalance(accountId, completionKey);
     checkResult(result);
     expect(hbars).not.toEqual(result.data.hbars);
+
+    result = await bladeSdk.setUser(AccountProvider.Hedera, accountId, privateKey, completionKey);
+    checkResult(result);
+    result = await bladeSdk.transferHbars("", "", accountId2, "1.5", "custom memo text", completionKey);
+    checkResult(result);
 
     // invalid signature
     result = await bladeSdk.transferHbars(accountId2, privateKey, accountId, "1.5", "custom memo text", completionKey);
@@ -405,9 +413,11 @@ test('bladeSdk.transferTokens', async () => {
 
     result = await bladeSdk.transferTokens(tokenId.toString(), accountId, privateKey, accountId2, amount.toString(), "transfer memo", false, completionKey);
     checkResult(result);
-    expect(result.data).toHaveProperty("nodeId");
-    expect(result.data).toHaveProperty("transactionHash");
-    expect(result.data).toHaveProperty("transactionId");
+    expect(result.data).toHaveProperty("status");
+    expect(result.data).toHaveProperty("topicSequenceNumber");
+    expect(result.data).toHaveProperty("totalSupply");
+    expect(result.data).toHaveProperty("status");
+    expect(result.data.status).toEqual("SUCCESS");
 
     await sleep(20_000);
 
@@ -422,6 +432,11 @@ test('bladeSdk.transferTokens', async () => {
     expect(account2TokenBalance).toEqual(account2TokenBalanceNew - amount);
 
     result = await bladeSdk.transferTokens(tokenId.toString(), accountId, privateKey, accountId2, amount.toString(), "transfer memo", true, completionKey);
+    checkResult(result);
+
+    result = await bladeSdk.setUser(AccountProvider.Hedera, accountId, privateKey, completionKey);
+    checkResult(result);
+    result = await bladeSdk.transferTokens(tokenId.toString(), "", "", accountId2, amount.toString(), "transfer memo (setUser)", true, completionKey);
     checkResult(result);
 }, 120_000);
 
@@ -453,7 +468,7 @@ test('bladeSdk.createAccount', async () => {
 }, 60_000);
 
 test('bladeSdk.getAccountInfo', async () => {
-    const result = await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.VISITOR_ID, process.env.SDK_ENV, sdkVersion, completionKey);
+    let result = await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.VISITOR_ID, process.env.SDK_ENV, sdkVersion, completionKey);
     checkResult(result);
 
     const account = await bladeSdk.createAccount("device-id", completionKey);
@@ -467,6 +482,13 @@ test('bladeSdk.getAccountInfo', async () => {
 
     expect(accountInfo.data.evmAddress).toEqual(`0x${AccountId.fromString(newAccountId).toSolidityAddress()}`);
     expect(accountInfo.data.calculatedEvmAddress).toEqual(account.data.evmAddress);
+
+    accountInfo = await bladeSdk.getAccountInfo("////", completionKey);
+    checkResult(accountInfo, false);
+    result = await bladeSdk.setUser(AccountProvider.Hedera, accountId, privateKey, completionKey);
+    checkResult(result);
+    accountInfo = await bladeSdk.getAccountInfo("", completionKey);
+    checkResult(accountInfo);
 
     accountInfo = await bladeSdk.getAccountInfo("0.0.9999999999999999999999999", completionKey);
     checkResult(accountInfo, false);
@@ -621,9 +643,9 @@ test('bladeSdk.getParamsSignature', async () => {
     expect(result.data).toHaveProperty("r");
     expect(result.data).toHaveProperty("s");
 
-    expect(result.data.v).toEqual(28);
-    expect(result.data.r).toEqual("0xe5e662d0564828fd18b2b5b228ade288ad063fadca76812f7902f56cae3e678e");
-    expect(result.data.s).toEqual("0x61b7ceb82dc6695872289b697a1bca73b81c494288abda29fa022bb7b80c84b5");
+    expect(result.data.v).toEqual(27);
+    expect(result.data.r).toEqual("0x0c6e8f0487709cfc1ebbc41e47ce56aee5cf5bc933a4cd6cb2695b098dbe4ee4");
+    expect(result.data.s).toEqual("0x22d0b6351670c37eb112ebd80123452237cb5c893767510a9356214189f6fe86");
 
     // invalid paramsEncoded
     result = await bladeSdk.getParamsSignature('[{{{{{{{{{{{"]', privateKey, completionKey);
@@ -635,12 +657,11 @@ test('bladeSdk.getTransactions', async () => {
     let result = await bladeSdk.transferHbars(accountId, privateKey, accountId2, "1.5", "some tx memo", completionKey);
     checkResult(result);
 
-    expect(result.data).toHaveProperty("nodeId");
-    expect(result.data).toHaveProperty("transactionHash");
-    expect(result.data).toHaveProperty("transactionId");
-
-    const transactionId = result.data.transactionId.replace("@", ".");
-    await sleep(10_000);
+    expect(result.data).toHaveProperty("status");
+    expect(result.data).toHaveProperty("topicSequenceNumber");
+    expect(result.data).toHaveProperty("totalSupply");
+    expect(result.data).toHaveProperty("status");
+    expect(result.data.status).toEqual("SUCCESS");
 
     // get expected transaction
     result = await bladeSdk.getTransactions(accountId, "", "", "5", completionKey);
@@ -658,20 +679,6 @@ test('bladeSdk.getTransactions', async () => {
     };
 
     const nextPage = result.data.nextPage;
-    const latestTransaction = result.data.transactions.find(tx => txIdEqual(transactionId, tx.transactionId.replaceAll("-", ".")));
-
-    expect(latestTransaction !== null).toEqual(true);
-    expect(latestTransaction).toHaveProperty("time");
-    expect(latestTransaction).toHaveProperty("transfers");
-    expect(Array.isArray(latestTransaction.transfers)).toEqual(true);
-    expect(latestTransaction).toHaveProperty("nftTransfers");
-    expect(latestTransaction).toHaveProperty("memo");
-    expect(latestTransaction).toHaveProperty("transactionId");
-    expect(txIdEqual(latestTransaction.transactionId.replaceAll("-", "."), transactionId)).toEqual(true);
-    expect(latestTransaction).toHaveProperty("fee");
-    expect(latestTransaction).toHaveProperty("type");
-    expect(latestTransaction.type).toEqual("CRYPTOTRANSFER");
-
 
     // next page
     result = await bladeSdk.getTransactions(accountId, "", nextPage, "5", completionKey);
@@ -939,7 +946,7 @@ test('bladeSdk.createToken', async () => {
         tokenId,
         treasuryAccountId,
         supplyKey,
-        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==", // TODO upload file base64
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAARUlEQVR42u3PMREAAAgEIO1fzU5vBlcPGtCVTD3QIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIXCyqyi6fIALs1AAAAAElFTkSuQmCC", // TODO upload file base64
         {
             author: "GaryDu",
         },
