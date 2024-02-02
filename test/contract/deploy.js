@@ -46,7 +46,7 @@ const contractBytecode = fs.readFileSync("./test/contract/test_contract_TestCont
         //Set the file ID of the Hedera file storing the bytecode
         .setBytecodeFileId(bytecodeFileId)
         //Set the gas to instantiate the contract
-        .setGas(100000)
+        .setGas(1000000)
         //Provide the constructor parameters for the contract
         .setConstructorParameters(new ContractFunctionParameters().addString("Just created!"));
 

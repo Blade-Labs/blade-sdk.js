@@ -175,7 +175,7 @@ test('bladeSdk.getCoinPrice', async () => {
     checkResult(result);
     expect(result.data.coin.symbol).toEqual("karate");
 
-    result = await bladeSdk.getCoinPrice("0.0.2283230", completionKey);
+    result = await bladeSdk.getCoinPrice(process.env.KARATE_TOKEN_ID, completionKey);
     checkResult(result);
     expect(result.data.coin.symbol).toEqual("karate");
 
