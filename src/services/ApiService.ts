@@ -13,6 +13,7 @@ import {
 } from "../models/MirrorNode";
 import {
     BladeConfig,
+    ChainType,
     CoinData,
     CoinInfoRaw,
     ConfirmUpdateAccountData,
@@ -43,13 +44,21 @@ export default class ApiService {
         [Network.Testnet]: {}
     };
 
-    initApiService(token: string, code: string, sdkEnvironment: SdkEnvironment, version: string, net: Network, fingerprint: string) {
-        this.apiKey = token;
-        this.dAppCode = code;
-        this.environment = sdkEnvironment;
-        this.sdkVersion = version;
-        this.network = net;
-        this.visitorId = fingerprint;
+    initApiService(
+        apiKey: string,
+        dAppCode: string,
+        environment: SdkEnvironment,
+        sdkVersion: string,
+        network: Network,
+        chainType: ChainType,
+        visitorId: string
+    ) {
+        this.apiKey = apiKey;
+        this.dAppCode = dAppCode;
+        this.environment = environment;
+        this.sdkVersion = sdkVersion;
+        this.network = network;
+        this.visitorId = visitorId;
     }
 
     setVisitorId(fingerprint: string) {

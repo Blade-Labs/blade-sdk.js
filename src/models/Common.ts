@@ -9,8 +9,13 @@ export enum SdkEnvironment {
 }
 
 export enum AccountProvider {
-    Hedera = "Hedera",
+    PrivateKey = "PrivateKey",
     Magic = "Magic",
+}
+
+export enum ChainType {
+    Hedera = "Hedera",
+    Ethereum = "Ethereum",
 }
 
 export enum KnownChain {
@@ -126,10 +131,17 @@ export interface InfoData {
     apiKey: string,
     dAppCode: string,
     network: string,
+    chainType: ChainType,
     visitorId: string,
     sdkEnvironment: SdkEnvironment,
     sdkVersion: string,
-    nonce: number
+    nonce: number,
+    user: {
+        accountId: string,
+        accountProvider: AccountProvider,
+        userPrivateKey: string,
+        userPublicKey: string,
+    }
 }
 
 export interface BalanceData {

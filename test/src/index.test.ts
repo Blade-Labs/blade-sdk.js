@@ -124,7 +124,7 @@ test('bladeSdk.getBalance', async () => {
     expect(result.data).toHaveProperty("tokens");
     expect(Array.isArray(result.data.tokens)).toEqual(true);
 
-    result = await bladeSdk.setUser(AccountProvider.Hedera, accountId, privateKey, completionKey);
+    result = await bladeSdk.setUser(AccountProvider.PrivateKey, accountId, privateKey, completionKey);
     checkResult(result);
     result = await bladeSdk.getBalance("", completionKey);
     checkResult(result);
@@ -216,7 +216,7 @@ test('bladeSdk.transferHbars', async () => {
     checkResult(result);
     expect(hbars).not.toEqual(result.data.hbars);
 
-    result = await bladeSdk.setUser(AccountProvider.Hedera, accountId, privateKey, completionKey);
+    result = await bladeSdk.setUser(AccountProvider.PrivateKey, accountId, privateKey, completionKey);
     checkResult(result);
     result = await bladeSdk.transferHbars("", "", accountId2, "1.5", "custom memo text", completionKey);
     checkResult(result);
@@ -443,7 +443,7 @@ test('bladeSdk.transferTokens', async () => {
     result = await bladeSdk.transferTokens(tokenId.toString(), accountId, privateKey, accountId2, amount.toString(), "transfer memo", true, completionKey);
     checkResult(result);
 
-    result = await bladeSdk.setUser(AccountProvider.Hedera, accountId, privateKey, completionKey);
+    result = await bladeSdk.setUser(AccountProvider.PrivateKey, accountId, privateKey, completionKey);
     checkResult(result);
     result = await bladeSdk.transferTokens(tokenId.toString(), "", "", accountId2, amount.toString(), "transfer memo (setUser)", true, completionKey);
     checkResult(result);
@@ -494,7 +494,7 @@ test('bladeSdk.getAccountInfo', async () => {
 
     accountInfo = await bladeSdk.getAccountInfo("////", completionKey);
     checkResult(accountInfo, false);
-    result = await bladeSdk.setUser(AccountProvider.Hedera, accountId, privateKey, completionKey);
+    result = await bladeSdk.setUser(AccountProvider.PrivateKey, accountId, privateKey, completionKey);
     checkResult(result);
     accountInfo = await bladeSdk.getAccountInfo("", completionKey);
     checkResult(accountInfo);

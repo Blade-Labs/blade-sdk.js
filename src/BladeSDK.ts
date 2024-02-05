@@ -29,6 +29,7 @@ import {ethers} from "ethers";
 import ApiService from "./services/ApiService";
 import CryptoFlowService from "./services/CryptoFlowService";
 import {HbarTokenId} from "./services/FeeService";
+import ConfigService from "./services/ConfigService";
 import {Network} from "./models/Networks";
 import StringHelpers from "./helpers/StringHelpers";
 import {
@@ -45,6 +46,7 @@ import {
     BladeConfig,
     BridgeResponse,
     C14WidgetConfig,
+    ChainType,
     CoinData,
     CoinInfoData,
     CoinInfoRaw,
@@ -87,15 +89,23 @@ import * as FingerprintJS from '@fingerprintjs/fingerprintjs-pro'
 import {File, NFTStorage} from 'nft.storage';
 import {decrypt, encrypt} from "./helpers/SecurityHelper";
 import {formatReceipt} from "./helpers/TransactionHelpers";
-import {Magic} from 'magic-sdk';
+import {Magic, MagicSDKAdditionalConfiguration} from 'magic-sdk';
 import {HederaExtension} from '@magic-ext/hedera';
 import {MagicSigner} from "./signers/magic/MagicSigner";
 import {HederaProvider, HederaSigner} from "./signers/hedera";
+import { Signer as SignerHedera } from "@hashgraph/sdk";
+import { Signer as SignerEthereum } from "ethers";
+import {ITokenService} from "@/strategies/ITokenService";
+import TokenServiceHedera from './strategies/hedera/TokenServiceHedera';
+import TokenServiceEthereum from './strategies/ethereum/TokenServiceEthereum';
 
 @injectable()
 export class BladeSDK {
+    private tokenService: ITokenService;
+
     private apiKey: string = "";
     private network: Network = Network.Testnet;
+    private chainType: ChainType = ChainType.Hedera;
     private dAppCode: string = "";
     private visitorId: string = "";
     private sdkEnvironment: SdkEnvironment = SdkEnvironment.Prod;
@@ -103,7 +113,7 @@ export class BladeSDK {
     private readonly webView: boolean = false;
     private config: BladeConfig | null = null;
     private accountProvider: AccountProvider | null = null;
-    private signer: Signer | null = null;
+    private signer: Signer | ethers.Signer | null = null;
     private magic: any;
     private userAccountId: string = "";
     private userPublicKey: string = "";
@@ -111,11 +121,13 @@ export class BladeSDK {
 
     /**
      * BladeSDK constructor.
+     * @param configService - instance of ConfigService
      * @param apiService - instance of ApiService
      * @param cryptoFlowService - instance of CryptoFlowService
      * @param isWebView - true if you are using this SDK in webview of native app. It changes the way of communication with native app.
      */
     constructor(
+        @inject('configService') private readonly configService: ConfigService,
         @inject('apiService') private readonly apiService: ApiService,
         @inject('cryptoFlowService') private readonly cryptoFlowService: CryptoFlowService,
         @inject("isWebView") private readonly isWebView: boolean
@@ -126,6 +138,7 @@ export class BladeSDK {
     /**
      * Inits instance of BladeSDK for correct work with Blade API and Hedera network.
      * @param apiKey Unique key for API provided by Blade team.
+     * @param chainType "Hedera" or "Ethereum"
      * @param network "Mainnet" or "Testnet" of Hedera network
      * @param dAppCode your dAppCode - request specific one by contacting us
      * @param visitorId client unique id. If not provided, SDK will try to get it using fingerprintjs-pro library
@@ -136,7 +149,8 @@ export class BladeSDK {
      */
     async init(
         apiKey: string,
-        network: string,
+        chainType: string | ChainType,
+        network: string | Network,
         dAppCode: string,
         visitorId: string,
         sdkEnvironment: SdkEnvironment = SdkEnvironment.Prod,
@@ -145,6 +159,7 @@ export class BladeSDK {
     ): Promise<InfoData> {
         this.apiKey = apiKey;
         this.network = StringHelpers.stringToNetwork(network);
+        this.chainType = StringHelpers.stringToChainType(chainType);
         this.dAppCode = dAppCode;
         this.sdkEnvironment = sdkEnvironment;
         this.sdkVersion = sdkVersion;
@@ -161,7 +176,13 @@ export class BladeSDK {
         if (!this.visitorId) {
             try {
                 await this.fetchBladeConfig();
-                const fpPromise = await FingerprintJS.load({ apiKey: this.config?.fpApiKey! })
+                const fpPromise = await FingerprintJS.load({
+                    apiKey: this.config?.fpApiKey!,
+                    endpoint: [
+                        'https://identity.bladewallet.io',
+                        FingerprintJS.defaultEndpoint
+                    ]
+                })
                 this.visitorId = (await fpPromise.get()).visitorId;
                 localStorage.setItem("BladeSDK.visitorId", await encrypt(this.visitorId, this.apiKey));
             } catch (error) {
@@ -170,15 +191,7 @@ export class BladeSDK {
         }
         this.apiService.setVisitorId(this.visitorId);
 
-        return this.sendMessageToNative(completionKey, {
-            apiKey: this.apiKey,
-            dAppCode: this.dAppCode,
-            network: this.network,
-            visitorId: this.visitorId,
-            sdkEnvironment: this.sdkEnvironment,
-            sdkVersion: this.sdkVersion,
-            nonce: Math.round(Math.random() * 1000000000)
-        });
+        return this.sendMessageToNative(completionKey, this.getInfoData());
     }
 
     /**
@@ -186,32 +199,42 @@ export class BladeSDK {
      * @returns {InfoData}
      */
     getInfo(completionKey?: string): Promise<InfoData> {
-        return this.sendMessageToNative(completionKey, {
-            apiKey: this.apiKey,
-            dAppCode: this.dAppCode,
-            network: this.network,
-            visitorId: this.visitorId,
-            sdkEnvironment: this.sdkEnvironment,
-            sdkVersion: this.sdkVersion,
-            nonce: Math.round(Math.random() * 1000000000)
-        });
+        return this.sendMessageToNative(completionKey, this.getInfoData());
     }
 
-    async setUser(accountProvider: AccountProvider, accountIdOrEmail: string, privateKey?: string, completionKey?: string): Promise<{ accountId: string, accountProvider: AccountProvider }> {
+    async setUser(
+        accountProvider: AccountProvider,
+        accountIdOrEmail: string,
+        privateKey?: string,
+        completionKey?: string
+    ): Promise<{ accountId: string, accountProvider: AccountProvider }> {
         try {
             switch (accountProvider) {
-                case AccountProvider.Hedera:
-                    const key = PrivateKey.fromString(privateKey!);
-                    this.userAccountId = accountIdOrEmail;
-                    this.userPrivateKey = privateKey!;
-                    this.userPublicKey = key.publicKey.toStringDer();
-                    const provider = new HederaProvider({client: this.getClient()})
-                    this.signer = new HederaSigner(this.userAccountId, key, provider);
+                case AccountProvider.PrivateKey:
+                    if (this.chainType === ChainType.Hedera) {
+                        const key = PrivateKey.fromString(privateKey!);
+                        this.userAccountId = accountIdOrEmail;
+                        this.userPrivateKey = privateKey!;
+                        this.userPublicKey = key.publicKey.toStringDer();
+                        const provider = new HederaProvider({client: this.getClient()})
+                        this.signer = new HederaSigner(this.userAccountId, key, provider);
+                        this.tokenService = new TokenServiceHedera(this.signer);
+                    } else if (this.chainType === ChainType.Ethereum) {
+                        const key = PrivateKey.fromStringECDSA(privateKey!);
+                        this.userPrivateKey = `0x${key.toStringRaw()}`;
+                        this.userPublicKey = `0x${key.publicKey.toStringRaw()}`;
+                        
+                        this.userAccountId = ethers.utils.computeAddress(this.userPublicKey);
+                        const rpcUrl = await this.configService.getConfig(`alchemy${this.network}RPC`);
+                        const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
+                        this.signer = new ethers.Wallet(this.userPrivateKey, provider);
+                        this.tokenService = new TokenServiceEthereum(this.signer);
+                    }
                     break;
                 case AccountProvider.Magic:
                     let userInfo;
                     if (!this.magic) {
-                        await this.initMagic();
+                        await this.initMagic(this.chainType);
                     }
 
                     if (await this.magic?.user.isLoggedIn()) {
@@ -231,10 +254,19 @@ export class BladeSDK {
                     }
 
                     this.userAccountId = userInfo.publicAddress;
-                    const { publicKeyDer } = await this.magic.hedera.getPublicKey();
-                    this.userPublicKey = publicKeyDer;
-                    const magicSign = (message: any) => this.magic.hedera.sign(message);
-                    this.signer = new MagicSigner(this.userAccountId, this.network, publicKeyDer, magicSign);
+                    if (this.chainType === ChainType.Hedera) {
+                        const { publicKeyDer } = await this.magic.hedera.getPublicKey();
+                        this.userPublicKey = publicKeyDer;
+                        const magicSign = (message: any) => this.magic.hedera.sign(message);
+                        this.signer = new MagicSigner(this.userAccountId, this.network, publicKeyDer, magicSign);
+                        this.tokenService = new TokenServiceHedera(this.signer);
+                    } else if (this.chainType === ChainType.Ethereum) {
+                        const provider = new ethers.providers.Web3Provider(this.magic.rpcProvider);
+                        this.signer = provider.getSigner();
+                        // TODO check how to get public key from magic
+                        this.userPublicKey = "";
+                        this.tokenService = new TokenServiceEthereum(this.signer);
+                    }
                     break;
                 default:
                     break;
@@ -264,7 +296,7 @@ export class BladeSDK {
             this.signer = null;
             if (this.accountProvider === AccountProvider.Magic) {
                 if (!this.magic) {
-                    await this.initMagic();
+                    await this.initMagic(this.chainType);
                 }
                 await this.magic.user.logout();
             }
@@ -291,6 +323,24 @@ export class BladeSDK {
                 accountId = this.getUser().accountId;
             }
             return this.sendMessageToNative(completionKey, await this.apiService.getAccountBalance(accountId));
+        } catch (error) {
+            return this.sendMessageToNative(completionKey, null, error);
+        }
+    }
+
+    async transferBalance(receiverId: string, amount: string, memo: string, completionKey?: string): Promise<TransactionReceiptData> {
+        try {
+
+            const result = await this.tokenService.transferBalance({
+                from: this.userAccountId,
+                to: receiverId,
+                amount,
+                memo,
+            })
+
+            console.log(result);
+
+            return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             return this.sendMessageToNative(completionKey, null, error);
         }
@@ -1570,13 +1620,19 @@ export class BladeSDK {
         }
     }
 
-    private async initMagic() {
+    private async initMagic(chainType: ChainType) {
         await this.fetchBladeConfig();
-        this.magic = new Magic(this.config?.magicLinkPublicKey!, {
-            extensions: [new HederaExtension({
+
+        const options: MagicSDKAdditionalConfiguration = {};
+        if (chainType === ChainType.Hedera) {
+            options.extensions = [new HederaExtension({
                 network: this.network.toLowerCase()
-            })]
-        });
+            })];
+        } else if (chainType === ChainType.Ethereum) {
+            options.network = StringHelpers.networkToEthereum(this.network);
+        }
+
+        this.magic = new Magic(this.config?.magicLinkPublicKey!, options);
     }
 
     private async fetchBladeConfig() {
@@ -1595,6 +1651,25 @@ export class BladeSDK {
             privateKey: this.userPrivateKey,
             publicKey: this.userPublicKey
         }
+    }
+
+    private getInfoData(): InfoData {
+        return {
+            apiKey: this.apiKey,
+            dAppCode: this.dAppCode,
+            network: this.network,
+            chainType: this.chainType,
+            visitorId: this.visitorId,
+            sdkEnvironment: this.sdkEnvironment,
+            sdkVersion: this.sdkVersion,
+            nonce: Math.round(Math.random() * 1000000000),
+            user: {
+                accountId: this.userAccountId,
+                accountProvider: this.accountProvider,
+                userPrivateKey: this.userPrivateKey,
+                userPublicKey: this.userPublicKey
+            }
+        };
     }
 
     private getClient() {
