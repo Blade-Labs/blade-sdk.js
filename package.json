@@ -57,6 +57,7 @@
     "@fingerprintjs/fingerprintjs-pro": "^3.8.6",
     "@hashgraph/sdk": "2.40.0",
     "@magic-ext/hedera": "^1.0.3",
+    "alchemy-sdk": "^3.1.2",
     "buffer": "6.0.3",
     "ethers": "^5.7.2",
     "inversify": "^6.0.2",

@@ -138,18 +138,26 @@ export interface InfoData {
     nonce: number,
     user: {
         accountId: string,
-        accountProvider: AccountProvider,
+        accountProvider: AccountProvider | null,
         userPrivateKey: string,
         userPublicKey: string,
     }
 }
 
 export interface BalanceData {
-    hbars: number,
-    tokens: [{
-        tokenId: string,
-        balance: number
-    }]
+    balance: string,
+    rawBalance: string,
+    decimals: number,
+    tokens: TokenBalanceData[]
+}
+
+export interface TokenBalanceData {
+    balance: string,
+    decimals: number,
+    name: string,
+    symbol: string,
+    address: string,
+    rawBalance: string,
 }
 
 export interface ContractCallQueryRecord {
@@ -183,7 +191,7 @@ export interface AccountInfoData {
 export interface PrivateKeyData {
     privateKey: string,
     publicKey: string,
-    accounts: [string],
+    accounts: string[],
     evmAddress: string
 }
 

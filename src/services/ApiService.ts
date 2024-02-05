@@ -19,6 +19,7 @@ import {
     ConfirmUpdateAccountData,
     DAppConfig,
     SdkEnvironment,
+    TokenBalanceData,
     TransactionData
 } from "../models/Common";
 import {flatArray} from "../helpers/ArrayHelpers";
@@ -267,15 +268,6 @@ export default class ApiService {
             .then(this.statusCheck);
     };
 
-    async getAccountBalance(accountId: string) {
-        const account = await this.GET(this.network, `api/v1/accounts/${accountId}`);
-        const tokens = await this.getAccountTokens(accountId);
-        return {
-            hbars: account.balance.balance / 10 ** 8,
-            tokens
-        };
-    }
-
     async getCoins(params: any): Promise<CoinInfoRaw[]> {
         const url = `${this.getApiUrl()}/prices/coins/list?include_platform=true`;
         const options = {
@@ -321,19 +313,28 @@ export default class ApiService {
             })
     };
 
-    async getAccountTokens(accountId: string) {
-        const result = [];
+    async getAccountTokens(network: Network, accountId: string): Promise<TokenBalanceData[]> {
+        const result: TokenBalanceData[] = [];
         let nextPage = `api/v1/accounts/${accountId}/tokens`;
         while (nextPage != null) {
-            const response = await this.GET(this.network, nextPage);
+            const response = await this.GET(network, nextPage);
             nextPage = response.links.next ?? null;
 
+            const tokenInfosReq = [];
             for (const token of response.tokens) {
-                const tokenInfo = await this.requestTokenInfo(this.network, token.token_id);
-                // @ts-ignore
+                tokenInfosReq.push(this.requestTokenInfo(network, token.token_id));
+            }
+            const tokenInfos = await Promise.all(tokenInfosReq);
+            for (let i = 0; i < tokenInfos.length; i++) {
+                const token = response.tokens[i];
+                const info = tokenInfos[i];
                 result.push({
-                    tokenId: token.token_id,
-                    balance: token.balance / 10 ** tokenInfo.decimals,
+                    address: token.token_id,
+                    balance: (token.balance / 10 ** info.decimals).toString(),
+                    rawBalance: token.balance.toString(),
+                    decimals: parseInt(info.decimals, 10),
+                    name: info.name,
+                    symbol: info.symbol,
                 });
             }
         }

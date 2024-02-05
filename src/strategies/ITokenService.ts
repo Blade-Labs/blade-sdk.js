@@ -4,8 +4,11 @@ import type {
     AccountId, TokenId, TokenInfo
 } from "@hashgraph/sdk";
 import type {TransactionResponse} from "@ethersproject/abstract-provider";
+import {BalanceData} from "../models/Common";
 
 export interface ITokenService {
+    getBalance(address: string): Promise<BalanceData>;
+
     // associateToken(tokenId: string | TokenId): Promise<void>;
     // requestTokenInfo(tokenId: string | TokenId, network: Network): Promise<TokenInfo>;
     transferBalance(transferData: TransferInitData): Promise<TransactionResponse | TransactionResponseHedera>;

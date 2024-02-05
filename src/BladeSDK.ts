@@ -175,9 +175,8 @@ export class BladeSDK {
         }
         if (!this.visitorId) {
             try {
-                await this.fetchBladeConfig();
                 const fpPromise = await FingerprintJS.load({
-                    apiKey: this.config?.fpApiKey!,
+                    apiKey: await this.configService.getConfig(`fpApiKey`),
                     endpoint: [
                         'https://identity.bladewallet.io',
                         FingerprintJS.defaultEndpoint
@@ -198,7 +197,7 @@ export class BladeSDK {
      * Returns information about initialized instance of BladeSDK.
      * @returns {InfoData}
      */
-    getInfo(completionKey?: string): Promise<InfoData> {
+    async getInfo(completionKey?: string): Promise<InfoData> {
         return this.sendMessageToNative(completionKey, this.getInfoData());
     }
 
@@ -218,17 +217,17 @@ export class BladeSDK {
                         this.userPublicKey = key.publicKey.toStringDer();
                         const provider = new HederaProvider({client: this.getClient()})
                         this.signer = new HederaSigner(this.userAccountId, key, provider);
-                        this.tokenService = new TokenServiceHedera(this.signer);
                     } else if (this.chainType === ChainType.Ethereum) {
                         const key = PrivateKey.fromStringECDSA(privateKey!);
                         this.userPrivateKey = `0x${key.toStringRaw()}`;
                         this.userPublicKey = `0x${key.publicKey.toStringRaw()}`;
                         
                         this.userAccountId = ethers.utils.computeAddress(this.userPublicKey);
-                        const rpcUrl = await this.configService.getConfig(`alchemy${this.network}RPC`);
-                        const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
+                        const alchemyRpc = await this.configService.getConfig(`alchemy${this.network}RPC`);
+                        const alchemyApiKey = await this.configService.getConfig(`alchemy${this.network}APIKey`);
+
+                        const provider = new ethers.providers.JsonRpcProvider(alchemyRpc + alchemyApiKey);
                         this.signer = new ethers.Wallet(this.userPrivateKey, provider);
-                        this.tokenService = new TokenServiceEthereum(this.signer);
                     }
                     break;
                 case AccountProvider.Magic:
@@ -259,18 +258,17 @@ export class BladeSDK {
                         this.userPublicKey = publicKeyDer;
                         const magicSign = (message: any) => this.magic.hedera.sign(message);
                         this.signer = new MagicSigner(this.userAccountId, this.network, publicKeyDer, magicSign);
-                        this.tokenService = new TokenServiceHedera(this.signer);
                     } else if (this.chainType === ChainType.Ethereum) {
                         const provider = new ethers.providers.Web3Provider(this.magic.rpcProvider);
                         this.signer = provider.getSigner();
                         // TODO check how to get public key from magic
                         this.userPublicKey = "";
-                        this.tokenService = new TokenServiceEthereum(this.signer);
                     }
                     break;
                 default:
                     break;
             }
+            this.tokenService.init(this.chainType, this.network, this.signer!);
             this.accountProvider = accountProvider;
 
             return this.sendMessageToNative(completionKey, {
@@ -313,7 +311,7 @@ export class BladeSDK {
 
     /**
      * Get hbar and token balances for specific account.
-     * @param accountId Hedera account id (0.0.xxxxx)
+     * @param accountId Hedera account id (0.0.xxxxx) or Ethereum address (0x...) or empty string to use current user account
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {BalanceData} hbars: number, tokens: [{tokenId: string, balance: number}]
      */
@@ -322,13 +320,13 @@ export class BladeSDK {
             if (!accountId) {
                 accountId = this.getUser().accountId;
             }
-            return this.sendMessageToNative(completionKey, await this.apiService.getAccountBalance(accountId));
+            return this.sendMessageToNative(completionKey, await this.tokenService.getBalance(accountId));
         } catch (error) {
             return this.sendMessageToNative(completionKey, null, error);
         }
     }
 
-    async transferBalance(receiverId: string, amount: string, memo: string, completionKey?: string): Promise<TransactionReceiptData> {
+    async transferBalance(receiverId: string, amount: string, memo: string, completionKey?: string): Promise<TransactionResponseHedera | TransactionResponse> {
         try {
 
             const result = await this.tokenService.transferBalance({
@@ -337,8 +335,6 @@ export class BladeSDK {
                 amount,
                 memo,
             })
-
-            console.log(result);
 
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
@@ -975,7 +971,7 @@ export class BladeSDK {
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {SignMessageData}
      */
-    sign(messageString: string, privateKey: string, completionKey?: string): Promise<SignMessageData> {
+    async sign(messageString: string, privateKey: string, completionKey?: string): Promise<SignMessageData> {
         try {
             const key = PrivateKey.fromString(privateKey);
             const signed = key.sign(Buffer.from(messageString, "base64"));
@@ -996,7 +992,7 @@ export class BladeSDK {
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {SignVerifyMessageData}
      */
-    signVerify(messageString: string, signature: string, publicKey: string, completionKey?: string): Promise<SignVerifyMessageData> {
+    async signVerify(messageString: string, signature: string, publicKey: string, completionKey?: string): Promise<SignVerifyMessageData> {
         try {
             const valid = PublicKey.fromString(publicKey).verify(
                 Buffer.from(messageString, "base64"),
@@ -1038,7 +1034,7 @@ export class BladeSDK {
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {SplitSignatureData}
      */
-    splitSignature(signature: string, completionKey?: string): Promise<SplitSignatureData> {
+    async splitSignature(signature: string, completionKey?: string): Promise<SplitSignatureData> {
         try {
             const {v, r, s} = ethers.utils.splitSignature(signature);
             return this.sendMessageToNative(completionKey, {v, r, s});
@@ -1221,7 +1217,7 @@ export class BladeSDK {
                 CryptoFlowRoutes.QUOTES,
                 params,
                 strategy
-            );
+            ) as ICryptoFlowQuote[];
             return this.sendMessageToNative(completionKey, {quotes});
         } catch (error) {
             return this.sendMessageToNative(completionKey, null, error);
@@ -1621,8 +1617,6 @@ export class BladeSDK {
     }
 
     private async initMagic(chainType: ChainType) {
-        await this.fetchBladeConfig();
-
         const options: MagicSDKAdditionalConfiguration = {};
         if (chainType === ChainType.Hedera) {
             options.extensions = [new HederaExtension({
@@ -1631,17 +1625,10 @@ export class BladeSDK {
         } else if (chainType === ChainType.Ethereum) {
             options.network = StringHelpers.networkToEthereum(this.network);
         }
-
-        this.magic = new Magic(this.config?.magicLinkPublicKey!, options);
+        this.magic = new Magic(await this.configService.getConfig(`magicLinkPublicKey`), options);
     }
 
-    private async fetchBladeConfig() {
-        if (!this.config) {
-            this.config = await this.apiService.getBladeConfig()
-        }
-    }
-
-    private getUser(): {signer: Signer, accountId: string, privateKey: string, publicKey: string} {
+    private getUser(): {signer: Signer | ethers.Signer, accountId: string, privateKey: string, publicKey: string} {
         if (!this.signer) {
             throw new Error("No user, please call setUser() first");
         }
@@ -1679,7 +1666,7 @@ export class BladeSDK {
     /**
      * Message that sends response back to native handler
      */
-    private sendMessageToNative(completionKey: string | undefined, data: any | null, error: Partial<CustomError>|any|null = null) {
+    private sendMessageToNative<T>(completionKey: string | undefined, data: T | null, error: Partial<CustomError>|any|null = null): T {
         if (!this.webView || !completionKey) {
             if (error) {
                 throw error;

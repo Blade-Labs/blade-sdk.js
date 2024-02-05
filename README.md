@@ -45,6 +45,8 @@ npm i @bladelabs/blade-sdk.js
 
 ## Usage
 
+Please note that the SDK is designed to be used in a browser environment. It is not intended to be used in a server-side environment.
+
 ```
 import {bladeContainer, BladeSDK, SdkEnvironment, ChainType} from '@bladelabs/blade-sdk.js';
 
