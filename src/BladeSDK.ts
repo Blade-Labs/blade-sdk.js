@@ -22,6 +22,7 @@ import {
     TokenType,
     Transaction,
     TransactionReceipt,
+    TransactionResponse as TransactionResponseHedera,
     TransferTransaction,
 } from "@hashgraph/sdk";
 import {Buffer} from "buffer";
@@ -43,7 +44,6 @@ import {
     AccountProvider,
     AccountStatus,
     BalanceData,
-    BladeConfig,
     BridgeResponse,
     C14WidgetConfig,
     ChainType,
@@ -93,11 +93,9 @@ import {Magic, MagicSDKAdditionalConfiguration} from 'magic-sdk';
 import {HederaExtension} from '@magic-ext/hedera';
 import {MagicSigner} from "./signers/magic/MagicSigner";
 import {HederaProvider, HederaSigner} from "./signers/hedera";
-import { Signer as SignerHedera } from "@hashgraph/sdk";
-import { Signer as SignerEthereum } from "ethers";
-import {ITokenService} from "@/strategies/ITokenService";
-import TokenServiceHedera from './strategies/hedera/TokenServiceHedera';
-import TokenServiceEthereum from './strategies/ethereum/TokenServiceEthereum';
+import TokenService from "./strategies/TokenService";
+
+import type {TransactionResponse} from "@ethersproject/abstract-provider";
 
 @injectable()
 export class BladeSDK {
@@ -123,12 +121,14 @@ export class BladeSDK {
      * BladeSDK constructor.
      * @param configService - instance of ConfigService
      * @param apiService - instance of ApiService
+     * @param tokenService - instance of TokenService
      * @param cryptoFlowService - instance of CryptoFlowService
      * @param isWebView - true if you are using this SDK in webview of native app. It changes the way of communication with native app.
      */
     constructor(
         @inject('configService') private readonly configService: ConfigService,
         @inject('apiService') private readonly apiService: ApiService,
+        @inject('tokenService') private readonly tokenService: TokenService,
         @inject('cryptoFlowService') private readonly cryptoFlowService: CryptoFlowService,
         @inject("isWebView") private readonly isWebView: boolean
     ) {
