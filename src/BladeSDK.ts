@@ -68,7 +68,8 @@ import {
     SplitSignatureData,
     SwapQuotesData,
     TransactionReceiptData,
-    TransactionsHistoryData
+    TransactionsHistoryData,
+    UserInfoData
 } from "./models/Common";
 import config from "./config";
 import {executeUpdateAccountTransactions} from "./helpers/AccountHelpers";
@@ -99,8 +100,6 @@ import type {TransactionResponse} from "@ethersproject/abstract-provider";
 
 @injectable()
 export class BladeSDK {
-    private tokenService: ITokenService;
-
     private apiKey: string = "";
     private network: Network = Network.Testnet;
     private chainType: ChainType = ChainType.Hedera;
@@ -109,7 +108,6 @@ export class BladeSDK {
     private sdkEnvironment: SdkEnvironment = SdkEnvironment.Prod;
     private sdkVersion: string = config.sdkVersion;
     private readonly webView: boolean = false;
-    private config: BladeConfig | null = null;
     private accountProvider: AccountProvider | null = null;
     private signer: Signer | ethers.Signer | null = null;
     private magic: any;
@@ -206,7 +204,7 @@ export class BladeSDK {
         accountIdOrEmail: string,
         privateKey?: string,
         completionKey?: string
-    ): Promise<{ accountId: string, accountProvider: AccountProvider }> {
+    ): Promise<UserInfoData> {
         try {
             switch (accountProvider) {
                 case AccountProvider.PrivateKey:
@@ -274,6 +272,8 @@ export class BladeSDK {
             return this.sendMessageToNative(completionKey, {
                 accountId: this.userAccountId,
                 accountProvider: this.accountProvider,
+                userPrivateKey: this.userPrivateKey,
+                userPublicKey: this.userPublicKey
             });
 
         } catch (error) {
@@ -282,7 +282,7 @@ export class BladeSDK {
             this.userPublicKey = "";
             this.signer = null;
             this.magic = null;
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -305,7 +305,7 @@ export class BladeSDK {
             });
 
         } catch (error) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -322,7 +322,7 @@ export class BladeSDK {
             }
             return this.sendMessageToNative(completionKey, await this.tokenService.getBalance(accountId));
         } catch (error) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -338,7 +338,7 @@ export class BladeSDK {
 
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -364,7 +364,7 @@ export class BladeSDK {
             };
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -399,7 +399,7 @@ export class BladeSDK {
             };
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -435,9 +435,8 @@ export class BladeSDK {
                     return this.sendMessageToNative(completionKey, null, error);
                 });
         } catch (error) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
-
     }
 
     /**
@@ -500,7 +499,7 @@ export class BladeSDK {
                     return this.sendMessageToNative(completionKey, null, error);
                 });
         } catch (error) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -580,7 +579,7 @@ export class BladeSDK {
                 return this.sendMessageToNative(completionKey, null, error);
             }
         } catch (error) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -672,7 +671,7 @@ export class BladeSDK {
             }
 
         } catch (error) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -740,7 +739,7 @@ export class BladeSDK {
             };
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -806,7 +805,7 @@ export class BladeSDK {
 
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -839,7 +838,7 @@ export class BladeSDK {
 
             return this.sendMessageToNative(completionKey, formatReceipt(txReceipt));
         } catch (error) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -871,7 +870,7 @@ export class BladeSDK {
                 calculatedEvmAddress: ethers.utils.computeAddress(`0x${publicKey.toStringRaw()}`).toLowerCase()
             } as AccountInfoData);
         } catch (error) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -885,7 +884,7 @@ export class BladeSDK {
             const nodeList = await this.apiService.getNodeList(this.network);
             return this.sendMessageToNative(completionKey, {nodes: nodeList});
         } catch (error) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -924,7 +923,7 @@ export class BladeSDK {
                 })
             ;
         } catch (error) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -960,7 +959,7 @@ export class BladeSDK {
                 evmAddress: ethers.utils.computeAddress(`0x${publicKey.toStringRaw()}`).toLowerCase()
             });
         } catch (error) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -980,7 +979,7 @@ export class BladeSDK {
                 signedMessage: Buffer.from(signed).toString("hex")
             });
         } catch (error) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -1000,7 +999,7 @@ export class BladeSDK {
             );
             return this.sendMessageToNative(completionKey, {valid});
         } catch (error) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -1023,7 +1022,7 @@ export class BladeSDK {
                     });
                 });
         } catch (error) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
 
     }
@@ -1039,7 +1038,7 @@ export class BladeSDK {
             const {v, r, s} = ethers.utils.splitSignature(signature);
             return this.sendMessageToNative(completionKey, {v, r, s});
         } catch (error) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -1065,7 +1064,7 @@ export class BladeSDK {
             const {v, r, s} = ethers.utils.splitSignature(signed);
             return this.sendMessageToNative(completionKey, {v, r, s});
         } catch (error) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -1089,7 +1088,7 @@ export class BladeSDK {
             const transactionData = await this.apiService.getTransactionsFrom(this.network, accountId, transactionType, nextPage, transactionsLimit);
             return this.sendMessageToNative(completionKey, transactionData);
         } catch (error) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -1153,7 +1152,7 @@ export class BladeSDK {
             url.search = new URLSearchParams(purchaseParams as Record<keyof C14WidgetConfig, any>).toString();
             return this.sendMessageToNative(completionKey, {url: url.toString()});
         } catch (error) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -1220,7 +1219,7 @@ export class BladeSDK {
             ) as ICryptoFlowQuote[];
             return this.sendMessageToNative(completionKey, {quotes});
         } catch (error) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -1306,7 +1305,7 @@ export class BladeSDK {
             }
             return this.sendMessageToNative(completionKey, {success: true});
         } catch (error) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -1381,9 +1380,9 @@ export class BladeSDK {
                 throw new Error("Quote not found");
             }
 
-            return this.sendMessageToNative(completionKey, {url: selectedQuote.widgetUrl});
+            return this.sendMessageToNative(completionKey, {url: selectedQuote.widgetUrl || ""});
         } catch (error) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -1486,7 +1485,7 @@ export class BladeSDK {
             const tokenId = nftCreateRx.tokenId?.toString();
             return this.sendMessageToNative(completionKey, {tokenId}, null);
         } catch (error) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -1527,7 +1526,7 @@ export class BladeSDK {
                     return this.sendMessageToNative(completionKey, null, error);
                 });
         } catch (error) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -1612,7 +1611,7 @@ export class BladeSDK {
                     return this.sendMessageToNative(completionKey, null, error);
                 });
         } catch (error) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -1666,7 +1665,7 @@ export class BladeSDK {
     /**
      * Message that sends response back to native handler
      */
-    private sendMessageToNative<T>(completionKey: string | undefined, data: T | null, error: Partial<CustomError>|any|null = null): T {
+    private sendMessageToNative<T>(completionKey: string | undefined, data: T, error: Partial<CustomError>|any|null = null): T {
         if (!this.webView || !completionKey) {
             if (error) {
                 throw error;

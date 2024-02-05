@@ -136,12 +136,14 @@ export interface InfoData {
     sdkEnvironment: SdkEnvironment,
     sdkVersion: string,
     nonce: number,
-    user: {
-        accountId: string,
-        accountProvider: AccountProvider | null,
-        userPrivateKey: string,
-        userPublicKey: string,
-    }
+    user: UserInfoData
+}
+
+export interface UserInfoData {
+    accountId: string,
+    accountProvider: AccountProvider | null,
+    userPrivateKey: string,
+    userPublicKey: string,
 }
 
 export interface BalanceData {
@@ -169,9 +171,9 @@ export interface CreateAccountData {
     seedPhrase: string,
     publicKey: string,
     privateKey: string,
-    accountId?: string,
+    accountId: string | null,
     evmAddress: string,
-    transactionId?: string,
+    transactionId: string | null,
     status: string,
     queueNumber?: number
 }
@@ -211,7 +213,7 @@ export interface SplitSignatureData {
 
 export interface TransactionsHistoryData {
     transactions: TransactionData[],
-    nextPage?: string
+    nextPage: string | null
 }
 
 export interface TransactionData {

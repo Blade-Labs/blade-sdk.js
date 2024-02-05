@@ -44,12 +44,12 @@ export default class TokenServiceEthereum implements ITokenService {
             decimals: 18,
             tokens: tokenBalances.tokens.map(token => {
                 return {
-                    balance: token.balance,
-                    decimals: token.decimals,
-                    name: token.name,
-                    symbol: token.symbol,
-                    address: token.contractAddress,
-                    rawBalance: token.rawBalance,
+                    balance: token.balance || "0",
+                    decimals: token.decimals || 0,
+                    name: token.name || "",
+                    symbol: token.symbol || "",
+                    address: token.contractAddress || "",
+                    rawBalance: token.rawBalance || "0",
                 }
             })
         }

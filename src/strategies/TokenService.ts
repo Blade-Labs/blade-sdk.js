@@ -43,7 +43,7 @@ export default class TokenService implements ITokenService {
         }
     }
 
-    getBalance(accountId): Promise<BalanceData> {
+    getBalance(accountId: string): Promise<BalanceData> {
         this.checkInit();
         return this.strategy!.getBalance(accountId);
     }
