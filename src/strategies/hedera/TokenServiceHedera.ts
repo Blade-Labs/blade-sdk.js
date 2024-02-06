@@ -51,6 +51,76 @@ export default class TokenServiceHedera implements ITokenService {
             .setTransactionMemo(memo || "")
             .freezeWithSigner(this.signer)
             .then(tx => tx.signWithSigner(this.signer))
-            .then(tx => tx.executeWithSigner(this.signer));
+            .then(tx => tx.executeWithSigner(this.signer))
+            .then((response: TransactionResponseHedera) => {
+                return {
+                    transactionId: response.transactionId.toString(),
+                    transactionHash: response.transactionHash.toString(),
+                }
+            });
+    }
+
+    async transferToken({amountOrSerial, from, to, tokenAddress, memo, freeTransfer}: TransferTokenInitData): Promise<TransactionResponseData> {
+        const meta = await this.apiService.requestTokenInfo(this.network, tokenAddress);
+        let isNFT = false;
+        if (meta.type === "NON_FUNGIBLE_UNIQUE") {
+            isNFT = true;
+            if (freeTransfer) {
+                throw new Error("NFT free transfer is not supported");
+            }
+        }
+        const correctedAmount = parseFloat(amountOrSerial) * (10 ** parseInt(meta.decimals, 10));
+
+        if (freeTransfer) {
+            const options = {
+                receiverAccountId: to,
+                senderAccountId: from,
+                amount: correctedAmount,
+                decimals: null,
+                memo
+                // no tokenId, backend pick first token from list for currend dApp
+            };
+
+            const {transactionBytes} = await this.apiService.transferTokens(this.network, options);
+            const buffer = Buffer.from(transactionBytes, "base64");
+            const transaction = Transaction.fromBytes(buffer);
+
+            return transaction
+                .freezeWithSigner(this.signer!)
+                .then(tx => tx.signWithSigner(this.signer!))
+                .then(tx => tx.executeWithSigner(this.signer!))
+                .then(data => {
+                    return {
+                        transactionId: data.transactionId.toString(),
+                        transactionHash: data.transactionHash.toString(),
+                    }
+                });
+        } else {
+            const tokenTransferTx = new TransferTransaction()
+                .setTransactionMemo(memo || "");
+
+            if (isNFT) {
+                tokenTransferTx
+                    .addNftTransfer(tokenAddress, parseInt(amountOrSerial, 10), from, to);
+            } else {
+                tokenTransferTx
+                    .addTokenTransfer(tokenAddress, to, correctedAmount)
+                    .addTokenTransfer(tokenAddress, from, -1 * correctedAmount);
+            }
+
+            // TODO add fees if needed
+            // tx = await this.feesService.addBladeFee(tx, chain, address);
+
+            return tokenTransferTx
+                .freezeWithSigner(this.signer!)
+                .then(tx => tx.signWithSigner(this.signer!))
+                .then(tx => tx.executeWithSigner(this.signer!))
+                .then(data => {
+                    return {
+                        transactionId: data.transactionId.toString(),
+                        transactionHash: data.transactionHash.toString(),
+                    }
+                });
+        }
     }
 }
