@@ -1,16 +1,12 @@
 import { injectable, inject } from 'inversify';
 import 'reflect-metadata';
 
-import {
-    TransactionResponse as TransactionResponseHedera
-} from "@hashgraph/sdk";
 import {Signer} from "@hashgraph/sdk"
-import {ITokenService, TransferInitData} from "./ITokenService";
-import {BalanceData, ChainType} from "../models/Common";
+import {ITokenService, TransferInitData, TransferTokenInitData} from "./ITokenService";
+import {BalanceData, ChainType, TransactionResponseData} from "../models/Common";
 import TokenServiceHedera from "./hedera/TokenServiceHedera";
 import TokenServiceEthereum from "./ethereum/TokenServiceEthereum";
 import { ethers } from "ethers";
-import type {TransactionResponse} from "@ethersproject/abstract-provider";
 import ApiService from "../services/ApiService";
 import ConfigService from "../services/ConfigService";
 import {Network} from "../models/Networks";
@@ -48,10 +44,14 @@ export default class TokenService implements ITokenService {
         return this.strategy!.getBalance(accountId);
     }
 
-    // TODO: make single response type
-    transferBalance({from, to, amount, memo}: TransferInitData): Promise<TransactionResponseHedera | TransactionResponse> {
+    transferBalance(transferData: TransferInitData): Promise<TransactionResponseData> {
         this.checkInit();
-        return this.strategy!.transferBalance({from, to, amount, memo});
+        return this.strategy!.transferBalance(transferData);
+    }
+
+    transferToken(transferData: TransferTokenInitData): Promise<TransactionResponseData> {
+        this.checkInit();
+        return this.strategy!.transferToken(transferData);
     }
 
     private checkInit() {

@@ -1,14 +1,16 @@
-import type {TransactionResponse} from "@ethersproject/abstract-provider";
 import {ethers} from "ethers"
-import {ITokenService, TransferInitData} from "../ITokenService";
-import {BalanceData} from "../../models/Common";
+import {ITokenService, TransferInitData, TransferTokenInitData} from "../ITokenService";
+import {BalanceData, TransactionResponseData} from "../../models/Common";
 import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
 import {
     Alchemy,
+    Contract,
     Network as AlchemyNetwork,
 } from "alchemy-sdk";
 import {Network} from "../../models/Networks";
+import StringHelpers from "../../helpers/StringHelpers";
+const ERC20ABI = require("../../abi/erc20.abi.json");
 
 export default class TokenServiceEthereum implements ITokenService {
     private readonly network: Network;
@@ -30,9 +32,8 @@ export default class TokenServiceEthereum implements ITokenService {
     }
 
     async getBalance(address: string): Promise<BalanceData> {
-        const network = this.network === Network.Mainnet ? AlchemyNetwork.ETH_MAINNET : AlchemyNetwork.ETH_SEPOLIA;
-        const apiKey = await this.configService.getConfig(`alchemy${this.network}APIKey`);
-        this.alchemy = new Alchemy({apiKey, network});
+        await this.initAlchemy();
+
 
         const wei = await this.alchemy!.core.getBalance(address);
         const mainBalance = ethers.utils.formatEther(wei);
@@ -55,12 +56,38 @@ export default class TokenServiceEthereum implements ITokenService {
         }
     }
 
-    async transferBalance({from, to, amount}: TransferInitData): Promise<TransactionResponse> {
+    async transferBalance({from, to, amount}: TransferInitData): Promise<TransactionResponseData> {
         const transaction = {
             from,
             to,
             value: ethers.utils.parseUnits(amount, 'ether')
         }
-        return this.signer.sendTransaction(transaction);
+        const result = await this.signer.sendTransaction(transaction);
+        return {
+            transactionHash: result.hash,
+            transactionId: result.hash,
+        }
+    }
+
+    async transferToken({amountOrSerial, from, to, tokenAddress, memo, freeTransfer}: TransferTokenInitData): Promise<TransactionResponseData> {
+        await this.initAlchemy();
+        const contract = new Contract(tokenAddress, ERC20ABI, this.signer);
+        const toAddress = StringHelpers.stripHexPrefix(to);
+        const value = ethers.utils.parseUnits(amountOrSerial, "wei");
+        const {baseFeePerGas} = await this.alchemy!.core.getBlock("pending");
+        const maxPriorityFeePerGas = await this.alchemy!.transact.getMaxPriorityFeePerGas();
+        const maxFeePerGas = baseFeePerGas?.add(maxPriorityFeePerGas);
+        const gasLimit = await contract.estimateGas.transfer(toAddress, value);
+        const result = await contract.transfer(toAddress, value, {gasLimit, maxPriorityFeePerGas, maxFeePerGas});
+        return {
+            transactionHash: result.hash,
+            transactionId: result.hash,
+        }
+    }
+
+    private async initAlchemy() {
+        const network = this.network === Network.Mainnet ? AlchemyNetwork.ETH_MAINNET : AlchemyNetwork.ETH_SEPOLIA;
+        const apiKey = await this.configService.getConfig(`alchemy${this.network}APIKey`);
+        this.alchemy = new Alchemy({apiKey, network});
     }
 }

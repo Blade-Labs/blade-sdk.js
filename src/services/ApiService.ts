@@ -355,8 +355,8 @@ export default class ApiService {
             method: "POST",
             headers: new Headers({
                 "X-NETWORK": network.toUpperCase(),
-                "X-VISITOR-ID": params.visitorId,
-                "X-DAPP-CODE": params.dAppCode,
+                "X-VISITOR-ID": params.visitorId || this.visitorId,
+                "X-DAPP-CODE": params.dAppCode || this.dAppCode,
                 "X-SDK-TVTE-API": await this.getTvteHeader(),
                 "Content-Type": "application/json"
             }),

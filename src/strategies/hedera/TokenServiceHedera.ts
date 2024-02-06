@@ -1,10 +1,12 @@
 import {
+    Signer,
     TransactionResponse as TransactionResponseHedera,
-    Hbar, HbarUnit, TransferTransaction
+    Hbar, HbarUnit, TransferTransaction, Transaction
 } from "@hashgraph/sdk";
-import {Signer} from "@hashgraph/sdk"
-import {ITokenService, TransferInitData} from "../ITokenService";
-import {BalanceData} from "../../models/Common";
+import {Buffer} from "buffer";
+
+import {ITokenService, TransferInitData, TransferTokenInitData} from "../ITokenService";
+import {BalanceData, TransactionResponseData} from "../../models/Common";
 import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
 import {Network} from "../../models/Networks";
@@ -41,7 +43,7 @@ export default class TokenServiceHedera implements ITokenService {
         }
     }
 
-    async transferBalance({from, to, amount, memo}: TransferInitData): Promise<TransactionResponseHedera> {
+    async transferBalance({from, to, amount, memo}: TransferInitData): Promise<TransactionResponseData> {
         const txAmount = Hbar.fromString(amount, HbarUnit.Hbar);
         return new TransferTransaction()
             .addHbarTransfer(from, txAmount.negated())

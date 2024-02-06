@@ -330,3 +330,8 @@ export interface TransactionReceiptData {
     totalSupply?: string,
     serials: string[],
 }
+
+export interface TransactionResponseData {
+    transactionHash: string
+    transactionId: string
+}

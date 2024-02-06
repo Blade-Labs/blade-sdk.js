@@ -1,18 +1,12 @@
-import type {
-    TransactionResponse as TransactionResponseHedera,
-    TransactionReceipt as TransactionReceiptHedera,
-    AccountId, TokenId, TokenInfo
-} from "@hashgraph/sdk";
-import type {TransactionResponse} from "@ethersproject/abstract-provider";
-import {BalanceData} from "../models/Common";
+import {BalanceData, TransactionResponseData} from "../models/Common";
 
 export interface ITokenService {
     getBalance(address: string): Promise<BalanceData>;
 
     // associateToken(tokenId: string | TokenId): Promise<void>;
     // requestTokenInfo(tokenId: string | TokenId, network: Network): Promise<TokenInfo>;
-    transferBalance(transferData: TransferInitData): Promise<TransactionResponse | TransactionResponseHedera>;
-    // transferToken(transferData: TransferTokenInitData): Promise<TransactionResponse | TransactionResponseHedera>;
+    transferBalance(transferData: TransferInitData): Promise<TransactionResponseData>;
+    transferToken(transferData: TransferTokenInitData): Promise<TransactionResponseData>;
 }
 
 export type TransferInitData = {
@@ -22,6 +16,11 @@ export type TransferInitData = {
     memo?: string
 }
 
-export type TransferTokenInitData = TransferInitData & {
+export type TransferTokenInitData = {
     tokenAddress: string
+    from: string,
+    to: string,
+    amountOrSerial: string,
+    memo?: string,
+    freeTransfer: boolean
 }

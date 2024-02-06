@@ -22,7 +22,6 @@ import {
     TokenType,
     Transaction,
     TransactionReceipt,
-    TransactionResponse as TransactionResponseHedera,
     TransferTransaction,
 } from "@hashgraph/sdk";
 import {Buffer} from "buffer";
@@ -67,7 +66,7 @@ import {
     SignVerifyMessageData,
     SplitSignatureData,
     SwapQuotesData,
-    TransactionReceiptData,
+    TransactionReceiptData, TransactionResponseData,
     TransactionsHistoryData,
     UserInfoData
 } from "./models/Common";
@@ -95,8 +94,6 @@ import {HederaExtension} from '@magic-ext/hedera';
 import {MagicSigner} from "./signers/magic/MagicSigner";
 import {HederaProvider, HederaSigner} from "./signers/hedera";
 import TokenService from "./strategies/TokenService";
-
-import type {TransactionResponse} from "@ethersproject/abstract-provider";
 
 @injectable()
 export class BladeSDK {
@@ -310,7 +307,7 @@ export class BladeSDK {
     }
 
     /**
-     * Get hbar and token balances for specific account.
+     * Get balance and token balances for specific account.
      * @param accountId Hedera account id (0.0.xxxxx) or Ethereum address (0x...) or empty string to use current user account
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {BalanceData} hbars: number, tokens: [{tokenId: string, balance: number}]
@@ -326,9 +323,16 @@ export class BladeSDK {
         }
     }
 
-    async transferBalance(receiverId: string, amount: string, memo: string, completionKey?: string): Promise<TransactionResponseHedera | TransactionResponse> {
+    /**
+     * Send HBAR/ETH to specific account.
+     * @param receiverId receiver account id (0.0.xxxxx)
+     * @param amount of hbars to send (decimal number)
+     * @param memo transaction memo
+     * @param completionKey optional field bridge between mobile webViews and native apps
+     * @returns Promise<TransactionResponseData>
+     */
+    async transferBalance(receiverId: string, amount: string, memo: string, completionKey?: string): Promise<TransactionResponseData> {
         try {
-
             const result = await this.tokenService.transferBalance({
                 from: this.userAccountId,
                 to: receiverId,
@@ -398,42 +402,6 @@ export class BladeSDK {
                 coin: coinInfo
             };
             return this.sendMessageToNative(completionKey, result);
-        } catch (error) {
-            throw this.sendMessageToNative(completionKey, null, error);
-        }
-    }
-
-    /**
-     * Send hbars to specific account.
-     * @param accountId sender account id (0.0.xxxxx)
-     * @param accountPrivateKey sender's hex-encoded private key with DER-header (302e020100300506032b657004220420...). ECDSA or Ed25519
-     * @param receiverId receiver account id (0.0.xxxxx)
-     * @param amount of hbars to send (decimal number)
-     * @param memo transaction memo
-     * @param completionKey optional field bridge between mobile webViews and native apps
-     * @returns Promise<TransactionReceiptData>
-     */
-    async transferHbars(accountId: string, accountPrivateKey: string, receiverId: string, amount: string, memo: string, completionKey?: string): Promise<TransactionReceiptData> {
-        try {
-            if (accountId && accountPrivateKey) {
-                await this.setUser(AccountProvider.Hedera, accountId, accountPrivateKey);
-            }
-            accountId = this.getUser().accountId;
-
-            const parsedAmount = parseFloat(amount);
-            return new TransferTransaction()
-                .addHbarTransfer(accountId, -1 * parsedAmount)
-                .addHbarTransfer(receiverId, parsedAmount)
-                .setTransactionMemo(memo)
-                .freezeWithSigner(this.signer!)
-                .then(tx => tx.signWithSigner(this.signer!))
-                .then(tx => tx.executeWithSigner(this.signer!))
-                .then(result => result.getReceiptWithSigner(this.signer!))
-                .then(data => {
-                    return this.sendMessageToNative(completionKey, formatReceipt(data));
-                }).catch(error => {
-                    return this.sendMessageToNative(completionKey, null, error);
-                });
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
         }
@@ -585,91 +553,32 @@ export class BladeSDK {
 
     /**
      * Send token to specific account.
-     * @param tokenId token id to send (0.0.xxxxx)
-     * @param accountId sender account id (0.0.xxxxx)
-     * @param accountPrivateKey sender's hex-encoded private key with DER-header (302e020100300506032b657004220420...). ECDSA or Ed25519
-     * @param receiverID receiver account id (0.0.xxxxx)
+     * @param tokenAddress token id to send (0.0.xxxxx or 0x123456789abcdef...)
+     * @param receiverId receiver account address (0.0.xxxxx or 0x123456789abcdef...)
      * @param amountOrSerial amount of fungible tokens to send (with token-decimals correction) on NFT serial number
      * @param memo transaction memo
      * @param freeTransfer if true, Blade will pay fee transaction. Only for single dApp configured fungible-token. In that case tokenId not used
      * @param completionKey optional field bridge between mobile webViews and native apps
-     * @returns Promise<TransactionReceiptData>
+     * @returns Promise<TransactionResponseData>
      */
     async transferTokens(
-        tokenId: string,
-        accountId: string,
-        accountPrivateKey: string,
-        receiverID: string,
+        tokenAddress: string,
+        receiverId: string,
         amountOrSerial: string,
         memo: string,
         freeTransfer: boolean = false,
         completionKey?: string
-    ): Promise<TransactionReceiptData> {
+    ): Promise<TransactionResponseData> {
         try {
-            if (accountId && accountPrivateKey) {
-                await this.setUser(AccountProvider.Hedera, accountId, accountPrivateKey);
-            }
-            accountId = this.getUser().accountId;
-
-            const meta = await this.apiService.requestTokenInfo(this.network, tokenId);
-            let isNFT = false;
-            if (meta.type === "NON_FUNGIBLE_UNIQUE") {
-                isNFT = true;
-                freeTransfer = false;
-            }
-
-            const correctedAmount = parseFloat(amountOrSerial) * (10 ** parseInt(meta.decimals, 10));
-
-            if (freeTransfer) {
-                const options = {
-                    dAppCode: this.dAppCode,
-                    visitorId: this.visitorId,
-                    receiverAccountId: receiverID,
-                    senderAccountId: accountId,
-                    amount: correctedAmount,
-                    decimals: null,
-                    memo
-                    // no tokenId, backend pick first token from list for currend dApp
-                };
-
-                const {transactionBytes} = await this.apiService.transferTokens(this.network, options);
-                const buffer = Buffer.from(transactionBytes, "base64");
-                const transaction = Transaction.fromBytes(buffer);
-
-                return transaction
-                    .freezeWithSigner(this.signer!)
-                    .then(tx => tx.signWithSigner(this.signer!))
-                    .then(tx => tx.executeWithSigner(this.signer!))
-                    .then(result => result.getReceiptWithSigner(this.signer!))
-                    .then(data => {
-                        return this.sendMessageToNative(completionKey, formatReceipt(data));
-                    }).catch(error => {
-                        return this.sendMessageToNative(completionKey, null, error);
-                    });
-            } else {
-                const tokenTransferTx = new TransferTransaction()
-                    .setTransactionMemo(memo);
-
-                if (isNFT) {
-                    tokenTransferTx
-                        .addNftTransfer(tokenId, parseInt(amountOrSerial, 10), accountId, receiverID);
-                } else {
-                    tokenTransferTx
-                        .addTokenTransfer(tokenId, receiverID, correctedAmount)
-                        .addTokenTransfer(tokenId, accountId, -1 * correctedAmount);
-                }
-                return tokenTransferTx
-                    .freezeWithSigner(this.signer!)
-                    .then(tx => tx.signWithSigner(this.signer!))
-                    .then(tx => tx.executeWithSigner(this.signer!))
-                    .then(result => result.getReceiptWithSigner(this.signer!))
-                    .then(data => {
-                        return this.sendMessageToNative(completionKey, formatReceipt(data));
-                    }).catch(error => {
-                        return this.sendMessageToNative(completionKey, null, error);
-                    });
-            }
-
+            const result = await this.tokenService.transferToken({
+                from: this.userAccountId,
+                to: receiverId,
+                amountOrSerial,
+                tokenAddress,
+                memo,
+                freeTransfer
+            })
+            return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
         }
