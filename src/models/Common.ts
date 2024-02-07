@@ -1,5 +1,4 @@
 import {MirrorNodeTransactionType} from "./TransactionType";
-import {Network} from "./Networks";
 import {ICryptoFlowQuote} from "./CryptoFlow";
 
 export enum SdkEnvironment {
@@ -262,13 +261,6 @@ export interface C14WidgetConfig {
 export interface ContractFunctionParameter {
     type: string,
     value: string[]
-}
-
-export interface ConfirmUpdateAccountData {
-    network: Network,
-    accountId: string,
-    dAppCode: string,
-    visitorId: string
 }
 
 export interface SwapQuotesData {

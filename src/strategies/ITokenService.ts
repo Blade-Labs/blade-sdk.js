@@ -1,12 +1,18 @@
-import {BalanceData, TransactionResponseData} from "../models/Common";
+import {
+    BalanceData,
+    KeyRecord,
+    NFTStorageConfig,
+    TransactionReceiptData,
+    TransactionResponseData
+} from "../models/Common";
 
 export interface ITokenService {
     getBalance(address: string): Promise<BalanceData>;
-
-    // associateToken(tokenId: string | TokenId): Promise<void>;
-    // requestTokenInfo(tokenId: string | TokenId, network: Network): Promise<TokenInfo>;
     transferBalance(transferData: TransferInitData): Promise<TransactionResponseData>;
     transferToken(transferData: TransferTokenInitData): Promise<TransactionResponseData>;
+    associateToken(tokenId: string, accountId: string): Promise<TransactionReceiptData>;
+    createToken(tokenName: string, tokenSymbol: string, isNft: boolean, treasuryAccountId: string, supplyPublicKey: string, keys: KeyRecord[] | string, decimals: number, initialSupply: number, maxSupply: number): Promise<{tokenId: string}>;
+    nftMint(tokenId: string, file: File | string, metadata: {}, storageConfig: NFTStorageConfig): Promise<TransactionReceiptData>;
 }
 
 export type TransferInitData = {

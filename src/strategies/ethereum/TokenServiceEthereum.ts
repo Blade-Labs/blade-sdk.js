@@ -1,6 +1,12 @@
 import {ethers} from "ethers"
 import {ITokenService, TransferInitData, TransferTokenInitData} from "../ITokenService";
-import {BalanceData, TransactionResponseData} from "../../models/Common";
+import {
+    BalanceData,
+    KeyRecord,
+    NFTStorageConfig,
+    TransactionReceiptData,
+    TransactionResponseData
+} from "../../models/Common";
 import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
 import {
@@ -73,7 +79,8 @@ export default class TokenServiceEthereum implements ITokenService {
         await this.initAlchemy();
         const contract = new Contract(tokenAddress, ERC20ABI, this.signer);
         const toAddress = StringHelpers.stripHexPrefix(to);
-        const value = ethers.utils.parseUnits(amountOrSerial, "wei");
+        const decimals = await contract.decimals();
+        const value = ethers.utils.parseUnits(amountOrSerial, decimals);
         const {baseFeePerGas} = await this.alchemy!.core.getBlock("pending");
         const maxPriorityFeePerGas = await this.alchemy!.transact.getMaxPriorityFeePerGas();
         const maxFeePerGas = baseFeePerGas?.add(maxPriorityFeePerGas);
@@ -83,6 +90,18 @@ export default class TokenServiceEthereum implements ITokenService {
             transactionHash: result.hash,
             transactionId: result.hash,
         }
+    }
+
+    associateToken(tokenId: string, accountId: string): Promise<TransactionReceiptData> {
+        throw new Error("Method not implemented.");
+    }
+
+    createToken(tokenName: string, tokenSymbol: string, isNft: boolean, treasuryAccountId: string, supplyPublicKey: string, keys: KeyRecord[] | string, decimals: number, initialSupply: number, maxSupply: number): Promise<{tokenId: string}> {
+        throw new Error("Method not implemented.");
+    }
+
+    nftMint(tokenId: string, file: File | string, metadata: {}, storageConfig: NFTStorageConfig): Promise<TransactionReceiptData> {
+        throw new Error("Method not implemented.");
     }
 
     private async initAlchemy() {

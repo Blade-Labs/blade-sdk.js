@@ -3,7 +3,14 @@ import 'reflect-metadata';
 
 import {Signer} from "@hashgraph/sdk"
 import {ITokenService, TransferInitData, TransferTokenInitData} from "./ITokenService";
-import {BalanceData, ChainType, TransactionResponseData} from "../models/Common";
+import {
+    BalanceData,
+    ChainType,
+    KeyRecord,
+    NFTStorageConfig,
+    TransactionReceiptData,
+    TransactionResponseData
+} from "../models/Common";
 import TokenServiceHedera from "./hedera/TokenServiceHedera";
 import TokenServiceEthereum from "./ethereum/TokenServiceEthereum";
 import { ethers } from "ethers";
@@ -52,6 +59,21 @@ export default class TokenService implements ITokenService {
     transferToken(transferData: TransferTokenInitData): Promise<TransactionResponseData> {
         this.checkInit();
         return this.strategy!.transferToken(transferData);
+    }
+
+    associateToken(tokenId: string, accountId: string): Promise<TransactionReceiptData> {
+        this.checkInit();
+        return this.strategy!.associateToken(tokenId, accountId);
+    }
+
+    createToken(tokenName: string, tokenSymbol: string, isNft: boolean, treasuryAccountId: string, supplyPublicKey: string, keys: KeyRecord[] | string, decimals: number, initialSupply: number, maxSupply: number): Promise<{tokenId: string}> {
+        this.checkInit();
+        return this.strategy!.createToken(tokenName, tokenSymbol, isNft, treasuryAccountId, supplyPublicKey, keys, decimals, initialSupply, maxSupply);
+    }
+
+    nftMint(tokenId: string, file: File | string, metadata: {}, storageConfig: NFTStorageConfig): Promise<TransactionReceiptData> {
+        this.checkInit();
+        return this.strategy!.nftMint(tokenId, file, metadata, storageConfig);
     }
 
     private checkInit() {

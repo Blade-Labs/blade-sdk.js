@@ -88,15 +88,17 @@ import {NodeInfo} from "./models/MirrorNode";
 import * as FingerprintJS from '@fingerprintjs/fingerprintjs-pro'
 import {File, NFTStorage} from 'nft.storage';
 import {decrypt, encrypt} from "./helpers/SecurityHelper";
-import {formatReceipt} from "./helpers/TransactionHelpers";
 import {Magic, MagicSDKAdditionalConfiguration} from 'magic-sdk';
 import {HederaExtension} from '@magic-ext/hedera';
 import {MagicSigner} from "./signers/magic/MagicSigner";
 import {HederaProvider, HederaSigner} from "./signers/hedera";
 import TokenService from "./strategies/TokenService";
+import AccountService from "./strategies/AccountService";
 
 @injectable()
 export class BladeSDK {
+    // todo update method annotations
+
     private apiKey: string = "";
     private network: Network = Network.Testnet;
     private chainType: ChainType = ChainType.Hedera;
@@ -116,6 +118,7 @@ export class BladeSDK {
      * BladeSDK constructor.
      * @param configService - instance of ConfigService
      * @param apiService - instance of ApiService
+     * @param accountService - instance of AccountService
      * @param tokenService - instance of TokenService
      * @param cryptoFlowService - instance of CryptoFlowService
      * @param isWebView - true if you are using this SDK in webview of native app. It changes the way of communication with native app.
@@ -123,6 +126,7 @@ export class BladeSDK {
     constructor(
         @inject('configService') private readonly configService: ConfigService,
         @inject('apiService') private readonly apiService: ApiService,
+        @inject('accountService') private readonly accountService: AccountService,
         @inject('tokenService') private readonly tokenService: TokenService,
         @inject('cryptoFlowService') private readonly cryptoFlowService: CryptoFlowService,
         @inject("isWebView") private readonly isWebView: boolean
@@ -160,7 +164,12 @@ export class BladeSDK {
         this.sdkVersion = sdkVersion;
         this.visitorId = visitorId;
 
-        this.apiService.initApiService(apiKey, dAppCode, sdkEnvironment, sdkVersion, this.network, visitorId);
+        // TODO
+        // set account on init
+        // remove accountId and privateKey fields from methods
+        // on init also set network by KnownChainId
+
+        this.apiService.initApiService(apiKey, dAppCode, sdkEnvironment, sdkVersion, this.network, this.chainType, visitorId);
         if (!this.visitorId) {
             try {
                 const [decryptedVisitorId, timestamp] = (await decrypt(localStorage.getItem("BladeSDK.visitorId") || "", this.apiKey)).split("@");
@@ -183,6 +192,7 @@ export class BladeSDK {
                 this.visitorId = (await fpPromise.get()).visitorId;
                 localStorage.setItem("BladeSDK.visitorId", await encrypt(`${this.visitorId}@${Date.now()}`, this.apiKey));
             } catch (error) {
+                // tslint:disable-next-line:no-console
                 console.log("failed to get visitor id", error);
             }
         }
@@ -267,6 +277,7 @@ export class BladeSDK {
                     break;
             }
             this.tokenService.init(this.chainType, this.network, this.signer!);
+            this.accountService.init(this.chainType, this.network, this.signer!);
             this.accountProvider = accountProvider;
 
             return this.sendMessageToNative(completionKey, {
@@ -411,6 +422,7 @@ export class BladeSDK {
     }
 
     /**
+     * TODO move to contract service
      * Call contract function. Directly or via Blade Payer account (fee will be paid by Blade), depending on your dApp configuration.
      * @param contractId - contract id (0.0.xxxxx)
      * @param functionName - name of the contract function to call
@@ -475,6 +487,7 @@ export class BladeSDK {
     }
 
     /**
+     * TODO move to contract service
      * Call query on contract function. Similar to {@link contractCallFunction} can be called directly or via Blade Payer account.
      * @param contractId - contract id (0.0.xxxxx)
      * @param functionName - name of the contract function to call
@@ -558,7 +571,7 @@ export class BladeSDK {
      * Send token to specific account.
      * @param tokenAddress token id to send (0.0.xxxxx or 0x123456789abcdef...)
      * @param receiverId receiver account address (0.0.xxxxx or 0x123456789abcdef...)
-     * @param amountOrSerial amount of fungible tokens to send (with token-decimals correction) on NFT serial number
+     * @param amountOrSerial amount of fungible tokens to send (with token-decimals correction) on NFT serial number. (e.g. amount 0.01337 when token decimals 8 will send 1337000 units of token)
      * @param memo transaction memo
      * @param freeTransfer if true, Blade will pay fee transaction. Only for single dApp configured fungible-token. In that case tokenId not used
      * @param completionKey optional field bridge between mobile webViews and native apps
@@ -573,6 +586,7 @@ export class BladeSDK {
         completionKey?: string
     ): Promise<TransactionResponseData> {
         try {
+            // TODO send NFT for Ethereum tokens
             const result = await this.tokenService.transferToken({
                 from: this.userAccountId,
                 to: receiverId,
@@ -597,58 +611,7 @@ export class BladeSDK {
      */
     async createAccount(deviceId?: string, completionKey?: string): Promise<CreateAccountData> {
         try {
-            let seedPhrase: Mnemonic | null = null;
-            let privateKey: PrivateKey | null = null;
-
-            let valid = false;
-            // https://github.com/hashgraph/hedera-sdk-js/issues/1396
-            do {
-                seedPhrase = await Mnemonic.generate12();
-                privateKey = await seedPhrase.toEcdsaPrivateKey();
-                const privateKeyString = privateKey.toStringDer();
-                const publicKeyString = privateKey.publicKey.toStringRaw();
-                const restoredPrivateKey = PrivateKey.fromString(privateKeyString);
-                const restoredPublicKeyString = restoredPrivateKey.publicKey.toStringRaw();
-                valid = publicKeyString === restoredPublicKeyString;
-            } while (!valid);
-            const publicKey = privateKey.publicKey.toStringDer();
-
-            const options = {
-                visitorId: this.visitorId,
-                dAppCode: this.dAppCode,
-                deviceId,
-                publicKey
-            };
-
-            const {
-                id,
-                transactionBytes,
-                updateAccountTransactionBytes,
-                transactionId
-            } = await this.apiService.createAccount(this.network, options);
-
-            await executeUpdateAccountTransactions(this.getClient(), privateKey, updateAccountTransactionBytes, transactionBytes);
-
-            if (updateAccountTransactionBytes) {
-                await this.apiService.confirmAccountUpdate({
-                    accountId: id,
-                    network: this.network,
-                    visitorId: this.visitorId,
-                    dAppCode: this.dAppCode
-                });
-            }
-
-            const evmAddress = ethers.utils.computeAddress(`0x${privateKey.publicKey.toStringRaw()}`);
-
-            const result = {
-                transactionId,
-                status: transactionId ? "PENDING" : "SUCCESS",
-                seedPhrase: seedPhrase.toString(),
-                publicKey,
-                privateKey: privateKey.toStringDer(),
-                accountId: id || null,
-                evmAddress: evmAddress.toLowerCase()
-            };
+            const result = await this.accountService.createAccount(deviceId);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -666,55 +629,7 @@ export class BladeSDK {
      */
     async getPendingAccount(transactionId: string, mnemonic: string, completionKey?: string): Promise<CreateAccountData> {
         try {
-            const seedPhrase = await Mnemonic.fromString(mnemonic);
-            const privateKey = await seedPhrase.toEcdsaPrivateKey();
-            const publicKey = privateKey.publicKey.toStringDer();
-            let evmAddress = ethers.utils.computeAddress(`0x${privateKey.publicKey.toStringRaw()}`);
-
-            const result = {
-                transactionId: transactionId || null,
-                status: AccountStatus.PENDING,
-                seedPhrase: seedPhrase.toString(),
-                publicKey,
-                privateKey: privateKey.toStringDer(),
-                accountId: null,
-                evmAddress: evmAddress.toLowerCase(),
-                queueNumber: 0
-            };
-
-            const params = {
-                visitorId: this.visitorId,
-                network: this.network.toLowerCase(),
-                dAppCode: this.dAppCode
-            };
-            const {status, queueNumber} = await this.apiService.checkAccountCreationStatus(transactionId, this.network, params);
-            if (status === AccountStatus.SUCCESS) {
-                const {
-                    id,
-                    transactionBytes,
-                    updateAccountTransactionBytes,
-                    originalPublicKey
-                } = await this.apiService.getPendingAccountData(transactionId, this.network, params);
-
-                await executeUpdateAccountTransactions(this.getClient(), privateKey, updateAccountTransactionBytes, transactionBytes);
-
-                await this.apiService.confirmAccountUpdate({
-                    accountId: id,
-                    network: this.network,
-                    visitorId: this.visitorId,
-                    dAppCode: this.dAppCode
-                });
-
-                evmAddress = ethers.utils.computeAddress(`0x${originalPublicKey ? originalPublicKey.slice(-66) : privateKey.publicKey.toStringRaw()}`);
-
-                result.transactionId = null;
-                result.status = status;
-                result.accountId = id;
-                result.evmAddress = evmAddress.toLowerCase();
-            } else {
-                result.queueNumber = queueNumber;
-            }
-
+            const result = await this.accountService.getPendingAccount(transactionId, mnemonic);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -726,29 +641,13 @@ export class BladeSDK {
      * @param deleteAccountId account id of account to delete (0.0.xxxxx)
      * @param deletePrivateKey account private key (DER encoded hex string)
      * @param transferAccountId if any funds left on account, they will be transferred to this account (0.0.xxxxx)
-     * @param operatorAccountId operator account id (0.0.xxxxx). Used for fee
-     * @param operatorPrivateKey operator's account private key (DER encoded hex string)
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {TransactionReceiptData}
      */
-    async deleteAccount(deleteAccountId: string, deletePrivateKey: string, transferAccountId: string, operatorAccountId: string, operatorPrivateKey: string, completionKey?: string): Promise<TransactionReceiptData> {
+    async deleteAccount(deleteAccountId: string, deletePrivateKey: string, transferAccountId: string, completionKey?: string): Promise<TransactionReceiptData> {
         try {
-            const client = this.getClient();
-            const deleteAccountKey = PrivateKey.fromString(deletePrivateKey);
-            const operatorAccountKey = PrivateKey.fromString(operatorPrivateKey);
-            client.setOperator(operatorAccountId, operatorAccountKey);
-
-            const transaction = await new AccountDeleteTransaction()
-                .setAccountId(deleteAccountId)
-                .setTransferAccountId(transferAccountId)
-                .freezeWith(client)
-            ;
-
-            const signTx = await transaction.sign(deleteAccountKey);
-            const txResponse = await signTx.execute(client);
-            const txReceipt = await txResponse.getReceipt(client);
-
-            return this.sendMessageToNative(completionKey, formatReceipt(txReceipt));
+            const result = await this.accountService.deleteAccount(deleteAccountId, deletePrivateKey, transferAccountId);
+            return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
         }
@@ -765,22 +664,10 @@ export class BladeSDK {
     async getAccountInfo(accountId: string, completionKey?: string): Promise<AccountInfoData> {
         try {
             if (!accountId) {
-                accountId = this.getUser().accountId;
+                accountId = this.userAccountId;
             }
-            const account = await this.apiService.getAccountInfo(this.network, accountId);
-
-            const publicKey = account.key._type === "ECDSA_SECP256K1" ? PublicKey.fromStringECDSA(account.key.key) : PublicKey.fromStringED25519(account.key.key);
-            return this.sendMessageToNative(completionKey, {
-                accountId,
-                publicKey: publicKey.toStringDer(),
-                evmAddress: account.evm_address,
-                stakingInfo: {
-                    pendingReward: account.pending_reward,
-                    stakedNodeId: account.staked_node_id,
-                    stakePeriodStart: account.stake_period_start,
-                },
-                calculatedEvmAddress: ethers.utils.computeAddress(`0x${publicKey.toStringRaw()}`).toLowerCase()
-            } as AccountInfoData);
+            const result = await this.accountService.getAccountInfo(accountId);
+            return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
         }
@@ -793,8 +680,8 @@ export class BladeSDK {
      */
     async getNodeList(completionKey?: string): Promise<{nodes: NodeInfo[]}> {
         try {
-            const nodeList = await this.apiService.getNodeList(this.network);
-            return this.sendMessageToNative(completionKey, {nodes: nodeList});
+            const result = await this.accountService.getNodeList();
+            return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
         }
@@ -802,38 +689,14 @@ export class BladeSDK {
 
     /**
      * Stake/unstake account
-     * @param accountId Hedera account id (0.0.xxxxx)
-     * @param accountPrivateKey account private key (DER encoded hex string)
      * @param nodeId node id to stake to. If negative or null, account will be unstaked
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {TransactionReceiptData}
      */
-    async stakeToNode(accountId: string, accountPrivateKey: string, nodeId: number, completionKey?: string): Promise<TransactionReceiptData> {
+    async stakeToNode(nodeId: number, completionKey?: string): Promise<TransactionReceiptData> {
         try {
-            if (accountId && accountPrivateKey) {
-                await this.setUser(AccountProvider.Hedera, accountId, accountPrivateKey);
-            }
-            accountId = this.getUser().accountId;
-
-            const transaction = new AccountUpdateTransaction()
-                .setAccountId(accountId);
-
-            if (nodeId < 0 || nodeId === null) {
-                transaction.clearStakedNodeId();
-            } else {
-                transaction.setStakedNodeId(nodeId);
-            }
-            return transaction
-                .freezeWithSigner(this.signer!)
-                .then(tx => tx.signWithSigner(this.signer!))
-                .then(tx => tx.executeWithSigner(this.signer!))
-                .then(result => result.getReceiptWithSigner(this.signer!))
-                .then(data => {
-                    return this.sendMessageToNative(completionKey, formatReceipt(data));
-                }).catch(error => {
-                    return this.sendMessageToNative(completionKey, null, error);
-                })
-            ;
+            const result = await this.accountService.stakeToNode(this.userAccountId, nodeId);
+            return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
         }
@@ -850,32 +713,15 @@ export class BladeSDK {
      */
     async getKeysFromMnemonic(mnemonicRaw: string, lookupNames: boolean, completionKey?: string): Promise<PrivateKeyData> {
         try {
-            const mnemonic = await Mnemonic.fromString(mnemonicRaw
-                .toLowerCase()
-                .split(" ")
-                .filter(word => word)
-                .join(" ")
-            );
-            const privateKey = await mnemonic.toEcdsaPrivateKey();
-            const publicKey = privateKey.publicKey;
-            let accounts: string[] = [];
-
-            if (lookupNames) {
-                accounts = await this.apiService.getAccountsFromPublicKey(this.network, publicKey);
-            }
-
-            return this.sendMessageToNative(completionKey, {
-                privateKey: privateKey.toStringDer(),
-                publicKey: publicKey.toStringDer(),
-                accounts,
-                evmAddress: ethers.utils.computeAddress(`0x${publicKey.toStringRaw()}`).toLowerCase()
-            });
+            const result = await this.accountService.getKeysFromMnemonic(mnemonicRaw, lookupNames);
+            return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
     /**
+     * TODO move to sign service
      * Sign base64-encoded message with private key. Returns hex-encoded signature.
      * @param messageString base64-encoded message to sign
      * @param privateKey hex-encoded private key with DER header
@@ -896,6 +742,7 @@ export class BladeSDK {
     }
 
     /**
+     * TODO move to sign service
      * Verify message signature by public key
      * @param messageString base64-encoded message (same as provided to `sign()` method)
      * @param signature hex-encoded signature (result from `sign()` method)
@@ -916,6 +763,7 @@ export class BladeSDK {
     }
 
     /**
+     * TODO move to sign service
      * Sign base64-encoded message with private key using ethers lib. Returns hex-encoded signature.
      * @param messageString base64-encoded message to sign
      * @param privateKey hex-encoded private key with DER header
@@ -940,6 +788,7 @@ export class BladeSDK {
     }
 
     /**
+     * TODO move to sign service
      * Split signature to v-r-s format.
      * @param signature hex-encoded signature
      * @param completionKey optional field bridge between mobile webViews and native apps
@@ -955,6 +804,7 @@ export class BladeSDK {
     }
 
     /**
+     * TODO move to sign service
      * Get v-r-s signature of contract function params
      * @param paramsEncoded - data to sign. Can be string or ParametersBuilder
      * @param privateKey - signer private key (hex-encoded with DER header)
@@ -995,16 +845,17 @@ export class BladeSDK {
     async getTransactions(accountId: string, transactionType: string = "", nextPage: string, transactionsLimit: string = "10", completionKey?: string): Promise<TransactionsHistoryData> {
         try {
             if (!accountId) {
-                accountId = this.getUser().accountId;
+                accountId = this.userAccountId;
             }
-            const transactionData = await this.apiService.getTransactionsFrom(this.network, accountId, transactionType, nextPage, transactionsLimit);
-            return this.sendMessageToNative(completionKey, transactionData);
+            const result = await this.accountService.getTransactions(accountId, transactionType, nextPage, transactionsLimit);
+            return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
     /**
+     * TODO move to trade service
      * Get configured url for C14 integration (iframe or popup)
      * @param asset name (USDC or HBAR)
      * @param account receiver account id (0.0.xxxxx)
@@ -1069,6 +920,7 @@ export class BladeSDK {
     }
 
     /**
+     * TODO move to trade service
      * Get swap quotes from different services
      * @param sourceCode name (HBAR, KARATE, other token code)
      * @param sourceAmount amount to swap, buy or sell
@@ -1136,6 +988,7 @@ export class BladeSDK {
     }
 
     /**
+     * TODO move to trade service
      * Swap tokens
      * @param accountId account id
      * @param accountPrivateKey account private key
@@ -1222,6 +1075,7 @@ export class BladeSDK {
     }
 
     /**
+     * TODO move to trade service
      * Get configured url to buy or sell tokens or fiat
      * @param strategy Buy / Sell
      * @param accountId account id
@@ -1300,8 +1154,6 @@ export class BladeSDK {
 
     /**
      * Create token (NFT or Fungible Token)
-     * @param treasuryAccountId: treasury account id
-     * @param supplyPrivateKey: supply account private key
      * @param tokenName: token name (string up to 100 bytes)
      * @param tokenSymbol: token symbol (string up to 100 bytes)
      * @param isNft: set token type NFT
@@ -1313,8 +1165,6 @@ export class BladeSDK {
      * @returns {tokenId: string}
      */
     async createToken(
-        treasuryAccountId: string,
-        supplyPrivateKey: string,
         tokenName: string,
         tokenSymbol: string,
         isNft: boolean,
@@ -1325,77 +1175,8 @@ export class BladeSDK {
         completionKey?: string
     ): Promise<{tokenId: string}> {
         try {
-            if (treasuryAccountId && supplyPrivateKey) {
-                await this.setUser(AccountProvider.Hedera, treasuryAccountId, supplyPrivateKey);
-            }
-            treasuryAccountId = this.getUser().accountId;
-            const supplyPublicKey = PublicKey.fromString(this.getUser().publicKey);
-
-            let adminKey: PrivateKey | null = null;
-
-            const tokenType = isNft ? TokenType.NonFungibleUnique : TokenType.FungibleCommon;
-            if (isNft) {
-                decimals = 0;
-                initialSupply = 0;
-            }
-
-            if (typeof keys === "string") {
-                keys = JSON.parse(keys) as KeyRecord[];
-            }
-
-            let nftCreate = new TokenCreateTransaction()
-                .setTokenName(tokenName)
-                .setTokenSymbol(tokenSymbol)
-                .setTokenType(tokenType)
-                .setDecimals(decimals)
-                .setInitialSupply(initialSupply)
-                .setTreasuryAccountId(treasuryAccountId)
-                .setSupplyType(TokenSupplyType.Finite)
-                .setMaxSupply(maxSupply)
-                .setSupplyKey(supplyPublicKey)
-            ;
-
-            for (const key of keys) {
-                const privateKey = PrivateKey.fromString(key.privateKey);
-
-                switch (key.type) {
-                    case KeyType.admin:
-                        nftCreate.setAdminKey(privateKey);
-                        adminKey = privateKey;
-                        break;
-                    case KeyType.kyc:
-                        nftCreate.setKycKey(privateKey);
-                        break;
-                    case KeyType.freeze:
-                        nftCreate.setFreezeKey(privateKey);
-                        break;
-                    case KeyType.wipe:
-                        nftCreate.setWipeKey(privateKey);
-                        break;
-                    case KeyType.pause:
-                        nftCreate.setPauseKey(privateKey);
-                        break;
-                    case KeyType.feeSchedule:
-                        nftCreate.setFeeScheduleKey(privateKey);
-                        break;
-                    default:
-                        throw new Error("Unknown key type");
-                }
-            }
-            nftCreate = await nftCreate.freezeWithSigner(this.signer!);
-            let nftCreateTxSign;
-
-            if (adminKey) {
-                nftCreateTxSign = await nftCreate.sign(adminKey);
-            } else {
-                nftCreateTxSign = await nftCreate.signWithSigner(this.signer!)
-            }
-
-            const nftCreateSubmit = await nftCreateTxSign.executeWithSigner(this.signer!);
-            const nftCreateRx = await nftCreateSubmit.getReceiptWithSigner(this.signer!);
-
-            const tokenId = nftCreateRx.tokenId?.toString();
-            return this.sendMessageToNative(completionKey, {tokenId}, null);
+            const result = await this.tokenService.createToken(tokenName, tokenSymbol, isNft, this.userAccountId, this.userPublicKey, keys, decimals, initialSupply, maxSupply);
+            return this.sendMessageToNative(completionKey, result, null);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
         }
@@ -1405,38 +1186,15 @@ export class BladeSDK {
      * Associate token to account
      *
      * @param tokenId: token id
-     * @param accountId: account id to associate token
-     * @param accountPrivateKey: account private key
      * @param completionKey: optional field bridge between mobile webViews and native apps
      */
     async associateToken(
         tokenId: string,
-        accountId: string,
-        accountPrivateKey: string,
         completionKey?: string
     ): Promise<TransactionReceiptData> {
         try {
-            if (accountId && accountPrivateKey) {
-                await this.setUser(AccountProvider.Hedera, accountId, accountPrivateKey);
-            }
-            accountId = this.getUser().accountId;
-
-            return new TokenAssociateTransaction()
-                .setAccountId(accountId)
-                .setTokenIds([tokenId])
-                .freezeWithSigner(this.signer!)
-                .then(tx => tx.signWithSigner(this.signer!))
-                .then(tx => tx.executeWithSigner(this.signer!))
-                .then(result => result.getReceiptWithSigner(this.signer!))
-                .then(txReceipt => {
-                    if (txReceipt.status !== Status.Success) {
-                        throw new Error(`Association failed`)
-                    }
-                    return this.sendMessageToNative(completionKey, formatReceipt(txReceipt));
-                })
-                .catch(error => {
-                    return this.sendMessageToNative(completionKey, null, error);
-                });
+            const result = await this.tokenService.associateToken(tokenId, this.userAccountId!);
+            return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
         }
@@ -1446,8 +1204,6 @@ export class BladeSDK {
      * Mint one NFT
      *
      * @param tokenId: token id to mint NFT
-     * @param accountId: token supply account id
-     * @param accountPrivateKey: token supply private key
      * @param file: image to mint (File or base64 DataUrl image, eg.: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAA...)
      * @param metadata: NFT metadata (JSON object)
      * @param storageConfig: {NFTStorageConfig} IPFS provider config
@@ -1455,73 +1211,14 @@ export class BladeSDK {
      */
     async nftMint(
         tokenId: string,
-        accountId: string,
-        accountPrivateKey: string,
         file: File | string,
         metadata: {},
         storageConfig: NFTStorageConfig,
         completionKey?: string
     ): Promise<TransactionReceiptData> {
         try {
-            if (typeof file === "string") {
-                file = dataURLtoFile(file, "filename");
-            }
-            if (typeof metadata === "string") {
-                metadata = JSON.parse(metadata);
-            }
-
-            const groupSize = 1;
-            const amount = 1;
-
-            if (accountId && accountPrivateKey) {
-                await this.setUser(AccountProvider.Hedera, accountId, accountPrivateKey);
-            }
-
-            let storageClient;
-            if (storageConfig.provider === NFTStorageProvider.nftStorage) {
-                // TODO implement through interfaces
-                storageClient = new NFTStorage({token: storageConfig.apiKey});
-            } else {
-                throw new Error("Unknown nft storage provider");
-            }
-
-            const fileName = file.name;
-            const dirCID = await storageClient.storeDirectory([file]);
-
-            metadata = {
-                name: fileName,
-                type: file.type,
-                creator: 'Blade Labs',
-                ...metadata as {},
-                image: `ipfs://${dirCID}/${encodeURIComponent(fileName)}`,
-            }
-            const metadataCID = await storageClient.storeBlob(
-                new File([JSON.stringify(metadata)], 'metadata.json', {type: 'application/json'}),
-            )
-
-            const CIDs = [metadataCID];
-            const mdArray = (new Array(amount)).fill(0).map(
-                (el, index) => Buffer.from(CIDs[index % CIDs.length]),
-            );
-            const mdGroup = mdArray.splice(0, groupSize);
-
-            return new TokenMintTransaction()
-                .setTokenId(tokenId)
-                .setMetadata(mdGroup)
-                .setMaxTransactionFee(Hbar.from(2 * groupSize, HbarUnit.Hbar))
-                .freezeWithSigner(this.signer!)
-                .then(tx => tx.signWithSigner(this.signer!))
-                .then(tx => tx.executeWithSigner(this.signer!))
-                .then(result => result.getReceiptWithSigner(this.signer!))
-                .then(txReceipt => {
-                    if (txReceipt.status !== Status.Success) {
-                        throw new Error(`Mint failed`)
-                    }
-                    return this.sendMessageToNative(completionKey, formatReceipt(txReceipt));
-                })
-                .catch(error => {
-                    return this.sendMessageToNative(completionKey, null, error);
-                });
+            const result = await this.tokenService.nftMint(tokenId, file, metadata, storageConfig);
+            return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
         }
@@ -1570,6 +1267,7 @@ export class BladeSDK {
         };
     }
 
+    // TODO try to remove this method at all
     private getClient() {
         return this.network === Network.Testnet ? Client.forTestnet() : Client.forMainnet();
     }

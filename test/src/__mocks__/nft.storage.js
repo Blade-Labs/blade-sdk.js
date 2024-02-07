@@ -3,11 +3,11 @@
 class NFTStorage {
     constructor() {}
 
-    storeDirectory() {
+    async storeDirectory() {
         return "bafkreieyzr62tu7cdwxmbtu2uzh7zycaehavzqezscncx6krnmk4n43zga"
     }
 
-    storeBlob() {
+    async storeBlob() {
         return "bafkreieyzr62tu7cdwxmbtu2uzh7zycaehavzqezscncx6krnmk4n43zga"
     }
 }

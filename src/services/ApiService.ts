@@ -16,7 +16,6 @@ import {
     ChainType,
     CoinData,
     CoinInfoRaw,
-    ConfirmUpdateAccountData,
     DAppConfig,
     SdkEnvironment,
     TokenBalanceData,
@@ -187,12 +186,12 @@ export default class ApiService {
             })
     }
 
-    async createAccount(network: Network, params: any) {
+    async createAccount(params: any) {
         const url = `${this.getApiUrl()}/accounts`;
         const headers: any = {
-            "X-NETWORK": network.toUpperCase(),
-            "X-VISITOR-ID": params.visitorId, // fingerprint (visitorId) (eg.: YoZoVL4XZspaCtLH4GoL)
-            "X-DAPP-CODE": params.dAppCode,
+            "X-NETWORK": this.network.toUpperCase(),
+            "X-VISITOR-ID": this.visitorId, // fingerprint (visitorId) (eg.: YoZoVL4XZspaCtLH4GoL)
+            "X-DAPP-CODE":  this.dAppCode,
             "X-SDK-TVTE-API": await this.getTvteHeader(),
             "Content-Type": "application/json"
         };
@@ -213,14 +212,14 @@ export default class ApiService {
             .then(x => x.json());
     };
 
-    async checkAccountCreationStatus(transactionId: string, network: Network, params: any): Promise<any> {
+    async checkAccountCreationStatus(transactionId: string): Promise<any> {
         const url = `${this.getApiUrl()}/accounts/status?transactionId=${transactionId}`;
         const options = {
             method: "GET",
             headers: new Headers({
-                "X-NETWORK": network.toUpperCase(),
-                "X-VISITOR-ID": params.visitorId,
-                "X-DAPP-CODE": params.dAppCode,
+                "X-NETWORK": this.network.toUpperCase(),
+                "X-VISITOR-ID": this.visitorId,
+                "X-DAPP-CODE": this.dAppCode,
                 "X-SDK-TVTE-API": await this.getTvteHeader(),
                 "Content-Type": "application/json"
             })
@@ -231,14 +230,14 @@ export default class ApiService {
             .then(x => x.json());
     };
 
-    async getPendingAccountData(transactionId: string, network: Network, params: any) {
+    async getPendingAccountData(transactionId: string) {
         const url = `${this.getApiUrl()}/accounts/details?transactionId=${transactionId}`;
         const options = {
             method: "GET",
             headers: new Headers({
-                "X-NETWORK": network.toUpperCase(),
-                "X-VISITOR-ID": params.visitorId,
-                "X-DAPP-CODE": params.dAppCode,
+                "X-NETWORK": this.network.toUpperCase(),
+                "X-VISITOR-ID": this.visitorId,
+                "X-DAPP-CODE": this.dAppCode,
                 "X-SDK-TVTE-API": await this.getTvteHeader(),
                 "Content-Type": "application/json"
             })
@@ -249,19 +248,19 @@ export default class ApiService {
             .then(x => x.json());
     };
 
-    async confirmAccountUpdate(params: ConfirmUpdateAccountData): Promise<Response> {
+    async confirmAccountUpdate(accountId: string): Promise<Response> {
         const url = `${this.getApiUrl()}/accounts/confirm`;
         const options = {
             method: "PATCH",
             headers: new Headers({
-                "X-NETWORK": params.network.toUpperCase(),
-                "X-VISITOR-ID": params.visitorId,
-                "X-DAPP-CODE": params.dAppCode,
+                "X-NETWORK": this.network.toUpperCase(),
+                "X-VISITOR-ID": this.visitorId,
+                "X-DAPP-CODE": this.dAppCode,
                 "X-SDK-TVTE-API": await this.getTvteHeader(),
                 "Content-Type": "application/json"
             }),
             body: JSON.stringify({
-                id: params.accountId
+                id: accountId
             })
         };
 
@@ -486,16 +485,16 @@ export default class ApiService {
             });
     };
 
-    async getAccountInfo(network: Network, accountId: string): Promise<APIPagination & AccountInfo> {
-        return await this.GET(network, `api/v1/accounts/${accountId}`);
+    async getAccountInfo(accountId: string): Promise<APIPagination & AccountInfo> {
+        return await this.GET(this.network, `api/v1/accounts/${accountId}`);
     }
 
-    async getNodeList(network: Network): Promise<NodeInfo[]> {
+    async getNodeList(): Promise<NodeInfo[]> {
         const list: NodeInfo[] = [];
         let nextPage = "api/v1/network/nodes";
 
         while (nextPage) {
-            const response: APIPagination & MirrorNodeListResponse = await this.GET(network, nextPage);
+            const response: APIPagination & MirrorNodeListResponse = await this.GET(this.network, nextPage);
             list.push(...response.nodes);
             nextPage = response.links.next ?? "";
         }
@@ -503,7 +502,6 @@ export default class ApiService {
     }
 
     async getTransactionsFrom(
-        network: Network,
         accountId: string,
         transactionType: string = "",
         nextPage: string | null = null,
@@ -516,16 +514,16 @@ export default class ApiService {
 
         while (result.length < limit) {
             if (nextPage) {
-                info = await this.GET(network, nextPage);
+                info = await this.GET(this.network, nextPage);
             } else {
-                info = await this.GET(network, `api/v1/transactions/?account.id=${accountId}&limit=${pageLimit}`);
+                info = await this.GET(this.network, `api/v1/transactions/?account.id=${accountId}&limit=${pageLimit}`);
             }
             nextPage = info.links.next?.substring(1) ?? null;
 
             const groupedTransactions: {[key: string]: TransactionData[]} = {};
 
             await Promise.all(info.transactions.map(async(t: any) => {
-                groupedTransactions[t.transaction_id] = await this.getTransaction(network, t.transaction_id, accountId);
+                groupedTransactions[t.transaction_id] = await this.getTransaction(this.network, t.transaction_id, accountId);
             }));
 
             let transactions: TransactionData[] = flatArray(Object.values(groupedTransactions))
