@@ -163,22 +163,25 @@ export class BladeSDK {
         this.apiService.initApiService(apiKey, dAppCode, sdkEnvironment, sdkVersion, this.network, visitorId);
         if (!this.visitorId) {
             try {
-                this.visitorId = await decrypt(localStorage.getItem("BladeSDK.visitorId") || "", this.apiKey);
+                const [decryptedVisitorId, timestamp] = (await decrypt(localStorage.getItem("BladeSDK.visitorId") || "", this.apiKey)).split("@");
+                this.visitorId = decryptedVisitorId;
             } catch (e) {
                 // console.log("failed to decrypt visitor id", e);
             }
         }
         if (!this.visitorId) {
             try {
-                const fpPromise = await FingerprintJS.load({
-                    apiKey: await this.configService.getConfig(`fpApiKey`),
+                const fpConfig = {
+                    apiKey: "key",
+                    scriptUrlPattern: `${this.apiService.getApiUrl(true)}/fpjs/<version>/<loaderVersion>`,
                     endpoint: [
-                        'https://identity.bladewallet.io',
+                        await this.configService.getConfig(`fingerprintSubdomain`),
                         FingerprintJS.defaultEndpoint
                     ]
-                })
+                };
+                const fpPromise = await FingerprintJS.load(fpConfig)
                 this.visitorId = (await fpPromise.get()).visitorId;
-                localStorage.setItem("BladeSDK.visitorId", await encrypt(this.visitorId, this.apiKey));
+                localStorage.setItem("BladeSDK.visitorId", await encrypt(`${this.visitorId}@${Date.now()}`, this.apiKey));
             } catch (error) {
                 console.log("failed to get visitor id", error);
             }

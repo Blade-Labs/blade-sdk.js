@@ -74,15 +74,16 @@ export default class ApiService {
         return `${platform}@${encryptedVersion}`;
     }
 
-    getApiUrl(): string {
+    getApiUrl(isPublic = false): string {
+        const publicPart = isPublic ? "/public" : "";
         if (this.environment === SdkEnvironment.Prod) {
-            return "https://rest.prod.bladewallet.io/openapi/v7";
+            return `https://rest.prod.bladewallet.io/openapi${publicPart}/v7`;
         }
         if (process.env.NODE_ENV === "test" && this.environment === SdkEnvironment.Test) {
-            return "https://localhost:8080/openapi/v7";
+            return `https://localhost:8080/openapi${publicPart}/v7`;
         }
         // CI
-        return "https://api.bld-dev.bladewallet.io/openapi/v7";
+        return `https://api.bld-dev.bladewallet.io/openapi${publicPart}/v7`;
     }
 
     async fetchWithRetry(url: string, options: RequestInit, maxAttempts = 3) {
