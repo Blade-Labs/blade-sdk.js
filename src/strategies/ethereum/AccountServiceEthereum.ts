@@ -15,13 +15,13 @@ import { ethers } from "ethers";
 
 export default class AccountServiceEthereum implements IAccountService {
     private readonly network: Network;
-    private readonly signer: ethers.Signer;
+    private readonly signer: ethers.Signer | null = null;
     private readonly apiService: ApiService;
     private readonly configService: ConfigService;
 
     constructor(
         network: Network,
-        signer: ethers.Signer,
+        signer: ethers.Signer | null,
         apiService: ApiService,
         configService: ConfigService,
     ) {

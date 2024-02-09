@@ -118,7 +118,7 @@ export class BladeSDK {
      */
     async init(
         apiKey: string,
-        chainType: string | ChainType,
+        chainType: string | ChainType, // TODO replace with ChainId and remove Network
         network: string | Network,
         dAppCode: string,
         visitorId: string,
@@ -167,6 +167,7 @@ export class BladeSDK {
             }
         }
         this.apiService.setVisitorId(this.visitorId);
+        this.accountService.init(this.chainType, this.network, null); // init without signer, to be able to create account
 
         return this.sendMessageToNative(completionKey, this.getInfoData());
     }

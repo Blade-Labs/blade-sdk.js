@@ -18,7 +18,12 @@ import {flatArray} from "../../src/helpers/ArrayHelpers";
 import {parseContractFunctionParams} from "../../src/helpers/ContractHelpers";
 import {decrypt, encrypt} from "../../src/helpers/SecurityHelper";
 import {AccountProvider, KeyRecord, KeyType, NFTStorageProvider, SdkEnvironment} from "../../src/models/Common";
-const {BladeSDK, ParametersBuilder} = require("../../src/webView");
+import AccountServiceContext from "../../src/strategies/AccountServiceContext";
+import TokenServiceContext from "../../src/strategies/TokenServiceContext";
+import SignServiceContext from "../../src/strategies/SignServiceContext";
+import ContractServiceContext from "../../src/strategies/ContractServiceContext";
+import TradeServiceContext from "../../src/strategies/TradeServiceContext";
+const {BladeSDK, ParametersBuilder, ChainType} = require("../../src/webView");
 
 Object.defineProperty(global.self, "crypto", {
     value: {
@@ -33,7 +38,23 @@ const apiService = new ApiService();
 const configService = new ConfigService(apiService);
 const feeService = new FeeService(configService);
 const cryptoFlowService = new CryptoFlowService(configService, feeService);
-const bladeSdk = new BladeSDK(apiService, cryptoFlowService, true);
+const accountService = new AccountServiceContext(apiService, configService);
+const tokenService = new TokenServiceContext(apiService, configService);
+const signService = new SignServiceContext(apiService, configService);
+const contractService = new ContractServiceContext(apiService, configService);
+const tradeService = new TradeServiceContext(apiService, configService, cryptoFlowService);
+
+const bladeSdk = new BladeSDK(
+    configService,
+    apiService,
+    accountService,
+    tokenService,
+    signService,
+    contractService,
+    tradeService,
+    cryptoFlowService,
+    true
+);
 
 const sdkVersion = `Kotlin@${config.numberVersion}`;
 export const completionKey = "completionKey1";
@@ -47,11 +68,12 @@ const privateKey3 = process.env.PRIVATE_KEY3 || "";
 const accountId3 = process.env.ACCOUNT_ID3 || "";
 const privateKey4 = process.env.PRIVATE_KEY_ED25519 || "";
 const accountId4 = process.env.ACCOUNT_ID_ED25519 || "";
-
+const chainType = ChainType.Hedera; // ChainType.Ethereum
 
 beforeEach(async () => {
     const result = await bladeSdk.init(
         process.env.API_KEY,
+        chainType,
         process.env.NETWORK,
         process.env.DAPP_CODE,
         process.env.VISITOR_ID,

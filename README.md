@@ -53,14 +53,14 @@ import {bladeContainer, BladeSDK, SdkEnvironment, ChainType} from '@bladelabs/bl
 ...
 
 const apiKey ="ygUgCzRrsvhWmb3dsLcApGnApSZ4tk8hBCmZqg9BngpuQYKsnD5m9FjfPV3tVBeB" // provided by BladeLabs team
-const network = "Mainnet"; // or "Testnet"
 const chainType = ChainType.Hedera; // or ChainType.Ethereum
+const network = "Mainnet"; // or "Testnet"
 const dAppCode = "your-dApp-code"; // provided by BladeLabs team
 const visitorId = ""; // provide empty string and SDK will generate a new one. Otherwise consult with BladeLabs team first
 const environment = SdkEnvironment.Prod; // or SdkEnvironment.CI
 
 const bladeSdk = bladeContainer.get(BladeSDK);
-await bladeSDK.init(apiKey, network, chainType, dAppCode, visitorId, environment);
+await bladeSDK.init(apiKey, chainType, network, dAppCode, visitorId, environment);
 const balance = await bladeSdk.getBalance("0.0.8235");
 console.log(balance);
 ```

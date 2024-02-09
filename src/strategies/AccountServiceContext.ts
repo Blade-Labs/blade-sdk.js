@@ -40,16 +40,16 @@ export default class AccountServiceContext implements IAccountService {
         @inject('configService') private readonly configService: ConfigService,
     ) {}
 
-    init(chainType: ChainType, network: Network, signer: Signer | ethers.Signer) {
+    init(chainType: ChainType, network: Network, signer: Signer | ethers.Signer | null) {
         this.chainType = chainType;
-        this.signer = signer;
+        this.signer = signer; // may be null if BladeSDK.setUser() not called. Useful for createAccount() for example
 
         switch (chainType) {
             case ChainType.Hedera:
-                this.strategy = new AccountServiceHedera(network, signer as Signer, this.apiService, this.configService);
+                this.strategy = new AccountServiceHedera(network, signer as Signer | null, this.apiService, this.configService);
                 break;
             case ChainType.Ethereum:
-                this.strategy = new AccountServiceEthereum(network, signer as ethers.Signer, this.apiService, this.configService);
+                this.strategy = new AccountServiceEthereum(network, signer as ethers.Signer | null, this.apiService, this.configService);
                 break;
             default:
                 throw new Error("Unsupported chain type");
@@ -67,7 +67,7 @@ export default class AccountServiceContext implements IAccountService {
     }
 
     deleteAccount(deleteAccountId: string, deletePrivateKey: string, transferAccountId: string): Promise<TransactionReceiptData> {
-        this.checkInit();
+        this.checkSigner();
         return this.strategy!.deleteAccount(deleteAccountId, deletePrivateKey, transferAccountId);
     }
 
@@ -82,7 +82,7 @@ export default class AccountServiceContext implements IAccountService {
     }
 
     stakeToNode(accountId: string, nodeId: number): Promise<TransactionReceiptData> {
-        this.checkInit();
+        this.checkSigner();
         return this.strategy!.stakeToNode(accountId, nodeId);
     }
 
@@ -97,8 +97,16 @@ export default class AccountServiceContext implements IAccountService {
     }
 
     private checkInit() {
+        // check if strategy is initialized. Usefull for createAccount() for example
         if (!this.strategy) {
             throw new Error("AccountService not initialized");
+        }
+    }
+
+    private checkSigner() {
+        // next step. Signer required for transaction signing (stake, delete, etc)
+        if (!this.signer) {
+            throw new Error("AccountService not initialized (no signer)");
         }
     }
 }

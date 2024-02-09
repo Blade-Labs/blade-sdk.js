@@ -6,5 +6,7 @@ const bladeContainer = getContainer(true);
 if (window) window["bladeSdk"] = bladeContainer.get<BladeSDK>(BladeSDK);
 if (window) window["ParametersBuilder"] = ParametersBuilder;
 
-export { bladeContainer };
-export { ParametersBuilder };
+export { ParametersBuilder } from './ParametersBuilder';
+export { SdkEnvironment, ChainType } from './models/Common';
+export { BladeSDK } from './BladeSDK';
+export { bladeContainer }

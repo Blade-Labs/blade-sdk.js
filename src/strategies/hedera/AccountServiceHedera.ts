@@ -27,13 +27,13 @@ import {formatReceipt} from "../../helpers/TransactionHelpers";
 
 export default class AccountServiceHedera implements IAccountService {
     private readonly network: Network;
-    private readonly signer: Signer;
+    private readonly signer: Signer | null = null;
     private readonly apiService: ApiService;
     private readonly configService: ConfigService;
 
     constructor(
         network: Network,
-        signer: Signer,
+        signer: Signer | null,
         apiService: ApiService,
         configService: ConfigService,
     ) {
