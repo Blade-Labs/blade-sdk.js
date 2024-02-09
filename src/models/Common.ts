@@ -166,6 +166,11 @@ export interface ContractCallQueryRecord {
     value: string | number | boolean
 }
 
+export interface ContractCallQueryRecordsData {
+    values: ContractCallQueryRecord[],
+    gasUsed: number
+}
+
 export interface CreateAccountData {
     seedPhrase: string,
     publicKey: string,

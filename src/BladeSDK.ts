@@ -2,29 +2,11 @@ import { injectable, inject } from 'inversify';
 import 'reflect-metadata';
 
 import {
-    AccountDeleteTransaction,
-    AccountUpdateTransaction,
     Client,
-    ContractCallQuery,
-    ContractExecuteTransaction,
-    ContractFunctionResult,
-    Hbar,
-    HbarUnit,
-    Mnemonic,
     PrivateKey,
-    PublicKey,
     Signer,
-    Status,
-    TokenAssociateTransaction,
-    TokenCreateTransaction,
-    TokenMintTransaction,
-    TokenSupplyType,
-    TokenType,
-    Transaction,
     TransactionReceipt,
-    TransferTransaction,
 } from "@hashgraph/sdk";
-import {Buffer} from "buffer";
 import {ethers} from "ethers";
 import ApiService from "./services/ApiService";
 import CryptoFlowService from "./services/CryptoFlowService";
@@ -32,34 +14,23 @@ import {HbarTokenId} from "./services/FeeService";
 import ConfigService from "./services/ConfigService";
 import {Network} from "./models/Networks";
 import StringHelpers from "./helpers/StringHelpers";
-import {
-    getContractFunctionBytecode,
-    parseContractFunctionParams,
-    parseContractQueryResponse
-} from "./helpers/ContractHelpers";
 import {CustomError} from "./models/Errors";
 import {
     AccountInfoData,
     AccountProvider,
-    AccountStatus,
     BalanceData,
     BridgeResponse,
-    C14WidgetConfig,
     ChainType,
     CoinData,
     CoinInfoData,
     CoinInfoRaw,
     CoinListData,
-    ContractCallQueryRecord,
+    ContractCallQueryRecordsData,
     CreateAccountData,
     InfoData,
     IntegrationUrlData,
     KeyRecord,
-    KeyType,
-    KnownChain,
-    KnownChainIds,
     NFTStorageConfig,
-    NFTStorageProvider,
     PrivateKeyData,
     SdkEnvironment,
     SignMessageData,
@@ -71,29 +42,21 @@ import {
     UserInfoData
 } from "./models/Common";
 import config from "./config";
-import {executeUpdateAccountTransactions} from "./helpers/AccountHelpers";
-import {dataURLtoFile} from "./helpers/FileHelper";
 import {ParametersBuilder} from "./ParametersBuilder";
-import {
-    CryptoFlowRoutes,
-    CryptoFlowServiceStrategy,
-    ICryptoFlowAssets,
-    ICryptoFlowAssetsParams,
-    ICryptoFlowQuote,
-    ICryptoFlowQuoteParams,
-    ICryptoFlowTransaction,
-    ICryptoFlowTransactionParams
-} from "./models/CryptoFlow";
+import {CryptoFlowServiceStrategy} from "./models/CryptoFlow";
 import {NodeInfo} from "./models/MirrorNode";
 import * as FingerprintJS from '@fingerprintjs/fingerprintjs-pro'
-import {File, NFTStorage} from 'nft.storage';
+import {File} from 'nft.storage';
 import {decrypt, encrypt} from "./helpers/SecurityHelper";
 import {Magic, MagicSDKAdditionalConfiguration} from 'magic-sdk';
 import {HederaExtension} from '@magic-ext/hedera';
 import {MagicSigner} from "./signers/magic/MagicSigner";
 import {HederaProvider, HederaSigner} from "./signers/hedera";
-import TokenService from "./strategies/TokenService";
-import AccountService from "./strategies/AccountService";
+import TokenServiceContext from "./strategies/TokenServiceContext";
+import AccountServiceContext from "./strategies/AccountServiceContext";
+import SignServiceContext from "./strategies/SignServiceContext";
+import ContractServiceContext from "./strategies/ContractServiceContext";
+import TradeServiceContext from "./strategies/TradeServiceContext";
 
 @injectable()
 export class BladeSDK {
@@ -118,16 +81,23 @@ export class BladeSDK {
      * BladeSDK constructor.
      * @param configService - instance of ConfigService
      * @param apiService - instance of ApiService
-     * @param accountService - instance of AccountService
-     * @param tokenService - instance of TokenService
+     * @param accountService - instance of AccountServiceContext
+     * @param tokenService - instance of TokenServiceContext
+     * @param signService - instance of SignServiceContext
+     * @param contractService - instance of ContractServiceContext
+     * @param tradeService - instance of TradeServiceContext
      * @param cryptoFlowService - instance of CryptoFlowService
      * @param isWebView - true if you are using this SDK in webview of native app. It changes the way of communication with native app.
      */
     constructor(
         @inject('configService') private readonly configService: ConfigService,
         @inject('apiService') private readonly apiService: ApiService,
-        @inject('accountService') private readonly accountService: AccountService,
-        @inject('tokenService') private readonly tokenService: TokenService,
+        @inject('accountService') private readonly accountService: AccountServiceContext,
+        @inject('tokenService') private readonly tokenService: TokenServiceContext,
+        @inject('signService') private readonly signService: SignServiceContext,
+        @inject('contractService') private readonly contractService: ContractServiceContext,
+        @inject('tradeService') private readonly tradeService: TradeServiceContext,
+
         @inject('cryptoFlowService') private readonly cryptoFlowService: CryptoFlowService,
         @inject("isWebView") private readonly isWebView: boolean
     ) {
@@ -278,6 +248,9 @@ export class BladeSDK {
             }
             this.tokenService.init(this.chainType, this.network, this.signer!);
             this.accountService.init(this.chainType, this.network, this.signer!);
+            this.signService.init(this.chainType, this.network, this.signer!);
+            this.contractService.init(this.chainType, this.network, this.signer!);
+            this.tradeService.init(this.chainType, this.network, this.signer!);
             this.accountProvider = accountProvider;
 
             return this.sendMessageToNative(completionKey, {
@@ -422,13 +395,10 @@ export class BladeSDK {
     }
 
     /**
-     * TODO move to contract service
      * Call contract function. Directly or via Blade Payer account (fee will be paid by Blade), depending on your dApp configuration.
      * @param contractId - contract id (0.0.xxxxx)
      * @param functionName - name of the contract function to call
      * @param paramsEncoded - function argument. Can be generated with {@link ParametersBuilder} object
-     * @param accountId - operator account id (0.0.xxxxx)
-     * @param accountPrivateKey - operator's hex-encoded private key with DER-header, ECDSA or Ed25519
      * @param gas - gas limit for the transaction
      * @param bladePayFee - if true, fee will be paid by Blade (note: msg.sender inside the contract will be Blade Payer account)
      * @param completionKey - optional field bridge between mobile webViews and native apps
@@ -438,130 +408,40 @@ export class BladeSDK {
         contractId: string,
         functionName: string,
         paramsEncoded: string | ParametersBuilder,
-        accountId: string,
-        accountPrivateKey: string,
         gas: number = 100000,
         bladePayFee: boolean = false,
         completionKey?: string
     ): Promise<TransactionReceiptData> {
         try {
-            if (accountId && accountPrivateKey) {
-                await this.setUser(AccountProvider.Hedera, accountId, accountPrivateKey);
-            }
-            const contractFunctionParameters = await getContractFunctionBytecode(functionName, paramsEncoded);
-
-            let transaction: Transaction;
-            if (bladePayFee) {
-                const options = {
-                    dAppCode: this.dAppCode,
-                    visitorId: this.visitorId,
-                    contractFunctionParameters,
-                    contractId,
-                    functionName,
-                    gas
-                };
-
-                const {transactionBytes} = await this.apiService.signContractCallTx(this.network, options);
-                transaction = Transaction.fromBytes(Buffer.from(transactionBytes, "base64"));
-            } else {
-                transaction = new ContractExecuteTransaction()
-                    .setContractId(contractId)
-                    .setGas(gas)
-                    .setFunction(functionName)
-                    .setFunctionParameters(contractFunctionParameters)
-            }
-
-            return transaction
-                .freezeWithSigner(this.signer!)
-                .then(tx => tx.signWithSigner(this.signer!))
-                .then(tx => tx.executeWithSigner(this.signer!))
-                .then(result => result.getReceiptWithSigner(this.signer!))
-                .then(data => {
-                    return this.sendMessageToNative(completionKey, formatReceipt(data));
-                }).catch(error => {
-                    return this.sendMessageToNative(completionKey, null, error);
-                });
+            const result = await this.contractService.contractCallFunction(contractId, functionName, paramsEncoded, gas, bladePayFee);
+            return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
     /**
-     * TODO move to contract service
      * Call query on contract function. Similar to {@link contractCallFunction} can be called directly or via Blade Payer account.
      * @param contractId - contract id (0.0.xxxxx)
      * @param functionName - name of the contract function to call
      * @param paramsEncoded - function argument. Can be generated with {@link ParametersBuilder} object
-     * @param accountId - operator account id (0.0.xxxxx)
-     * @param accountPrivateKey - operator's hex-encoded private key with DER-header, ECDSA or Ed25519
      * @param gas - gas limit for the transaction
      * @param bladePayFee - if true, fee will be paid by Blade (note: msg.sender inside the contract will be Blade Payer account)
      * @param resultTypes - array of result types. Currently supported only plain data types
      * @param completionKey - optional field bridge between mobile webViews and native apps
-     * @returns {ContractCallQueryRecord[]}
+     * @returns {ContractCallQueryRecordsData}
      */
     async contractCallQueryFunction(
         contractId: string,
         functionName: string,
         paramsEncoded: string | ParametersBuilder,
-        accountId: string,
-        accountPrivateKey: string,
         gas: number = 100000,
         bladePayFee: boolean = false,
         resultTypes: string[],
-        completionKey?: string): Promise<ContractCallQueryRecord[]> {
+        completionKey?: string): Promise<ContractCallQueryRecordsData> {
         try {
-            if (accountId && accountPrivateKey) {
-                await this.setUser(AccountProvider.Hedera, accountId, accountPrivateKey);
-            }
-            const contractFunctionParameters = await getContractFunctionBytecode(functionName, paramsEncoded);
-            let response: ContractFunctionResult;
-            try {
-                if (bladePayFee) {
-                    const options = {
-                        dAppCode: this.dAppCode,
-                        visitorId: this.visitorId,
-                        contractFunctionParameters,
-                        contractId,
-                        functionName,
-                        gas
-                    };
-                    const {contractFunctionResult, rawResult} = await this.apiService.apiCallContractQuery(this.network, options);
-
-                    response = new ContractFunctionResult({
-                        _createResult: false,
-                        contractId: contractFunctionResult?.contractId,
-                        errorMessage: "",
-                        bloom: Uint8Array.from([]),
-                        gasUsed: contractFunctionResult?.gasUsed,
-                        logs: [],
-                        createdContractIds: [],
-                        evmAddress: null,
-                        bytes: Buffer.from(rawResult, "base64"),
-                        gas: contractFunctionResult?.gasUsed,
-                        amount: contractFunctionResult?.gasUsed,
-                        functionParameters: Uint8Array.from([]),
-                        senderAccountId: null,
-                        stateChanges: [],
-                        contractNonces: []
-                    });
-                } else {
-                    response = await new ContractCallQuery()
-                        .setContractId(contractId)
-                        .setGas(gas)
-                        .setFunction(functionName)
-                        .setFunctionParameters(contractFunctionParameters)
-                        .executeWithSigner(this.signer!);
-                }
-
-                const values = await parseContractQueryResponse(response, resultTypes);
-                return this.sendMessageToNative(completionKey, {
-                    values,
-                    gasUsed: parseInt(response.gasUsed.toString(), 10)
-                });
-            } catch (error) {
-                return this.sendMessageToNative(completionKey, null, error);
-            }
+            const result = await this.contractService.contractCallQueryFunction(contractId, functionName, paramsEncoded, gas, bladePayFee, resultTypes);
+            return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
         }
@@ -721,7 +601,6 @@ export class BladeSDK {
     }
 
     /**
-     * TODO move to sign service
      * Sign base64-encoded message with private key. Returns hex-encoded signature.
      * @param messageString base64-encoded message to sign
      * @param privateKey hex-encoded private key with DER header
@@ -729,20 +608,16 @@ export class BladeSDK {
      * @returns {SignMessageData}
      */
     async sign(messageString: string, privateKey: string, completionKey?: string): Promise<SignMessageData> {
+        // TODO add `encoding` argument (hex/base64/string)
         try {
-            const key = PrivateKey.fromString(privateKey);
-            const signed = key.sign(Buffer.from(messageString, "base64"));
-
-            return this.sendMessageToNative(completionKey, {
-                signedMessage: Buffer.from(signed).toString("hex")
-            });
+            const result = await this.signService.sign(messageString, privateKey);
+            return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
     /**
-     * TODO move to sign service
      * Verify message signature by public key
      * @param messageString base64-encoded message (same as provided to `sign()` method)
      * @param signature hex-encoded signature (result from `sign()` method)
@@ -752,18 +627,14 @@ export class BladeSDK {
      */
     async signVerify(messageString: string, signature: string, publicKey: string, completionKey?: string): Promise<SignVerifyMessageData> {
         try {
-            const valid = PublicKey.fromString(publicKey).verify(
-                Buffer.from(messageString, "base64"),
-                Buffer.from(signature, "hex")
-            );
-            return this.sendMessageToNative(completionKey, {valid});
+            const result = await this.signService.signVerify(messageString, signature, publicKey);
+            return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
     /**
-     * TODO move to sign service
      * Sign base64-encoded message with private key using ethers lib. Returns hex-encoded signature.
      * @param messageString base64-encoded message to sign
      * @param privateKey hex-encoded private key with DER header
@@ -772,15 +643,8 @@ export class BladeSDK {
      */
     ethersSign(messageString: string, privateKey: string, completionKey?: string): Promise<SignMessageData> {
         try {
-            const key = PrivateKey.fromString(privateKey);
-            const wallet = new ethers.Wallet(key.toStringRaw());
-            return wallet
-                .signMessage(Buffer.from(messageString, "base64"))
-                .then(signedMessage => {
-                    return this.sendMessageToNative(completionKey, {
-                        signedMessage
-                    });
-                });
+            const result = this.signService.ethersSign(messageString, privateKey);
+            return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
         }
@@ -788,7 +652,6 @@ export class BladeSDK {
     }
 
     /**
-     * TODO move to sign service
      * Split signature to v-r-s format.
      * @param signature hex-encoded signature
      * @param completionKey optional field bridge between mobile webViews and native apps
@@ -796,15 +659,13 @@ export class BladeSDK {
      */
     async splitSignature(signature: string, completionKey?: string): Promise<SplitSignatureData> {
         try {
-            const {v, r, s} = ethers.utils.splitSignature(signature);
-            return this.sendMessageToNative(completionKey, {v, r, s});
+            return this.sendMessageToNative(completionKey, await this.signService.splitSignature(signature));
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
     /**
-     * TODO move to sign service
      * Get v-r-s signature of contract function params
      * @param paramsEncoded - data to sign. Can be string or ParametersBuilder
      * @param privateKey - signer private key (hex-encoded with DER header)
@@ -813,18 +674,8 @@ export class BladeSDK {
      */
     async getParamsSignature(paramsEncoded: string | ParametersBuilder, privateKey: string, completionKey?: string): Promise<SplitSignatureData> {
         try {
-            const {types, values} = await parseContractFunctionParams(paramsEncoded);
-            const hash = ethers.utils.keccak256(
-                ethers.utils.defaultAbiCoder.encode(types, values)
-            );
-            const messageHashBytes = ethers.utils.arrayify(hash);
-
-            const key = PrivateKey.fromString(privateKey);
-            const wallet = new ethers.Wallet(key.toStringRaw());
-            const signed = await wallet.signMessage(messageHashBytes);
-
-            const {v, r, s} = ethers.utils.splitSignature(signed);
-            return this.sendMessageToNative(completionKey, {v, r, s});
+            const result = await this.signService.getParamsSignature(paramsEncoded, privateKey);
+            return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
         }
@@ -855,7 +706,6 @@ export class BladeSDK {
     }
 
     /**
-     * TODO move to trade service
      * Get configured url for C14 integration (iframe or popup)
      * @param asset name (USDC or HBAR)
      * @param account receiver account id (0.0.xxxxx)
@@ -865,62 +715,14 @@ export class BladeSDK {
      */
     async getC14url(asset: string, account: string, amount: string, completionKey?: string): Promise<IntegrationUrlData> {
         try {
-            let clientId;
-            if (this.dAppCode.includes("karate")) {
-                clientId = "17af1a19-2729-4ecc-8683-324a52eca6fc";
-            } else {
-                const {token} = await this.apiService.getC14token({
-                    network: this.network,
-                    visitorId: this.visitorId,
-                    dAppCode: this.dAppCode
-                });
-                clientId = token;
-            }
-
-            const url = new URL("https://pay.c14.money/");
-            const purchaseParams: C14WidgetConfig = {
-                clientId
-            };
-
-            switch (asset.toUpperCase()) {
-                case "USDC": {
-                    purchaseParams.targetAssetId = "b0694345-1eb4-4bc4-b340-f389a58ee4f3";
-                    purchaseParams.targetAssetIdLock = true;
-                } break;
-                case "HBAR": {
-                    purchaseParams.targetAssetId = "d9b45743-e712-4088-8a31-65ee6f371022";
-                    purchaseParams.targetAssetIdLock = true;
-                } break;
-                case "KARATE": {
-                    purchaseParams.targetAssetId = "057d6b35-1af5-4827-bee2-c12842faa49e";
-                    purchaseParams.targetAssetIdLock = true;
-                } break;
-                default: {
-                    // check if asset is an uuid
-                    if (asset.split("-").length === 5) {
-                        purchaseParams.targetAssetId = asset;
-                        purchaseParams.targetAssetIdLock = true;
-                    }
-                } break;
-            }
-            if (amount) {
-                purchaseParams.sourceAmount = amount;
-                purchaseParams.quoteAmountLock = true;
-            }
-            if (account) {
-                purchaseParams.targetAddress = account;
-                purchaseParams.targetAddressLock = true;
-            }
-
-            url.search = new URLSearchParams(purchaseParams as Record<keyof C14WidgetConfig, any>).toString();
-            return this.sendMessageToNative(completionKey, {url: url.toString()});
+            const result = await this.tradeService.getC14url(asset, account, amount);
+            return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
     /**
-     * TODO move to trade service
      * Get swap quotes from different services
      * @param sourceCode name (HBAR, KARATE, other token code)
      * @param sourceAmount amount to swap, buy or sell
@@ -937,61 +739,15 @@ export class BladeSDK {
         completionKey?: string
     ):Promise<SwapQuotesData> {
         try {
-            const useTestnet = this.network === Network.Testnet;
-            const chainId = parseInt(KnownChainIds[useTestnet ? KnownChain.HEDERA_TESTNET : KnownChain.HEDERA_MAINNET], 10);
-            const params: ICryptoFlowAssetsParams | ICryptoFlowQuoteParams | ICryptoFlowTransactionParams | any = {
-                sourceCode,
-                sourceAmount,
-                targetCode,
-                useTestnet,
-            }
-
-            switch (strategy.toLowerCase()) {
-                case CryptoFlowServiceStrategy.BUY.toLowerCase(): {
-                    params.targetChainId = chainId;
-                    break;
-                }
-                case CryptoFlowServiceStrategy.SELL.toLowerCase(): {
-                    params.sourceChainId = chainId;
-                    const assets = await this.apiService.getCryptoFlowData(
-                        this.network,
-                        this.visitorId,
-                        CryptoFlowRoutes.ASSETS,
-                        params,
-                        strategy
-                    ) as ICryptoFlowAssets;
-
-                    if (assets?.limits?.rates && assets.limits.rates.length > 0) {
-                        params.targetAmount = assets.limits.rates[0] * sourceAmount;
-                    }
-                    break;
-                }
-                case CryptoFlowServiceStrategy.SWAP.toLowerCase(): {
-                    params.sourceChainId = chainId;
-                    params.targetChainId = chainId;
-                    break;
-
-                }
-            }
-
-            const quotes = await this.apiService.getCryptoFlowData(
-                this.network,
-                this.visitorId,
-                CryptoFlowRoutes.QUOTES,
-                params,
-                strategy
-            ) as ICryptoFlowQuote[];
-            return this.sendMessageToNative(completionKey, {quotes});
+            const result = await this.tradeService.exchangeGetQuotes(sourceCode, sourceAmount, targetCode, strategy);
+            return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
     /**
-     * TODO move to trade service
      * Swap tokens
-     * @param accountId account id
-     * @param accountPrivateKey account private key
      * @param sourceCode name (HBAR, KARATE, other token code)
      * @param sourceAmount amount to swap
      * @param targetCode name (HBAR, KARATE, other token code)
@@ -1001,8 +757,6 @@ export class BladeSDK {
      * @returns {success: boolean}
      */
     async swapTokens(
-        accountId: string,
-        accountPrivateKey: string,
         sourceCode: string,
         sourceAmount: number,
         targetCode: string,
@@ -1011,71 +765,14 @@ export class BladeSDK {
         completionKey?: string
     ): Promise<{success: boolean}> {
         try {
-            if (accountId && accountPrivateKey) {
-                await this.setUser(AccountProvider.Hedera, accountId, accountPrivateKey);
-            }
-            accountId = this.getUser().accountId;
-
-            const useTestnet = this.network === Network.Testnet;
-            const chainId = KnownChainIds[useTestnet ? KnownChain.HEDERA_TESTNET : KnownChain.HEDERA_MAINNET];
-            const quotes = await this.apiService.getCryptoFlowData(
-                this.network,
-                this.visitorId,
-                CryptoFlowRoutes.QUOTES,
-                {
-                    sourceCode,
-                    sourceChainId: chainId,
-                    sourceAmount,
-                    targetCode,
-                    targetChainId: chainId,
-                    useTestnet,
-                },
-                CryptoFlowServiceStrategy.SWAP
-            ) as ICryptoFlowQuote[];
-            const selectedQuote = quotes.find((quote) => quote.service.id === serviceId);
-            if (!selectedQuote) {
-                throw new Error("Quote not found");
-            }
-
-            const txData: ICryptoFlowTransaction = await this.apiService.getCryptoFlowData(
-                this.network,
-                this.visitorId,
-                CryptoFlowRoutes.TRANSACTION,
-                {
-                    serviceId,
-                    sourceCode,
-                    sourceChainId: chainId,
-                    sourceAddress: selectedQuote.source.asset.address,
-                    sourceAmount,
-                    targetCode,
-                    targetChainId: chainId,
-                    targetAddress: selectedQuote.target.asset.address,
-                    walletAddress: accountId,
-                    slippage,
-                    useTestnet
-                }
-            ) as ICryptoFlowTransaction;
-
-            if (await this.cryptoFlowService.validateMessage(txData)) {
-                await this.cryptoFlowService.executeAllowanceApprove(selectedQuote, accountId, this.network, this.signer!, true);
-                try {
-                    await this.cryptoFlowService.executeHederaSwapTx(txData.calldata, this.signer!);
-                } catch (e) {
-                    await this.cryptoFlowService.executeAllowanceApprove(selectedQuote, accountId, this.network, this.signer!, false);
-                    throw e
-                }
-                await this.cryptoFlowService.executeHederaBladeFeeTx(selectedQuote, accountId, this.network, this.signer!);
-            } else {
-                throw new Error("Invalid signature of txData");
-            }
-            return this.sendMessageToNative(completionKey, {success: true});
+            const result = await this.tradeService.swapTokens(this.userAccountId, sourceCode, sourceAmount, targetCode, slippage, serviceId);
+            return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
     /**
-     * TODO move to trade service
      * Get configured url to buy or sell tokens or fiat
      * @param strategy Buy / Sell
      * @param accountId account id
@@ -1098,55 +795,8 @@ export class BladeSDK {
         completionKey?: string
     ): Promise<IntegrationUrlData> {
         try {
-            if (!accountId) {
-                accountId = this.getUser().accountId;
-            }
-            const useTestnet = this.network === Network.Testnet;
-            const chainId = KnownChainIds[useTestnet ? KnownChain.HEDERA_TESTNET : KnownChain.HEDERA_MAINNET];
-            const params: ICryptoFlowAssetsParams | ICryptoFlowQuoteParams | ICryptoFlowTransactionParams | any = {
-                sourceCode,
-                sourceAmount,
-                targetCode,
-                useTestnet,
-                walletAddress: accountId,
-                slippage
-            }
-
-            switch (strategy.toLowerCase()) {
-                case CryptoFlowServiceStrategy.BUY.toLowerCase(): {
-                    params.targetChainId = chainId;
-                    break;
-                }
-                case CryptoFlowServiceStrategy.SELL.toLowerCase(): {
-                    params.sourceChainId = chainId;
-                    const assets = await this.apiService.getCryptoFlowData(
-                        this.network,
-                        this.visitorId,
-                        CryptoFlowRoutes.ASSETS,
-                        params,
-                        strategy
-                    ) as ICryptoFlowAssets;
-
-                    if (assets?.limits?.rates && assets.limits.rates.length > 0) {
-                        params.targetAmount = assets.limits.rates[0] * sourceAmount;
-                    }
-                    break;
-                }
-            }
-
-            const quotes = await this.apiService.getCryptoFlowData(
-                this.network,
-                this.visitorId,
-                CryptoFlowRoutes.QUOTES,
-                params,
-                strategy
-            ) as ICryptoFlowQuote[];
-            const selectedQuote = quotes.find((quote) => quote.service.id === serviceId);
-            if (!selectedQuote) {
-                throw new Error("Quote not found");
-            }
-
-            return this.sendMessageToNative(completionKey, {url: selectedQuote.widgetUrl || ""});
+            const result = await this.tradeService.getTradeUrl(strategy, accountId, sourceCode, sourceAmount, targetCode, slippage, serviceId);
+            return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
         }

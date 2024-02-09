@@ -1,5 +1,5 @@
 import {ethers} from "ethers"
-import {ITokenService, TransferInitData, TransferTokenInitData} from "../ITokenService";
+import {ITokenService, TransferInitData, TransferTokenInitData} from "../TokenServiceContext";
 import {
     BalanceData,
     KeyRecord,

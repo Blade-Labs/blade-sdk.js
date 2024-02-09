@@ -19,6 +19,7 @@ import BigNumber from "bignumber.js";
  *
  */
 export class ParametersBuilder {
+    // TODO implement all methods
     private params: ContractFunctionParameter[] = [];
 
     addAddress(value: string | AccountId): ParametersBuilder {

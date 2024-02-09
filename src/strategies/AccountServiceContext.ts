@@ -2,7 +2,6 @@ import { injectable, inject } from 'inversify';
 import 'reflect-metadata';
 
 import {Signer} from "@hashgraph/sdk"
-import {IAccountService} from "./IAccountService";
 
 import {
     AccountInfoData,
@@ -17,10 +16,21 @@ import { ethers } from "ethers";
 import ApiService from "../services/ApiService";
 import ConfigService from "../services/ConfigService";
 import {Network} from "../models/Networks";
-import {NodeInfo} from "@/models/MirrorNode";
+import {NodeInfo} from "../models/MirrorNode";
+
+export interface IAccountService {
+    createAccount(deviceId?: string): Promise<CreateAccountData>
+    getPendingAccount(transactionId: string, mnemonic: string): Promise<CreateAccountData>
+    deleteAccount(deleteAccountId: string, deletePrivateKey: string, transferAccountId: string): Promise<TransactionReceiptData>
+    getAccountInfo(accountId: string): Promise<AccountInfoData>
+    getNodeList(): Promise<{nodes: NodeInfo[]}>
+    stakeToNode(accountId: string, nodeId: number): Promise<TransactionReceiptData>
+    getKeysFromMnemonic(mnemonicRaw: string, lookupNames: boolean): Promise<PrivateKeyData>
+    getTransactions(accountId: string, transactionType: string, nextPage: string, transactionsLimit: string): Promise<TransactionsHistoryData>
+}
 
 @injectable()
-export default class AccountService implements IAccountService {
+export default class AccountServiceContext implements IAccountService {
     private chainType: ChainType | null = null;
     private signer: Signer | ethers.Signer | null = null
     private strategy: IAccountService | null = null;

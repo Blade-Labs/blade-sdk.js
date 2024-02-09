@@ -1,4 +1,4 @@
-import {IAccountService} from "../IAccountService";
+import {IAccountService} from "../AccountServiceContext";
 
 import {
     AccountInfoData,

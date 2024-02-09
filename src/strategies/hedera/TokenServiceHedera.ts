@@ -5,7 +5,7 @@ import {
 } from "@hashgraph/sdk";
 import {Buffer} from "buffer";
 
-import {ITokenService, TransferInitData, TransferTokenInitData} from "../ITokenService";
+import {ITokenService, TransferInitData, TransferTokenInitData} from "../TokenServiceContext";
 import {
     BalanceData,
     KeyRecord,

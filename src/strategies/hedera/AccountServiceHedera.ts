@@ -8,7 +8,7 @@ import {
     Signer,
 } from "@hashgraph/sdk";
 
-import {IAccountService} from "../IAccountService";
+import {IAccountService} from "../AccountServiceContext";
 
 import {
     AccountInfoData, AccountStatus,

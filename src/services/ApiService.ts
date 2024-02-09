@@ -374,14 +374,14 @@ export default class ApiService {
             .then(x => x.json());
     };
 
-    async signContractCallTx(network: Network, params: any) {
+    async signContractCallTx(params: any) {
         const url = `${this.getApiUrl()}/smart/contract/sign`;
         const options = {
             method: "POST",
             headers: new Headers({
-                "X-NETWORK": network.toUpperCase(),
-                "X-VISITOR-ID": params.visitorId,
-                "X-DAPP-CODE": params.dAppCode,
+                "X-NETWORK": this.network.toUpperCase(),
+                "X-VISITOR-ID": this.visitorId,
+                "X-DAPP-CODE": this.dAppCode,
                 "X-SDK-TVTE-API": await this.getTvteHeader(),
                 "Content-Type": "application/json"
             }),
@@ -398,14 +398,14 @@ export default class ApiService {
             .then(x => x.json());
     };
 
-    async apiCallContractQuery(network: Network, params: any) {
+    async apiCallContractQuery(params: any) {
         const url = `${this.getApiUrl()}/smart/contract/call`;
         const options = {
             method: "POST",
             headers: new Headers({
-                "X-NETWORK": network.toUpperCase(),
-                "X-VISITOR-ID": params.visitorId,
-                "X-DAPP-CODE": params.dAppCode,
+                "X-NETWORK": this.network.toUpperCase(),
+                "X-VISITOR-ID": this.visitorId,
+                "X-DAPP-CODE": this.dAppCode,
                 "X-SDK-TVTE-API": await this.getTvteHeader(),
                 "Content-Type": "application/json"
             }),
@@ -422,14 +422,14 @@ export default class ApiService {
             .then(x => x.json());
     };
 
-    async getC14token(params: any) {
+    async getC14token() {
         const url = `${this.getApiUrl()}/c14/data`;
         const options = {
             method: "GET",
             headers: new Headers({
-                "X-NETWORK": params.network.toUpperCase(),
-                "X-VISITOR-ID": params.visitorId, // fingerprint (visitorId) (eg.: YoZoVL4XZspaCtLH4GoL)
-                "X-DAPP-CODE": params.dAppCode,
+                "X-NETWORK": this.network.toUpperCase(),
+                "X-VISITOR-ID": this.visitorId, // fingerprint (visitorId) (eg.: YoZoVL4XZspaCtLH4GoL)
+                "X-DAPP-CODE": this.dAppCode,
                 "X-SDK-TVTE-API": await this.getTvteHeader(),
                 "Content-Type": "application/json"
             }),
@@ -441,8 +441,6 @@ export default class ApiService {
     };
 
     async getCryptoFlowData(
-        network: Network,
-        visitorId: string,
         route: CryptoFlowRoutes,
         params: ICryptoFlowAssetsParams | ICryptoFlowQuoteParams | ICryptoFlowTransactionParams | any,
         strategy?: CryptoFlowServiceStrategy
@@ -463,8 +461,8 @@ export default class ApiService {
         const options = {
             method: "GET",
             headers: new Headers({
-                "X-NETWORK": network.toUpperCase(),
-                "X-VISITOR-ID": visitorId,
+                "X-NETWORK": this.network.toUpperCase(),
+                "X-VISITOR-ID": this.visitorId,
                 // "X-DAPP-CODE": params.dAppCode,
                 // "X-SDK-TVTE-API": await getTvteHeader(),
                 "Content-Type": "application/json"

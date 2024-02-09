@@ -2,7 +2,6 @@ import { injectable, inject } from 'inversify';
 import 'reflect-metadata';
 
 import {Signer} from "@hashgraph/sdk"
-import {ITokenService, TransferInitData, TransferTokenInitData} from "./ITokenService";
 import {
     BalanceData,
     ChainType,
@@ -18,8 +17,33 @@ import ApiService from "../services/ApiService";
 import ConfigService from "../services/ConfigService";
 import {Network} from "../models/Networks";
 
+export interface ITokenService {
+    getBalance(address: string): Promise<BalanceData>;
+    transferBalance(transferData: TransferInitData): Promise<TransactionResponseData>;
+    transferToken(transferData: TransferTokenInitData): Promise<TransactionResponseData>;
+    associateToken(tokenId: string, accountId: string): Promise<TransactionReceiptData>;
+    createToken(tokenName: string, tokenSymbol: string, isNft: boolean, treasuryAccountId: string, supplyPublicKey: string, keys: KeyRecord[] | string, decimals: number, initialSupply: number, maxSupply: number): Promise<{tokenId: string}>;
+    nftMint(tokenId: string, file: File | string, metadata: {}, storageConfig: NFTStorageConfig): Promise<TransactionReceiptData>;
+}
+
+export type TransferInitData = {
+    from: string,
+    to: string,
+    amount: string,
+    memo?: string
+}
+
+export type TransferTokenInitData = {
+    tokenAddress: string
+    from: string,
+    to: string,
+    amountOrSerial: string,
+    memo?: string,
+    freeTransfer: boolean
+}
+
 @injectable()
-export default class TokenService implements ITokenService {
+export default class TokenServiceContext implements ITokenService {
     private chainType: ChainType | null = null;
     private signer: Signer | ethers.Signer | null = null
     private strategy: ITokenService | null = null;
