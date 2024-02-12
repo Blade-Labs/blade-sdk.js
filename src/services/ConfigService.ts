@@ -1,29 +1,35 @@
-import {getBladeConfig, getDappConfig} from "./ApiService";
+import { injectable, inject } from 'inversify';
+import 'reflect-metadata';
+import ApiService from "./ApiService";
 import {BladeConfig, DAppConfig} from "../models/Common";
 
-let config: BladeConfig = {
-    fpApiKey: undefined,
-    exchangeServiceSignerPubKey: undefined,
-    swapContract: undefined,
-    swapWrapHbar: undefined,
-    saucerswapApi: undefined
-};
-let dAppConfig: DAppConfig;
+@injectable()
+export default class ConfigService {
+    private config: BladeConfig = {
+        fpApiKey: undefined,
+        exchangeServiceSignerPubKey: undefined,
+        swapContract: undefined,
+        swapWrapHbar: undefined,
+        saucerswapApi: undefined
+    };
+    private dAppConfig?: DAppConfig;
 
+    constructor(@inject('apiService') private readonly apiService: ApiService) {}
 
-export const getConfig = async (key: string): Promise<any> => {
-    if (Object.keys(config).includes(key)) { // check if key exists in config or we need dAppConfig
-        if (!config.fpApiKey) { // check if config is empty
-            config = await getBladeConfig();
+    async getConfig(key: string): Promise<any> {
+        if (Object.keys(this.config).includes(key)) { // check if key exists in config or we need dAppConfig
+            if (!this.config.fpApiKey) { // check if config is empty
+                this.config = await this.apiService.getBladeConfig();
+            }
+            return this.config[key];
         }
-        return config[key];
-    }
 
-    if (!dAppConfig?.fees) { // check if dAppConfig is empty
-        dAppConfig = await getDappConfig();
-    }
-    if (dAppConfig[key] !== undefined) {
-        return dAppConfig[key];
-    }
-    throw new Error(`Unknown key "${key}" in configService`);
-};
+        if (!this.dAppConfig?.fees) { // check if dAppConfig is empty
+            this.dAppConfig = await this.apiService.getDappConfig();
+        }
+        if (this.dAppConfig[key] !== undefined) {
+            return this.dAppConfig[key];
+        }
+        throw new Error(`Unknown key "${key}" in configService`);
+    };
+}

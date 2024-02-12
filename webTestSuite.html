@@ -42,16 +42,16 @@
             accountIdOrEmail: accountId,
             accountPrivateKey: privateKey
         },
-        // {
-        //     userProvider: "Magic",
-        //     accountIdOrEmail: "the.gary.du+sdk@gmail.com",
-        //     accountPrivateKey: ""
-        // },
-        // {
-        //     userProvider: "Direct",
-        //     accountIdOrEmail: accountId,
-        //     accountPrivateKey: privateKey
-        // }
+        {
+            userProvider: "Magic",
+            accountIdOrEmail: "the.gary.du+sdk@gmail.com",
+            accountPrivateKey: ""
+        },
+        {
+            userProvider: "Direct",
+            accountIdOrEmail: accountId,
+            accountPrivateKey: privateKey
+        }
     ];
     const tests = [];
 
@@ -147,6 +147,22 @@
             log(await bladeSdk.init(apiKeyTestnet, "Testnet", dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
             const {accountId, privateKey} = await customSetUser(userProvider, accountIdOrEmail, accountPrivateKey, completionKey);
             log(await bladeSdk.getAccountInfo(accountId, completionKey));
+        }
+    });
+
+    addTest("getNodeList", async (completionKey) => {
+        for await (const {userProvider, accountIdOrEmail, accountPrivateKey} of userProviders) {
+            log(await bladeSdk.init(apiKeyTestnet, "Testnet", dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
+            const {accountId, privateKey} = await customSetUser(userProvider, accountIdOrEmail, accountPrivateKey, completionKey);
+            log(await bladeSdk.getNodeList(completionKey));
+        }
+    });
+
+    addTest("stakeToNode", async (completionKey) => {
+        for await (const {userProvider, accountIdOrEmail, accountPrivateKey} of userProviders) {
+            log(await bladeSdk.init(apiKeyTestnet, "Testnet", dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
+            const {accountId, privateKey} = await customSetUser(userProvider, accountIdOrEmail, accountPrivateKey, completionKey);
+            log(await bladeSdk.stakeToNode(accountId, privateKey, null, completionKey));
         }
     });
 
@@ -253,8 +269,10 @@
         // "transferHbars", // ok
         // "contractCallFunction", // ok
         // "contractCallQueryFunction", // ok
-        "transferTokens", // ok
+        // "transferTokens", // ok
         // "getAccountInfo", // ok
+        // "getNodeList", // ok
+        // "stakeToNode", // ok
         // "getTransactions", // ok
         // "getC14url", // ok
         // "swapTokens", // ok with magic, try reconfigure hedera gor ed25519 account

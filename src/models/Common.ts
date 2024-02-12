@@ -1,5 +1,4 @@
 import {MirrorNodeTransactionType} from "./TransactionType";
-import {Network} from "./Networks";
 import {ICryptoFlowQuote} from "./CryptoFlow";
 
 export enum SdkEnvironment {
@@ -9,8 +8,13 @@ export enum SdkEnvironment {
 }
 
 export enum AccountProvider {
-    Hedera = "Hedera",
+    PrivateKey = "PrivateKey",
     Magic = "Magic",
+}
+
+export enum ChainType {
+    Hedera = "Hedera",
+    Ethereum = "Ethereum",
 }
 
 export enum KnownChain {
@@ -126,18 +130,35 @@ export interface InfoData {
     apiKey: string,
     dAppCode: string,
     network: string,
+    chainType: ChainType,
     visitorId: string,
     sdkEnvironment: SdkEnvironment,
     sdkVersion: string,
-    nonce: number
+    nonce: number,
+    user: UserInfoData
+}
+
+export interface UserInfoData {
+    accountId: string,
+    accountProvider: AccountProvider | null,
+    userPrivateKey: string,
+    userPublicKey: string,
 }
 
 export interface BalanceData {
-    hbars: number,
-    tokens: [{
-        tokenId: string,
-        balance: number
-    }]
+    balance: string,
+    rawBalance: string,
+    decimals: number,
+    tokens: TokenBalanceData[]
+}
+
+export interface TokenBalanceData {
+    balance: string,
+    decimals: number,
+    name: string,
+    symbol: string,
+    address: string,
+    rawBalance: string,
 }
 
 export interface ContractCallQueryRecord {
@@ -145,27 +166,38 @@ export interface ContractCallQueryRecord {
     value: string | number | boolean
 }
 
+export interface ContractCallQueryRecordsData {
+    values: ContractCallQueryRecord[],
+    gasUsed: number
+}
+
 export interface CreateAccountData {
     seedPhrase: string,
     publicKey: string,
     privateKey: string,
-    accountId?: string,
+    accountId: string | null,
     evmAddress: string,
-    transactionId?: string,
+    transactionId: string | null,
     status: string,
     queueNumber?: number
 }
 
 export interface AccountInfoData {
     accountId: string,
+    publicKey: string,
     evmAddress: string,
-    calculatedEvmAddress: string
+    stakingInfo: {
+        pendingReward: number,
+        stakedNodeId: number | null,
+        stakePeriodStart: string | null,
+    },
+    calculatedEvmAddress?: string
 }
 
 export interface PrivateKeyData {
     privateKey: string,
     publicKey: string,
-    accounts: [string],
+    accounts: string[],
     evmAddress: string
 }
 
@@ -185,7 +217,7 @@ export interface SplitSignatureData {
 
 export interface TransactionsHistoryData {
     transactions: TransactionData[],
-    nextPage?: string
+    nextPage: string | null
 }
 
 export interface TransactionData {
@@ -234,13 +266,6 @@ export interface C14WidgetConfig {
 export interface ContractFunctionParameter {
     type: string,
     value: string[]
-}
-
-export interface ConfirmUpdateAccountData {
-    network: Network,
-    accountId: string,
-    dAppCode: string,
-    visitorId: string
 }
 
 export interface SwapQuotesData {
@@ -301,4 +326,9 @@ export interface TransactionReceiptData {
     topicSequenceNumber?: string,
     totalSupply?: string,
     serials: string[],
+}
+
+export interface TransactionResponseData {
+    transactionHash: string
+    transactionId: string
 }

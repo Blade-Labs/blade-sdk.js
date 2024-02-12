@@ -1,7 +1,12 @@
 import { BladeSDK } from './BladeSDK';
 import { ParametersBuilder } from './ParametersBuilder';
-if (window) window["bladeSdk"] = new BladeSDK(true);
+import {getContainer} from "./container";
+
+const bladeContainer = getContainer(true);
+if (window) window["bladeSdk"] = bladeContainer.get<BladeSDK>(BladeSDK);
 if (window) window["ParametersBuilder"] = ParametersBuilder;
 
-export { BladeSDK };
-export { ParametersBuilder };
+export { ParametersBuilder } from './ParametersBuilder';
+export { SdkEnvironment, ChainType } from './models/Common';
+export { BladeSDK } from './BladeSDK';
+export { bladeContainer }

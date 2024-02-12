@@ -1,6 +1,4 @@
 import {Client, Hbar, PrivateKey, TokenAssociateTransaction, TokenCreateTransaction} from "@hashgraph/sdk";
-import {GET} from "../../src/services/ApiService";
-import {Network} from "../../src/models/Networks";
 import {completionKey} from "./index.test";
 
 export const privateKeyFromString = (privateKey: string): PrivateKey => {
@@ -56,14 +54,6 @@ export const associateToken = async (tokenId: string, accountId: string, private
     const signTx = await transaction.sign(key);
 
     return await signTx.execute(client).catch(err => {
-        // tslint:disable-next-line:no-console
-        console.log(err);
-        return null;
-    });
-}
-
-export const getTokenInfo = async (tokenId: string) => {
-    return GET(Network.Testnet, `api/v1/tokens/${tokenId}`).catch(err => {
         // tslint:disable-next-line:no-console
         console.log(err);
         return null;

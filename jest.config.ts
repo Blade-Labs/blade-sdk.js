@@ -8,6 +8,9 @@ const config: Config.InitialOptions = {
             {tsconfig: './tsconfig.json'}
         ],
     },
+    moduleNameMapper: {
+        '^alchemy-sdk$': '<rootDir>node_modules/alchemy-sdk/dist/cjs/index.js',
+    },
     testEnvironment: "jsdom",
     setupFiles: ["core-js"],
     setupFilesAfterEnv: ["<rootDir>/test/src/helpers.ts"],

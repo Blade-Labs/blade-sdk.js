@@ -45,13 +45,23 @@ npm i @bladelabs/blade-sdk.js
 
 ## Usage
 
+Please note that the SDK is designed to be used in a browser environment. It is not intended to be used in a server-side environment.
+
 ```
-import {BladeSDK} from '@bladelabs/blade-sdk.js';
+import {bladeContainer, BladeSDK, SdkEnvironment, ChainType} from '@bladelabs/blade-sdk.js';
 
 ...
-const bladeSDK = new BladeSDK();
-await bladeSDK.init("Blade apiKey", "testnet", "dAppCode", "client unique fingerprint or empty string", "Prod");
-const balance = await bladeSDK.getBalance("0.0.8235");
+
+const apiKey ="ygUgCzRrsvhWmb3dsLcApGnApSZ4tk8hBCmZqg9BngpuQYKsnD5m9FjfPV3tVBeB" // provided by BladeLabs team
+const chainType = ChainType.Hedera; // or ChainType.Ethereum
+const network = "Mainnet"; // or "Testnet"
+const dAppCode = "your-dApp-code"; // provided by BladeLabs team
+const visitorId = ""; // provide empty string and SDK will generate a new one. Otherwise consult with BladeLabs team first
+const environment = SdkEnvironment.Prod; // or SdkEnvironment.CI
+
+const bladeSdk = bladeContainer.get(BladeSDK);
+await bladeSDK.init(apiKey, chainType, network, dAppCode, visitorId, environment);
+const balance = await bladeSdk.getBalance("0.0.8235");
 console.log(balance);
 ```
 
