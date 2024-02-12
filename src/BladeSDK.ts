@@ -696,6 +696,8 @@ export class BladeSDK {
                     network: this.network,
                     visitorId: this.visitorId,
                     dAppCode: this.dAppCode
+                }).catch(() => {
+                    // ignore this error, continue
                 });
             }
 

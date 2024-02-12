@@ -114,7 +114,14 @@ const fetchWithRetry = async (url: string, options: RequestInit, maxAttempts = 3
 
 const statusCheck = async (res: Response|any): Promise<Response> => {
     if (!res.ok) {
-        throw await res.json();
+        let error = await res.text();
+        try {
+            error = JSON.parse(error);
+            error.code = res.status
+        } catch (e) {
+            error = `${res.status}: ${error}`;
+        }
+        throw error;
     }
     return res;
 };
@@ -187,7 +194,7 @@ export const createAccount = async (network: Network, params: any) => {
         })
     };
 
-    return fetchWithRetry(url, options)
+    return fetch(url, options)
         .then(statusCheck)
         .then(x => x.json());
 };
@@ -244,7 +251,7 @@ export const confirmAccountUpdate = async (params: ConfirmUpdateAccountData): Pr
         })
     };
 
-    return fetchWithRetry(url, options)
+    return fetch(url, options)
         .then(statusCheck);
 };
 
