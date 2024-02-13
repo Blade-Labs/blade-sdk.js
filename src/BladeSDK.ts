@@ -110,6 +110,7 @@ import {Magic} from 'magic-sdk';
 import {HederaExtension} from '@magic-ext/hedera';
 import {MagicSigner} from "./signers/magic/MagicSigner";
 import {HederaProvider, HederaSigner} from "./signers/hedera";
+import {getConfig} from "./services/ConfigService";
 
 export class BladeSDK {
     private apiKey: string = "";
@@ -441,6 +442,7 @@ export class BladeSDK {
             if (accountId && accountPrivateKey) {
                 await this.setUser(AccountProvider.Hedera, accountId, accountPrivateKey);
             }
+            bladePayFee = bladePayFee && (await getConfig("smartContract")).toLowerCase() === "true";
             const contractFunctionParameters = await getContractFunctionBytecode(functionName, paramsEncoded);
 
             let transaction: Transaction;
@@ -593,6 +595,7 @@ export class BladeSDK {
                 isNFT = true;
                 freeTransfer = false;
             }
+            freeTransfer = freeTransfer && (await getConfig("freeTransfer")).toLowerCase() === "true";
 
             const correctedAmount = parseFloat(amountOrSerial) * (10 ** parseInt(meta.decimals, 10));
 

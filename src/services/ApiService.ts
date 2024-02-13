@@ -123,9 +123,10 @@ const statusCheck = async (res: Response|any): Promise<Response> => {
         let error = await res.text();
         try {
             error = JSON.parse(error);
-            error.code = res.status
+            error._code = res.status;
+            error._url = res.url;
         } catch (e) {
-            error = `${res.status}: ${error}`;
+            error = `${res.status} (${res.url}): ${error}`;
         }
         throw error;
     }
