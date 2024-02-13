@@ -1,5 +1,6 @@
 import {
     AccountDeleteTransaction,
+    AccountUpdateTransaction,
     Client,
     ContractCallQuery,
     ContractExecuteTransaction,
@@ -23,12 +24,12 @@ import {
 import {Buffer} from "buffer";
 import {ethers} from "ethers";
 import {
-    accountInfo,
     apiCallContractQuery,
     checkAccountCreationStatus,
     confirmAccountUpdate,
     createAccount,
     getAccountBalance,
+    getAccountInfo,
     getAccountsFromPublicKey,
     getApiUrl,
     getBladeConfig,
@@ -36,6 +37,7 @@ import {
     getCoinInfo,
     getCoins,
     getCryptoFlowData,
+    getNodeList,
     getPendingAccountData,
     getTransactionsFrom,
     initApiService,
@@ -99,6 +101,7 @@ import {
     ICryptoFlowTransaction,
     ICryptoFlowTransactionParams
 } from "./models/CryptoFlow";
+import {NodeInfo} from "./models/MirrorNode";
 import * as FingerprintJS from '@fingerprintjs/fingerprintjs-pro'
 import {File, NFTStorage} from 'nft.storage';
 import {decrypt, encrypt} from "./helpers/SecurityHelper";
@@ -792,7 +795,7 @@ export class BladeSDK {
      * @param operatorAccountId operator account id (0.0.xxxxx). Used for fee
      * @param operatorPrivateKey operator's account private key (DER encoded hex string)
      * @param completionKey optional field bridge between mobile webViews and native apps
-     * @returns {TransactionReceipt}
+     * @returns {TransactionReceiptData}
      */
     async deleteAccount(deleteAccountId: string, deletePrivateKey: string, transferAccountId: string, operatorAccountId: string, operatorPrivateKey: string, completionKey?: string): Promise<TransactionReceiptData> {
         try {
@@ -830,13 +833,73 @@ export class BladeSDK {
             if (!accountId) {
                 accountId = this.getUser().accountId;
             }
-            const {evmAddress, publicKey} = await accountInfo(this.network, accountId);
+            const account = await getAccountInfo(this.network, accountId);
 
+            const publicKey = account.key._type === "ECDSA_SECP256K1" ? PublicKey.fromStringECDSA(account.key.key) : PublicKey.fromStringED25519(account.key.key);
             return this.sendMessageToNative(completionKey, {
                 accountId,
-                evmAddress,
-                calculatedEvmAddress: ethers.utils.computeAddress(`0x${publicKey}`).toLowerCase()
-            });
+                publicKey: publicKey.toStringDer(),
+                evmAddress: account.evm_address,
+                stakingInfo: {
+                    pendingReward: account.pending_reward,
+                    stakedNodeId: account.staked_node_id,
+                    stakePeriodStart: account.stake_period_start,
+                },
+                calculatedEvmAddress: ethers.utils.computeAddress(`0x${publicKey.toStringRaw()}`).toLowerCase()
+            } as AccountInfoData);
+        } catch (error) {
+            return this.sendMessageToNative(completionKey, null, error);
+        }
+    }
+
+    /**
+     * Get Node list
+     * @param completionKey optional field bridge between mobile webViews and native apps
+     * @returns {nodes: NodeList[]}
+     */
+    async getNodeList(completionKey?: string): Promise<{nodes: NodeInfo[]}> {
+        try {
+            const nodeList = await getNodeList(this.network);
+            return this.sendMessageToNative(completionKey, {nodes: nodeList});
+        } catch (error) {
+            return this.sendMessageToNative(completionKey, null, error);
+        }
+    }
+
+    /**
+     * Stake/unstake account
+     * @param accountId Hedera account id (0.0.xxxxx)
+     * @param accountPrivateKey account private key (DER encoded hex string)
+     * @param nodeId node id to stake to. If negative or null, account will be unstaked
+     * @param completionKey optional field bridge between mobile webViews and native apps
+     * @returns {TransactionReceiptData}
+     */
+    async stakeToNode(accountId: string, accountPrivateKey: string, nodeId: number, completionKey?: string): Promise<TransactionReceiptData> {
+        try {
+            if (accountId && accountPrivateKey) {
+                await this.setUser(AccountProvider.Hedera, accountId, accountPrivateKey);
+            }
+            accountId = this.getUser().accountId;
+
+            const transaction = new AccountUpdateTransaction()
+                .setAccountId(accountId);
+
+            if (nodeId < 0 || nodeId === null) {
+                transaction.clearStakedNodeId();
+            } else {
+                transaction.setStakedNodeId(nodeId);
+            }
+            return transaction
+                .freezeWithSigner(this.signer!)
+                .then(tx => tx.signWithSigner(this.signer!))
+                .then(tx => tx.executeWithSigner(this.signer!))
+                .then(result => result.getReceiptWithSigner(this.signer!))
+                .then(data => {
+                    return this.sendMessageToNative(completionKey, formatReceipt(data));
+                }).catch(error => {
+                    return this.sendMessageToNative(completionKey, null, error);
+                })
+            ;
         } catch (error) {
             return this.sendMessageToNative(completionKey, null, error);
         }
@@ -1565,7 +1628,7 @@ export class BladeSDK {
      * Message that sends response back to native handler
      */
     private sendMessageToNative(completionKey: string | undefined, data: any | null, error: Partial<CustomError>|any|null = null) {
-        if (!this.webView) {
+        if (!this.webView || !completionKey) {
             if (error) {
                 throw error;
             }

@@ -1,7 +1,13 @@
 import {Buffer} from "buffer";
 import {AccountId, PublicKey} from "@hashgraph/sdk";
 import {Network, NetworkMirrorNodes} from "../models/Networks";
-import {AccountInfoMirrorResponse} from "../models/MirrorNode";
+import {
+    AccountInfo,
+    AccountInfoMirrorResponse,
+    APIPagination,
+    MirrorNodeListResponse,
+    NodeInfo
+} from "../models/MirrorNode";
 import {
     BladeConfig,
     CoinData,
@@ -472,12 +478,20 @@ export const getAccountsFromPublicKey = async (network: Network, publicKey: Publ
         });
 };
 
-export const accountInfo = async (network: Network, accountId: string): Promise<{ evmAddress: string, publicKey: string }> => {
-    const info = await GET(network, `api/v1/accounts/${accountId}`);
-    return {
-        evmAddress: info.evm_address ? info.evm_address : `0x${AccountId.fromString(accountId).toSolidityAddress()}`,
-        publicKey: info.key.key
-    };
+export const getAccountInfo = async (network: Network, accountId: string): Promise<APIPagination & AccountInfo> => {
+    return await GET(network, `api/v1/accounts/${accountId}`);
+}
+
+export const getNodeList = async (network: Network): Promise<NodeInfo[]> => {
+    const list: NodeInfo[] = [];
+    let nextPage = "api/v1/network/nodes";
+
+    while (nextPage) {
+        const response: APIPagination & MirrorNodeListResponse = await GET(network, nextPage);
+        list.push(...response.nodes);
+        nextPage = response.links.next ?? "";
+    }
+    return list;
 }
 
 export const getTransactionsFrom = async (
