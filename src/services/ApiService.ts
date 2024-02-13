@@ -13,7 +13,6 @@ import {
 } from "../models/MirrorNode";
 import {
     BladeConfig,
-    ChainType,
     CoinData,
     CoinInfoRaw,
     DAppConfig,
@@ -21,6 +20,7 @@ import {
     TokenBalanceData,
     TransactionData
 } from "../models/Common";
+import {ChainMap, KnownChainIds} from "../models/Chain";
 import {flatArray} from "../helpers/ArrayHelpers";
 import {filterAndFormatTransactions} from "../helpers/TransactionHelpers";
 import {encrypt} from "../helpers/SecurityHelper";
@@ -39,6 +39,7 @@ export default class ApiService {
     private visitorId = ``;
     private environment: SdkEnvironment = SdkEnvironment.Prod;
     private network: Network = Network.Testnet;
+    private chainId: KnownChainIds;
     private tokenInfoCache: {[key in Network]: { [key: string]: any }} = {
         [Network.Mainnet]: {},
         [Network.Testnet]: {}
@@ -49,15 +50,15 @@ export default class ApiService {
         dAppCode: string,
         environment: SdkEnvironment,
         sdkVersion: string,
-        network: Network,
-        chainType: ChainType,
+        chainId: KnownChainIds,
         visitorId: string
     ) {
         this.apiKey = apiKey;
         this.dAppCode = dAppCode;
         this.environment = environment;
         this.sdkVersion = sdkVersion;
-        this.network = network;
+        this.chainId = chainId;
+        this.network = ChainMap[this.chainId].isTestnet ? Network.Testnet : Network.Mainnet;
         this.visitorId = visitorId;
     }
 
@@ -133,7 +134,15 @@ export default class ApiService {
 
     async statusCheck (res: Response|any): Promise<Response> {
         if (!res.ok) {
-            throw await res.json();
+            let error = await res.text();
+            try {
+                error = JSON.parse(error);
+                error._code = res.status
+                error._url = res.url
+            } catch (e) {
+                error = `${res.status} (${res.url}): ${error}`;
+            }
+            throw error;
         }
         return res;
     };
@@ -313,16 +322,16 @@ export default class ApiService {
             })
     };
 
-    async getAccountTokens(network: Network, accountId: string): Promise<TokenBalanceData[]> {
+    async getAccountTokens(accountId: string): Promise<TokenBalanceData[]> {
         const result: TokenBalanceData[] = [];
         let nextPage = `api/v1/accounts/${accountId}/tokens`;
         while (nextPage != null) {
-            const response = await this.GET(network, nextPage);
+            const response = await this.GET(this.network, nextPage);
             nextPage = response.links.next ?? null;
 
             const tokenInfosReq = [];
             for (const token of response.tokens) {
-                tokenInfosReq.push(this.requestTokenInfo(network, token.token_id));
+                tokenInfosReq.push(this.requestTokenInfo(token.token_id));
             }
             const tokenInfos = await Promise.all(tokenInfosReq);
             for (let i = 0; i < tokenInfos.length; i++) {
@@ -341,20 +350,20 @@ export default class ApiService {
         return result;
     };
 
-    async requestTokenInfo(network: Network, tokenId: string) {
-        if (!this.tokenInfoCache[network][tokenId]) {
-            this.tokenInfoCache[network][tokenId] = await this.GET(network,`api/v1/tokens/${tokenId}`);
+    async requestTokenInfo(tokenId: string) {
+        if (!this.tokenInfoCache[this.network][tokenId]) {
+            this.tokenInfoCache[this.network][tokenId] = await this.GET(this.network,`api/v1/tokens/${tokenId}`);
         }
-        return this.tokenInfoCache[network][tokenId];
+        return this.tokenInfoCache[this.network][tokenId];
     };
 
-    async transferTokens(network: Network, params: any) {
+    async transferTokens(params: any) {
         const url = `${this.getApiUrl()}/tokens/transfers`;
 
         const options = {
             method: "POST",
             headers: new Headers({
-                "X-NETWORK": network.toUpperCase(),
+                "X-NETWORK": this.network.toUpperCase(),
                 "X-VISITOR-ID": params.visitorId || this.visitorId,
                 "X-DAPP-CODE": params.dAppCode || this.dAppCode,
                 "X-SDK-TVTE-API": await this.getTvteHeader(),
@@ -474,9 +483,9 @@ export default class ApiService {
             .then(x => x.json());
     };
 
-    async getAccountsFromPublicKey(network: Network, publicKey: PublicKey): Promise<string[]> {
+    async getAccountsFromPublicKey(publicKey: PublicKey): Promise<string[]> {
         const formatted = publicKey.toStringRaw();
-        return this.GET(network, `api/v1/accounts?account.publickey=${formatted}`)
+        return this.GET(this.network, `api/v1/accounts?account.publickey=${formatted}`)
             .then((x: AccountInfoMirrorResponse) => x.accounts.map(acc => acc.account))
             .catch(() => {
                 return [];

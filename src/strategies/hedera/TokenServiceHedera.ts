@@ -17,24 +17,24 @@ import {
 } from "../../models/Common";
 import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
-import {Network} from "../../models/Networks";
 import {formatReceipt} from "../../helpers/TransactionHelpers";
 import {dataURLtoFile} from "../../helpers/FileHelper";
 import { NFTStorage } from "nft.storage";
+import {KnownChainIds} from "@/models/Chain";
 
 export default class TokenServiceHedera implements ITokenService {
-    private readonly network: Network;
+    private readonly chainId: KnownChainIds;
     private readonly signer: Signer;
     private readonly apiService: ApiService;
     private readonly configService: ConfigService;
 
     constructor(
-        network: Network,
+        chainId: KnownChainIds,
         signer: Signer,
         apiService: ApiService,
         configService: ConfigService,
     ) {
-        this.network = network;
+        this.chainId = chainId;
         this.signer = signer;
         this.apiService = apiService;
         this.configService = configService;
@@ -43,7 +43,7 @@ export default class TokenServiceHedera implements ITokenService {
     async getBalance(address: string): Promise<BalanceData> {
         const [account, tokenBalances] = await Promise.all([
             this.apiService.getAccountInfo(address),
-            this.apiService.getAccountTokens(this.network, address)
+            this.apiService.getAccountTokens(address)
         ]);
 
         return {
@@ -72,7 +72,7 @@ export default class TokenServiceHedera implements ITokenService {
     }
 
     async transferToken({amountOrSerial, from, to, tokenAddress, memo, freeTransfer}: TransferTokenInitData): Promise<TransactionResponseData> {
-        const meta = await this.apiService.requestTokenInfo(this.network, tokenAddress);
+        const meta = await this.apiService.requestTokenInfo(tokenAddress);
         let isNFT = false;
         if (meta.type === "NON_FUNGIBLE_UNIQUE") {
             isNFT = true;
@@ -92,7 +92,7 @@ export default class TokenServiceHedera implements ITokenService {
                 // no tokenId, backend pick first token from list for currend dApp
             };
 
-            const {transactionBytes} = await this.apiService.transferTokens(this.network, options);
+            const {transactionBytes} = await this.apiService.transferTokens(options);
             const buffer = Buffer.from(transactionBytes, "base64");
             const transaction = Transaction.fromBytes(buffer);
 

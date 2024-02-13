@@ -1,5 +1,5 @@
 import {Network} from "../models/Networks";
-import {ChainType} from "../models/Common";
+import {KnownChainIds} from "../models/Chain";
 import { EthNetworkConfiguration } from "magic-sdk";
 
 export default class StringHelpers {
@@ -11,12 +11,11 @@ export default class StringHelpers {
         return network;
     }
 
-    static stringToChainType(str: string): ChainType {
-        const chainType = str[0].toUpperCase() + str.slice(1).toLowerCase() as ChainType
-        if (!ChainType[chainType]) {
-            throw new Error(`Invalid chain type: ${str}`);
+    static stringToChainId(chainId: string): KnownChainIds {
+        if (!Object.values(KnownChainIds).includes(chainId as KnownChainIds)) {
+            throw new Error(`Invalid chain id: ${chainId}`);
         }
-        return chainType;
+        return chainId as KnownChainIds;
     }
 
     static networkToEthereum(network: Network): EthNetworkConfiguration {
@@ -33,6 +32,10 @@ export default class StringHelpers {
         }
 
         return str.slice(0, 2) === "0x";
+    }
+
+    static pathArrayToString(path: number[]): string {
+        return `m/${path.join("'/")}`;
     }
 }
 

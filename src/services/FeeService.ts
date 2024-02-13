@@ -4,6 +4,7 @@ import 'reflect-metadata';
 import {Network} from "../models/Networks";
 import {AccountId, Hbar, ScheduleCreateTransaction, Transaction, TransferTransaction} from "@hashgraph/sdk";
 import {FeeManualOptions, FeeType} from "../models/CryptoFlow";
+import {ChainMap, KnownChainIds} from "../models/Chain";
 import BigNumber from "bignumber.js";
 import ConfigService from "./ConfigService";
 
@@ -51,18 +52,18 @@ export default class FeeService {
     ) {}
 
     async createFeeTransaction(
-        network: Network,
+        chainId: KnownChainIds,
         payerAccount: AccountId | string,
         manualOptions: FeeManualOptions
     ): Promise<TransferTransaction | null> {
         const tx = new TransferTransaction();
-        const txWithFee = await this.addBladeFee<TransferTransaction>(tx, network, payerAccount, manualOptions);
+        const txWithFee = await this.addBladeFee<TransferTransaction>(tx, chainId, payerAccount, manualOptions);
         return txWithFee.hbarTransfers.size > 0 ? txWithFee : null;
     }
 
     async addBladeFee<T extends Transaction>(
         tx: T,
-        network: Network,
+        chainId: KnownChainIds,
         payerAccount: AccountId | string,
         manualOptions: FeeManualOptions
     ): Promise<T> {
@@ -71,6 +72,7 @@ export default class FeeService {
                 return tx;
             }
 
+            const network = ChainMap[chainId].isTestnet ? Network.Testnet : Network.Mainnet;
             const feature: FeeType = manualOptions.type;// || detectFeeType(tx);
             const feesConfig = await this.configService.getConfig("fees");
             const featureConfig = feesConfig[network.toLowerCase()][feature];

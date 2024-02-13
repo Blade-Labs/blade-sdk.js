@@ -9,23 +9,23 @@ import {
 } from "../../models/Common";
 import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
-import {Network} from "../../models/Networks";
 import {NodeInfo} from "../../models/MirrorNode";
 import { ethers } from "ethers";
+import {KnownChainIds} from "../../models/Chain";
 
 export default class AccountServiceEthereum implements IAccountService {
-    private readonly network: Network;
+    private readonly chainId: KnownChainIds;
     private readonly signer: ethers.Signer | null = null;
     private readonly apiService: ApiService;
     private readonly configService: ConfigService;
 
     constructor(
-        network: Network,
+        chainId: KnownChainIds,
         signer: ethers.Signer | null,
         apiService: ApiService,
         configService: ConfigService,
     ) {
-        this.network = network;
+        this.chainId = chainId;
         this.signer = signer;
         this.apiService = apiService;
         this.configService = configService;

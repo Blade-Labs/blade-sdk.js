@@ -13,25 +13,25 @@ import {
 } from "../../models/Common";
 import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
-import {Network} from "../../models/Networks";
 import {IContractService} from "../ContractServiceContext";
 import {ParametersBuilder} from "../../ParametersBuilder";
 import {getContractFunctionBytecode, parseContractQueryResponse} from "../../helpers/ContractHelpers";
 import {formatReceipt} from "../../helpers/TransactionHelpers";
+import {KnownChainIds} from "@/models/Chain";
 
 export default class ContractServiceHedera implements IContractService {
-    private readonly network: Network;
+    private readonly chainId: KnownChainIds;
     private readonly signer: Signer;
     private readonly apiService: ApiService;
     private readonly configService: ConfigService;
 
     constructor(
-        network: Network,
+        chainId: KnownChainIds,
         signer: Signer,
         apiService: ApiService,
         configService: ConfigService,
     ) {
-        this.network = network;
+        this.chainId = chainId;
         this.signer = signer;
         this.apiService = apiService;
         this.configService = configService;

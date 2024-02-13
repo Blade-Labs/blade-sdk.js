@@ -7,6 +7,7 @@ import {
     TransactionReceiptData,
     TransactionResponseData
 } from "../../models/Common";
+import {ChainMap, KnownChainIds} from "../../models/Chain";
 import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
 import {
@@ -19,19 +20,19 @@ import StringHelpers from "../../helpers/StringHelpers";
 const ERC20ABI = require("../../abi/erc20.abi.json");
 
 export default class TokenServiceEthereum implements ITokenService {
-    private readonly network: Network;
+    private readonly chainId: KnownChainIds;
     private readonly signer: ethers.Signer;
     private readonly apiService: ApiService;
     private readonly configService: ConfigService;
     private alchemy: Alchemy | null = null;
 
     constructor(
-        network: Network,
+        chainId: KnownChainIds,
         signer: ethers.Signer,
         apiService: ApiService,
         configService: ConfigService
     ) {
-        this.network = network;
+        this.chainId = chainId;
         this.signer = signer;
         this.apiService = apiService;
         this.configService = configService;
@@ -105,8 +106,8 @@ export default class TokenServiceEthereum implements ITokenService {
     }
 
     private async initAlchemy() {
-        const network = this.network === Network.Mainnet ? AlchemyNetwork.ETH_MAINNET : AlchemyNetwork.ETH_SEPOLIA;
-        const apiKey = await this.configService.getConfig(`alchemy${this.network}APIKey`);
-        this.alchemy = new Alchemy({apiKey, network});
+        const alchemyNetwork = ChainMap[this.chainId].isTestnet ? AlchemyNetwork.ETH_SEPOLIA : AlchemyNetwork.ETH_MAINNET;
+        const apiKey = await this.configService.getConfig(`alchemy${ChainMap[this.chainId].isTestnet ? Network.Testnet : Network.Mainnet}APIKey`);
+        this.alchemy = new Alchemy({apiKey, network: alchemyNetwork});
     }
 }

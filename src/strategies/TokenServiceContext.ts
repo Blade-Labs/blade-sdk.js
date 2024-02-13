@@ -4,12 +4,12 @@ import 'reflect-metadata';
 import {Signer} from "@hashgraph/sdk"
 import {
     BalanceData,
-    ChainType,
     KeyRecord,
     NFTStorageConfig,
     TransactionReceiptData,
     TransactionResponseData
 } from "../models/Common";
+import {ChainMap, ChainServiceStrategy, KnownChainIds} from "../models/Chain";
 import TokenServiceHedera from "./hedera/TokenServiceHedera";
 import TokenServiceEthereum from "./ethereum/TokenServiceEthereum";
 import { ethers } from "ethers";
@@ -44,7 +44,7 @@ export type TransferTokenInitData = {
 
 @injectable()
 export default class TokenServiceContext implements ITokenService {
-    private chainType: ChainType | null = null;
+    private chainId: KnownChainIds | null = null;
     private signer: Signer | ethers.Signer | null = null
     private strategy: ITokenService | null = null;
 
@@ -54,19 +54,19 @@ export default class TokenServiceContext implements ITokenService {
     ) {}
 
 
-    init(chainType: ChainType, network: Network, signer: Signer | ethers.Signer) {
-        this.chainType = chainType;
+    init(chainId: KnownChainIds, signer: Signer | ethers.Signer) {
+        this.chainId = chainId;
         this.signer = signer;
 
-        switch (chainType) {
-            case ChainType.Hedera:
-                this.strategy = new TokenServiceHedera(network, signer as Signer, this.apiService, this.configService);
+        switch (ChainMap[this.chainId].serviceStrategy) {
+            case ChainServiceStrategy.Hedera:
+                this.strategy = new TokenServiceHedera(chainId, signer as Signer, this.apiService, this.configService);
                 break;
-            case ChainType.Ethereum:
-                this.strategy = new TokenServiceEthereum(network, signer as ethers.Signer, this.apiService, this.configService);
+            case ChainServiceStrategy.Ethereum:
+                this.strategy = new TokenServiceEthereum(chainId, signer as ethers.Signer, this.apiService, this.configService);
                 break;
             default:
-                throw new Error("Unsupported chain type");
+                throw new Error(`Unsupported chain id: ${this.chainId}`);
         }
     }
 

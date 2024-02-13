@@ -17,27 +17,27 @@ import {
     TransactionReceiptData,
     TransactionsHistoryData
 } from "../../models/Common";
+import {ChainMap, KnownChainIds} from "../../models/Chain";
 import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
-import {Network} from "../../models/Networks";
 import {NodeInfo} from "../../models/MirrorNode";
 import { ethers } from "ethers";
 import {executeUpdateAccountTransactions} from "../../helpers/AccountHelpers";
 import {formatReceipt} from "../../helpers/TransactionHelpers";
 
 export default class AccountServiceHedera implements IAccountService {
-    private readonly network: Network;
+    private readonly chainId: KnownChainIds;
     private readonly signer: Signer | null = null;
     private readonly apiService: ApiService;
     private readonly configService: ConfigService;
 
     constructor(
-        network: Network,
+        chainId: KnownChainIds,
         signer: Signer | null,
         apiService: ApiService,
         configService: ConfigService,
     ) {
-        this.network = network;
+        this.chainId = chainId;
         this.signer = signer;
         this.apiService = apiService;
         this.configService = configService;
@@ -199,7 +199,7 @@ export default class AccountServiceHedera implements IAccountService {
         let accounts: string[] = [];
 
         if (lookupNames) {
-            accounts = await this.apiService.getAccountsFromPublicKey(this.network, publicKey);
+            accounts = await this.apiService.getAccountsFromPublicKey(publicKey);
         }
 
         return  {
@@ -215,6 +215,6 @@ export default class AccountServiceHedera implements IAccountService {
     }
 
     private getClient() {
-        return this.network === Network.Testnet ? Client.forTestnet() : Client.forMainnet();
+        return ChainMap[this.chainId].isTestnet ? Client.forTestnet() : Client.forMainnet();
     }
 }

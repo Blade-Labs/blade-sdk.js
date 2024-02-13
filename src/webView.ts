@@ -7,6 +7,6 @@ if (window) window["bladeSdk"] = bladeContainer.get<BladeSDK>(BladeSDK);
 if (window) window["ParametersBuilder"] = ParametersBuilder;
 
 export { ParametersBuilder } from './ParametersBuilder';
-export { SdkEnvironment, ChainType } from './models/Common';
+export { SdkEnvironment } from './models/Common';
 export { BladeSDK } from './BladeSDK';
 export { bladeContainer }

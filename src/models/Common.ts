@@ -1,5 +1,6 @@
 import {MirrorNodeTransactionType} from "./TransactionType";
 import {ICryptoFlowQuote} from "./CryptoFlow";
+import {KnownChainIds} from "@/models/Chain";
 
 export enum SdkEnvironment {
     Prod = "Prod",
@@ -10,32 +11,6 @@ export enum SdkEnvironment {
 export enum AccountProvider {
     PrivateKey = "PrivateKey",
     Magic = "Magic",
-}
-
-export enum ChainType {
-    Hedera = "Hedera",
-    Ethereum = "Ethereum",
-}
-
-export enum KnownChain {
-    ETHEREUM_MAINNET,
-    ETHEREUM_SEPOLIA,
-    HEDERA_MAINNET,
-    HEDERA_TESTNET
-}
-
-export const KnownChainIds = {
-    [KnownChain.ETHEREUM_MAINNET]: "1",
-    [KnownChain.ETHEREUM_SEPOLIA]: "11155111",
-    [KnownChain.HEDERA_MAINNET]: "295",
-    [KnownChain.HEDERA_TESTNET]: "296"
-};
-
-export const KnownChainNames = {
-    [KnownChainIds[KnownChain.ETHEREUM_MAINNET]]: "Ethereum Mainnet",
-    [KnownChainIds[KnownChain.ETHEREUM_SEPOLIA]]: "Ethereum Sepolia",
-    [KnownChainIds[KnownChain.HEDERA_MAINNET]]: "Hedera Mainnet",
-    [KnownChainIds[KnownChain.HEDERA_TESTNET]]: "Hedera Testnet"
 }
 
 export enum KeyType {
@@ -130,7 +105,7 @@ export interface InfoData {
     apiKey: string,
     dAppCode: string,
     network: string,
-    chainType: ChainType,
+    chainId: KnownChainIds,
     visitorId: string,
     sdkEnvironment: SdkEnvironment,
     sdkVersion: string,

@@ -5,17 +5,20 @@ import {Signer} from "@hashgraph/sdk"
 
 import {
     AccountInfoData,
-    ChainType, CreateAccountData,
+    CreateAccountData,
     PrivateKeyData,
     TransactionReceiptData,
     TransactionsHistoryData
 } from "../models/Common";
+import {
+    ChainMap, ChainServiceStrategy,
+    KnownChainIds
+} from "../models/Chain";
 import AccountServiceHedera from "./hedera/AccountServiceHedera";
 import AccountServiceEthereum from "./ethereum/AccountServiceEthereum";
 import { ethers } from "ethers";
 import ApiService from "../services/ApiService";
 import ConfigService from "../services/ConfigService";
-import {Network} from "../models/Networks";
 import {NodeInfo} from "../models/MirrorNode";
 
 export interface IAccountService {
@@ -31,7 +34,7 @@ export interface IAccountService {
 
 @injectable()
 export default class AccountServiceContext implements IAccountService {
-    private chainType: ChainType | null = null;
+    private chainId: KnownChainIds | null = null;
     private signer: Signer | ethers.Signer | null = null
     private strategy: IAccountService | null = null;
 
@@ -40,19 +43,19 @@ export default class AccountServiceContext implements IAccountService {
         @inject('configService') private readonly configService: ConfigService,
     ) {}
 
-    init(chainType: ChainType, network: Network, signer: Signer | ethers.Signer | null) {
-        this.chainType = chainType;
+    init(chainId: KnownChainIds, signer: Signer | ethers.Signer | null) {
+        this.chainId = chainId;
         this.signer = signer; // may be null if BladeSDK.setUser() not called. Useful for createAccount() for example
 
-        switch (chainType) {
-            case ChainType.Hedera:
-                this.strategy = new AccountServiceHedera(network, signer as Signer | null, this.apiService, this.configService);
+        switch (ChainMap[this.chainId].serviceStrategy) {
+            case ChainServiceStrategy.Hedera:
+                this.strategy = new AccountServiceHedera(chainId, signer as Signer | null, this.apiService, this.configService);
                 break;
-            case ChainType.Ethereum:
-                this.strategy = new AccountServiceEthereum(network, signer as ethers.Signer | null, this.apiService, this.configService);
+            case ChainServiceStrategy.Ethereum:
+                this.strategy = new AccountServiceEthereum(chainId, signer as ethers.Signer | null, this.apiService, this.configService);
                 break;
             default:
-                throw new Error("Unsupported chain type");
+                throw new Error(`Unsupported chain id: ${this.chainId}`);
         }
     }
 

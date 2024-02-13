@@ -3,8 +3,9 @@ import 'reflect-metadata';
 
 import {Signer} from "@hashgraph/sdk"
 import {
-    ChainType, IntegrationUrlData, SwapQuotesData
+    IntegrationUrlData, SwapQuotesData
 } from "../models/Common";
+import {ChainMap, ChainServiceStrategy, KnownChainIds} from "../models/Chain";
 import TradeServiceHedera from "./hedera/TradeServiceHedera";
 import TradeServiceEthereum from "./ethereum/TradeServiceEthereum";
 import { ethers } from "ethers";
@@ -23,7 +24,7 @@ export interface ITradeService {
 
 @injectable()
 export default class TradeServiceContext implements ITradeService {
-    private chainType: ChainType | null = null;
+    private chainId: KnownChainIds | null = null;
     private signer: Signer | ethers.Signer | null = null
     private strategy: ITradeService | null = null;
 
@@ -33,19 +34,19 @@ export default class TradeServiceContext implements ITradeService {
         @inject('cryptoFlowService') private readonly cryptoFlowService: CryptoFlowService,
     ) {}
 
-    init(chainType: ChainType, network: Network, signer: Signer | ethers.Signer) {
-        this.chainType = chainType;
+    init(chainId: KnownChainIds, signer: Signer | ethers.Signer) {
+        this.chainId = chainId;
         this.signer = signer;
 
-        switch (chainType) {
-            case ChainType.Hedera:
-                this.strategy = new TradeServiceHedera(network, signer as Signer, this.apiService, this.configService, this.cryptoFlowService);
+        switch (ChainMap[this.chainId].serviceStrategy) {
+            case ChainServiceStrategy.Hedera:
+                this.strategy = new TradeServiceHedera(chainId, signer as Signer, this.apiService, this.configService, this.cryptoFlowService);
                 break;
-            case ChainType.Ethereum:
-                this.strategy = new TradeServiceEthereum(network, signer as ethers.Signer, this.apiService, this.configService);
+            case ChainServiceStrategy.Ethereum:
+                this.strategy = new TradeServiceEthereum(chainId, signer as ethers.Signer, this.apiService, this.configService);
                 break;
             default:
-                throw new Error("Unsupported chain type");
+                throw new Error(`Unsupported chain id: ${this.chainId}`);
         }
     }
 
@@ -71,7 +72,7 @@ export default class TradeServiceContext implements ITradeService {
 
     private checkInit() {
         if (!this.strategy) {
-            throw new Error("TokenService not initialized");
+            throw new Error("TradeService not initialized");
         }
     }
 }

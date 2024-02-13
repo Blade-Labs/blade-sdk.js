@@ -3,9 +3,13 @@ import 'reflect-metadata';
 
 import {Signer} from "@hashgraph/sdk"
 import {
-    ChainType, ContractCallQueryRecordsData,
+    ContractCallQueryRecordsData,
     TransactionReceiptData,
 } from "../models/Common";
+import {
+    ChainMap, ChainServiceStrategy,
+    KnownChainIds
+} from "../models/Chain";
 import ContractServiceHedera from "./hedera/ContractServiceHedera";
 import ContractServiceEthereum from "./ethereum/ContractServiceEthereum";
 import { ethers } from "ethers";
@@ -21,7 +25,7 @@ export interface IContractService {
 
 @injectable()
 export default class ContractServiceContext implements IContractService {
-    private chainType: ChainType | null = null;
+    private chainId: KnownChainIds | null = null;
     private signer: Signer | ethers.Signer | null = null
     private strategy: IContractService | null = null;
 
@@ -30,19 +34,19 @@ export default class ContractServiceContext implements IContractService {
         @inject('configService') private readonly configService: ConfigService,
     ) {}
 
-    init(chainType: ChainType, network: Network, signer: Signer | ethers.Signer) {
-        this.chainType = chainType;
+    init(chainId: KnownChainIds, signer: Signer | ethers.Signer) {
+        this.chainId = chainId;
         this.signer = signer;
 
-        switch (chainType) {
-            case ChainType.Hedera:
-                this.strategy = new ContractServiceHedera(network, signer as Signer, this.apiService, this.configService);
+        switch (ChainMap[this.chainId].serviceStrategy) {
+            case ChainServiceStrategy.Hedera:
+                this.strategy = new ContractServiceHedera(chainId, signer as Signer, this.apiService, this.configService);
                 break;
-            case ChainType.Ethereum:
-                this.strategy = new ContractServiceEthereum(network, signer as ethers.Signer, this.apiService, this.configService);
+            case ChainServiceStrategy.Ethereum:
+                this.strategy = new ContractServiceEthereum(chainId, signer as ethers.Signer, this.apiService, this.configService);
                 break;
             default:
-                throw new Error("Unsupported chain type");
+                throw new Error(`Unsupported chain id: ${this.chainId}`);
         }
     }
 
@@ -58,7 +62,7 @@ export default class ContractServiceContext implements IContractService {
 
     private checkInit() {
         if (!this.strategy) {
-            throw new Error("TokenService not initialized");
+            throw new Error("ContractService not initialized");
         }
     }
 }

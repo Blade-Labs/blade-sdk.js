@@ -20,7 +20,6 @@ import {
     AccountProvider,
     BalanceData,
     BridgeResponse,
-    ChainType,
     CoinData,
     CoinInfoData,
     CoinInfoRaw,
@@ -41,6 +40,7 @@ import {
     TransactionsHistoryData,
     UserInfoData
 } from "./models/Common";
+import {ChainMap, ChainServiceStrategy} from "./models/Chain";
 import config from "./config";
 import {ParametersBuilder} from "./ParametersBuilder";
 import {CryptoFlowServiceStrategy} from "./models/CryptoFlow";
@@ -57,14 +57,15 @@ import AccountServiceContext from "./strategies/AccountServiceContext";
 import SignServiceContext from "./strategies/SignServiceContext";
 import ContractServiceContext from "./strategies/ContractServiceContext";
 import TradeServiceContext from "./strategies/TradeServiceContext";
+import {KnownChainIds} from "@/models/Chain";
 
 @injectable()
 export class BladeSDK {
     // todo update method annotations
 
     private apiKey: string = "";
-    private network: Network = Network.Testnet;
-    private chainType: ChainType = ChainType.Hedera;
+    private network: Network;
+    private chainId: KnownChainIds;
     private dAppCode: string = "";
     private visitorId: string = "";
     private sdkEnvironment: SdkEnvironment = SdkEnvironment.Prod;
@@ -81,22 +82,22 @@ export class BladeSDK {
      * BladeSDK constructor.
      * @param configService - instance of ConfigService
      * @param apiService - instance of ApiService
-     * @param accountService - instance of AccountServiceContext
-     * @param tokenService - instance of TokenServiceContext
-     * @param signService - instance of SignServiceContext
-     * @param contractService - instance of ContractServiceContext
-     * @param tradeService - instance of TradeServiceContext
+     * @param accountServiceContext - instance of AccountServiceContext
+     * @param tokenServiceContext - instance of TokenServiceContext
+     * @param signServiceContext - instance of SignServiceContext
+     * @param contractServiceContext - instance of ContractServiceContext
+     * @param tradeServiceContext - instance of TradeServiceContext
      * @param cryptoFlowService - instance of CryptoFlowService
      * @param isWebView - true if you are using this SDK in webview of native app. It changes the way of communication with native app.
      */
     constructor(
         @inject('configService') private readonly configService: ConfigService,
         @inject('apiService') private readonly apiService: ApiService,
-        @inject('accountService') private readonly accountService: AccountServiceContext,
-        @inject('tokenService') private readonly tokenService: TokenServiceContext,
-        @inject('signService') private readonly signService: SignServiceContext,
-        @inject('contractService') private readonly contractService: ContractServiceContext,
-        @inject('tradeService') private readonly tradeService: TradeServiceContext,
+        @inject('accountServiceContext') private readonly accountServiceContext: AccountServiceContext,
+        @inject('tokenServiceContext') private readonly tokenServiceContext: TokenServiceContext,
+        @inject('signServiceContext') private readonly signServiceContext: SignServiceContext,
+        @inject('contractServiceContext') private readonly contractServiceContext: ContractServiceContext,
+        @inject('tradeServiceContext') private readonly tradeServiceContext: TradeServiceContext,
 
         @inject('cryptoFlowService') private readonly cryptoFlowService: CryptoFlowService,
         @inject("isWebView") private readonly isWebView: boolean
@@ -105,10 +106,9 @@ export class BladeSDK {
     }
 
     /**
-     * Inits instance of BladeSDK for correct work with Blade API and Hedera network.
+     * Inits instance of BladeSDK for correct work with Blade API and other endpoints.
      * @param apiKey Unique key for API provided by Blade team.
-     * @param chainType "Hedera" or "Ethereum"
-     * @param network "Mainnet" or "Testnet" of Hedera network
+     * @param chainId https://github.com/ethereum-lists/chains
      * @param dAppCode your dAppCode - request specific one by contacting us
      * @param visitorId client unique id. If not provided, SDK will try to get it using fingerprintjs-pro library
      * @param sdkEnvironment environment to choose BladeAPI server (Prod, CI)
@@ -118,8 +118,7 @@ export class BladeSDK {
      */
     async init(
         apiKey: string,
-        chainType: string | ChainType, // TODO replace with ChainId and remove Network
-        network: string | Network,
+        chainId: string | KnownChainIds, // TODO replace with ChainId and remove Network
         dAppCode: string,
         visitorId: string,
         sdkEnvironment: SdkEnvironment = SdkEnvironment.Prod,
@@ -127,8 +126,8 @@ export class BladeSDK {
         completionKey?: string
     ): Promise<InfoData> {
         this.apiKey = apiKey;
-        this.network = StringHelpers.stringToNetwork(network);
-        this.chainType = StringHelpers.stringToChainType(chainType);
+        this.chainId = StringHelpers.stringToChainId(chainId);
+        this.network = ChainMap[this.chainId].isTestnet ? Network.Testnet : Network.Mainnet;
         this.dAppCode = dAppCode;
         this.sdkEnvironment = sdkEnvironment;
         this.sdkVersion = sdkVersion;
@@ -137,9 +136,8 @@ export class BladeSDK {
         // TODO
         // set account on init
         // remove accountId and privateKey fields from methods
-        // on init also set network by KnownChainId
 
-        this.apiService.initApiService(apiKey, dAppCode, sdkEnvironment, sdkVersion, this.network, this.chainType, visitorId);
+        this.apiService.initApiService(apiKey, dAppCode, sdkEnvironment, sdkVersion, this.chainId, visitorId);
         if (!this.visitorId) {
             try {
                 const [decryptedVisitorId, timestamp] = (await decrypt(localStorage.getItem("BladeSDK.visitorId") || "", this.apiKey)).split("@");
@@ -167,7 +165,7 @@ export class BladeSDK {
             }
         }
         this.apiService.setVisitorId(this.visitorId);
-        this.accountService.init(this.chainType, this.network, null); // init without signer, to be able to create account
+        this.accountServiceContext.init(this.chainId, null); // init without signer, to be able to create account
 
         return this.sendMessageToNative(completionKey, this.getInfoData());
     }
@@ -189,14 +187,14 @@ export class BladeSDK {
         try {
             switch (accountProvider) {
                 case AccountProvider.PrivateKey:
-                    if (this.chainType === ChainType.Hedera) {
+                    if (ChainMap[this.chainId].serviceStrategy === ChainServiceStrategy.Hedera) {
                         const key = PrivateKey.fromString(privateKey!);
                         this.userAccountId = accountIdOrEmail;
                         this.userPrivateKey = privateKey!;
                         this.userPublicKey = key.publicKey.toStringDer();
                         const provider = new HederaProvider({client: this.getClient()})
                         this.signer = new HederaSigner(this.userAccountId, key, provider);
-                    } else if (this.chainType === ChainType.Ethereum) {
+                    } else if (ChainMap[this.chainId].serviceStrategy === ChainServiceStrategy.Ethereum) {
                         const key = PrivateKey.fromStringECDSA(privateKey!);
                         this.userPrivateKey = `0x${key.toStringRaw()}`;
                         this.userPublicKey = `0x${key.publicKey.toStringRaw()}`;
@@ -207,12 +205,14 @@ export class BladeSDK {
 
                         const provider = new ethers.providers.JsonRpcProvider(alchemyRpc + alchemyApiKey);
                         this.signer = new ethers.Wallet(this.userPrivateKey, provider);
+                    } else {
+                        throw new Error('Unsupported chain');
                     }
                     break;
                 case AccountProvider.Magic:
                     let userInfo;
                     if (!this.magic) {
-                        await this.initMagic(this.chainType);
+                        await this.initMagic(this.chainId);
                     }
 
                     if (await this.magic?.user.isLoggedIn()) {
@@ -232,12 +232,12 @@ export class BladeSDK {
                     }
 
                     this.userAccountId = userInfo.publicAddress;
-                    if (this.chainType === ChainType.Hedera) {
+                    if (ChainMap[this.chainId].serviceStrategy === ChainServiceStrategy.Hedera) {
                         const { publicKeyDer } = await this.magic.hedera.getPublicKey();
                         this.userPublicKey = publicKeyDer;
                         const magicSign = (message: any) => this.magic.hedera.sign(message);
                         this.signer = new MagicSigner(this.userAccountId, this.network, publicKeyDer, magicSign);
-                    } else if (this.chainType === ChainType.Ethereum) {
+                    } else if (ChainMap[this.chainId].serviceStrategy === ChainServiceStrategy.Ethereum) {
                         const provider = new ethers.providers.Web3Provider(this.magic.rpcProvider);
                         this.signer = provider.getSigner();
                         // TODO check how to get public key from magic
@@ -247,11 +247,11 @@ export class BladeSDK {
                 default:
                     break;
             }
-            this.tokenService.init(this.chainType, this.network, this.signer!);
-            this.accountService.init(this.chainType, this.network, this.signer!);
-            this.signService.init(this.chainType, this.network, this.signer!);
-            this.contractService.init(this.chainType, this.network, this.signer!);
-            this.tradeService.init(this.chainType, this.network, this.signer!);
+            this.tokenServiceContext.init(this.chainId, this.signer!);
+            this.accountServiceContext.init(this.chainId, this.signer!);
+            this.signServiceContext.init(this.chainId, this.signer!);
+            this.contractServiceContext.init(this.chainId, this.signer!);
+            this.tradeServiceContext.init(this.chainId, this.signer!);
             this.accountProvider = accountProvider;
 
             return this.sendMessageToNative(completionKey, {
@@ -279,7 +279,7 @@ export class BladeSDK {
             this.signer = null;
             if (this.accountProvider === AccountProvider.Magic) {
                 if (!this.magic) {
-                    await this.initMagic(this.chainType);
+                    await this.initMagic(this.chainId);
                 }
                 await this.magic.user.logout();
             }
@@ -305,7 +305,7 @@ export class BladeSDK {
             if (!accountId) {
                 accountId = this.getUser().accountId;
             }
-            return this.sendMessageToNative(completionKey, await this.tokenService.getBalance(accountId));
+            return this.sendMessageToNative(completionKey, await this.tokenServiceContext.getBalance(accountId));
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
         }
@@ -321,7 +321,7 @@ export class BladeSDK {
      */
     async transferBalance(receiverId: string, amount: string, memo: string, completionKey?: string): Promise<TransactionResponseData> {
         try {
-            const result = await this.tokenService.transferBalance({
+            const result = await this.tokenServiceContext.transferBalance({
                 from: this.userAccountId,
                 to: receiverId,
                 amount,
@@ -414,7 +414,7 @@ export class BladeSDK {
         completionKey?: string
     ): Promise<TransactionReceiptData> {
         try {
-            const result = await this.contractService.contractCallFunction(contractId, functionName, paramsEncoded, gas, bladePayFee);
+            const result = await this.contractServiceContext.contractCallFunction(contractId, functionName, paramsEncoded, gas, bladePayFee);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -441,7 +441,7 @@ export class BladeSDK {
         resultTypes: string[],
         completionKey?: string): Promise<ContractCallQueryRecordsData> {
         try {
-            const result = await this.contractService.contractCallQueryFunction(contractId, functionName, paramsEncoded, gas, bladePayFee, resultTypes);
+            const result = await this.contractServiceContext.contractCallQueryFunction(contractId, functionName, paramsEncoded, gas, bladePayFee, resultTypes);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -468,7 +468,7 @@ export class BladeSDK {
     ): Promise<TransactionResponseData> {
         try {
             // TODO send NFT for Ethereum tokens
-            const result = await this.tokenService.transferToken({
+            const result = await this.tokenServiceContext.transferToken({
                 from: this.userAccountId,
                 to: receiverId,
                 amountOrSerial,
@@ -492,7 +492,7 @@ export class BladeSDK {
      */
     async createAccount(deviceId?: string, completionKey?: string): Promise<CreateAccountData> {
         try {
-            const result = await this.accountService.createAccount(deviceId);
+            const result = await this.accountServiceContext.createAccount(deviceId);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -510,7 +510,7 @@ export class BladeSDK {
      */
     async getPendingAccount(transactionId: string, mnemonic: string, completionKey?: string): Promise<CreateAccountData> {
         try {
-            const result = await this.accountService.getPendingAccount(transactionId, mnemonic);
+            const result = await this.accountServiceContext.getPendingAccount(transactionId, mnemonic);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -527,7 +527,7 @@ export class BladeSDK {
      */
     async deleteAccount(deleteAccountId: string, deletePrivateKey: string, transferAccountId: string, completionKey?: string): Promise<TransactionReceiptData> {
         try {
-            const result = await this.accountService.deleteAccount(deleteAccountId, deletePrivateKey, transferAccountId);
+            const result = await this.accountServiceContext.deleteAccount(deleteAccountId, deletePrivateKey, transferAccountId);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -547,7 +547,7 @@ export class BladeSDK {
             if (!accountId) {
                 accountId = this.userAccountId;
             }
-            const result = await this.accountService.getAccountInfo(accountId);
+            const result = await this.accountServiceContext.getAccountInfo(accountId);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -561,7 +561,7 @@ export class BladeSDK {
      */
     async getNodeList(completionKey?: string): Promise<{nodes: NodeInfo[]}> {
         try {
-            const result = await this.accountService.getNodeList();
+            const result = await this.accountServiceContext.getNodeList();
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -576,7 +576,7 @@ export class BladeSDK {
      */
     async stakeToNode(nodeId: number, completionKey?: string): Promise<TransactionReceiptData> {
         try {
-            const result = await this.accountService.stakeToNode(this.userAccountId, nodeId);
+            const result = await this.accountServiceContext.stakeToNode(this.userAccountId, nodeId);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -594,7 +594,7 @@ export class BladeSDK {
      */
     async getKeysFromMnemonic(mnemonicRaw: string, lookupNames: boolean, completionKey?: string): Promise<PrivateKeyData> {
         try {
-            const result = await this.accountService.getKeysFromMnemonic(mnemonicRaw, lookupNames);
+            const result = await this.accountServiceContext.getKeysFromMnemonic(mnemonicRaw, lookupNames);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -611,7 +611,7 @@ export class BladeSDK {
     async sign(messageString: string, privateKey: string, completionKey?: string): Promise<SignMessageData> {
         // TODO add `encoding` argument (hex/base64/string)
         try {
-            const result = await this.signService.sign(messageString, privateKey);
+            const result = await this.signServiceContext.sign(messageString, privateKey);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -628,7 +628,7 @@ export class BladeSDK {
      */
     async signVerify(messageString: string, signature: string, publicKey: string, completionKey?: string): Promise<SignVerifyMessageData> {
         try {
-            const result = await this.signService.signVerify(messageString, signature, publicKey);
+            const result = await this.signServiceContext.signVerify(messageString, signature, publicKey);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -644,7 +644,7 @@ export class BladeSDK {
      */
     ethersSign(messageString: string, privateKey: string, completionKey?: string): Promise<SignMessageData> {
         try {
-            const result = this.signService.ethersSign(messageString, privateKey);
+            const result = this.signServiceContext.ethersSign(messageString, privateKey);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -660,7 +660,7 @@ export class BladeSDK {
      */
     async splitSignature(signature: string, completionKey?: string): Promise<SplitSignatureData> {
         try {
-            return this.sendMessageToNative(completionKey, await this.signService.splitSignature(signature));
+            return this.sendMessageToNative(completionKey, await this.signServiceContext.splitSignature(signature));
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
         }
@@ -675,7 +675,7 @@ export class BladeSDK {
      */
     async getParamsSignature(paramsEncoded: string | ParametersBuilder, privateKey: string, completionKey?: string): Promise<SplitSignatureData> {
         try {
-            const result = await this.signService.getParamsSignature(paramsEncoded, privateKey);
+            const result = await this.signServiceContext.getParamsSignature(paramsEncoded, privateKey);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -699,7 +699,7 @@ export class BladeSDK {
             if (!accountId) {
                 accountId = this.userAccountId;
             }
-            const result = await this.accountService.getTransactions(accountId, transactionType, nextPage, transactionsLimit);
+            const result = await this.accountServiceContext.getTransactions(accountId, transactionType, nextPage, transactionsLimit);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -716,7 +716,7 @@ export class BladeSDK {
      */
     async getC14url(asset: string, account: string, amount: string, completionKey?: string): Promise<IntegrationUrlData> {
         try {
-            const result = await this.tradeService.getC14url(asset, account, amount);
+            const result = await this.tradeServiceContext.getC14url(asset, account, amount);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -740,7 +740,7 @@ export class BladeSDK {
         completionKey?: string
     ):Promise<SwapQuotesData> {
         try {
-            const result = await this.tradeService.exchangeGetQuotes(sourceCode, sourceAmount, targetCode, strategy);
+            const result = await this.tradeServiceContext.exchangeGetQuotes(sourceCode, sourceAmount, targetCode, strategy);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -766,7 +766,7 @@ export class BladeSDK {
         completionKey?: string
     ): Promise<{success: boolean}> {
         try {
-            const result = await this.tradeService.swapTokens(this.userAccountId, sourceCode, sourceAmount, targetCode, slippage, serviceId);
+            const result = await this.tradeServiceContext.swapTokens(this.userAccountId, sourceCode, sourceAmount, targetCode, slippage, serviceId);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -796,7 +796,7 @@ export class BladeSDK {
         completionKey?: string
     ): Promise<IntegrationUrlData> {
         try {
-            const result = await this.tradeService.getTradeUrl(strategy, accountId, sourceCode, sourceAmount, targetCode, slippage, serviceId);
+            const result = await this.tradeServiceContext.getTradeUrl(strategy, accountId, sourceCode, sourceAmount, targetCode, slippage, serviceId);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -826,7 +826,7 @@ export class BladeSDK {
         completionKey?: string
     ): Promise<{tokenId: string}> {
         try {
-            const result = await this.tokenService.createToken(tokenName, tokenSymbol, isNft, this.userAccountId, this.userPublicKey, keys, decimals, initialSupply, maxSupply);
+            const result = await this.tokenServiceContext.createToken(tokenName, tokenSymbol, isNft, this.userAccountId, this.userPublicKey, keys, decimals, initialSupply, maxSupply);
             return this.sendMessageToNative(completionKey, result, null);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -844,7 +844,7 @@ export class BladeSDK {
         completionKey?: string
     ): Promise<TransactionReceiptData> {
         try {
-            const result = await this.tokenService.associateToken(tokenId, this.userAccountId!);
+            const result = await this.tokenServiceContext.associateToken(tokenId, this.userAccountId!);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -868,20 +868,20 @@ export class BladeSDK {
         completionKey?: string
     ): Promise<TransactionReceiptData> {
         try {
-            const result = await this.tokenService.nftMint(tokenId, file, metadata, storageConfig);
+            const result = await this.tokenServiceContext.nftMint(tokenId, file, metadata, storageConfig);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
-    private async initMagic(chainType: ChainType) {
+    private async initMagic(chainId: KnownChainIds) {
         const options: MagicSDKAdditionalConfiguration = {};
-        if (chainType === ChainType.Hedera) {
+        if (ChainMap[chainId].serviceStrategy === ChainServiceStrategy.Hedera) {
             options.extensions = [new HederaExtension({
                 network: this.network.toLowerCase()
             })];
-        } else if (chainType === ChainType.Ethereum) {
+        } else if (ChainMap[chainId].serviceStrategy === ChainServiceStrategy.Ethereum) {
             options.network = StringHelpers.networkToEthereum(this.network);
         }
         this.magic = new Magic(await this.configService.getConfig(`magicLinkPublicKey`), options);
@@ -904,7 +904,7 @@ export class BladeSDK {
             apiKey: this.apiKey,
             dAppCode: this.dAppCode,
             network: this.network,
-            chainType: this.chainType,
+            chainId: this.chainId,
             visitorId: this.visitorId,
             sdkEnvironment: this.sdkEnvironment,
             sdkVersion: this.sdkVersion,

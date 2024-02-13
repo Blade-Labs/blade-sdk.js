@@ -2,24 +2,24 @@ import {ethers} from "ethers"
 
 import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
-import {Network} from "../../models/Networks";
 import {ITradeService} from "../TradeServiceContext";
 import {IntegrationUrlData, SwapQuotesData} from "../../models/Common";
 import {CryptoFlowServiceStrategy} from "../../models/CryptoFlow";
+import {KnownChainIds} from "@/models/Chain";
 
 export default class TradeServiceEthereum implements ITradeService {
-    private readonly network: Network;
+    private readonly chainId: KnownChainIds;
     private readonly signer: ethers.Signer;
     private readonly apiService: ApiService;
     private readonly configService: ConfigService;
 
     constructor(
-        network: Network,
+        chainId: KnownChainIds,
         signer: ethers.Signer,
         apiService: ApiService,
         configService: ConfigService
     ) {
-        this.network = network;
+        this.chainId = chainId;
         this.signer = signer;
         this.apiService = apiService;
         this.configService = configService;

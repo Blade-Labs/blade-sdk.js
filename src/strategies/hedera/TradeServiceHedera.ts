@@ -1,9 +1,9 @@
 import {Signer} from "@hashgraph/sdk";
 
-import {C14WidgetConfig, IntegrationUrlData, KnownChain, KnownChainIds, SwapQuotesData} from "../../models/Common";
+import {C14WidgetConfig, IntegrationUrlData, SwapQuotesData} from "../../models/Common";
+import {ChainMap, KnownChainIds} from "../../models/Chain";
 import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
-import {Network} from "../../models/Networks";
 import {ITradeService} from "../TradeServiceContext";
 import {
     CryptoFlowRoutes,
@@ -16,20 +16,20 @@ import {
 import CryptoFlowService from "../../services/CryptoFlowService";
 
 export default class TradeServiceHedera implements ITradeService {
-    private readonly network: Network;
+    private readonly chainId: KnownChainIds;
     private readonly signer: Signer;
     private readonly apiService: ApiService;
     private readonly configService: ConfigService;
     private readonly cryptoFlowService: CryptoFlowService;
 
     constructor(
-        network: Network,
+        chainId: KnownChainIds,
         signer: Signer,
         apiService: ApiService,
         configService: ConfigService,
         cryptoFlowService: CryptoFlowService,
     ) {
-        this.network = network;
+        this.chainId = chainId;
         this.signer = signer;
         this.apiService = apiService;
         this.configService = configService;
@@ -88,8 +88,7 @@ export default class TradeServiceHedera implements ITradeService {
     }
 
     async exchangeGetQuotes(sourceCode: string, sourceAmount: number, targetCode: string, strategy: CryptoFlowServiceStrategy):Promise<SwapQuotesData> {
-        const useTestnet = this.network === Network.Testnet;
-        const chainId = parseInt(KnownChainIds[useTestnet ? KnownChain.HEDERA_TESTNET : KnownChain.HEDERA_MAINNET], 10);
+        const useTestnet = ChainMap[this.chainId].isTestnet;
         const params: ICryptoFlowAssetsParams | ICryptoFlowQuoteParams | ICryptoFlowTransactionParams | any = {
             sourceCode,
             sourceAmount,
@@ -99,11 +98,11 @@ export default class TradeServiceHedera implements ITradeService {
 
         switch (strategy.toLowerCase()) {
             case CryptoFlowServiceStrategy.BUY.toLowerCase(): {
-                params.targetChainId = chainId;
+                params.targetChainId = this.chainId;
                 break;
             }
             case CryptoFlowServiceStrategy.SELL.toLowerCase(): {
-                params.sourceChainId = chainId;
+                params.sourceChainId = this.chainId;
                 const assets = await this.apiService.getCryptoFlowData(
                     CryptoFlowRoutes.ASSETS,
                     params,
@@ -116,8 +115,8 @@ export default class TradeServiceHedera implements ITradeService {
                 break;
             }
             case CryptoFlowServiceStrategy.SWAP.toLowerCase(): {
-                params.sourceChainId = chainId;
-                params.targetChainId = chainId;
+                params.sourceChainId = this.chainId;
+                params.targetChainId = this.chainId;
                 break;
 
             }
@@ -132,16 +131,15 @@ export default class TradeServiceHedera implements ITradeService {
     }
 
     async swapTokens(accountAddress: string, sourceCode: string, sourceAmount: number, targetCode: string, slippage: number, serviceId: string): Promise<{success: boolean}> {
-        const useTestnet = this.network === Network.Testnet;
-        const chainId = KnownChainIds[useTestnet ? KnownChain.HEDERA_TESTNET : KnownChain.HEDERA_MAINNET];
+        const useTestnet = ChainMap[this.chainId].isTestnet;
         const quotes = await this.apiService.getCryptoFlowData(
             CryptoFlowRoutes.QUOTES,
             {
                 sourceCode,
-                sourceChainId: chainId,
+                sourceChainId: this.chainId,
                 sourceAmount,
                 targetCode,
-                targetChainId: chainId,
+                targetChainId: this.chainId,
                 useTestnet,
             },
             CryptoFlowServiceStrategy.SWAP
@@ -156,11 +154,11 @@ export default class TradeServiceHedera implements ITradeService {
             {
                 serviceId,
                 sourceCode,
-                sourceChainId: chainId,
+                sourceChainId: this.chainId,
                 sourceAddress: selectedQuote.source.asset.address,
                 sourceAmount,
                 targetCode,
-                targetChainId: chainId,
+                targetChainId: this.chainId,
                 targetAddress: selectedQuote.target.asset.address,
                 walletAddress: accountAddress,
                 slippage,
@@ -169,14 +167,14 @@ export default class TradeServiceHedera implements ITradeService {
         ) as ICryptoFlowTransaction;
 
         if (await this.cryptoFlowService.validateMessage(txData)) {
-            await this.cryptoFlowService.executeAllowanceApprove(selectedQuote, accountAddress, this.network, this.signer!, true);
+            await this.cryptoFlowService.executeAllowanceApprove(selectedQuote, accountAddress, this.chainId, this.signer!, true);
             try {
                 await this.cryptoFlowService.executeHederaSwapTx(txData.calldata, this.signer!);
             } catch (e) {
-                await this.cryptoFlowService.executeAllowanceApprove(selectedQuote, accountAddress, this.network, this.signer!, false);
+                await this.cryptoFlowService.executeAllowanceApprove(selectedQuote, accountAddress, this.chainId, this.signer!, false);
                 throw e
             }
-            await this.cryptoFlowService.executeHederaBladeFeeTx(selectedQuote, accountAddress, this.network, this.signer!);
+            await this.cryptoFlowService.executeHederaBladeFeeTx(selectedQuote, accountAddress, this.chainId, this.signer!);
         } else {
             throw new Error("Invalid signature of txData");
         }
@@ -184,8 +182,8 @@ export default class TradeServiceHedera implements ITradeService {
     }
 
     async getTradeUrl(strategy: CryptoFlowServiceStrategy, accountId: string, sourceCode: string, sourceAmount: number, targetCode: string, slippage: number, serviceId: string): Promise<IntegrationUrlData> {
-        const useTestnet = this.network === Network.Testnet;
-        const chainId = KnownChainIds[useTestnet ? KnownChain.HEDERA_TESTNET : KnownChain.HEDERA_MAINNET];
+        const useTestnet = ChainMap[this.chainId].isTestnet;
+
         const params: ICryptoFlowAssetsParams | ICryptoFlowQuoteParams | ICryptoFlowTransactionParams | any = {
             sourceCode,
             sourceAmount,
@@ -197,11 +195,11 @@ export default class TradeServiceHedera implements ITradeService {
 
         switch (strategy.toLowerCase()) {
             case CryptoFlowServiceStrategy.BUY.toLowerCase(): {
-                params.targetChainId = chainId;
+                params.targetChainId = this.chainId;
                 break;
             }
             case CryptoFlowServiceStrategy.SELL.toLowerCase(): {
-                params.sourceChainId = chainId;
+                params.sourceChainId = this.chainId;
                 const assets = await this.apiService.getCryptoFlowData(
                     CryptoFlowRoutes.ASSETS,
                     params,

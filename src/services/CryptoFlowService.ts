@@ -13,6 +13,7 @@ import {Network} from "../models/Networks";
 import FeeService, {HbarTokenId} from "./FeeService";
 import ConfigService from "./ConfigService";
 import {flatArray} from "../helpers/ArrayHelpers";
+import {ChainMap, KnownChainIds} from "../models/Chain";
 
 @injectable()
 export default class CryptoFlowService {
@@ -21,7 +22,9 @@ export default class CryptoFlowService {
         @inject('feeService') private readonly feeService: FeeService,
     ) {}
 
-    async executeAllowanceApprove(selectedQuote: ICryptoFlowQuote, activeAccount: string, network: Network, signer: Signer, approve: boolean = true): Promise<void> {
+    async executeAllowanceApprove(selectedQuote: ICryptoFlowQuote, activeAccount: string, chainId: KnownChainIds, signer: Signer, approve: boolean = true): Promise<void> {
+        const network = ChainMap[chainId].isTestnet ? Network.Testnet : Network.Mainnet;
+
         const sourceToken = selectedQuote.source.asset;
         if (!sourceToken.address)
             return;
@@ -71,14 +74,14 @@ export default class CryptoFlowService {
         }
     }
 
-    async executeHederaBladeFeeTx(selectedQuote: ICryptoFlowQuote, activeAccount: string, network: Network, signer: Signer) {
+    async executeHederaBladeFeeTx(selectedQuote: ICryptoFlowQuote, activeAccount: string, chainId: KnownChainIds, signer: Signer) {
         const feeOptions: FeeManualOptions = {
             type: FeeType.Swap,
             amount: BigNumber(selectedQuote.source.amountExpected),
             amountTokenId: selectedQuote.source.asset.address as string
         };
         let transaction = await this.feeService.createFeeTransaction(
-            network,
+            chainId,
             activeAccount,
             feeOptions
         );
