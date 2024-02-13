@@ -158,8 +158,14 @@ export interface CreateAccountData {
 
 export interface AccountInfoData {
     accountId: string,
+    publicKey: string,
     evmAddress: string,
-    calculatedEvmAddress: string
+    stakingInfo: {
+        pendingReward: number,
+        stakedNodeId: number | null,
+        stakePeriodStart: string | null,
+    },
+    calculatedEvmAddress?: string
 }
 
 export interface PrivateKeyData {
