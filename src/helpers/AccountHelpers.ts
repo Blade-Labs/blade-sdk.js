@@ -11,11 +11,11 @@ export const executeUpdateAccountTransactions = async (
     transactionBytes: string
 ): Promise<void> => {
     if (updateAccountTransactionBytes) {
+        const buffer = Buffer.from(updateAccountTransactionBytes, "base64");
+        const transaction = await Transaction.fromBytes(buffer).sign(privateKey);
+        const response = await transaction.execute(client);
         let attemptsLeft = 3;
         while (attemptsLeft-- > 0) {
-            const buffer = Buffer.from(updateAccountTransactionBytes, "base64");
-            const transaction = await Transaction.fromBytes(buffer).sign(privateKey);
-            const response = await transaction.execute(client);
             const receipt = await response.getReceipt(client);
             if (receipt.status === Status.Success) {
                 break;
@@ -28,13 +28,13 @@ export const executeUpdateAccountTransactions = async (
     }
 
     if (transactionBytes) {
+        const buffer = Buffer.from(transactionBytes, "base64");
+        const transaction = await Transaction.fromBytes(buffer).sign(privateKey);
+        const response = await transaction.execute(client);
+
         let attemptsLeft = 3;
         while (attemptsLeft-- > 0) {
-            const buffer = Buffer.from(transactionBytes, "base64");
-            const transaction = await Transaction.fromBytes(buffer).sign(privateKey);
-            const response = await transaction.execute(client);
             const receipt = await response.getReceipt(client);
-
             if (receipt.status === Status.Success) {
                 break;
             }
