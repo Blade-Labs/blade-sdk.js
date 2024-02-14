@@ -31,6 +31,7 @@ import {
     getAccountBalance,
     getAccountInfo,
     getAccountsFromPublicKey,
+    getApiUrl,
     getBladeConfig,
     getC14token,
     getCoinInfo,
@@ -109,6 +110,7 @@ import {Magic} from 'magic-sdk';
 import {HederaExtension} from '@magic-ext/hedera';
 import {MagicSigner} from "./signers/magic/MagicSigner";
 import {HederaProvider, HederaSigner} from "./signers/hedera";
+import {getConfig} from "./services/ConfigService";
 
 export class BladeSDK {
     private apiKey: string = "";
@@ -164,17 +166,26 @@ export class BladeSDK {
         initApiService(apiKey, dAppCode, sdkEnvironment, sdkVersion, this.network, visitorId);
         if (!this.visitorId) {
             try {
-                this.visitorId = await decrypt(localStorage.getItem("BladeSDK.visitorId") || "", this.apiKey);
+                const [decryptedVisitorId, timestamp] = (await decrypt(localStorage.getItem("BladeSDK.visitorId") || "", this.apiKey)).split("@");
+                this.visitorId = decryptedVisitorId;
             } catch (e) {
                 // console.log("failed to decrypt visitor id", e);
             }
         }
         if (!this.visitorId) {
             try {
-                await this.fetchBladeConfig();
-                const fpPromise = await FingerprintJS.load({ apiKey: this.config?.fpApiKey! })
+                const fpConfig = {
+                    apiKey: "key", // the valid key is passed on the backend side, and ".get()" does not require the key as well
+                    scriptUrlPattern: `${getApiUrl(true)}/fpjs/<version>/<loaderVersion>`,
+                    endpoint: [
+                        'https://identity.bladewallet.io',
+                        FingerprintJS.defaultEndpoint
+                    ]
+                };
+
+                const fpPromise = await FingerprintJS.load(fpConfig)
                 this.visitorId = (await fpPromise.get()).visitorId;
-                localStorage.setItem("BladeSDK.visitorId", await encrypt(this.visitorId, this.apiKey));
+                localStorage.setItem("BladeSDK.visitorId", await encrypt(`${this.visitorId}@${Date.now()}`, this.apiKey));
             } catch (error) {
                 console.log("failed to get visitor id", error);
             }
@@ -431,6 +442,7 @@ export class BladeSDK {
             if (accountId && accountPrivateKey) {
                 await this.setUser(AccountProvider.Hedera, accountId, accountPrivateKey);
             }
+            bladePayFee = bladePayFee && (await getConfig("smartContract")).toLowerCase() === "true";
             const contractFunctionParameters = await getContractFunctionBytecode(functionName, paramsEncoded);
 
             let transaction: Transaction;
@@ -583,6 +595,7 @@ export class BladeSDK {
                 isNFT = true;
                 freeTransfer = false;
             }
+            freeTransfer = freeTransfer && (await getConfig("freeTransfer")).toLowerCase() === "true";
 
             const correctedAmount = parseFloat(amountOrSerial) * (10 ** parseInt(meta.decimals, 10));
 
@@ -689,6 +702,8 @@ export class BladeSDK {
                     network: this.network,
                     visitorId: this.visitorId,
                     dAppCode: this.dAppCode
+                }).catch(() => {
+                    // ignore this error, continue
                 });
             }
 

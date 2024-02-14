@@ -46,11 +46,18 @@ npm i @bladelabs/blade-sdk.js
 ## Usage
 
 ```
-import {BladeSDK} from '@bladelabs/blade-sdk.js';
+import {BladeSDK, SdkEnvironment} from '@bladelabs/blade-sdk.js';
 
 ...
+
+const apiKey ="ygUgCzRrsvhWmb3dsLcApGnApSZ4tk8hBCmZqg9BngpuQYKsnD5m9FjfPV3tVBeB" // provided by BladeLabs team
+const network = "Mainnet"; // or "Testnet"
+const dAppCode = "your-dApp-code"; // provided by BladeLabs team
+const visitorId = ""; // provide empty string and SDK will generate a new one. Otherwise consult with BladeLabs team first
+const environment = SdkEnvironment.Prod; // or SdkEnvironment.CI
+
 const bladeSDK = new BladeSDK();
-await bladeSDK.init("Blade apiKey", "testnet", "dAppCode", "client unique fingerprint or empty string", "Prod");
+await bladeSDK.init(apiKey, network, dAppCode, visitorId, environment)
 const balance = await bladeSDK.getBalance("0.0.8235");
 console.log(balance);
 ```

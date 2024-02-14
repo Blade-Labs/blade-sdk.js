@@ -60,15 +60,16 @@ const getTvteHeader = async () => {
     return `${platform}@${encryptedVersion}`;
 }
 
-const getApiUrl = (): string => {
+export const getApiUrl = (isPublic = false): string => {
+    const publicPart = isPublic ? "/public" : "";
     if (environment === SdkEnvironment.Prod) {
-        return "https://rest.prod.bladewallet.io/openapi/v7";
+        return `https://rest.prod.bladewallet.io/openapi${publicPart}/v7`;
     }
     if (process.env.NODE_ENV === "test" && environment === SdkEnvironment.Test) {
-        return "https://localhost:8080/openapi/v7";
+        return `https://localhost:8080/openapi${publicPart}/v7`;
     }
     // CI
-    return "https://api.bld-dev.bladewallet.io/openapi/v7";
+    return `https://api.bld-dev.bladewallet.io/openapi${publicPart}/v7`;
 }
 
 const fetchWithRetry = async (url: string, options: RequestInit, maxAttempts = 3) => {
@@ -119,7 +120,15 @@ const fetchWithRetry = async (url: string, options: RequestInit, maxAttempts = 3
 
 const statusCheck = async (res: Response|any): Promise<Response> => {
     if (!res.ok) {
-        throw await res.json();
+        let error = await res.text();
+        try {
+            error = JSON.parse(error);
+            error._code = res.status;
+            error._url = res.url;
+        } catch (e) {
+            error = `${res.status} (${res.url}): ${error}`;
+        }
+        throw error;
     }
     return res;
 };
@@ -192,7 +201,7 @@ export const createAccount = async (network: Network, params: any) => {
         })
     };
 
-    return fetchWithRetry(url, options)
+    return fetch(url, options)
         .then(statusCheck)
         .then(x => x.json());
 };
@@ -249,7 +258,7 @@ export const confirmAccountUpdate = async (params: ConfirmUpdateAccountData): Pr
         })
     };
 
-    return fetchWithRetry(url, options)
+    return fetch(url, options)
         .then(statusCheck);
 };
 
