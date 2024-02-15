@@ -109,6 +109,17 @@ export interface DAppConfig {
     [key: string]: any | undefined; // Index signature
 }
 
+export type ApiAccount = {
+    id: string,
+    publicKey: string,
+    network: "MAINNET" | "TESTNET",
+    transactionBytes?: string,
+    maxAutoTokenAssociation?: number,
+    associationPresetTokenStatus?: "NEEDLESS"|"PENDING"|"FAILED"|"SUCCESSFUL",
+    updateAccountTransactionBytes?: string,
+    transactionId?: string | null
+}
+
 export interface KeyRecord {
     privateKey: string,
     type: KeyType
