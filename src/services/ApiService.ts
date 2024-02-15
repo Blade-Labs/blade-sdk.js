@@ -9,6 +9,7 @@ import {
     NodeInfo
 } from "../models/MirrorNode";
 import {
+    ApiAccount,
     BladeConfig,
     CoinData,
     CoinInfoRaw,
@@ -261,6 +262,32 @@ export const confirmAccountUpdate = async (params: ConfirmUpdateAccountData): Pr
     return fetch(url, options)
         .then(statusCheck);
 };
+
+export const getTokenAssociateTransactionForAccount = async (tokenId: string|null, accountId: string): Promise<ApiAccount> => {
+    const url = `${await getApiUrl()}/tokens`;
+    const body: any = {
+        id: accountId,
+    };
+    if (tokenId) {
+        body.token = tokenId;
+    }
+
+    const options = {
+      method: "PATCH",
+      headers: new Headers({
+          "X-NETWORK": network.toUpperCase(),
+          "X-VISITOR-ID": visitorId,
+          "X-DAPP-CODE": dAppCode,
+          "X-SDK-TVTE-API": await getTvteHeader(),
+          "Content-Type": "application/json"
+      }),
+      body: JSON.stringify(body)
+    };
+
+    return fetch(url, options)
+      .then(statusCheck)
+      .then(x => x.json());
+  }
 
 export const getAccountBalance = async (accountId: string) => {
     const account = await GET(network, `api/v1/accounts/${accountId}`);

@@ -39,6 +39,7 @@ import {
     getCryptoFlowData,
     getNodeList,
     getPendingAccountData,
+    getTokenAssociateTransactionForAccount,
     getTransactionsFrom,
     initApiService,
     requestTokenInfo,
@@ -691,10 +692,27 @@ export class BladeSDK {
                 id,
                 transactionBytes,
                 updateAccountTransactionBytes,
+                associationPresetTokenStatus,
                 transactionId
             } = await createAccount(this.network, options);
 
-            await executeUpdateAccountTransactions(this.getClient(), privateKey, updateAccountTransactionBytes, transactionBytes);
+            const client = this.getClient();
+            await executeUpdateAccountTransactions(client, privateKey, updateAccountTransactionBytes, transactionBytes);
+
+            if (associationPresetTokenStatus === "FAILED") {
+                // if token association failed on backend, fetch /tokens and execute transactionBytes
+                try {
+                    const tokenTransaction = await getTokenAssociateTransactionForAccount(null, id);
+                    if (!tokenTransaction.transactionBytes) {
+                        throw new Error("Token association failed");
+                    }
+                    const buffer = Buffer.from(tokenTransaction.transactionBytes, "base64");
+                    const transaction = await Transaction.fromBytes(buffer).sign(privateKey);
+                    await transaction.execute(client);
+                } catch (error) {
+                    // ignore this error, continue
+                }
+            }
 
             if (updateAccountTransactionBytes) {
                 await confirmAccountUpdate({
@@ -1471,9 +1489,9 @@ export class BladeSDK {
     }
 
     /**
-     * Associate token to account
+     * Associate token to account. Association fee will be covered by Blade, if tokenId configured in dApp
      *
-     * @param tokenId: token id
+     * @param tokenId: token id to associate. Empty to associate all tokens configured in dApp
      * @param accountId: account id to associate token
      * @param accountPrivateKey: account private key
      * @param completionKey: optional field bridge between mobile webViews and native apps
@@ -1490,11 +1508,22 @@ export class BladeSDK {
             }
             accountId = this.getUser().accountId;
 
-            return new TokenAssociateTransaction()
-                .setAccountId(accountId)
-                .setTokenIds([tokenId])
-                .freezeWithSigner(this.signer!)
-                .then(tx => tx.signWithSigner(this.signer!))
+            let transaction;
+            const freeAssociationTokens = (await getConfig("tokens"))[this.network.toLowerCase()]?.association || [];
+            if (freeAssociationTokens.includes(tokenId) || !tokenId) {
+                const result = await getTokenAssociateTransactionForAccount(tokenId, accountId);
+                if (!result.transactionBytes) {
+                    throw new Error("Failed to get transaction bytes for free association. Token already associated?");
+                }
+                const buffer = Buffer.from(result.transactionBytes, "base64");
+                transaction = await Transaction.fromBytes(buffer);
+            } else {
+                transaction = await new TokenAssociateTransaction()
+                    .setAccountId(accountId)
+                    .setTokenIds([tokenId])
+                    .freezeWithSigner(this.signer!);
+            }
+            return transaction.signWithSigner(this.signer!)
                 .then(tx => tx.executeWithSigner(this.signer!))
                 .then(result => result.getReceiptWithSigner(this.signer!))
                 .then(txReceipt => {
