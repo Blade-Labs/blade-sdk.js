@@ -36,7 +36,7 @@ Object.assign(global, { TextDecoder, TextEncoder, fetch });
 
 dotenv.config();
 
-describe('testing sdk core functionality', () => {
+describe('testing sdk CORE functionality', () => {
 
     const apiService = new ApiService();
     const configService = new ConfigService(apiService);

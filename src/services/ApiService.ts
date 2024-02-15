@@ -9,7 +9,8 @@ import {
     AccountInfoMirrorResponse,
     APIPagination,
     MirrorNodeListResponse,
-    NodeInfo
+    NodeInfo,
+    TokenInfo
 } from "../models/MirrorNode";
 import {
     ApiAccount,
@@ -41,7 +42,7 @@ export default class ApiService {
     private environment: SdkEnvironment = SdkEnvironment.Prod;
     private network: Network = Network.Testnet;
     private chainId: KnownChainIds;
-    private tokenInfoCache: {[key in Network]: { [key: string]: any }} = {
+    private tokenInfoCache: {[key in Network]: { [key: string]: TokenInfo }} = {
         [Network.Mainnet]: {},
         [Network.Testnet]: {}
     };
@@ -377,7 +378,7 @@ export default class ApiService {
         return result;
     };
 
-    async requestTokenInfo(tokenId: string) {
+    async requestTokenInfo(tokenId: string): Promise<TokenInfo> {
         if (!this.tokenInfoCache[this.network][tokenId]) {
             this.tokenInfoCache[this.network][tokenId] = await this.GET(this.network,`api/v1/tokens/${tokenId}`);
         }

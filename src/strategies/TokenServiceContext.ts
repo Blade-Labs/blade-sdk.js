@@ -54,7 +54,7 @@ export default class TokenServiceContext implements ITokenService {
     ) {}
 
 
-    init(chainId: KnownChainIds, signer: Signer | ethers.Signer) {
+    init(chainId: KnownChainIds, signer: Signer | ethers.Signer | null) {
         this.chainId = chainId;
         this.signer = signer;
 
@@ -76,33 +76,41 @@ export default class TokenServiceContext implements ITokenService {
     }
 
     transferBalance(transferData: TransferInitData): Promise<TransactionResponseData> {
-        this.checkInit();
+        this.checkSigner();
         return this.strategy!.transferBalance(transferData);
     }
 
     transferToken(transferData: TransferTokenInitData): Promise<TransactionResponseData> {
-        this.checkInit();
+        this.checkSigner();
         return this.strategy!.transferToken(transferData);
     }
 
     associateToken(tokenId: string, accountId: string): Promise<TransactionReceiptData> {
-        this.checkInit();
+        this.checkSigner();
         return this.strategy!.associateToken(tokenId, accountId);
     }
 
     createToken(tokenName: string, tokenSymbol: string, isNft: boolean, treasuryAccountId: string, supplyPublicKey: string, keys: KeyRecord[] | string, decimals: number, initialSupply: number, maxSupply: number): Promise<{tokenId: string}> {
-        this.checkInit();
+        this.checkSigner();
         return this.strategy!.createToken(tokenName, tokenSymbol, isNft, treasuryAccountId, supplyPublicKey, keys, decimals, initialSupply, maxSupply);
     }
 
     nftMint(tokenId: string, file: File | string, metadata: {}, storageConfig: NFTStorageConfig): Promise<TransactionReceiptData> {
-        this.checkInit();
+        this.checkSigner();
         return this.strategy!.nftMint(tokenId, file, metadata, storageConfig);
     }
 
     private checkInit() {
+        // check if strategy is initialized. Useful for getBalance() for example
         if (!this.strategy) {
             throw new Error("TokenService not initialized");
+        }
+    }
+
+    private checkSigner() {
+        // next step. Signer required for transaction signing (transfer, mint, etc)
+        if (!this.signer) {
+            throw new Error("TokenService not initialized (no signer, call setUser() first)");
         }
     }
 }

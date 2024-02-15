@@ -109,9 +109,9 @@ export interface NFTStorageConfig {
     apiKey: string
 }
 
-export interface BridgeResponse {
+export interface BridgeResponse<T> {
     completionKey: string,
-    data: any,
+    data: T,
     error?: any
 }
 

@@ -21,14 +21,14 @@ const ERC20ABI = require("../../abi/erc20.abi.json");
 
 export default class TokenServiceEthereum implements ITokenService {
     private readonly chainId: KnownChainIds;
-    private readonly signer: ethers.Signer;
+    private readonly signer: ethers.Signer | null;
     private readonly apiService: ApiService;
     private readonly configService: ConfigService;
     private alchemy: Alchemy | null = null;
 
     constructor(
         chainId: KnownChainIds,
-        signer: ethers.Signer,
+        signer: ethers.Signer | null,
         apiService: ApiService,
         configService: ConfigService
     ) {

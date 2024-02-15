@@ -12,6 +12,11 @@ export type APIPagination = {
     }
 }
 
+export type MirrorNodeKey = {
+    _type: string,
+    key: string
+}
+
 export type AccountInfo = {
     account: string,
     alias: string | null,
@@ -30,7 +35,7 @@ export type AccountInfo = {
     pending_reward: number,
     evm_address: string | null,
     expiry_timestamp: string | null,
-    key: { _type: string, key: string },
+    key: MirrorNodeKey,
     max_automatic_token_associations: number,
     memo: string,
     receiver_sig_required: boolean,
@@ -68,4 +73,38 @@ export type NodeInfo = {
         from: string,
         to: null
     }
+}
+
+export type TokenInfo = {
+    admin_key: MirrorNodeKey,
+    auto_renew_account: string,
+    auto_renew_period: number,
+    created_timestamp: string,
+    custom_fees: {
+        created_timestamp: string,
+        fixed_fees: [],
+        fractional_fees: []
+    },
+    decimals: string,
+    deleted: boolean,
+    expiry_timestamp: number,
+    fee_schedule_key: MirrorNodeKey | null,
+    freeze_default: boolean,
+    freeze_key: MirrorNodeKey | null,
+    initial_supply: string,
+    kyc_key: MirrorNodeKey | null,
+    max_supply: string,
+    memo: string,
+    modified_timestamp: string,
+    name: string,
+    pause_key: MirrorNodeKey | null,
+    pause_status: 'NOT_APPLICABLE' | 'UNPAUSED' | 'PAUSED',
+    supply_key: MirrorNodeKey,
+    supply_type: 'INFINITE' | 'FINITE',
+    symbol: string,
+    token_id: string,
+    total_supply: string,
+    treasury_account_id: string,
+    type: 'FUNGIBLE_COMMON' | 'NON_FUNGIBLE_UNIQUE',
+    wipe_key: MirrorNodeKey | null
 }

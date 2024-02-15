@@ -109,7 +109,7 @@ export default class AccountServiceContext implements IAccountService {
     private checkSigner() {
         // next step. Signer required for transaction signing (stake, delete, etc)
         if (!this.signer) {
-            throw new Error("AccountService not initialized (no signer)");
+            throw new Error("AccountService not initialized (no signer, call setUser() first)");
         }
     }
 }

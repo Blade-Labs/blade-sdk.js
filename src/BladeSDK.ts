@@ -166,6 +166,7 @@ export class BladeSDK {
         }
         this.apiService.setVisitorId(this.visitorId);
         this.accountServiceContext.init(this.chainId, null); // init without signer, to be able to create account
+        this.tokenServiceContext.init(this.chainId, null); // init without signer, to be able to getBalance
 
         return this.sendMessageToNative(completionKey, this.getInfoData());
     }
@@ -935,7 +936,7 @@ export class BladeSDK {
         }
 
         // web-view bridge response
-        const responseObject: BridgeResponse = {
+        const responseObject: BridgeResponse<T> = {
             completionKey: completionKey || "",
             data
         };

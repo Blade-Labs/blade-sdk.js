@@ -24,13 +24,13 @@ import {ChainMap, KnownChainIds} from "../../models/Chain";
 
 export default class TokenServiceHedera implements ITokenService {
     private readonly chainId: KnownChainIds;
-    private readonly signer: Signer;
+    private readonly signer: Signer | null;
     private readonly apiService: ApiService;
     private readonly configService: ConfigService;
 
     constructor(
         chainId: KnownChainIds,
-        signer: Signer,
+        signer: Signer | null,
         apiService: ApiService,
         configService: ConfigService,
     ) {
