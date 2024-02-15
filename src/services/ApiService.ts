@@ -12,6 +12,7 @@ import {
     NodeInfo
 } from "../models/MirrorNode";
 import {
+    ApiAccount,
     BladeConfig,
     CoinData,
     CoinInfoRaw,
@@ -216,7 +217,7 @@ export default class ApiService {
             })
         };
 
-        return this.fetchWithRetry(url, options)
+        return fetch(url, options)
             .then(this.statusCheck)
             .then(x => x.json());
     };
@@ -273,9 +274,35 @@ export default class ApiService {
             })
         };
 
-        return this.fetchWithRetry(url, options)
+        return fetch(url, options)
             .then(this.statusCheck);
     };
+
+    async getTokenAssociateTransactionForAccount(tokenId: string|null, accountId: string): Promise<ApiAccount> {
+        const url = `${this.getApiUrl()}/tokens`;
+        const body: any = {
+            id: accountId,
+        };
+        if (tokenId) {
+            body.token = tokenId;
+        }
+
+        const options = {
+          method: "PATCH",
+          headers: new Headers({
+              "X-NETWORK": this.network.toUpperCase(),
+              "X-VISITOR-ID": this.visitorId,
+              "X-DAPP-CODE": this.dAppCode,
+              "X-SDK-TVTE-API": await this.getTvteHeader(),
+              "Content-Type": "application/json"
+          }),
+          body: JSON.stringify(body)
+        };
+
+        return fetch(url, options)
+          .then(this.statusCheck)
+          .then(x => x.json());
+    }
 
     async getCoins(params: any): Promise<CoinInfoRaw[]> {
         const url = `${this.getApiUrl()}/prices/coins/list?include_platform=true`;

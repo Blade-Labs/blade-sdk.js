@@ -67,6 +67,7 @@ export interface TokensConfig {
 export interface DAppConfig {
     autoAssociate: string, // boolean
     displayName: string,
+    keyType: string, // "ECDSA" | "ED25519"
     redirectUrl: string,
     smartContract: string, // boolean
     freeSchedules: string, // boolean
@@ -82,7 +83,20 @@ export interface DAppConfig {
         mainnet: TokensConfig,
         testnet: TokensConfig
     },
+    redirectSameWindow: string, // boolean
+    closeAfterSuccess: string, // boolean
     [key: string]: any | undefined; // Index signature
+}
+
+export type ApiAccount = {
+    id: string,
+    publicKey: string,
+    network: "MAINNET" | "TESTNET",
+    transactionBytes?: string,
+    maxAutoTokenAssociation?: number,
+    associationPresetTokenStatus?: "NEEDLESS"|"PENDING"|"FAILED"|"SUCCESSFUL",
+    updateAccountTransactionBytes?: string,
+    transactionId?: string | null
 }
 
 export interface KeyRecord {

@@ -20,7 +20,7 @@ import ConfigService from "../../services/ConfigService";
 import {formatReceipt} from "../../helpers/TransactionHelpers";
 import {dataURLtoFile} from "../../helpers/FileHelper";
 import { NFTStorage } from "nft.storage";
-import {KnownChainIds} from "@/models/Chain";
+import {ChainMap, KnownChainIds} from "../../models/Chain";
 
 export default class TokenServiceHedera implements ITokenService {
     private readonly chainId: KnownChainIds;
@@ -80,6 +80,7 @@ export default class TokenServiceHedera implements ITokenService {
                 throw new Error("NFT free transfer is not supported");
             }
         }
+        freeTransfer = freeTransfer && (await this.configService.getConfig("freeTransfer")).toLowerCase() === "true";
         const correctedAmount = parseFloat(amountOrSerial) * (10 ** parseInt(meta.decimals, 10));
 
         if (freeTransfer) {
@@ -136,11 +137,23 @@ export default class TokenServiceHedera implements ITokenService {
     }
 
     async associateToken(tokenId: string, accountId: string): Promise<TransactionReceiptData> {
-        return new TokenAssociateTransaction()
-            .setAccountId(accountId)
-            .setTokenIds([tokenId])
-            .freezeWithSigner(this.signer!)
-            .then(tx => tx.signWithSigner(this.signer!))
+        let transaction;
+        const network = ChainMap[this.chainId].isTestnet ? "testnet" : "mainnet";
+        const freeAssociationTokens = (await this.configService.getConfig("tokens"))[network]?.association || [];
+        if (freeAssociationTokens.includes(tokenId) || !tokenId) {
+            const result = await this.apiService.getTokenAssociateTransactionForAccount(tokenId, accountId);
+            if (!result.transactionBytes) {
+                throw new Error("Failed to get transaction bytes for free association. Token already associated?");
+            }
+            const buffer = Buffer.from(result.transactionBytes, "base64");
+            transaction = await Transaction.fromBytes(buffer);
+        } else {
+            transaction = await new TokenAssociateTransaction()
+                .setAccountId(accountId)
+                .setTokenIds([tokenId])
+                .freezeWithSigner(this.signer!);
+        }
+        return transaction.signWithSigner(this.signer!)
             .then(tx => tx.executeWithSigner(this.signer!))
             .then(result => result.getReceiptWithSigner(this.signer!))
             .then(txReceipt => {

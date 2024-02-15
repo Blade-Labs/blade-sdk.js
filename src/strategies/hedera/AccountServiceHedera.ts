@@ -6,6 +6,7 @@ import {
     PrivateKey,
     PublicKey,
     Signer,
+    Transaction,
 } from "@hashgraph/sdk";
 
 import {IAccountService} from "../AccountServiceContext";
@@ -45,37 +46,40 @@ export default class AccountServiceHedera implements IAccountService {
 
     // TODO how to call this method without setUser in BladeSDK???
     async createAccount(deviceId?: string): Promise<CreateAccountData> {
-        let seedPhrase: Mnemonic | null = null;
-        let privateKey: PrivateKey | null = null;
-
-        let valid = false;
-        // https://github.com/hashgraph/hedera-sdk-js/issues/1396
-        do {
-            seedPhrase = await Mnemonic.generate12();
-            privateKey = await seedPhrase.toEcdsaPrivateKey();
-            const privateKeyString = privateKey.toStringDer();
-            const publicKeyString = privateKey.publicKey.toStringRaw();
-            const restoredPrivateKey = PrivateKey.fromString(privateKeyString);
-            const restoredPublicKeyString = restoredPrivateKey.publicKey.toStringRaw();
-            valid = publicKeyString === restoredPublicKeyString;
-        } while (!valid);
+        const seedPhrase = await Mnemonic.generate12();
+        const privateKey = await seedPhrase.toEcdsaPrivateKey();
         const publicKey = privateKey.publicKey.toStringDer();
-
-        const options = {
-            deviceId,
-            publicKey
-        };
 
         const {
             id,
             transactionBytes,
             updateAccountTransactionBytes,
+            associationPresetTokenStatus,
             transactionId
-        } = await this.apiService.createAccount(options);
-        await executeUpdateAccountTransactions(this.getClient(), privateKey, updateAccountTransactionBytes, transactionBytes);
+        } = await this.apiService.createAccount({deviceId, publicKey});
+        const client = this.getClient();
+        await executeUpdateAccountTransactions(client, privateKey, updateAccountTransactionBytes, transactionBytes);
+
+        if (associationPresetTokenStatus === "FAILED") {
+            // if token association failed on backend, fetch /tokens and execute transactionBytes
+            try {
+                const tokenTransaction = await this.apiService.getTokenAssociateTransactionForAccount(null, id);
+                if (!tokenTransaction.transactionBytes) {
+                    throw new Error("Token association failed");
+                }
+                const buffer = Buffer.from(tokenTransaction.transactionBytes, "base64");
+                const transaction = await Transaction.fromBytes(buffer).sign(privateKey);
+                await transaction.execute(client);
+            } catch (error) {
+                // ignore this error, continue
+            }
+        }
 
         if (updateAccountTransactionBytes) {
-            await this.apiService.confirmAccountUpdate(id);
+            await this.apiService.confirmAccountUpdate(id)
+                .catch(() => {
+                    // ignore this error, continue
+                });
         }
         const evmAddress = ethers.utils.computeAddress(`0x${privateKey.publicKey.toStringRaw()}`);
         return {

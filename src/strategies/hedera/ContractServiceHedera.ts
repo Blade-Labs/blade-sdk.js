@@ -41,6 +41,7 @@ export default class ContractServiceHedera implements IContractService {
         const contractFunctionParameters = await getContractFunctionBytecode(functionName, paramsEncoded);
 
         let transaction: Transaction;
+        bladePayFee = bladePayFee && (await this.configService.getConfig("smartContract")).toLowerCase() === "true";
         if (bladePayFee) {
             const options = {
                 contractFunctionParameters,
