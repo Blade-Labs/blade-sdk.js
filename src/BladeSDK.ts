@@ -703,6 +703,9 @@ export class BladeSDK {
                 // if token association failed on backend, fetch /tokens and execute transactionBytes
                 try {
                     const tokenTransaction = await getTokenAssociateTransactionForAccount(null, id);
+                    if (!tokenTransaction.transactionBytes) {
+                        throw new Error("Token association failed");
+                    }
                     const buffer = Buffer.from(tokenTransaction.transactionBytes, "base64");
                     const transaction = await Transaction.fromBytes(buffer).sign(privateKey);
                     await transaction.execute(client);
