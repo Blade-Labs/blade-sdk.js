@@ -34,7 +34,7 @@ export default class TradeServiceContext implements ITradeService {
         @inject('cryptoFlowService') private readonly cryptoFlowService: CryptoFlowService,
     ) {}
 
-    init(chainId: KnownChainIds, signer: Signer | ethers.Signer) {
+    init(chainId: KnownChainIds, signer: Signer | ethers.Signer | null) {
         this.chainId = chainId;
         this.signer = signer;
 
@@ -61,7 +61,7 @@ export default class TradeServiceContext implements ITradeService {
     }
 
     swapTokens(accountAddress: string, sourceCode: string, sourceAmount: number, targetCode: string, slippage: number, serviceId: string): Promise<{success: boolean}> {
-        this.checkInit();
+        this.checkSigner();
         return this.strategy!.swapTokens(accountAddress, sourceCode, sourceAmount, targetCode, slippage, serviceId);
     }
 
@@ -71,8 +71,17 @@ export default class TradeServiceContext implements ITradeService {
     }
 
     private checkInit() {
+        // check if strategy is initialized. Useful for getBalance() for example
         if (!this.strategy) {
             throw new Error("TradeService not initialized");
         }
     }
+
+    private checkSigner() {
+        // next step. Signer required for transaction signing (transfer, mint, etc)
+        if (!this.signer) {
+            throw new Error("TradeService not initialized (no signer, call setUser() first)");
+        }
+    }
+
 }

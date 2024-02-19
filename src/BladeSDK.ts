@@ -125,6 +125,8 @@ export class BladeSDK {
         sdkVersion: string = config.sdkVersion,
         completionKey?: string
     ): Promise<InfoData> {
+        // TODO make service and variable values cleanup on init (in case of re-init)
+
         this.apiKey = apiKey;
         this.chainId = StringHelpers.stringToChainId(chainId);
         this.network = ChainMap[this.chainId].isTestnet ? Network.Testnet : Network.Mainnet;
@@ -167,6 +169,7 @@ export class BladeSDK {
         this.apiService.setVisitorId(this.visitorId);
         this.accountServiceContext.init(this.chainId, null); // init without signer, to be able to create account
         this.tokenServiceContext.init(this.chainId, null); // init without signer, to be able to getBalance
+        this.tradeServiceContext.init(this.chainId, null); // init without signer, to be able to get14Url
 
         return this.sendMessageToNative(completionKey, this.getInfoData());
     }
@@ -643,14 +646,15 @@ export class BladeSDK {
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {SignMessageData}
      */
-    ethersSign(messageString: string, privateKey: string, completionKey?: string): Promise<SignMessageData> {
+    async ethersSign(messageString: string, privateKey: string, completionKey?: string): Promise<SignMessageData> {
+        // TODO add `encoding` argument (hex/base64/string)
+        // TODO remove private key and use signer
         try {
-            const result = this.signServiceContext.ethersSign(messageString, privateKey);
+            const result = await this.signServiceContext.ethersSign(messageString, privateKey);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
         }
-
     }
 
     /**

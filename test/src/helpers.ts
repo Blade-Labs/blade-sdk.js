@@ -1,5 +1,5 @@
 import {Client, Hbar, PrivateKey, TokenAssociateTransaction, TokenCreateTransaction} from "@hashgraph/sdk";
-import {completionKey} from "./index.test";
+export const completionKey = "completionKey1";
 
 export const privateKeyFromString = (privateKey: string): PrivateKey => {
   // TODO TRY different keys in different format (ecdsa, ed25, .raw, .der)
