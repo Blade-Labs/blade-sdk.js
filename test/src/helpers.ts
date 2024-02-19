@@ -63,7 +63,7 @@ export const associateToken = async (tokenId: string, accountId: string, private
 }
 
 export const getTokenInfo = async (tokenId: string) => {
-    return GET(Network.Testnet, `api/v1/tokens/${tokenId}`).catch(err => {
+    return GET(Network.Testnet, `/tokens/${tokenId}`).catch(err => {
         // tslint:disable-next-line:no-console
         console.log(err);
         return null;
