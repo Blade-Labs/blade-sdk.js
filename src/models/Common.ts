@@ -112,8 +112,8 @@ export interface DAppConfig {
 }
 
 export interface IMirrorNodeServiceNetworkConfigs {
-    mainnet: IMirrorNodeServiceConfig[],
-    testnet: IMirrorNodeServiceConfig[]
+    "mainnet": IMirrorNodeServiceConfig[],
+    "testnet": IMirrorNodeServiceConfig[]
 }
 
 export interface IMirrorNodeServiceConfig {

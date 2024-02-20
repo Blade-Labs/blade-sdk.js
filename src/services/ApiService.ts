@@ -163,7 +163,7 @@ export const GET = async (network: Network, route: string) => {
         }
     }
 
-    const networkConfig = hederaMirrorNodeConfig[network.toLowerCase()];
+    const networkConfig = hederaMirrorNodeConfig[network.toLowerCase() as keyof IMirrorNodeServiceNetworkConfigs];
     // Sort by priority
     networkConfig.sort((a, b) => a.priority - b.priority);
 
