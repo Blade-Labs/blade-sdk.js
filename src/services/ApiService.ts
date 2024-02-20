@@ -144,23 +144,26 @@ export const GET = async (network: Network, route: string) => {
     let hederaMirrorNodeConfig: IMirrorNodeServiceNetworkConfigs;
     try {
         // load config from dApp config
-        hederaMirrorNodeConfig = JSON.parse(await getConfig('hederaMirrorNodeConfig')) as IMirrorNodeServiceNetworkConfigs;
+        hederaMirrorNodeConfig = await getConfig('mirrorNode');
+        if (!hederaMirrorNodeConfig.testnet && !hederaMirrorNodeConfig.mainnet) {
+            throw new Error("No mirror node config found");
+        }
     } catch (e) {
         hederaMirrorNodeConfig = {
-            "Testnet": [{
-                "name": "Mirror Nodes",
-                "url": "https://testnet.mirrornode.hedera.com/api/v1",
-                "priority": 1
+            testnet: [{
+                name: "Mirror Nodes",
+                url: "https://testnet.mirrornode.hedera.com/api/v1",
+                priority: 1
             }],
-            "Mainnet": [{
-                "name": "Mirror Nodes",
-                "url": "https://mainnet-public.mirrornode.hedera.com/api/v1",
-                "priority": 1
+            mainnet: [{
+                name: "Mirror Nodes",
+                url: "https://mainnet-public.mirrornode.hedera.com/api/v1",
+                priority: 1
             }]
         }
     }
 
-    const networkConfig = hederaMirrorNodeConfig[network];
+    const networkConfig = hederaMirrorNodeConfig[network.toLowerCase()];
     // Sort by priority
     networkConfig.sort((a, b) => a.priority - b.priority);
 
@@ -177,10 +180,10 @@ export const GET = async (network: Network, route: string) => {
                 .then(statusCheck)
                 .then(x => x.json());
         } catch (e) {
-            console.log(`Mirror node service (${service.name}) failed to make request: ${service.url}${route}`);
+            // console.log(`Mirror node service (${service.name}) failed to make request: ${service.url}${route}`);
         }
     }
-    throw new Error(`All mirror node services failed to make request.`);
+    throw new Error(`All mirror node services failed to make request to: ${route}`);
 };
 
 export const getBladeConfig = async (): Promise<BladeConfig> => {

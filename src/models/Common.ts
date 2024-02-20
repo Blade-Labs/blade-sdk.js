@@ -107,13 +107,13 @@ export interface DAppConfig {
     },
     redirectSameWindow: string, // boolean
     closeAfterSuccess: string, // boolean
-    hederaMirrorNodeConfig: string, // IMirrorNodeServiceNetworkConfigs
+    mirrorNode: IMirrorNodeServiceNetworkConfigs,
     [key: string]: any | undefined; // Index signature
 }
 
 export interface IMirrorNodeServiceNetworkConfigs {
-    Mainnet: IMirrorNodeServiceConfig[],
-    Testnet: IMirrorNodeServiceConfig[]
+    mainnet: IMirrorNodeServiceConfig[],
+    testnet: IMirrorNodeServiceConfig[]
 }
 
 export interface IMirrorNodeServiceConfig {
