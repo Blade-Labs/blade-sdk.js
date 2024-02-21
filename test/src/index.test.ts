@@ -507,7 +507,7 @@ test('bladeSdk.deleteAccount', async () => {
     checkResult(result);
 
     await sleep(15_000);
-    result = await GET(Network.Testnet, `api/v1/accounts/${newAccountId}`);
+    result = await GET(Network.Testnet, `/accounts/${newAccountId}`);
     expect(result.deleted).toEqual(true);
 
     // invalid request (already deleted)
@@ -670,13 +670,6 @@ test('bladeSdk.getTransactions', async () => {
     expect(result.data).toHaveProperty("nextPage");
     expect(result.data).toHaveProperty("transactions");
     expect(Array.isArray(result.data.transactions)).toEqual(true);
-
-    const txIdEqual = (txId1: string, txId2: string) => {
-        return isEqual(
-            txId1.split(".").map(num => parseInt(num, 10)),
-            txId2.split(".").map(num => parseInt(num, 10))
-        );
-    };
 
     const nextPage = result.data.nextPage;
 
@@ -1058,5 +1051,5 @@ test("utils", async () => {
     const encrypted = await encrypt(originalString, process.env.API_KEY || "");
     expect(await decrypt(encrypted, process.env.API_KEY || "")).toEqual(originalString);
 
-    expect((await GET(Network.Testnet, `/api/v1/accounts/${accountId}`)).account).toEqual(accountId)
+    expect((await GET(Network.Testnet, `/accounts/${accountId}`)).account).toEqual(accountId)
 });

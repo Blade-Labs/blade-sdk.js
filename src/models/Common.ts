@@ -54,6 +54,7 @@ export interface BladeConfig {
     swapWrapHbar?: string,
     saucerswapApi?: string,
     magicLinkPublicKey?: string,
+    hederaMirrorNodeConfig?: string,
     [key: string]: string | undefined; // Index signature
 }
 
@@ -106,7 +107,20 @@ export interface DAppConfig {
     },
     redirectSameWindow: string, // boolean
     closeAfterSuccess: string, // boolean
+    mirrorNode: IMirrorNodeServiceNetworkConfigs,
     [key: string]: any | undefined; // Index signature
+}
+
+export interface IMirrorNodeServiceNetworkConfigs {
+    "mainnet": IMirrorNodeServiceConfig[],
+    "testnet": IMirrorNodeServiceConfig[]
+}
+
+export interface IMirrorNodeServiceConfig {
+    name: string;
+    url: string;
+    priority: number;
+    apikey?: string;
 }
 
 export type ApiAccount = {

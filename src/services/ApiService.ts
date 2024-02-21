@@ -1,6 +1,6 @@
 import {Buffer} from "buffer";
-import {AccountId, PublicKey} from "@hashgraph/sdk";
-import {Network, NetworkMirrorNodes} from "../models/Networks";
+import {PublicKey} from "@hashgraph/sdk";
+import {Network} from "../models/Networks";
 import {
     AccountInfo,
     AccountInfoMirrorResponse,
@@ -15,6 +15,7 @@ import {
     CoinInfoRaw,
     ConfirmUpdateAccountData,
     DAppConfig,
+    IMirrorNodeServiceNetworkConfigs,
     SdkEnvironment,
     TransactionData
 } from "../models/Common";
@@ -27,6 +28,7 @@ import {
     ICryptoFlowQuoteParams,
     ICryptoFlowTransaction, ICryptoFlowTransactionParams
 } from "../models/CryptoFlow";
+import {getConfig} from "./ConfigService";
 
 let sdkVersion = ``;
 let apiKey = ``;
@@ -134,13 +136,54 @@ const statusCheck = async (res: Response|any): Promise<Response> => {
     return res;
 };
 
-export const GET = (network: Network, route: string) => {
-    if (route.indexOf("/") === 0) {
-        route = route.slice(1);
+export const GET = async (network: Network, route: string) => {
+    const options: Partial<RequestInit> = {}
+    if (route.indexOf("/api/v1") === 0) {
+        route = route.replace("/api/v1", "");
     }
-    return fetchWithRetry(`${NetworkMirrorNodes[network]}/${route}`, {})
-        .then(statusCheck)
-        .then(x => x.json());
+    let hederaMirrorNodeConfig: IMirrorNodeServiceNetworkConfigs;
+    try {
+        // load config from dApp config
+        hederaMirrorNodeConfig = await getConfig('mirrorNode');
+        if (!hederaMirrorNodeConfig.testnet && !hederaMirrorNodeConfig.mainnet) {
+            throw new Error("No mirror node config found");
+        }
+    } catch (e) {
+        hederaMirrorNodeConfig = {
+            testnet: [{
+                name: "Mirror Nodes",
+                url: "https://testnet.mirrornode.hedera.com/api/v1",
+                priority: 1
+            }],
+            mainnet: [{
+                name: "Mirror Nodes",
+                url: "https://mainnet-public.mirrornode.hedera.com/api/v1",
+                priority: 1
+            }]
+        }
+    }
+
+    const networkConfig = hederaMirrorNodeConfig[network.toLowerCase() as keyof IMirrorNodeServiceNetworkConfigs];
+    // Sort by priority
+    networkConfig.sort((a, b) => a.priority - b.priority);
+
+    // Try each service until one succeeds
+    for (const service of networkConfig) {
+        try {
+            if (service.apikey) {
+                options.headers = {
+                    ...(options.headers || {}),
+                    "x-api-key": service.apikey
+                };
+            }
+            return await fetchWithRetry(`${service.url}${route}`, options)
+                .then(statusCheck)
+                .then(x => x.json());
+        } catch (e) {
+            // console.log(`Mirror node service (${service.name}) failed to make request: ${service.url}${route}`);
+        }
+    }
+    throw new Error(`All mirror node services failed to make request to: ${route}`);
 };
 
 export const getBladeConfig = async (): Promise<BladeConfig> => {
@@ -290,7 +333,7 @@ export const getTokenAssociateTransactionForAccount = async (tokenId: string|nul
   }
 
 export const getAccountBalance = async (accountId: string) => {
-    const account = await GET(network, `api/v1/accounts/${accountId}`);
+    const account = await GET(network, `/accounts/${accountId}`);
     const tokens = await getAccountTokens(accountId);
     return {
         hbars: account.balance.balance / 10 ** 8,
@@ -345,7 +388,7 @@ export const getCoinInfo = async (coinId: string, params: any): Promise<CoinData
 
 const getAccountTokens = async (accountId: string) => {
     const result = [];
-    let nextPage = `api/v1/accounts/${accountId}/tokens`;
+    let nextPage = `/accounts/${accountId}/tokens`;
     while (nextPage != null) {
         const response = await GET(network, nextPage);
         nextPage = response.links.next ?? null;
@@ -364,7 +407,7 @@ const getAccountTokens = async (accountId: string) => {
 
 export const requestTokenInfo = async (network: Network, tokenId: string) => {
     if (!tokenInfoCache[network][tokenId]) {
-        tokenInfoCache[network][tokenId] = await GET(network,`api/v1/tokens/${tokenId}`);
+        tokenInfoCache[network][tokenId] = await GET(network,`/tokens/${tokenId}`);
     }
     return tokenInfoCache[network][tokenId];
 };
@@ -499,7 +542,7 @@ export const getCryptoFlowData = async (
 
 export const getAccountsFromPublicKey = async (network: Network, publicKey: PublicKey): Promise<string[]> => {
     const formatted = publicKey.toStringRaw();
-    return GET(network, `api/v1/accounts?account.publickey=${formatted}`)
+    return GET(network, `/accounts?account.publickey=${formatted}`)
         .then((x: AccountInfoMirrorResponse) => x.accounts.map(acc => acc.account))
         .catch(() => {
             return [];
@@ -507,12 +550,12 @@ export const getAccountsFromPublicKey = async (network: Network, publicKey: Publ
 };
 
 export const getAccountInfo = async (network: Network, accountId: string): Promise<APIPagination & AccountInfo> => {
-    return await GET(network, `api/v1/accounts/${accountId}`);
+    return await GET(network, `/accounts/${accountId}`);
 }
 
 export const getNodeList = async (network: Network): Promise<NodeInfo[]> => {
     const list: NodeInfo[] = [];
-    let nextPage = "api/v1/network/nodes";
+    let nextPage = "/network/nodes";
 
     while (nextPage) {
         const response: APIPagination & MirrorNodeListResponse = await GET(network, nextPage);
@@ -538,9 +581,9 @@ export const getTransactionsFrom = async (
         if (nextPage) {
             info = await GET(network, nextPage);
         } else {
-            info = await GET(network, `api/v1/transactions/?account.id=${accountId}&limit=${pageLimit}`);
+            info = await GET(network, `/transactions/?account.id=${accountId}&limit=${pageLimit}`);
         }
-        nextPage = info.links.next?.substring(1) ?? null;
+        nextPage = info.links.next ?? null;
 
         const groupedTransactions: {[key: string]: TransactionData[]} = {};
 
@@ -556,7 +599,7 @@ export const getTransactionsFrom = async (
         result.push(...transactions);
 
         if (result.length >= limit) {
-            nextPage = `api/v1/transactions?account.id=${accountId}&timestamp=lt:${result[limit-1].consensusTimestamp}&limit=${pageLimit}`;
+            nextPage = `/transactions?account.id=${accountId}&timestamp=lt:${result[limit-1].consensusTimestamp}&limit=${pageLimit}`;
         }
 
         if (!nextPage) {
@@ -571,7 +614,7 @@ export const getTransactionsFrom = async (
 };
 
 export const getTransaction = (network: Network, transactionId: string, accountId: string): Promise<TransactionData[]> => {
-    return GET(network, `api/v1/transactions/${transactionId}`)
+    return GET(network, `/transactions/${transactionId}`)
         .then(x => x.transactions.map((t: any) => {
             return {
                 time: new Date(parseFloat(t.consensus_timestamp) * 1000),
