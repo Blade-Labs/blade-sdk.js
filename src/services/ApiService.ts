@@ -47,6 +47,7 @@ export default class ApiService {
         [Network.Mainnet]: {},
         [Network.Testnet]: {}
     };
+    private dAppConfigCached: DAppConfig | null = null;
 
     initApiService(
         apiKey: string,
@@ -63,6 +64,7 @@ export default class ApiService {
         this.chainId = chainId;
         this.network = ChainMap[this.chainId].isTestnet ? Network.Testnet : Network.Mainnet;
         this.visitorId = visitorId;
+        this.dAppConfigCached = null;
     }
 
     setVisitorId(fingerprint: string) {
@@ -158,11 +160,14 @@ export default class ApiService {
 
         let hederaMirrorNodeConfig: IMirrorNodeServiceNetworkConfigs;
         try {
+            if (!this.dAppConfigCached) { // check if dAppConfig is empty
+                this.dAppConfigCached = await this.getDappConfig();
+            }
             // load config from dApp config
-            // hederaMirrorNodeConfig = await getConfig('mirrorNode');
-            // if (!hederaMirrorNodeConfig.testnet && !hederaMirrorNodeConfig.mainnet) {
+            hederaMirrorNodeConfig = this.dAppConfigCached.mirrorNode;
+            if (!hederaMirrorNodeConfig.testnet && !hederaMirrorNodeConfig.mainnet) {
                 throw new Error("No mirror node config found");
-            // }
+            }
         } catch (e) {
             hederaMirrorNodeConfig = {
                 testnet: [{

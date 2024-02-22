@@ -8,5 +8,6 @@ if (window) window["ParametersBuilder"] = ParametersBuilder;
 
 export { ParametersBuilder } from './ParametersBuilder';
 export { SdkEnvironment } from './models/Common';
+export { KnownChainIds } from './models/Chain';
 export { BladeSDK } from './BladeSDK';
 export { bladeContainer }
