@@ -238,7 +238,7 @@ describe('testing sdk CORE functionality', () => {
         const encrypted = await encrypt(originalString, process.env.API_KEY || "");
         expect(await decrypt(encrypted, process.env.API_KEY || "")).toEqual(originalString);
 
-        expect((await apiService.GET(Network.Testnet, `/api/v1/accounts/${accountId}`)).account).toEqual(accountId)
+        expect((await apiService.GET(Network.Testnet, `/accounts/${accountId}`)).account).toEqual(accountId)
     });
 
 }); // describe

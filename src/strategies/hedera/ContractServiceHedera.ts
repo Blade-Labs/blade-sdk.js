@@ -11,13 +11,13 @@ import {
     ContractCallQueryRecordsData,
     TransactionReceiptData,
 } from "../../models/Common";
+import {KnownChainIds} from "../../models/Chain";
 import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
 import {IContractService} from "../ContractServiceContext";
 import {ParametersBuilder} from "../../ParametersBuilder";
 import {getContractFunctionBytecode, parseContractQueryResponse} from "../../helpers/ContractHelpers";
 import {formatReceipt} from "../../helpers/TransactionHelpers";
-import {KnownChainIds} from "@/models/Chain";
 
 export default class ContractServiceHedera implements IContractService {
     private readonly chainId: KnownChainIds;

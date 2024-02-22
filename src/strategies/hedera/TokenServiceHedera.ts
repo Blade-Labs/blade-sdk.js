@@ -60,9 +60,9 @@ export default class TokenServiceHedera implements ITokenService {
             .addHbarTransfer(from, txAmount.negated())
             .addHbarTransfer(to, txAmount)
             .setTransactionMemo(memo || "")
-            .freezeWithSigner(this.signer)
-            .then(tx => tx.signWithSigner(this.signer))
-            .then(tx => tx.executeWithSigner(this.signer))
+            .freezeWithSigner(this.signer!)
+            .then(tx => tx.signWithSigner(this.signer!))
+            .then(tx => tx.executeWithSigner(this.signer!))
             .then((response: TransactionResponseHedera) => {
                 return {
                     transactionId: response.transactionId.toString(),

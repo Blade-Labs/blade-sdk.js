@@ -1,6 +1,6 @@
 import {MirrorNodeTransactionType} from "./TransactionType";
 import {ICryptoFlowQuote} from "./CryptoFlow";
-import {KnownChainIds} from "@/models/Chain";
+import {KnownChainIds} from "./Chain";
 
 export enum SdkEnvironment {
     Prod = "Prod",
@@ -85,7 +85,20 @@ export interface DAppConfig {
     },
     redirectSameWindow: string, // boolean
     closeAfterSuccess: string, // boolean
+    mirrorNode: IMirrorNodeServiceNetworkConfigs,
     [key: string]: any | undefined; // Index signature
+}
+
+export interface IMirrorNodeServiceNetworkConfigs {
+    "mainnet": IMirrorNodeServiceConfig[],
+    "testnet": IMirrorNodeServiceConfig[]
+}
+
+export interface IMirrorNodeServiceConfig {
+    name: string;
+    url: string;
+    priority: number;
+    apikey?: string;
 }
 
 export type ApiAccount = {

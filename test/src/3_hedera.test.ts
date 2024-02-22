@@ -335,7 +335,7 @@ describe('testing methods related to HEDERA network', () => {
         checkResult(result);
 
         await sleep(15_000);
-        result = await apiService.GET(Network.Testnet, `api/v1/accounts/${newAccountId}`);
+        result = await apiService.GET(Network.Testnet, `/accounts/${newAccountId}`);
         expect(result.deleted).toEqual(true);
 
         // invalid request (already deleted)

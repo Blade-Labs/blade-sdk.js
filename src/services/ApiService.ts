@@ -3,7 +3,7 @@ import 'reflect-metadata';
 
 import {Buffer} from "buffer";
 import {PublicKey} from "@hashgraph/sdk";
-import {Network, NetworkMirrorNodes} from "../models/Networks";
+import {Network} from "../models/Networks";
 import {
     AccountInfo,
     AccountInfoMirrorResponse,
@@ -18,6 +18,7 @@ import {
     CoinData,
     CoinInfoRaw,
     DAppConfig,
+    IMirrorNodeServiceNetworkConfigs,
     SdkEnvironment,
     TokenBalanceData,
     TransactionData
@@ -41,7 +42,7 @@ export default class ApiService {
     private visitorId = ``;
     private environment: SdkEnvironment = SdkEnvironment.Prod;
     private network: Network = Network.Testnet;
-    private chainId: KnownChainIds;
+    private chainId: KnownChainIds = KnownChainIds.HEDERA_TESTNET;
     private tokenInfoCache: {[key in Network]: { [key: string]: TokenInfo }} = {
         [Network.Mainnet]: {},
         [Network.Testnet]: {}
@@ -149,13 +150,55 @@ export default class ApiService {
         return res;
     };
 
-    GET(network: Network, route: string) {
-        if (route.indexOf("/") === 0) {
-            route = route.slice(1);
+    async GET(network: Network, route: string) {
+        const options: Partial<RequestInit> = {}
+        if (route.indexOf("/api/v1") === 0) {
+            route = route.replace("/api/v1", "");
         }
-        return this.fetchWithRetry(`${NetworkMirrorNodes[network]}/${route}`, {})
-            .then(this.statusCheck)
-            .then(x => x.json());
+
+        let hederaMirrorNodeConfig: IMirrorNodeServiceNetworkConfigs;
+        try {
+            // load config from dApp config
+            // hederaMirrorNodeConfig = await getConfig('mirrorNode');
+            // if (!hederaMirrorNodeConfig.testnet && !hederaMirrorNodeConfig.mainnet) {
+                throw new Error("No mirror node config found");
+            // }
+        } catch (e) {
+            hederaMirrorNodeConfig = {
+                testnet: [{
+                    name: "Mirror Nodes",
+                    url: "https://testnet.mirrornode.hedera.com/api/v1",
+                    priority: 1
+                }],
+                mainnet: [{
+                    name: "Mirror Nodes",
+                    url: "https://mainnet-public.mirrornode.hedera.com/api/v1",
+                    priority: 1
+                }]
+            }
+        }
+
+        const networkConfig = hederaMirrorNodeConfig[network.toLowerCase() as keyof IMirrorNodeServiceNetworkConfigs];
+        // Sort by priority
+        networkConfig.sort((a, b) => a.priority - b.priority);
+
+        // Try each service until one succeeds
+        for (const service of networkConfig) {
+            try {
+                if (service.apikey) {
+                    options.headers = {
+                        ...(options.headers || {}),
+                        "x-api-key": service.apikey
+                    };
+                }
+                return await this.fetchWithRetry(`${service.url}${route}`, options)
+                    .then(this.statusCheck)
+                    .then(x => x.json());
+            } catch (e) {
+                // console.log(`Mirror node service (${service.name}) failed to make request: ${service.url}${route}`);
+            }
+        }
+        throw new Error(`All mirror node services failed to make request to: ${route}`);
     };
 
 
@@ -352,7 +395,7 @@ export default class ApiService {
 
     async getAccountTokens(accountId: string): Promise<TokenBalanceData[]> {
         const result: TokenBalanceData[] = [];
-        let nextPage = `api/v1/accounts/${accountId}/tokens`;
+        let nextPage = `/accounts/${accountId}/tokens`;
         while (nextPage != null) {
             const response = await this.GET(this.network, nextPage);
             nextPage = response.links.next ?? null;
@@ -361,13 +404,13 @@ export default class ApiService {
             for (const token of response.tokens) {
                 tokenInfosReq.push(this.requestTokenInfo(token.token_id));
             }
-            const tokenInfos = await Promise.all(tokenInfosReq);
+            const tokenInfos: TokenInfo[] = await Promise.all(tokenInfosReq);
             for (let i = 0; i < tokenInfos.length; i++) {
                 const token = response.tokens[i];
                 const info = tokenInfos[i];
                 result.push({
                     address: token.token_id,
-                    balance: (token.balance / 10 ** info.decimals).toString(),
+                    balance: (token.balance / 10 ** parseInt(info.decimals, 10)).toString(),
                     rawBalance: token.balance.toString(),
                     decimals: parseInt(info.decimals, 10),
                     name: info.name,
@@ -380,7 +423,7 @@ export default class ApiService {
 
     async requestTokenInfo(tokenId: string): Promise<TokenInfo> {
         if (!this.tokenInfoCache[this.network][tokenId]) {
-            this.tokenInfoCache[this.network][tokenId] = await this.GET(this.network,`api/v1/tokens/${tokenId}`);
+            this.tokenInfoCache[this.network][tokenId] = await this.GET(this.network,`/tokens/${tokenId}`);
         }
         return this.tokenInfoCache[this.network][tokenId];
     };
@@ -513,7 +556,7 @@ export default class ApiService {
 
     async getAccountsFromPublicKey(publicKey: PublicKey): Promise<string[]> {
         const formatted = publicKey.toStringRaw();
-        return this.GET(this.network, `api/v1/accounts?account.publickey=${formatted}`)
+        return this.GET(this.network, `/accounts?account.publickey=${formatted}`)
             .then((x: AccountInfoMirrorResponse) => x.accounts.map(acc => acc.account))
             .catch(() => {
                 return [];
@@ -521,12 +564,12 @@ export default class ApiService {
     };
 
     async getAccountInfo(accountId: string): Promise<APIPagination & AccountInfo> {
-        return await this.GET(this.network, `api/v1/accounts/${accountId}`);
+        return await this.GET(this.network, `/accounts/${accountId}`);
     }
 
     async getNodeList(): Promise<NodeInfo[]> {
         const list: NodeInfo[] = [];
-        let nextPage = "api/v1/network/nodes";
+        let nextPage = "/network/nodes";
 
         while (nextPage) {
             const response: APIPagination & MirrorNodeListResponse = await this.GET(this.network, nextPage);
@@ -551,9 +594,9 @@ export default class ApiService {
             if (nextPage) {
                 info = await this.GET(this.network, nextPage);
             } else {
-                info = await this.GET(this.network, `api/v1/transactions/?account.id=${accountId}&limit=${pageLimit}`);
+                info = await this.GET(this.network, `/transactions/?account.id=${accountId}&limit=${pageLimit}`);
             }
-            nextPage = info.links.next?.substring(1) ?? null;
+            nextPage = info.links.next ?? null;
 
             const groupedTransactions: {[key: string]: TransactionData[]} = {};
 
@@ -569,7 +612,7 @@ export default class ApiService {
             result.push(...transactions);
 
             if (result.length >= limit) {
-                nextPage = `api/v1/transactions?account.id=${accountId}&timestamp=lt:${result[limit-1].consensusTimestamp}&limit=${pageLimit}`;
+                nextPage = `/transactions?account.id=${accountId}&timestamp=lt:${result[limit-1].consensusTimestamp}&limit=${pageLimit}`;
             }
 
             if (!nextPage) {
@@ -584,7 +627,7 @@ export default class ApiService {
     };
 
     getTransaction(network: Network, transactionId: string, accountId: string): Promise<TransactionData[]> {
-        return this.GET(network, `api/v1/transactions/${transactionId}`)
+        return this.GET(network, `/transactions/${transactionId}`)
             .then(x => x.transactions.map((t: any) => {
                 return {
                     time: new Date(parseFloat(t.consensus_timestamp) * 1000),

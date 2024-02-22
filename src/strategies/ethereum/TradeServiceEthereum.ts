@@ -5,7 +5,7 @@ import ConfigService from "../../services/ConfigService";
 import {ITradeService} from "../TradeServiceContext";
 import {IntegrationUrlData, SwapQuotesData} from "../../models/Common";
 import {CryptoFlowServiceStrategy} from "../../models/CryptoFlow";
-import {KnownChainIds} from "@/models/Chain";
+import {KnownChainIds} from "../../models/Chain";
 
 export default class TradeServiceEthereum implements ITradeService {
     private readonly chainId: KnownChainIds;

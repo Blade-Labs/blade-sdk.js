@@ -3,9 +3,9 @@ import {ISignService} from "../SignServiceContext";
 import {
     SplitSignatureData,
 } from "../../models/Common";
+import {KnownChainIds} from "../../models/Chain";
 import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
-import {KnownChainIds} from "@/models/Chain";
 
 export default class SignServiceEthereum implements ISignService {
     private readonly chainId: KnownChainIds;

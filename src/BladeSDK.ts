@@ -1,12 +1,7 @@
-import { injectable, inject } from 'inversify';
+import {inject, injectable} from 'inversify';
 import 'reflect-metadata';
 
-import {
-    Client,
-    PrivateKey,
-    Signer,
-    TransactionReceipt,
-} from "@hashgraph/sdk";
+import {Client, PrivateKey, Signer, TransactionReceipt} from "@hashgraph/sdk";
 import {ethers} from "ethers";
 import ApiService from "./services/ApiService";
 import CryptoFlowService from "./services/CryptoFlowService";
@@ -36,11 +31,12 @@ import {
     SignVerifyMessageData,
     SplitSignatureData,
     SwapQuotesData,
-    TransactionReceiptData, TransactionResponseData,
+    TransactionReceiptData,
+    TransactionResponseData,
     TransactionsHistoryData,
     UserInfoData
 } from "./models/Common";
-import {ChainMap, ChainServiceStrategy} from "./models/Chain";
+import {ChainMap, ChainServiceStrategy, KnownChainIds} from "./models/Chain";
 import config from "./config";
 import {ParametersBuilder} from "./ParametersBuilder";
 import {CryptoFlowServiceStrategy} from "./models/CryptoFlow";
@@ -57,15 +53,14 @@ import AccountServiceContext from "./strategies/AccountServiceContext";
 import SignServiceContext from "./strategies/SignServiceContext";
 import ContractServiceContext from "./strategies/ContractServiceContext";
 import TradeServiceContext from "./strategies/TradeServiceContext";
-import {KnownChainIds} from "@/models/Chain";
 
 @injectable()
 export class BladeSDK {
     // todo update method annotations
 
     private apiKey: string = "";
-    private network: Network;
-    private chainId: KnownChainIds;
+    private network: Network = Network.Testnet;
+    private chainId: KnownChainIds = KnownChainIds.HEDERA_TESTNET;
     private dAppCode: string = "";
     private visitorId: string = "";
     private sdkEnvironment: SdkEnvironment = SdkEnvironment.Prod;
@@ -118,7 +113,7 @@ export class BladeSDK {
      */
     async init(
         apiKey: string,
-        chainId: string | KnownChainIds, // TODO replace with ChainId and remove Network
+        chainId: string | KnownChainIds,
         dAppCode: string,
         visitorId: string,
         sdkEnvironment: SdkEnvironment = SdkEnvironment.Prod,

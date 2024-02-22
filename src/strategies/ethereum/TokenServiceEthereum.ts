@@ -69,7 +69,7 @@ export default class TokenServiceEthereum implements ITokenService {
             to,
             value: ethers.utils.parseUnits(amount, 'ether')
         }
-        const result = await this.signer.sendTransaction(transaction);
+        const result = await this.signer!.sendTransaction(transaction);
         return {
             transactionHash: result.hash,
             transactionId: result.hash,
@@ -78,7 +78,7 @@ export default class TokenServiceEthereum implements ITokenService {
 
     async transferToken({amountOrSerial, from, to, tokenAddress, memo, freeTransfer}: TransferTokenInitData): Promise<TransactionResponseData> {
         await this.initAlchemy();
-        const contract = new Contract(tokenAddress, ERC20ABI, this.signer);
+        const contract = new Contract(tokenAddress, ERC20ABI, this.signer!);
         const toAddress = StringHelpers.stripHexPrefix(to);
         const decimals = await contract.decimals();
         const value = ethers.utils.parseUnits(amountOrSerial, decimals);
