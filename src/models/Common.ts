@@ -26,6 +26,12 @@ export enum NFTStorageProvider {
     nftStorage = "nftStorage"
 }
 
+export enum SupportedEncoding {
+    base64 = "base64",
+    hex = "hex",
+    utf8 = "utf8",
+}
+
 export interface BladeConfig {
     fpApiKey?: string,
     exchangeServiceSignerPubKey?: string,

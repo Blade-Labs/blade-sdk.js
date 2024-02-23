@@ -759,6 +759,59 @@ describe('testing methods related to HEDERA network', () => {
     //     result = await bladeSdk.contractCallQueryFunction(contractId, "get_message", params, accountId, privateKey, 100000, false, ["bytes32", "unknown-type"], completionKey);
     //     checkResult(result, false);
     // }, 120_000);
-    //
+
+    test('bladeSdk-hedera.sign + signVerify', async () => {
+        let result;
+        const message = "hello";
+        const messageString = Buffer.from(message).toString("base64");
+
+        result = await bladeSdk.setUser(AccountProvider.PrivateKey, accountId, privateKey, completionKey);
+        checkResult(result);
+
+
+        result = await bladeSdk.sign(messageString, "base64", completionKey);
+        checkResult(result);
+        expect(result.data).toHaveProperty("signedMessage");
+        const signedMessage = result.data.signedMessage;
+
+        result = await bladeSdk.sign(Buffer.from(message).toString("hex"), "hex", completionKey);
+        checkResult(result);
+        expect(result.data.signedMessage).toEqual(signedMessage);
+
+        result = await bladeSdk.sign(message, "utf8", completionKey);
+        checkResult(result);
+        expect(result.data.signedMessage).toEqual(signedMessage);
+
+        expect(result.data.signedMessage).toEqual(Buffer.from(PrivateKey.fromString(privateKey).sign(Buffer.from(message))).toString("hex"));
+
+        let validationResult = await bladeSdk.verify(messageString, "base64", result.data.signedMessage, "", completionKey);
+        checkResult(validationResult);
+        expect(validationResult.data.valid).toEqual(true);
+
+        validationResult = await bladeSdk.verify(messageString, "base64", result.data.signedMessage, PrivateKey.fromString(privateKey).publicKey.toStringRaw(), completionKey);
+        checkResult(validationResult);
+        expect(validationResult.data.valid).toEqual(true);
+
+        validationResult = await bladeSdk.verify(messageString, "base64", result.data.signedMessage, "0x029dc73991b0d9cdbb59b2cd0a97a0eaff6de801726cb39804ea9461df6be2dd30", completionKey);
+        checkResult(validationResult);
+        expect(validationResult.data.valid).toEqual(true);
+
+        validationResult = await bladeSdk.verify(messageString, "base64", result.data.signedMessage, accountId, completionKey);
+        checkResult(validationResult);
+        expect(validationResult.data.valid).toEqual(true);
+
+        expect(PrivateKey.fromString(privateKey).publicKey.verify(
+            Buffer.from(message),
+            Buffer.from(result.data.signedMessage, "hex")
+        )).toEqual(true);
+
+        try {
+            result = await bladeSdk.verify(messageString, "base64", "invalid signature", "invalid publicKey", completionKey);
+            expect("Code should not reach here").toEqual(result);
+        } catch (result) {
+            checkResult(result, false);
+        }
+    });
+
 }); // describe
 

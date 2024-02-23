@@ -30,6 +30,7 @@ import {
     SignMessageData,
     SignVerifyMessageData,
     SplitSignatureData,
+    SupportedEncoding,
     SwapQuotesData,
     TransactionReceiptData,
     TransactionResponseData,
@@ -602,15 +603,14 @@ export class BladeSDK {
 
     /**
      * Sign base64-encoded message with private key. Returns hex-encoded signature.
-     * @param messageString base64-encoded message to sign
-     * @param privateKey hex-encoded private key with DER header
+     * @param encodedMessage encoded message to sign
+     * @param encoding one of the supported encodings (hex/base64/utf8)
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {SignMessageData}
      */
-    async sign(messageString: string, privateKey: string, completionKey?: string): Promise<SignMessageData> {
-        // TODO add `encoding` argument (hex/base64/string)
+    async sign(encodedMessage: string, encoding: SupportedEncoding, completionKey?: string): Promise<SignMessageData> {
         try {
-            const result = await this.signServiceContext.sign(messageString, privateKey);
+            const result = await this.signServiceContext.sign(encodedMessage, encoding);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -619,15 +619,19 @@ export class BladeSDK {
 
     /**
      * Verify message signature by public key
-     * @param messageString base64-encoded message (same as provided to `sign()` method)
+     * @param encodedMessage encoded message (same as provided to `sign()` method)
+     * @param encoding one of the supported encodings (hex/base64/utf8)
      * @param signature hex-encoded signature (result from `sign()` method)
-     * @param publicKey hex-encoded public key with DER header
+     * @param addressOrPublicKey EVM-address, publicKey, or Hedera address (0x11f8D856FF2aF6700CCda4999845B2ed4502d8fB, 0x0385a2fa81f8acbc47fcfbae4aeee6608c2d50ac2756ed88262d102f2a0a07f5b8, 0.0.1512, or empty for current account)
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {SignVerifyMessageData}
      */
-    async signVerify(messageString: string, signature: string, publicKey: string, completionKey?: string): Promise<SignVerifyMessageData> {
+    async verify(encodedMessage: string, encoding: SupportedEncoding, signature: string, addressOrPublicKey: string, completionKey?: string): Promise<SignVerifyMessageData> {
         try {
-            const result = await this.signServiceContext.signVerify(messageString, signature, publicKey);
+            if (!addressOrPublicKey) {
+                addressOrPublicKey = this.getUser().publicKey;
+            }
+            const result = await this.signServiceContext.verify(encodedMessage, encoding, signature, addressOrPublicKey);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);

@@ -8,7 +8,7 @@ import {
 } from "../models/Common";
 import {ParametersBuilder} from "../ParametersBuilder";
 import {parseContractFunctionParams} from "../helpers/ContractHelpers";
-import { PrivateKey, PublicKey } from '@hashgraph/sdk';
+import { PrivateKey } from '@hashgraph/sdk';
 
 @injectable()
 export default class SignService {
@@ -47,26 +47,4 @@ export default class SignService {
     ethersVerify(messageString: string): Promise<SignVerifyMessageData> {
         throw new Error("Method not implemented.");
     }
-
-    // TODO rename to signMessageKey
-    async sign(messageString: string, privateKey: string): Promise<SignMessageData> {
-        const key = PrivateKey.fromString(privateKey);
-        const signed = key.sign(Buffer.from(messageString, "base64"));
-
-        return {
-            signedMessage: Buffer.from(signed).toString("hex")
-        }
-    }
-
-    // TODO verifyMessageKey
-    async signVerify(messageString: string, signature: string, publicKey: string): Promise<SignVerifyMessageData> {
-        const valid = PublicKey.fromString(publicKey).verify(
-            Buffer.from(messageString, "base64"),
-            Buffer.from(signature, "hex")
-        );
-        return {
-            valid
-        };
-    }
-
 }

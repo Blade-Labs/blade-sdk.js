@@ -143,43 +143,7 @@ describe('test COMMON functionality', () => {
         }
     }, 10_000);
 
-    test('bladeSdk-common.sign + signVerify', async () => {
-        let result;
-        const message = "hello";
-        const messageString = Buffer.from(message).toString("base64");
-
-        result = await bladeSdk.sign(messageString, privateKey, completionKey);
-        checkResult(result);
-
-        expect(result.data).toHaveProperty("signedMessage");
-        expect(result.data.signedMessage).toEqual(Buffer.from(PrivateKey.fromString(privateKey).sign(Buffer.from(message))).toString("hex"));
-
-        const validationResult = await bladeSdk.signVerify(messageString, result.data.signedMessage, PrivateKey.fromString(privateKey).publicKey.toStringRaw(), completionKey);
-        checkResult(validationResult);
-        expect(validationResult.data.valid).toEqual(true);
-
-        expect(PrivateKey.fromString(privateKey).publicKey.verify(
-            Buffer.from(message),
-            Buffer.from(result.data.signedMessage, "hex")
-        )).toEqual(true);
-
-        // invalid private key
-        try {
-            result = await bladeSdk.sign(messageString, `privateKey`, completionKey);
-            expect("Code should not reach here").toEqual(result);
-        } catch (result) {
-            checkResult(result, false);
-        }
-
-
-        try {
-            result = await bladeSdk.signVerify(messageString, "invalid signature", "invalid publicKey", completionKey);
-            expect("Code should not reach here").toEqual(result);
-        } catch (result) {
-            checkResult(result, false);
-        }
-    });
-
+    // TODO refactor
     test('bladeSdk-common.ethersSign', async () => {
         const message = "hello";
         const messageString = Buffer.from(message).toString("base64");

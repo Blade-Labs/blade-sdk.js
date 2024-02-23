@@ -1,11 +1,13 @@
 import {ethers} from "ethers"
 import {ISignService} from "../SignServiceContext";
 import {
-    SplitSignatureData,
+    SignMessageData, SignVerifyMessageData,
+    SupportedEncoding,
 } from "../../models/Common";
 import {KnownChainIds} from "../../models/Chain";
 import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
+import StringHelpers from "../../helpers/StringHelpers";
 
 export default class SignServiceEthereum implements ISignService {
     private readonly chainId: KnownChainIds;
@@ -25,8 +27,37 @@ export default class SignServiceEthereum implements ISignService {
         this.configService = configService;
     }
 
-    async placeholder(signature: string): Promise<SplitSignatureData> {
-        throw new Error("Method not implemented.");
+    async sign(encodedMessage: string, encoding: SupportedEncoding): Promise<SignMessageData> {
+        const message = Buffer.from(encodedMessage, encoding);
+        const signedMessage = await this.signer.signMessage(message);
+
+        return {
+            signedMessage: StringHelpers.stripHexPrefix(signedMessage)
+        }
     }
 
+    async verify(encodedMessage: string, encoding: SupportedEncoding, signature: string, addressOrPublicKey: string): Promise<SignVerifyMessageData> {
+        let valid;
+
+        // if public key - get address
+        if (ethers.utils.isAddress(addressOrPublicKey)) { // 0x + 20bytes hex address
+            addressOrPublicKey = ethers.utils.getAddress(addressOrPublicKey);
+        } else {
+            addressOrPublicKey = ethers.utils.computeAddress(addressOrPublicKey);
+        }
+
+        try {
+            const address = await ethers.utils.verifyMessage(
+                Buffer.from(encodedMessage, encoding),
+                Buffer.from(StringHelpers.stripHexPrefix(signature), "hex")
+            );
+            valid = address === addressOrPublicKey;
+        } catch (err) {
+            valid = false;
+        }
+
+        return {
+            valid
+        };
+    }
 }
