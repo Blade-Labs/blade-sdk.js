@@ -330,10 +330,11 @@ export interface CoinInfoData {
 
 export interface TransactionReceiptData {
     status: string,
-    contractId?: string,
+    contractAddress?: string,
     topicSequenceNumber?: string,
     totalSupply?: string,
     serials: string[],
+    transactionHash: string,
 }
 
 export interface TransactionResponseData {

@@ -17,7 +17,7 @@ import ConfigService from "../../services/ConfigService";
 import {IContractService} from "../ContractServiceContext";
 import {ParametersBuilder} from "../../ParametersBuilder";
 import {getContractFunctionBytecode, parseContractQueryResponse} from "../../helpers/ContractHelpers";
-import {formatReceipt} from "../../helpers/TransactionHelpers";
+import {getReceipt} from "../../helpers/TransactionHelpers";
 
 export default class ContractServiceHedera implements IContractService {
     private readonly chainId: KnownChainIds;
@@ -37,15 +37,15 @@ export default class ContractServiceHedera implements IContractService {
         this.configService = configService;
     }
 
-    async contractCallFunction(contractId: string, functionName: string, paramsEncoded: string | ParametersBuilder, gas: number, bladePayFee: boolean): Promise<TransactionReceiptData> {
-        const contractFunctionParameters = await getContractFunctionBytecode(functionName, paramsEncoded);
+    async contractCallFunction(contractAddress: string, functionName: string, paramsEncoded: string | ParametersBuilder, gas: number, bladePayFee: boolean): Promise<TransactionReceiptData> {
+        const {bytecode} = await getContractFunctionBytecode(functionName, paramsEncoded);
 
         let transaction: Transaction;
         bladePayFee = bladePayFee && (await this.configService.getConfig("smartContract")).toLowerCase() === "true";
         if (bladePayFee) {
             const options = {
-                contractFunctionParameters,
-                contractId,
+                contractFunctionParameters: bytecode,
+                contractAddress,
                 functionName,
                 gas
             };
@@ -54,30 +54,27 @@ export default class ContractServiceHedera implements IContractService {
             transaction = Transaction.fromBytes(Buffer.from(transactionBytes, "base64"));
         } else {
             transaction = new ContractExecuteTransaction()
-                .setContractId(contractId)
+                .setContractId(contractAddress)
                 .setGas(gas)
                 .setFunction(functionName)
-                .setFunctionParameters(contractFunctionParameters)
+                .setFunctionParameters(bytecode)
         }
 
         return transaction
             .freezeWithSigner(this.signer!)
             .then(tx => tx.signWithSigner(this.signer!))
             .then(tx => tx.executeWithSigner(this.signer!))
-            .then(result => result.getReceiptWithSigner(this.signer!))
-            .then(data => {
-                return formatReceipt(data);
-            });
+            .then(txResult => getReceipt(txResult, this.signer!));
     }
 
-    async contractCallQueryFunction(contractId: string, functionName: string, paramsEncoded: string | ParametersBuilder, gas: number, bladePayFee: boolean, resultTypes: string[]): Promise<ContractCallQueryRecordsData> {
-        const contractFunctionParameters = await getContractFunctionBytecode(functionName, paramsEncoded);
+    async contractCallQueryFunction(contractAddress: string, functionName: string, paramsEncoded: string | ParametersBuilder, gas: number, bladePayFee: boolean, resultTypes: string[]): Promise<ContractCallQueryRecordsData> {
+        const {bytecode} = await getContractFunctionBytecode(functionName, paramsEncoded);
         let response: ContractFunctionResult;
 
         if (bladePayFee) {
             const options = {
-                contractFunctionParameters,
-                contractId,
+                contractFunctionParameters: bytecode,
+                contractAddress,
                 functionName,
                 gas
             };
@@ -102,10 +99,10 @@ export default class ContractServiceHedera implements IContractService {
             });
         } else {
             response = await new ContractCallQuery()
-                .setContractId(contractId)
+                .setContractId(contractAddress)
                 .setGas(gas)
                 .setFunction(functionName)
-                .setFunctionParameters(contractFunctionParameters)
+                .setFunctionParameters(bytecode)
                 .executeWithSigner(this.signer!);
         }
 

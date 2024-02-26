@@ -153,14 +153,15 @@ export default class TokenServiceHedera implements ITokenService {
                 .setTokenIds([tokenId])
                 .freezeWithSigner(this.signer!);
         }
-        return transaction.signWithSigner(this.signer!)
-            .then(tx => tx.executeWithSigner(this.signer!))
-            .then(result => result.getReceiptWithSigner(this.signer!))
+        const result = await transaction.signWithSigner(this.signer!)
+            .then(tx => tx.executeWithSigner(this.signer!));
+
+        return result.getReceiptWithSigner(this.signer!)
             .then(txReceipt => {
                 if (txReceipt.status !== Status.Success) {
                     throw new Error(`Association failed`)
                 }
-                return formatReceipt(txReceipt);
+                return formatReceipt(txReceipt, result.transactionHash.toString());
             });
     }
 
@@ -276,19 +277,20 @@ export default class TokenServiceHedera implements ITokenService {
         );
         const mdGroup = mdArray.splice(0, groupSize);
 
-        return new TokenMintTransaction()
+        const txResult = await new TokenMintTransaction()
             .setTokenId(tokenId)
             .setMetadata(mdGroup)
             .setMaxTransactionFee(Hbar.from(2 * groupSize, HbarUnit.Hbar))
             .freezeWithSigner(this.signer!)
             .then(tx => tx.signWithSigner(this.signer!))
-            .then(tx => tx.executeWithSigner(this.signer!))
-            .then(result => result.getReceiptWithSigner(this.signer!))
+            .then(tx => tx.executeWithSigner(this.signer!));
+
+        return txResult.getReceiptWithSigner(this.signer!)
             .then(txReceipt => {
                 if (txReceipt.status !== Status.Success) {
                     throw new Error(`Mint failed`)
                 }
-                return formatReceipt(txReceipt);
+                return formatReceipt(txReceipt, txResult.transactionHash.toString());
             });
     }
 }

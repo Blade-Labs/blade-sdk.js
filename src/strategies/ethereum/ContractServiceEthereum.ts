@@ -8,6 +8,7 @@ import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
 import {IContractService} from "../ContractServiceContext";
 import {ParametersBuilder} from "../../ParametersBuilder";
+import {getContractFunctionBytecode} from "../../helpers/ContractHelpers";
 
 export default class ContractServiceEthereum implements IContractService {
     private readonly chainId: KnownChainIds;
@@ -27,10 +28,62 @@ export default class ContractServiceEthereum implements IContractService {
         this.configService = configService;
     }
 
-    async contractCallFunction(contractId: string, functionName: string, paramsEncoded: string | ParametersBuilder, gas: number, bladePayFee: boolean): Promise<TransactionReceiptData> {
-        throw new Error("Method not implemented.");
+    async contractCallFunction(contractAddress: string, functionName: string, params: string | ParametersBuilder, gas: number, bladePayFee: boolean): Promise<TransactionReceiptData> {
+        // TODO add gas usage
+        // TODO implement bladePayFee
+
+        const {functionSignature, bytecode} = await getContractFunctionBytecode(functionName, params);
+
+        const iface = new ethers.utils.Interface([
+            ethers.utils.FunctionFragment.from(functionSignature)
+        ]);
+
+        const contract = new ethers.Contract(
+            contractAddress,
+            iface,
+            this.signer
+        );
+
+        const tx = await contract[functionName](...iface.decodeFunctionData(functionSignature, bytecode));
+
+        const receipt = await tx.wait();
+
+        return {
+            status: receipt.status === 1 ? "success" : "failure",
+            contractAddress,
+            serials: [],
+            transactionHash: receipt.transactionHash
+        }
     }
-    async contractCallQueryFunction(contractId: string, functionName: string, paramsEncoded: string | ParametersBuilder, gas: number, bladePayFee: boolean, resultTypes: string[]): Promise<ContractCallQueryRecordsData> {
-        throw new Error("Method not implemented.");
+
+    async contractCallQueryFunction(contractAddress: string, functionName: string, params: string | ParametersBuilder, gas: number, bladePayFee: boolean, resultTypes: string[]): Promise<ContractCallQueryRecordsData> {
+        const {functionSignature, bytecode} = await getContractFunctionBytecode(functionName, params);
+
+        const iface = new ethers.utils.Interface([
+            ethers.utils.FunctionFragment.from(`${functionSignature} view returns (${resultTypes.join(",")})`)
+        ]);
+
+        const contract = new ethers.Contract(
+            contractAddress,
+            iface,
+            this.signer
+        );
+
+        // Call the Function
+        let result = await contract.callStatic[functionName](...iface.decodeFunctionData(functionSignature, bytecode));
+
+        if (resultTypes.length <= 1) {
+            result = [result];
+        }
+
+        return {
+            values: result.map((value, index) => {
+                return {
+                    type: resultTypes[index] || "",
+                    value: value.toString()
+                }
+            }),
+            gasUsed: 0 // TODO add actual gas usage if possible
+        };
     }
 }

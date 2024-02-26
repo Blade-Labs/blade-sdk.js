@@ -4,8 +4,11 @@ import {Buffer} from "buffer";
 import {ParametersBuilder} from "../ParametersBuilder";
 import {ContractCallQueryRecord} from "../models/Common";
 
-export const getContractFunctionBytecode = async (functionName: string, paramsEncoded: string | ParametersBuilder): Promise<Buffer> => {
-    const {types, values} = await parseContractFunctionParams(paramsEncoded);
+export const getContractFunctionBytecode = async (functionName: string, params: string | ParametersBuilder): Promise<{
+    functionSignature: string,
+    bytecode: Buffer,
+}> => {
+    const {types, values} = await parseContractFunctionParams(params);
 
     // get func identifier
     const functionSignature = `${functionName}(${types.join(",")})`;
@@ -14,12 +17,15 @@ export const getContractFunctionBytecode = async (functionName: string, paramsEn
     ]).getSighash(functionName);
 
     const abiCoder = new ethers.utils.AbiCoder();
-    const encodedBytes = abiCoder.encode(types, values);
+    const encodedParams = abiCoder.encode(types, values);
 
-    return Buffer.concat([
-        ethers.utils.arrayify(functionIdentifier),
-        ethers.utils.arrayify(encodedBytes)
-    ]);
+    return {
+        functionSignature,
+        bytecode: Buffer.concat([
+            ethers.utils.arrayify(functionIdentifier),
+            ethers.utils.arrayify(encodedParams)
+        ])
+    };
 }
 
 export const parseContractFunctionParams = async (paramsEncoded: string | ParametersBuilder) => {
@@ -37,79 +43,81 @@ export const parseContractFunctionParams = async (paramsEncoded: string | Parame
     for (let i = 0; i < paramsData.length; i++) {
         const param = paramsData[i];
 
-        switch (param?.type) {
-            case "address": {
-                // ["0.0.48619523"]
-                types.push(param.type);
-                values.push(await valueToSolidity(param.value[0]));
-            } break;
+        if (param?.type === "address") {
+            // ["0.0.48619523"]
+            types.push(param.type);
+            values.push(await valueToSolidity(param.value[0]));
+        } else if (param?.type === "address[]") {
+            // ["0.0.48619523", "0.0.4861934333"]
+            const result: any[] = [];
+            for (let i = 0; i < param.value.length; i++) {
+                result.push(await valueToSolidity(param.value[i]));
+            }
 
-            case "address[]": {
-                // ["0.0.48619523", "0.0.4861934333"]
-                const result: any[] = [];
-                for (let i = 0; i < param.value.length; i++) {
-                    result.push(await valueToSolidity(param.value[i]));
-                }
+            types.push(param.type);
+            values.push(result);
+        } else if (param?.type === "bytes32") {
+            // "WzAsMSwyLDMsNCw1LDYsNyw4LDksMTAsMTEsMTIsMTMsMTQsMTUsMTYsMTcsMTgsMTksMjAsMjEsMjIsMjMsMjQsMjUsMjYsMjcsMjgsMjksMzAsMzFd"
+            // base64 decode -> json parse -> data
+            types.push(param.type);
+            values.push(Uint8Array.from(JSON.parse(atob(param.value[0]))));
+        } else if (param?.type === "bytes32[]") {
+            const result: any[] = [];
+            for (let i = 0; i < param.value.length; i++) {
+                result.push(Uint8Array.from(JSON.parse(atob(param.value[i]))));
+            }
+            types.push(param.type);
+            values.push(result);
+        } else if (/^(uint|int)(8|16|24|32|40|48|56|64|72|80|88|96|104|112|120|128|136|144|152|160|168|176|184|192|200|208|216|224|232|240|248|256)$/.test(param?.type)) {
+            // if int8, int16, int24, int32... int256 or uint8, uint16, uint24, uint32... uint256
+            types.push(param.type);
+            values.push(param.value[0]);
+        } else if (/^(uint|int)(8|16|24|32|40|48|56|64|72|80|88|96|104|112|120|128|136|144|152|160|168|176|184|192|200|208|216|224|232|240|248|256)\[\]$/.test(param?.type)) {
+            // if int8[], int16[], int24[], int32[]... int256[] or uint8[], uint16[], uint24[], uint32[]... uint256[]
+            types.push(param.type);
+            values.push(param.value);
+        } else if (param?.type === "tuple") {
+            const result = await parseContractFunctionParams(param.value[0]);
 
-                types.push(param.type);
-                values.push(result);
-            } break;
+            types.push(`(${result.types})`);
+            values.push(result.values);
+        } else if (param?.type === "tuple[]") {
+            const result: any[] = [];
+            for (let i = 0; i < param.value.length; i++) {
+                result.push(await parseContractFunctionParams(param.value[i]));
+            }
 
-            case "bytes32": {
-                // "WzAsMSwyLDMsNCw1LDYsNyw4LDksMTAsMTEsMTIsMTMsMTQsMTUsMTYsMTcsMTgsMTksMjAsMjEsMjIsMjMsMjQsMjUsMjYsMjcsMjgsMjksMzAsMzFd"
-                // base64 decode -> json parse -> data
-                types.push(param.type);
-                values.push(Uint8Array.from(JSON.parse(atob(param.value[0]))));
-            } break;
-            case "uint8":
-            case "int64":
-            case "uint64":
-            case "uint256": {
-                types.push(param.type);
-                values.push(param.value[0]);
-            } break;
-            case "uint64[]":
-            case "uint256[]": {
-                types.push(param.type);
-                values.push(param.value);
-            } break;
-
-            case "tuple": {
-                const result = await parseContractFunctionParams(param.value[0]);
-
-                types.push(`(${result.types})`);
-                values.push(result.values);
-            } break;
-
-            case "tuple[]": {
-                const result: any[] = [];
-                for (let i = 0; i < param.value.length; i++) {
-                    result.push(await parseContractFunctionParams(param.value[i]));
-                }
-
-                // check if all types are the same (tuple structure must be the same in array)
-                const tupleTypes = result[0].types.toString();
-                for (let i = 1; i < result.length; i++) {
-                    if (result[i].types.toString() !== tupleTypes) {
-                        throw {
-                            name: "BladeSDK.JS",
-                            reason: `Tuple structure in array must be the same`
-                        }
+            // check if all types are the same (tuple structure must be the same in array)
+            const tupleTypes = result[0].types.toString();
+            for (let i = 1; i < result.length; i++) {
+                if (result[i].types.toString() !== tupleTypes) {
+                    throw {
+                        name: "BladeSDK.JS",
+                        reason: `Tuple structure in array must be the same`
                     }
                 }
+            }
 
-                types.push(`(${result[0].types})[]`);
-                values.push(result.map(({values}) => values));
-            } break;
-            case "string": {
-                types.push(param.type);
-                values.push(param.value[0]);
-            } break;
-            case "string[]": {
-                types.push(param.type);
-                values.push(param.value);
-            } break;
-            default: {
+            types.push(`(${result[0].types})[]`);
+            values.push(result.map(({values}) => values));
+        } else if (param?.type === "string") {
+            types.push(param.type);
+            values.push(param.value[0]);
+        } else if (param?.type === "string[]") {
+            types.push(param.type);
+            values.push(param.value);
+        } else if (param?.type === "bool") {
+            types.push(param.type);
+            values.push(param.value[0] === "true");
+        } else if (param?.type === "bool[]") {
+            const result: any[] = [];
+            for (let i = 0; i < param.value.length; i++) {
+                result.push(param.value[i] === "true");
+            }
+            types.push(param.type);
+            values.push(result);
+        } else {
+            {
                 throw {
                     name: "BladeSDK.JS",
                     reason: `Type "${param?.type}" not implemented on JS`

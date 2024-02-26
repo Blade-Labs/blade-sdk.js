@@ -19,8 +19,8 @@ import {Network} from "../models/Networks";
 import {ParametersBuilder} from "../ParametersBuilder";
 
 export interface IContractService {
-    contractCallFunction(contractId: string, functionName: string, paramsEncoded: string | ParametersBuilder, gas: number, bladePayFee: boolean): Promise<TransactionReceiptData>
-    contractCallQueryFunction(contractId: string, functionName: string, paramsEncoded: string | ParametersBuilder, gas: number, bladePayFee: boolean, resultTypes: string[]): Promise<ContractCallQueryRecordsData>
+    contractCallFunction(contractAddress: string, functionName: string, paramsEncoded: string | ParametersBuilder, gas: number, bladePayFee: boolean): Promise<TransactionReceiptData>
+    contractCallQueryFunction(contractAddress: string, functionName: string, paramsEncoded: string | ParametersBuilder, gas: number, bladePayFee: boolean, resultTypes: string[]): Promise<ContractCallQueryRecordsData>
 }
 
 @injectable()
@@ -50,14 +50,14 @@ export default class ContractServiceContext implements IContractService {
         }
     }
 
-    contractCallFunction(contractId: string, functionName: string, paramsEncoded: string | ParametersBuilder, gas: number, bladePayFee: boolean): Promise<TransactionReceiptData> {
+    contractCallFunction(contractAddress: string, functionName: string, paramsEncoded: string | ParametersBuilder, gas: number, bladePayFee: boolean): Promise<TransactionReceiptData> {
         this.checkInit();
-        return this.strategy!.contractCallFunction(contractId, functionName, paramsEncoded, gas, bladePayFee);
+        return this.strategy!.contractCallFunction(contractAddress, functionName, paramsEncoded, gas, bladePayFee);
     }
 
-    contractCallQueryFunction(contractId: string, functionName: string, paramsEncoded: string | ParametersBuilder, gas: number, bladePayFee: boolean, resultTypes: string[]): Promise<ContractCallQueryRecordsData> {
+    contractCallQueryFunction(contractAddress: string, functionName: string, paramsEncoded: string | ParametersBuilder, gas: number, bladePayFee: boolean, resultTypes: string[]): Promise<ContractCallQueryRecordsData> {
         this.checkInit();
-        return this.strategy!.contractCallQueryFunction(contractId, functionName, paramsEncoded, gas, bladePayFee, resultTypes);
+        return this.strategy!.contractCallQueryFunction(contractAddress, functionName, paramsEncoded, gas, bladePayFee, resultTypes);
     }
 
     private checkInit() {

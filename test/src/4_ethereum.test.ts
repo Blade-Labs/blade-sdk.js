@@ -1,4 +1,4 @@
-import {checkResult, completionKey} from "./helpers";
+import {checkResult, completionKey, sleep} from "./helpers";
 import ApiService from "../../src/services/ApiService";
 import CryptoFlowService from "../../src/services/CryptoFlowService";
 import ConfigService from "../../src/services/ConfigService";
@@ -19,7 +19,7 @@ import TradeServiceContext from "../../src/strategies/TradeServiceContext";
 import {KnownChainIds} from "../../src/models/Chain";
 import SignService from "../../src/services/SignService";
 
-const {BladeSDK} = require("../../src/webView");
+const {BladeSDK, ParametersBuilder} = require("../../src/webView");
 
 Object.defineProperty(global.self, "crypto", {
     value: {
@@ -506,48 +506,58 @@ describe('testing methods related to ETHEREUM network', () => {
     //     result = await bladeSdk.transferTokens(tokenId, accountId2, serialNumber, "transfer NFT memo", false, completionKey);
     //     checkResult(result);
     // }, 180_000);
-    //
-    // test('bladeSdk-ethereum.contractCallFunction', async () => {
-    //     let result;
-    //     const contractId = process.env.CONTRACT_ID || "";
-    //     expect(contractId).not.toEqual("");
-    //     const client = Client.forTestnet();
-    //     client.setOperator(accountId, privateKey);
-    //
-    //
-    //     let message = `Hello test ${Math.random()}`;
-    //     let params = new ParametersBuilder().addString(message);
-    //
-    //     result = await bladeSdk.resetUser(completionKey);
-    //     checkResult(result);
-    //
-    //     try {
-    //         result = await bladeSdk.contractCallFunction(contractId, "set_message", params, 1000000, false, completionKey);
-    //         expect("Code should not reach here1").toEqual(result);
-    //     } catch (result) {
-    //         checkResult(result, false);
-    //     }
-    //
-    //     result = await bladeSdk.setUser(AccountProvider.PrivateKey, accountId, privateKey, completionKey);
-    //     checkResult(result);
-    //
-    //     // direct call
-    //     result = await bladeSdk.contractCallFunction(contractId, "set_message", params, 1000000, false, completionKey);
-    //     checkResult(result);
-    //
-    //
-    //     await sleep(10_000);
-    //
-    //     let contractCallQuery = new ContractCallQuery()
-    //         .setContractId(contractId)
-    //         .setGas(100000)
-    //         .setFunction("get_message")
-    //         .setQueryPayment(new Hbar(1));
-    //
-    //     let contractCallQueryResult = await contractCallQuery.execute(client);
-    //     expect(contractCallQueryResult.getString(0)).toEqual(message);
-    //
-    //
+
+    test('bladeSdk-ethereum.contractCallFunction + contractCallQueryFunction', async () => {
+        let result;
+        const contractAddress = process.env.ETHEREUM_CONTRACT_ADDRESS || "";
+        expect(contractAddress).not.toEqual("");
+
+        let message = `Hello test ${Math.random()}`;
+        let params = new ParametersBuilder().addString(message);
+
+        try {
+            result = await bladeSdk.contractCallFunction(contractAddress, "setMood", params, 1000000, false, completionKey);
+            expect("Code should not reach here1").toEqual(result);
+        } catch (result) {
+            checkResult(result, false);
+        }
+
+        result = await bladeSdk.setUser(AccountProvider.PrivateKey, "", ethereumPrivateKey, completionKey);
+        checkResult(result);
+
+        // direct call
+        result = await bladeSdk.contractCallFunction(contractAddress, "setMood", params, 1000000, false, completionKey);
+        checkResult(result);
+
+
+        expect(result.data).toHaveProperty("status");
+        expect(result.data.status).toEqual("success");
+        expect(result.data).toHaveProperty("contractAddress");
+        expect(result.data).toHaveProperty("transactionHash");
+
+
+        try {
+            // wrong function signature (params with string record)
+            result = await bladeSdk.contractCallQueryFunction(contractAddress, "getMood", params, 1000000, false, ["string"], completionKey);
+            expect("Code should not reach here").toEqual(result);
+        } catch (result) {
+            checkResult(result, false);
+        }
+
+        await sleep(10_000);
+        params = new ParametersBuilder();
+        result = await bladeSdk.contractCallQueryFunction(contractAddress, "getMood", params, 1000000, false, ["string"], completionKey);
+        checkResult(result);
+
+        expect(Array.isArray(result.data.values)).toEqual(true);
+        expect(result.data.values.length).toEqual(1);
+
+        expect(result.data.values[0]).toHaveProperty("type");
+        expect(result.data.values[0]).toHaveProperty("value");
+        expect(result.data.values[0].type).toEqual("string");
+        expect(result.data.values[0].value).toEqual(message);
+
+
     //     // pay fee on backend
     //     message = `Hello test ${Math.random()}`;
     //     params = new ParametersBuilder().addString(message);
@@ -615,68 +625,7 @@ describe('testing methods related to ETHEREUM network', () => {
     //         checkResult(result, false);
     //         expect(result.error.reason.includes("INSUFFICIENT_GAS")).toEqual(true);
     //     }
-    // }, 120_000);
-    //
-    // test('bladeSdk-ethereum.contractCallQueryFunction', async () => {
-    //     const contractId = process.env.CONTRACT_ID || "";
-    //     expect(contractId).not.toEqual("");
-    //     const client = Client.forTestnet();
-    //     client.setOperator(accountId, privateKey);
-    //
-    //     let result = await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.VISITOR_ID, process.env.SDK_ENV, sdkVersion, completionKey);
-    //     checkResult(result);
-    //
-    //     let message = `Hello DIRECT test ${Math.random()}`;
-    //     let params = new ParametersBuilder().addString(message);
-    //
-    //     result = await bladeSdk.contractCallFunction(contractId, "set_message", params, accountId, privateKey, 100000, false, completionKey);
-    //     checkResult(result);
-    //
-    //     await sleep(10_000);
-    //     // direct call
-    //     params = new ParametersBuilder();
-    //     result = await bladeSdk.contractCallQueryFunction(contractId, "get_message", params, accountId, privateKey, 100000, false, ["string"], completionKey);
-    //     checkResult(result);
-    //
-    //     expect(Array.isArray(result.data.values)).toEqual(true);
-    //     expect(result.data.values.length).toEqual(1);
-    //
-    //     expect(result.data.values[0]).toHaveProperty("type");
-    //     expect(result.data.values[0]).toHaveProperty("value");
-    //     expect(result.data.values[0].type).toEqual("string");
-    //     expect(result.data.values[0].value).toEqual(message);
-    //
-    //     // call with API
-    //
-    //     message = `Hello API test ${Math.random()}`;
-    //     params = new ParametersBuilder().addString(message);
-    //
-    //     result = await bladeSdk.contractCallFunction(contractId, "set_message", params, accountId, privateKey, 100000, true, completionKey);
-    //     checkResult(result);
-    //
-    //     await sleep(10_000);
-    //     params = new ParametersBuilder();
-    //     result = await bladeSdk.contractCallQueryFunction(contractId, "get_message", params, accountId, privateKey, 100000, true, ["string"], completionKey);
-    //     checkResult(result);
-    //
-    //     expect(Array.isArray(result.data.values)).toEqual(true);
-    //     expect(result.data.values.length).toEqual(1);
-    //
-    //     expect(result.data.values[0]).toHaveProperty("type");
-    //     expect(result.data.values[0]).toHaveProperty("value");
-    //     expect(result.data.values[0].type).toEqual("string");
-    //     expect(result.data.values[0].value).toEqual(message);
-    //
-    //     params = new ParametersBuilder();
-    //     result = await bladeSdk.contractCallQueryFunction(contractId, "unknown function", params, accountId, privateKey, 100000, true, ["string"], completionKey);
-    //     checkResult(result, false);
-    //
-    //     result = await bladeSdk.contractCallQueryFunction(contractId, "get_message", params, "0.0.3", privateKey2, 100000, false, ["string"], completionKey);
-    //     checkResult(result, false);
-    //
-    //     result = await bladeSdk.contractCallQueryFunction(contractId, "get_message", params, accountId, privateKey, 100000, false, ["bytes32", "unknown-type"], completionKey);
-    //     checkResult(result, false);
-    // }, 120_000);
+    }, 120_000);
 
     test('bladeSdk-ethereum.sign + signVerify', async () => {
         let result;

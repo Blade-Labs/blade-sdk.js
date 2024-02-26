@@ -24,7 +24,7 @@ import ConfigService from "../../services/ConfigService";
 import {NodeInfo} from "../../models/MirrorNode";
 import { ethers } from "ethers";
 import {executeUpdateAccountTransactions} from "../../helpers/AccountHelpers";
-import {formatReceipt} from "../../helpers/TransactionHelpers";
+import {getReceipt} from "../../helpers/TransactionHelpers";
 
 export default class AccountServiceHedera implements IAccountService {
     private readonly chainId: KnownChainIds;
@@ -145,10 +145,7 @@ export default class AccountServiceHedera implements IAccountService {
             .then(tx => tx.sign(deleteAccountKey))
             .then(tx => tx.signWithSigner(this.signer!))
             .then(tx => tx.executeWithSigner(this.signer!))
-            .then(result => result.getReceiptWithSigner(this.signer!))
-            .then(txReceipt => {
-                return formatReceipt(txReceipt);
-            });
+            .then(txResult => getReceipt(txResult, this.signer!));
     }
 
     async getAccountInfo(accountId: string): Promise<AccountInfoData> {
@@ -185,10 +182,7 @@ export default class AccountServiceHedera implements IAccountService {
             .freezeWithSigner(this.signer!)
             .then(tx => tx.signWithSigner(this.signer!))
             .then(tx => tx.executeWithSigner(this.signer!))
-            .then(result => result.getReceiptWithSigner(this.signer!))
-            .then(data => {
-                return formatReceipt(data);
-            });
+            .then(txResult => getReceipt(txResult, this.signer!));
     }
 
     async getKeysFromMnemonic(mnemonicRaw: string, lookupNames: boolean): Promise<PrivateKeyData> {

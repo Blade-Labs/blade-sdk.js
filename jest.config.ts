@@ -14,7 +14,8 @@ const config: Config.InitialOptions = {
     testEnvironment: "jsdom",
     setupFiles: ["core-js"],
     setupFilesAfterEnv: ["<rootDir>/test/src/helpers.ts"],
-    maxConcurrency: 5,
+    maxConcurrency: 1,
+    maxWorkers: 1,
     globals: {
         Uint8Array: Uint8Array,
         ArrayBuffer: ArrayBuffer

@@ -472,7 +472,7 @@ export default class ApiService {
             }),
             body: JSON.stringify({
                 functionParametersHash: Buffer.from(params.contractFunctionParameters).toString("base64"),
-                contractId: params.contractId,
+                contractId: params.contractAddress,
                 functionName: params.functionName,
                 gas: params.gas
             })
