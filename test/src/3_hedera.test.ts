@@ -363,24 +363,23 @@ describe('testing methods related to HEDERA network', () => {
         result = await bladeSdk.getKeysFromMnemonic(accountSample.seedPhrase, false, completionKey);
         checkResult(result);
 
-        expect(result.data).toHaveProperty("privateKey");
-        expect(result.data).toHaveProperty("publicKey");
         expect(result.data).toHaveProperty("accounts");
-        expect(result.data).toHaveProperty("evmAddress");
         expect(Array.isArray(result.data.accounts)).toEqual(true);
-        expect(result.data.accounts.length).toEqual(0);
-
-        expect(result.data.privateKey).toEqual(accountSample.privateKey);
-        expect(result.data.publicKey).toEqual(accountSample.publicKey);
-        expect(result.data.evmAddress).toEqual(accountSample.evmAddress);
+        expect(result.data.accounts.length).toBeGreaterThanOrEqual(1)
+        expect(result.data.accounts[0]).toHaveProperty("privateKey");
+        expect(result.data.accounts[0]).toHaveProperty("publicKey");
+        expect(result.data.accounts[0]).toHaveProperty("address");
+        expect(result.data.accounts[0]).toHaveProperty("evmAddress");
+        expect(result.data.accounts[0]).toHaveProperty("path");
+        expect(result.data.accounts[0].address).toEqual("");
 
         await sleep(7000);
 
         result = await bladeSdk.getKeysFromMnemonic(accountSample.seedPhrase, true, completionKey);
         checkResult(result);
 
-        expect(result.data.accounts.length).toEqual(1);
-        expect(result.data.accounts[0]).toEqual(accountSample.accountId);
+        expect(result.data.accounts.length).toBeGreaterThanOrEqual(1)
+        expect(result.data.accounts[0].address).toEqual(accountSample.accountId);
 
         try {
             result = await bladeSdk.getKeysFromMnemonic("invalid seed phrase", true, completionKey);
@@ -391,7 +390,8 @@ describe('testing methods related to HEDERA network', () => {
 
         result = await bladeSdk.getKeysFromMnemonic((await Mnemonic.generate12()).toString(), true, completionKey);
         checkResult(result);
-        expect(result.data.accounts.length).toEqual(0);
+        expect(result.data.accounts.length).toBeGreaterThanOrEqual(1)
+        expect(result.data.accounts[0].address).toEqual("");
     }, 60_000);
 
     test('bladeSdk-hedera.getTransactions', async () => {

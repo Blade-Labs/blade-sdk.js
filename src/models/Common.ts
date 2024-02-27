@@ -202,11 +202,16 @@ export interface AccountInfoData {
     calculatedEvmAddress?: string
 }
 
-export interface PrivateKeyData {
+export interface AccountPrivateData {
+    accounts: AccountPrivateRecord[]
+}
+
+export interface AccountPrivateRecord {
     privateKey: string,
     publicKey: string,
-    accounts: string[],
-    evmAddress: string
+    evmAddress: string,
+    address: string,
+    path: string
 }
 
 export interface SignMessageData {

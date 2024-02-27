@@ -12,6 +12,7 @@ import StringHelpers from "./helpers/StringHelpers";
 import {CustomError} from "./models/Errors";
 import {
     AccountInfoData,
+    AccountPrivateData,
     AccountProvider,
     BalanceData,
     BridgeResponse,
@@ -25,7 +26,6 @@ import {
     IntegrationUrlData,
     KeyRecord,
     NFTStorageConfig,
-    PrivateKeyData,
     SdkEnvironment,
     SignMessageData,
     SignVerifyMessageData,
@@ -590,9 +590,9 @@ export class BladeSDK {
      * @param mnemonicRaw BIP39 mnemonic
      * @param lookupNames if true, get accountIds from mirror node by public key
      * @param completionKey optional field bridge between mobile webViews and native apps
-     * @returns {PrivateKeyData}
+     * @returns {AccountPrivateData}
      */
-    async getKeysFromMnemonic(mnemonicRaw: string, lookupNames: boolean, completionKey?: string): Promise<PrivateKeyData> {
+    async getKeysFromMnemonic(mnemonicRaw: string, lookupNames: boolean, completionKey?: string): Promise<AccountPrivateData> {
         try {
             const result = await this.accountServiceContext.getKeysFromMnemonic(mnemonicRaw, lookupNames);
             return this.sendMessageToNative(completionKey, result);

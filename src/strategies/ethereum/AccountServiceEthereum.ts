@@ -2,8 +2,8 @@ import {IAccountService} from "../AccountServiceContext";
 
 import {
     AccountInfoData,
+    AccountPrivateData,
     CreateAccountData,
-    PrivateKeyData,
     TransactionReceiptData,
     TransactionsHistoryData
 } from "../../models/Common";
@@ -31,17 +31,16 @@ export default class AccountServiceEthereum implements IAccountService {
         this.configService = configService;
     }
 
-
     createAccount(deviceId?: string): Promise<CreateAccountData> {
         throw new Error("Method not implemented.");
     }
 
     getPendingAccount(transactionId: string, mnemonic: string): Promise<CreateAccountData> {
-        throw new Error("Method not implemented.");
+        throw new Error("Method not supported for this chain");
     }
 
     deleteAccount(deleteAccountId: string, deletePrivateKey: string, transferAccountId: string): Promise<TransactionReceiptData> {
-        throw new Error("Method not implemented.");
+        throw new Error("Method not supported for this chain");
     }
 
     getAccountInfo(accountId: string): Promise<AccountInfoData> {
@@ -49,15 +48,34 @@ export default class AccountServiceEthereum implements IAccountService {
     }
 
     getNodeList(): Promise<{nodes: NodeInfo[]}> {
-        throw new Error("Method not implemented.");
+        throw new Error("Method not supported for this chain");
     }
 
     stakeToNode(accountId: string, nodeId: number): Promise<TransactionReceiptData> {
-        throw new Error("Method not implemented.");
+        throw new Error("Method not supported for this chain");
     }
 
-    getKeysFromMnemonic(mnemonicRaw: string, lookupNames: boolean): Promise<PrivateKeyData> {
-        throw new Error("Method not implemented.");
+    async getKeysFromMnemonic(mnemonicRaw: string, lookupNames: boolean): Promise<AccountPrivateData> {
+        const hdNode = ethers.utils.HDNode.fromMnemonic(mnemonicRaw);
+        const numAccounts = 10;
+        const accounts = [];
+
+        // Loop to derive accounts
+        for (let i = 0; i < numAccounts; i++) {
+            // Derive the wallet at the specified index
+            const path = `m/44'/60'/0'/0/${i}`;
+            const wallet = hdNode.derivePath(path);
+            accounts.push({
+                privateKey: wallet.privateKey,
+                publicKey: wallet.publicKey,
+                evmAddress: wallet.address,
+                address: wallet.address,
+                path: wallet.path
+            });
+        }
+        return {
+            accounts
+        };
     }
 
     getTransactions(accountId: string, transactionType: string, nextPage: string, transactionsLimit: string): Promise<TransactionsHistoryData> {

@@ -60,6 +60,7 @@ describe('testing methods related to ETHEREUM network', () => {
     const ethereumAddress = process.env.ETHEREUM_ADDRESS || "";
     const ethereumPrivateKey = process.env.ETHEREUM_PRIVATE_KEY || "";
     const ethereumAddress2 = process.env.ETHEREUM_ADDRESS2 || "";
+    const ethereumMnemonic = process.env.ETHEREUM_MNEMONIC || "";
 
     const chainId = KnownChainIds.ETHEREUM_SEPOLIA;
 
@@ -265,53 +266,26 @@ describe('testing methods related to ETHEREUM network', () => {
     // }, 60_000);
 
 
-    // test('bladeSdk-ethereum.getKeysFromMnemonic', async () => {
-    //     let result;
-    //     result = await bladeSdk.createAccount("device-id", completionKey);
-    //     checkResult(result);
-    //
-    //     const accountSample = {
-    //         accountId: result.data.accountId,
-    //         privateKey: result.data.privateKey,
-    //         publicKey: result.data.publicKey,
-    //         seedPhrase: result.data.seedPhrase,
-    //         evmAddress: result.data.evmAddress
-    //     }
-    //
-    //     result = await bladeSdk.getKeysFromMnemonic(accountSample.seedPhrase, false, completionKey);
-    //     checkResult(result);
-    //
-    //     expect(result.data).toHaveProperty("privateKey");
-    //     expect(result.data).toHaveProperty("publicKey");
-    //     expect(result.data).toHaveProperty("accounts");
-    //     expect(result.data).toHaveProperty("evmAddress");
-    //     expect(Array.isArray(result.data.accounts)).toEqual(true);
-    //     expect(result.data.accounts.length).toEqual(0);
-    //
-    //     expect(result.data.privateKey).toEqual(accountSample.privateKey);
-    //     expect(result.data.publicKey).toEqual(accountSample.publicKey);
-    //     expect(result.data.evmAddress).toEqual(accountSample.evmAddress);
-    //
-    //     await sleep(7000);
-    //
-    //     result = await bladeSdk.getKeysFromMnemonic(accountSample.seedPhrase, true, completionKey);
-    //     checkResult(result);
-    //
-    //     expect(result.data.accounts.length).toEqual(1);
-    //     expect(result.data.accounts[0]).toEqual(accountSample.accountId);
-    //
-    //     try {
-    //         result = await bladeSdk.getKeysFromMnemonic("invalid seed phrase", true, completionKey);
-    //         expect("Code should not reach here").toEqual(result);
-    //     } catch (result) {
-    //         checkResult(result, false);
-    //     }
-    //
-    //     result = await bladeSdk.getKeysFromMnemonic((await Mnemonic.generate12()).toString(), true, completionKey);
-    //     checkResult(result);
-    //     expect(result.data.accounts.length).toEqual(0);
-    // }, 60_000);
-    //
+    test('bladeSdk-ethereum.getKeysFromMnemonic', async () => {
+        let result;
+
+        result = await bladeSdk.getKeysFromMnemonic(ethereumMnemonic, false, completionKey);
+        checkResult(result);
+
+        expect(result.data).toHaveProperty("accounts");
+        expect(Array.isArray(result.data.accounts)).toEqual(true);
+        expect(result.data.accounts.length).toEqual(10)
+        expect(result.data.accounts[0]).toHaveProperty("privateKey");
+        expect(result.data.accounts[0]).toHaveProperty("publicKey");
+        expect(result.data.accounts[0]).toHaveProperty("address");
+        expect(result.data.accounts[0]).toHaveProperty("evmAddress");
+        expect(result.data.accounts[0]).toHaveProperty("path");
+        expect(result.data.accounts[0].path).toEqual("m/44'/60'/0'/0/0");
+        expect(result.data.accounts[0].address).toEqual(result.data.accounts[0].evmAddress);
+        expect(result.data.accounts[0].address).toEqual(ethereumAddress2);
+
+    }, 60_000);
+
     // test('bladeSdk-ethereum.getTransactions', async () => {
     //     let result
     //

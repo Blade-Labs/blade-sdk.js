@@ -12,9 +12,10 @@ import {
 import {IAccountService} from "../AccountServiceContext";
 
 import {
-    AccountInfoData, AccountStatus,
+    AccountInfoData,
+    AccountPrivateData,
+    AccountStatus,
     CreateAccountData,
-    PrivateKeyData,
     TransactionReceiptData,
     TransactionsHistoryData
 } from "../../models/Common";
@@ -185,7 +186,7 @@ export default class AccountServiceHedera implements IAccountService {
             .then(txResult => getReceipt(txResult, this.signer!));
     }
 
-    async getKeysFromMnemonic(mnemonicRaw: string, lookupNames: boolean): Promise<PrivateKeyData> {
+    async getKeysFromMnemonic(mnemonicRaw: string, lookupNames: boolean): Promise<AccountPrivateData> {
         const mnemonic = await Mnemonic.fromString(mnemonicRaw
             .toLowerCase()
             .split(" ")
@@ -199,13 +200,20 @@ export default class AccountServiceHedera implements IAccountService {
         if (lookupNames) {
             accounts = await this.apiService.getAccountsFromPublicKey(publicKey);
         }
-
-        return  {
-            privateKey: privateKey.toStringDer(),
-            publicKey: publicKey.toStringDer(),
-            accounts,
-            evmAddress: ethers.utils.computeAddress(`0x${publicKey.toStringRaw()}`).toLowerCase()
-        };
+        if (!accounts.length) {
+            accounts = [""];
+        }
+        return {
+            accounts: accounts.map(accountId => {
+                return {
+                    privateKey: privateKey.toStringDer(),
+                    publicKey: publicKey.toStringDer(),
+                    evmAddress: ethers.utils.computeAddress(`0x${publicKey.toStringRaw()}`).toLowerCase(),
+                    address: accountId,
+                    path: ChainMap[this.chainId].defaultPath
+                }
+            })
+        }
     }
 
     async getTransactions(accountId: string, transactionType: string, nextPage: string, transactionsLimit: string): Promise<TransactionsHistoryData> {

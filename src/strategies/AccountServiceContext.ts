@@ -5,8 +5,8 @@ import {Signer} from "@hashgraph/sdk"
 
 import {
     AccountInfoData,
+    AccountPrivateData,
     CreateAccountData,
-    PrivateKeyData,
     TransactionReceiptData,
     TransactionsHistoryData
 } from "../models/Common";
@@ -28,7 +28,7 @@ export interface IAccountService {
     getAccountInfo(accountId: string): Promise<AccountInfoData>
     getNodeList(): Promise<{nodes: NodeInfo[]}>
     stakeToNode(accountId: string, nodeId: number): Promise<TransactionReceiptData>
-    getKeysFromMnemonic(mnemonicRaw: string, lookupNames: boolean): Promise<PrivateKeyData>
+    getKeysFromMnemonic(mnemonicRaw: string, lookupNames: boolean): Promise<AccountPrivateData>
     getTransactions(accountId: string, transactionType: string, nextPage: string, transactionsLimit: string): Promise<TransactionsHistoryData>
 }
 
@@ -89,7 +89,7 @@ export default class AccountServiceContext implements IAccountService {
         return this.strategy!.stakeToNode(accountId, nodeId);
     }
 
-    getKeysFromMnemonic(mnemonicRaw: string, lookupNames: boolean): Promise<PrivateKeyData> {
+    getKeysFromMnemonic(mnemonicRaw: string, lookupNames: boolean): Promise<AccountPrivateData> {
         this.checkInit();
         return this.strategy!.getKeysFromMnemonic(mnemonicRaw, lookupNames);
     }
