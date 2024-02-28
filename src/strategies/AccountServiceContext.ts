@@ -28,7 +28,7 @@ export interface IAccountService {
     getAccountInfo(accountId: string): Promise<AccountInfoData>
     getNodeList(): Promise<{nodes: NodeInfo[]}>
     stakeToNode(accountId: string, nodeId: number): Promise<TransactionReceiptData>
-    getKeysFromMnemonic(mnemonicRaw: string, lookupNames: boolean): Promise<AccountPrivateData>
+    getKeysFromMnemonic(mnemonicRaw: string): Promise<AccountPrivateData>
     getTransactions(accountId: string, transactionType: string, nextPage: string, transactionsLimit: string): Promise<TransactionsHistoryData>
 }
 
@@ -89,9 +89,9 @@ export default class AccountServiceContext implements IAccountService {
         return this.strategy!.stakeToNode(accountId, nodeId);
     }
 
-    getKeysFromMnemonic(mnemonicRaw: string, lookupNames: boolean): Promise<AccountPrivateData> {
+    getKeysFromMnemonic(mnemonicRaw: string): Promise<AccountPrivateData> {
         this.checkInit();
-        return this.strategy!.getKeysFromMnemonic(mnemonicRaw, lookupNames);
+        return this.strategy!.getKeysFromMnemonic(mnemonicRaw);
     }
 
     getTransactions(accountId: string, transactionType: string, nextPage: string, transactionsLimit: string): Promise<TransactionsHistoryData> {

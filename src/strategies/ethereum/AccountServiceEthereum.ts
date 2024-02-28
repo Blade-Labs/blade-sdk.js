@@ -3,6 +3,7 @@ import {IAccountService} from "../AccountServiceContext";
 import {
     AccountInfoData,
     AccountPrivateData,
+    AccountPrivateRecord,
     CreateAccountData,
     TransactionReceiptData,
     TransactionsHistoryData
@@ -10,8 +11,8 @@ import {
 import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
 import {NodeInfo} from "../../models/MirrorNode";
-import { ethers } from "ethers";
-import {KnownChainIds} from "../../models/Chain";
+import {ethers} from "ethers";
+import {CryptoKeyType, KnownChainIds} from "../../models/Chain";
 
 export default class AccountServiceEthereum implements IAccountService {
     private readonly chainId: KnownChainIds;
@@ -55,10 +56,10 @@ export default class AccountServiceEthereum implements IAccountService {
         throw new Error("Method not supported for this chain");
     }
 
-    async getKeysFromMnemonic(mnemonicRaw: string, lookupNames: boolean): Promise<AccountPrivateData> {
+    async getKeysFromMnemonic(mnemonicRaw: string): Promise<AccountPrivateData> {
         const hdNode = ethers.utils.HDNode.fromMnemonic(mnemonicRaw);
         const numAccounts = 10;
-        const accounts = [];
+        const accounts: AccountPrivateRecord[] = [];
 
         // Loop to derive accounts
         for (let i = 0; i < numAccounts; i++) {
@@ -70,7 +71,8 @@ export default class AccountServiceEthereum implements IAccountService {
                 publicKey: wallet.publicKey,
                 evmAddress: wallet.address,
                 address: wallet.address,
-                path: wallet.path
+                path: wallet.path,
+                keyType: CryptoKeyType.ECDSA_SECP256K1
             });
         }
         return {

@@ -14,16 +14,17 @@ import {IAccountService} from "../AccountServiceContext";
 import {
     AccountInfoData,
     AccountPrivateData,
+    AccountPrivateRecord,
     AccountStatus,
     CreateAccountData,
     TransactionReceiptData,
     TransactionsHistoryData
 } from "../../models/Common";
-import {ChainMap, KnownChainIds} from "../../models/Chain";
+import {ChainMap, CryptoKeyType, KnownChainIds} from "../../models/Chain";
 import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
 import {NodeInfo} from "../../models/MirrorNode";
-import { ethers } from "ethers";
+import {ethers} from "ethers";
 import {executeUpdateAccountTransactions} from "../../helpers/AccountHelpers";
 import {getReceipt} from "../../helpers/TransactionHelpers";
 
@@ -45,10 +46,9 @@ export default class AccountServiceHedera implements IAccountService {
         this.configService = configService;
     }
 
-    // TODO how to call this method without setUser in BladeSDK???
     async createAccount(deviceId?: string): Promise<CreateAccountData> {
         const seedPhrase = await Mnemonic.generate12();
-        const privateKey = await seedPhrase.toEcdsaPrivateKey();
+        const privateKey = await seedPhrase.toStandardECDSAsecp256k1PrivateKey();
         const publicKey = privateKey.publicKey.toStringDer();
 
         const {
@@ -97,7 +97,7 @@ export default class AccountServiceHedera implements IAccountService {
     // TODO check if this method is needed
     async getPendingAccount(transactionId: string, mnemonic: string): Promise<CreateAccountData> {
         const seedPhrase = await Mnemonic.fromString(mnemonic);
-        const privateKey = await seedPhrase.toEcdsaPrivateKey();
+        const privateKey = await seedPhrase.toStandardECDSAsecp256k1PrivateKey();
         const publicKey = privateKey.publicKey.toStringDer();
         let evmAddress = ethers.utils.computeAddress(`0x${privateKey.publicKey.toStringRaw()}`);
 
@@ -151,7 +151,10 @@ export default class AccountServiceHedera implements IAccountService {
 
     async getAccountInfo(accountId: string): Promise<AccountInfoData> {
         const account = await this.apiService.getAccountInfo(accountId);
-        const publicKey = account.key._type === "ECDSA_SECP256K1" ? PublicKey.fromStringECDSA(account.key.key) : PublicKey.fromStringED25519(account.key.key);
+        const publicKey = account.key._type === CryptoKeyType.ECDSA_SECP256K1 ? PublicKey.fromStringECDSA(account.key.key) : PublicKey.fromStringED25519(account.key.key);
+        const calculatedEvmAddress = account.key._type === CryptoKeyType.ECDSA_SECP256K1
+            ? ethers.utils.computeAddress(`0x${publicKey.toStringRaw()}`).toLowerCase()
+            : "";
         return {
             accountId,
             publicKey: publicKey.toStringDer(),
@@ -161,7 +164,7 @@ export default class AccountServiceHedera implements IAccountService {
                 stakedNodeId: account.staked_node_id,
                 stakePeriodStart: account.stake_period_start,
             },
-            calculatedEvmAddress: ethers.utils.computeAddress(`0x${publicKey.toStringRaw()}`).toLowerCase()
+            calculatedEvmAddress
         } as AccountInfoData;
     }
 
@@ -186,33 +189,71 @@ export default class AccountServiceHedera implements IAccountService {
             .then(txResult => getReceipt(txResult, this.signer!));
     }
 
-    async getKeysFromMnemonic(mnemonicRaw: string, lookupNames: boolean): Promise<AccountPrivateData> {
+    async getKeysFromMnemonic(mnemonicRaw: string): Promise<AccountPrivateData> {
         const mnemonic = await Mnemonic.fromString(mnemonicRaw
             .toLowerCase()
             .split(" ")
             .filter(word => word)
             .join(" ")
         );
-        const privateKey = await mnemonic.toEcdsaPrivateKey();
-        const publicKey = privateKey.publicKey;
-        let accounts: string[] = [];
 
-        if (lookupNames) {
-            accounts = await this.apiService.getAccountsFromPublicKey(publicKey);
-        }
-        if (!accounts.length) {
-            accounts = [""];
-        }
-        return {
-            accounts: accounts.map(accountId => {
+        // derive to ECDSA Standard - find account
+        // derive to ECDSA Legacy - find account
+        // derive to ED25519 Standard - find account
+        // derive to ED25519 Legacy - find account
+        // return all records with account found. If no account show ECDSA Standard keys
+
+        const prepareAccountRecord = async(privateKey: PrivateKey, keyType: CryptoKeyType, force: boolean = false) => {
+            const accountIds: string[] = await this.apiService.getAccountsFromPublicKey(privateKey.publicKey);
+
+            if (!accountIds.length && force) {
+                accountIds.push("")
+            }
+
+            return accountIds.map(accountId => {
+                const evmAddress = keyType === CryptoKeyType.ECDSA_SECP256K1
+                    ? ethers.utils.computeAddress(`0x${privateKey.publicKey.toStringRaw()}`).toLowerCase()
+                    : "";
                 return {
                     privateKey: privateKey.toStringDer(),
-                    publicKey: publicKey.toStringDer(),
-                    evmAddress: ethers.utils.computeAddress(`0x${publicKey.toStringRaw()}`).toLowerCase(),
+                    publicKey: privateKey.publicKey.toStringDer(),
+                    evmAddress,
                     address: accountId,
-                    path: ChainMap[this.chainId].defaultPath
+                    path: ChainMap[this.chainId].defaultPath,
+                    keyType
                 }
             })
+        }
+
+        const records: AccountPrivateRecord[] = [];
+        let key: PrivateKey;
+        for (const keyType of Object.values(CryptoKeyType)) {
+            for (let standard = 1; standard >= 0; standard--) {
+                if (keyType === CryptoKeyType.ECDSA_SECP256K1) {
+                    if (standard) {
+                        key = await mnemonic.toStandardECDSAsecp256k1PrivateKey();
+                    } else {
+                        key = await mnemonic.toEcdsaPrivateKey();
+                    }
+                } else {
+                    if (standard) {
+                        key = await mnemonic.toStandardEd25519PrivateKey()
+                    } else {
+                        key = await mnemonic.toEd25519PrivateKey();
+                    }
+                }
+                records.push(...await prepareAccountRecord(key, keyType))
+            }
+        }
+
+        if (!records.length) {
+            // if no accounts found derive to ECDSA Standard, and return record with empty address
+            key = await mnemonic.toStandardECDSAsecp256k1PrivateKey();
+            records.push(...await prepareAccountRecord(key, CryptoKeyType.ECDSA_SECP256K1, true))
+        }
+
+        return {
+            accounts: records
         }
     }
 

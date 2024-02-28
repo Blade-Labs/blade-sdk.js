@@ -77,7 +77,7 @@ export default class ContractServiceEthereum implements IContractService {
         }
 
         return {
-            values: result.map((value, index) => {
+            values: result.map((value: any, index: number) => {
                 return {
                     type: resultTypes[index] || "",
                     value: value.toString()

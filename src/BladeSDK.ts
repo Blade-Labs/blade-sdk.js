@@ -592,9 +592,9 @@ export class BladeSDK {
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {AccountPrivateData}
      */
-    async getKeysFromMnemonic(mnemonicRaw: string, lookupNames: boolean, completionKey?: string): Promise<AccountPrivateData> {
+    async getKeysFromMnemonic(mnemonicRaw: string, completionKey?: string): Promise<AccountPrivateData> {
         try {
-            const result = await this.accountServiceContext.getKeysFromMnemonic(mnemonicRaw, lookupNames);
+            const result = await this.accountServiceContext.getKeysFromMnemonic(mnemonicRaw);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);

@@ -7,8 +7,8 @@ export enum ChainServiceStrategy {
 }
 
 export enum CryptoKeyType {
-    ED25519 = "ED25519",
     ECDSA_SECP256K1 = "ECDSA_SECP256K1",
+    ED25519 = "ED25519"
 }
 
 export enum KnownChainIds {

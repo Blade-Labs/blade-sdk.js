@@ -269,7 +269,7 @@ describe('testing methods related to ETHEREUM network', () => {
     test('bladeSdk-ethereum.getKeysFromMnemonic', async () => {
         let result;
 
-        result = await bladeSdk.getKeysFromMnemonic(ethereumMnemonic, false, completionKey);
+        result = await bladeSdk.getKeysFromMnemonic(ethereumMnemonic, completionKey);
         checkResult(result);
 
         expect(result.data).toHaveProperty("accounts");
@@ -280,10 +280,11 @@ describe('testing methods related to ETHEREUM network', () => {
         expect(result.data.accounts[0]).toHaveProperty("address");
         expect(result.data.accounts[0]).toHaveProperty("evmAddress");
         expect(result.data.accounts[0]).toHaveProperty("path");
+        expect(result.data.accounts[0]).toHaveProperty("keyType");
         expect(result.data.accounts[0].path).toEqual("m/44'/60'/0'/0/0");
+        expect(result.data.accounts[0].keyType).toEqual("ECDSA_SECP256K1");
         expect(result.data.accounts[0].address).toEqual(result.data.accounts[0].evmAddress);
         expect(result.data.accounts[0].address).toEqual(ethereumAddress2);
-
     }, 60_000);
 
     // test('bladeSdk-ethereum.getTransactions', async () => {

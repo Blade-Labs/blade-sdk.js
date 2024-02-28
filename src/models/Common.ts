@@ -1,6 +1,6 @@
 import {MirrorNodeTransactionType} from "./TransactionType";
 import {ICryptoFlowQuote} from "./CryptoFlow";
-import {KnownChainIds} from "./Chain";
+import {CryptoKeyType, KnownChainIds} from "./Chain";
 
 export enum SdkEnvironment {
     Prod = "Prod",
@@ -211,7 +211,8 @@ export interface AccountPrivateRecord {
     publicKey: string,
     evmAddress: string,
     address: string,
-    path: string
+    path: string,
+    keyType: CryptoKeyType
 }
 
 export interface SignMessageData {

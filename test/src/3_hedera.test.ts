@@ -360,8 +360,10 @@ describe('testing methods related to HEDERA network', () => {
             evmAddress: result.data.evmAddress
         }
 
-        result = await bladeSdk.getKeysFromMnemonic(accountSample.seedPhrase, false, completionKey);
+        result = await bladeSdk.getKeysFromMnemonic(accountSample.seedPhrase, completionKey);
         checkResult(result);
+
+        await sleep(7000);
 
         expect(result.data).toHaveProperty("accounts");
         expect(Array.isArray(result.data.accounts)).toEqual(true);
@@ -371,24 +373,18 @@ describe('testing methods related to HEDERA network', () => {
         expect(result.data.accounts[0]).toHaveProperty("address");
         expect(result.data.accounts[0]).toHaveProperty("evmAddress");
         expect(result.data.accounts[0]).toHaveProperty("path");
-        expect(result.data.accounts[0].address).toEqual("");
-
-        await sleep(7000);
-
-        result = await bladeSdk.getKeysFromMnemonic(accountSample.seedPhrase, true, completionKey);
-        checkResult(result);
-
-        expect(result.data.accounts.length).toBeGreaterThanOrEqual(1)
+        expect(result.data.accounts[0]).toHaveProperty("keyType");
         expect(result.data.accounts[0].address).toEqual(accountSample.accountId);
+        expect(result.data.accounts[0].keyType).toEqual("ECDSA_SECP256K1");
 
         try {
-            result = await bladeSdk.getKeysFromMnemonic("invalid seed phrase", true, completionKey);
+            result = await bladeSdk.getKeysFromMnemonic("invalid seed phrase", completionKey);
             expect("Code should not reach here").toEqual(result);
         } catch (result) {
             checkResult(result, false);
         }
 
-        result = await bladeSdk.getKeysFromMnemonic((await Mnemonic.generate12()).toString(), true, completionKey);
+        result = await bladeSdk.getKeysFromMnemonic((await Mnemonic.generate12()).toString(), completionKey);
         checkResult(result);
         expect(result.data.accounts.length).toBeGreaterThanOrEqual(1)
         expect(result.data.accounts[0].address).toEqual("");
