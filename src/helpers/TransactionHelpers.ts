@@ -11,7 +11,7 @@ export const filterAndFormatTransactions = (transactions: TransactionData[], tra
                         return false;
                     }
                     const tokenTransfers = tx.transfers
-                        .filter(transfer => transfer.token_id);
+                        .filter(transfer => transfer.tokenAddress);
                     if (tokenTransfers.length === 0) {
                         return false;
                     }
@@ -34,7 +34,7 @@ export const filterAndFormatTransactions = (transactions: TransactionData[], tra
 
                     tx.plainData = {
                         type: transactionType,
-                        token_id: tokenTransfers[0].token_id,
+                        token_id: tokenTransfers[0].tokenAddress,
                         senders: senderAccounts,
                         receivers: receiverAccounts,
                         amount

@@ -12,13 +12,17 @@ import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
 import {NodeInfo} from "../../models/MirrorNode";
 import {ethers} from "ethers";
-import {CryptoKeyType, KnownChainIds} from "../../models/Chain";
+import {ChainMap, CryptoKeyType, KnownChainIds} from "../../models/Chain";
+import {Network} from "../../models/Networks";
+import { Alchemy, AssetTransfersCategory, AssetTransfersWithMetadataResult, Network as AlchemyNetwork, SortingOrder } from "alchemy-sdk";
+import {MirrorNodeTransactionType} from "../../models/TransactionType";
 
 export default class AccountServiceEthereum implements IAccountService {
     private readonly chainId: KnownChainIds;
     private readonly signer: ethers.Signer | null = null;
     private readonly apiService: ApiService;
     private readonly configService: ConfigService;
+    private alchemy: Alchemy | null = null;
 
     constructor(
         chainId: KnownChainIds,
@@ -80,7 +84,118 @@ export default class AccountServiceEthereum implements IAccountService {
         };
     }
 
-    getTransactions(accountId: string, transactionType: string, nextPage: string, transactionsLimit: string): Promise<TransactionsHistoryData> {
-        throw new Error("Method not implemented.");
+    async getTransactions(accountAddress: string, transactionType: string, nextPage: string, transactionsLimit: string): Promise<TransactionsHistoryData> {
+        await this.initAlchemy();
+        const maxCount = Math.min(parseInt(transactionsLimit, 10), 1000);
+        const params = {
+            withMetadata: true,
+            order: SortingOrder.DESCENDING,
+            category: [
+                AssetTransfersCategory.EXTERNAL,
+                AssetTransfersCategory.INTERNAL,
+                AssetTransfersCategory.ERC20,
+                AssetTransfersCategory.ERC721,
+                AssetTransfersCategory.ERC1155,
+                // AssetTransfersCategory.SPECIALNFT
+            ],
+            maxCount,
+            ...(nextPage && {toBlock: nextPage}),
+            // pageKey?: string;
+        }
+
+        let dataToPool;
+        let dataFromPool;
+        const transfers: AssetTransfersWithMetadataResult[] = [];
+
+        while (transfers.length < maxCount) {
+            if (!dataToPool || !dataToPool.transfers.length && dataToPool.pageKey) {
+                // fetch next To
+                dataToPool = await this.alchemy.core.getAssetTransfers({
+                    ...params,
+                    ...(dataToPool?.pageKey && {pageKey: dataToPool.pageKey}),
+                    toAddress: accountAddress,
+                });
+            }
+
+            if (!dataFromPool || !dataFromPool.transfers.length && dataFromPool.pageKey) {
+                // fetch next From
+                dataFromPool = await this.alchemy.core.getAssetTransfers({
+                    ...params,
+                    ...(dataFromPool?.pageKey && {pageKey: dataFromPool.pageKey}),
+                    fromAddress: accountAddress,
+                })
+            }
+
+            if (dataToPool.transfers.length && dataFromPool.transfers.length) {
+                // find max blockNum and shift to transfers
+                if (parseInt(dataToPool.transfers[0].blockNum, 16) > parseInt(dataFromPool.transfers[0].blockNum, 16)) {
+                    transfers.push(dataToPool.transfers.shift());
+                } else {
+                    transfers.push(dataFromPool.transfers.shift());
+                }
+                continue;
+            }
+
+            if (
+                !dataToPool.transfers.length && !dataToPool.pageKey ||
+                !dataFromPool.transfers.length && !dataFromPool.pageKey
+            ) {
+                // unshift to transfers from existing one by one
+                if (dataToPool.transfers.length) {
+                    transfers.push(dataToPool.transfers.shift());
+                } else if (dataFromPool.transfers.length) {
+                    transfers.push(dataFromPool.transfers.shift());
+                }
+            }
+
+            if (
+                !dataToPool.transfers.length && !dataToPool.pageKey &&
+                !dataFromPool.transfers.length && !dataFromPool.pageKey
+            ) break;
+        }
+
+        if (transfers.length === maxCount) {
+            nextPage = `0x${(parseInt(transfers[transfers.length - 1].blockNum, 16) - 1).toString(16)}`;
+        } else {
+            nextPage = ""
+        }
+
+        return {
+            transactions: transfers.map(transfer => {
+                return {
+                    transactionId: transfer.hash,
+                    type: MirrorNodeTransactionType.CRYPTOTRANSFER, // ?????
+                    time: new Date(transfer.metadata.blockTimestamp),
+                    transfers: !transfer.tokenId ? [{
+                        amount: transfer.value,
+                        account: transfer.to,
+                        ...(transfer.rawContract.address && {tokenAddress: transfer.rawContract.address}),
+                        asset: transfer.asset
+                    }] : [],
+                    nftTransfers: transfer.tokenId ? [
+                        {
+                        tokenAddress: transfer.rawContract.address,
+                        serial: transfer.tokenId,
+                        senderAddress: transfer.from,
+                        receiverAddress: transfer.to
+                    }
+                    ] : [],
+                    memo: "",
+                    fee: 0,
+                    showDetailed: false,
+                    plainData: {},
+                    consensusTimestamp: transfer.metadata.blockTimestamp
+                }
+            }),
+            nextPage
+        }
+    }
+
+    private async initAlchemy() {
+        if (!this.alchemy) {
+            const alchemyNetwork = ChainMap[this.chainId].isTestnet ? AlchemyNetwork.ETH_SEPOLIA : AlchemyNetwork.ETH_MAINNET;
+            const apiKey = await this.configService.getConfig(`alchemy${ChainMap[this.chainId].isTestnet ? Network.Testnet : Network.Mainnet}APIKey`);
+            this.alchemy = new Alchemy({apiKey, network: alchemyNetwork});
+        }
     }
 }

@@ -1,3 +1,5 @@
+import {MirrorNodeTransactionType} from "@/models/TransactionType";
+
 export type AccountInfoMirrorResponse = APIPagination & {
     accounts: AccountInfo[]
 };
@@ -107,4 +109,46 @@ export type TokenInfo = {
     treasury_account_id: string,
     type: 'FUNGIBLE_COMMON' | 'NON_FUNGIBLE_UNIQUE',
     wipe_key: MirrorNodeKey | null
+}
+
+export type TransferDetail = {
+    token_id?: string,
+    account: string,
+    amount: number,
+    is_approval: boolean
+}
+
+export type NftTransferDetail = {
+    is_approval: boolean,
+    receiver_account_id: string,
+    sender_account_id: string,
+    serial_number: number,
+    token_id: string
+}
+
+export type TransactionDetails = {
+    bytes: any, // ?
+    charged_tx_fee: number,
+    consensus_timestamp: string,
+    entity_id: any, // ?
+    max_fee: string,
+    memo_base64: string,
+    name: MirrorNodeTransactionType,
+    nft_transfers: NftTransferDetail[],
+    node: string,
+    nonce: number,
+    parent_consensus_timestamp: any, // ?
+    result: string,
+    scheduled: boolean,
+    staking_reward_transfers: TransferDetail[],
+    token_transfers: TransferDetail[],
+    transaction_hash: string,
+    transaction_id: string,
+    transfers: TransferDetail[],
+    valid_duration_seconds: string,
+    valid_start_timestamp: string
+}
+
+export type TransactionDetailsResponse = {
+    transactions: TransactionDetails[]
 }

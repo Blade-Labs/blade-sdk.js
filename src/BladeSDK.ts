@@ -698,12 +698,12 @@ export class BladeSDK {
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {TransactionsHistoryData}
      */
-    async getTransactions(accountId: string, transactionType: string = "", nextPage: string, transactionsLimit: string = "10", completionKey?: string): Promise<TransactionsHistoryData> {
+    async getTransactions(accountAddress: string, transactionType: string = "", nextPage: string, transactionsLimit: string = "10", completionKey?: string): Promise<TransactionsHistoryData> {
         try {
-            if (!accountId) {
-                accountId = this.userAccountId;
+            if (!accountAddress) {
+                accountAddress = this.userAccountId;
             }
-            const result = await this.accountServiceContext.getTransactions(accountId, transactionType, nextPage, transactionsLimit);
+            const result = await this.accountServiceContext.getTransactions(accountAddress, transactionType, nextPage, transactionsLimit);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);

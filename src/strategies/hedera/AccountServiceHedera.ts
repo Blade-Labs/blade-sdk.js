@@ -257,8 +257,8 @@ export default class AccountServiceHedera implements IAccountService {
         }
     }
 
-    async getTransactions(accountId: string, transactionType: string, nextPage: string, transactionsLimit: string): Promise<TransactionsHistoryData> {
-        return await this.apiService.getTransactionsFrom(accountId, transactionType, nextPage, transactionsLimit);
+    async getTransactions(accountAddress: string, transactionType: string, nextPage: string, transactionsLimit: string): Promise<TransactionsHistoryData> {
+        return await this.apiService.getTransactionsFrom(accountAddress, transactionType, nextPage, transactionsLimit);
     }
 
     private getClient() {

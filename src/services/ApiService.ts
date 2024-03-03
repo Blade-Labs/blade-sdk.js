@@ -9,8 +9,11 @@ import {
     AccountInfoMirrorResponse,
     APIPagination,
     MirrorNodeListResponse,
+    NftTransferDetail,
     NodeInfo,
-    TokenInfo
+    TokenInfo,
+    TransactionDetails,
+    TransactionDetailsResponse
 } from "../models/MirrorNode";
 import {
     ApiAccount,
@@ -585,7 +588,7 @@ export default class ApiService {
     }
 
     async getTransactionsFrom(
-        accountId: string,
+        accountAddress: string,
         transactionType: string = "",
         nextPage: string | null = null,
         transactionsLimit: string = "10"
@@ -599,25 +602,25 @@ export default class ApiService {
             if (nextPage) {
                 info = await this.GET(this.network, nextPage);
             } else {
-                info = await this.GET(this.network, `/transactions/?account.id=${accountId}&limit=${pageLimit}`);
+                info = await this.GET(this.network, `/transactions/?account.id=${accountAddress}&limit=${pageLimit}`);
             }
             nextPage = info.links.next ?? null;
 
             const groupedTransactions: {[key: string]: TransactionData[]} = {};
 
             await Promise.all(info.transactions.map(async(t: any) => {
-                groupedTransactions[t.transaction_id] = await this.getTransaction(this.network, t.transaction_id, accountId);
+                groupedTransactions[t.transaction_id] = await this.getTransaction(this.network, t.transaction_id, accountAddress);
             }));
 
             let transactions: TransactionData[] = flatArray(Object.values(groupedTransactions))
                 .sort((a, b) => new Date(b.time).valueOf() - new Date(a.time).valueOf());
 
-            transactions = filterAndFormatTransactions(transactions, transactionType, accountId);
+            transactions = filterAndFormatTransactions(transactions, transactionType, accountAddress);
 
             result.push(...transactions);
 
             if (result.length >= limit) {
-                nextPage = `/transactions?account.id=${accountId}&timestamp=lt:${result[limit-1].consensusTimestamp}&limit=${pageLimit}`;
+                nextPage = `/transactions?account.id=${accountAddress}&timestamp=lt:${result[limit-1].consensusTimestamp}&limit=${pageLimit}`;
             }
 
             if (!nextPage) {
@@ -631,25 +634,38 @@ export default class ApiService {
         };
     };
 
-    getTransaction(network: Network, transactionId: string, accountId: string): Promise<TransactionData[]> {
-        return this.GET(network, `/transactions/${transactionId}`)
-            .then(x => x.transactions.map((t: any) => {
+    async getTransaction(network: Network, transactionId: string, accountId: string): Promise<TransactionData[]> {
+        try {
+            const response: TransactionDetailsResponse = await this.GET(network, `/transactions/${transactionId}`);
+            return response.transactions.map((tx: TransactionDetails) => {
                 return {
-                    time: new Date(parseFloat(t.consensus_timestamp) * 1000),
-                    transfers: ([...(t.token_transfers || []), ...(t.transfers || [])])
-                        .map(tt => {
-                            tt.amount = !tt.token_id ? tt.amount / 10 ** 8 : tt.amount; return tt;
+                    transactionId: tx.transaction_id,
+                    type: tx.name,
+                    time: new Date(parseFloat(tx.consensus_timestamp) * 1000),
+                    transfers: ([...(tx.token_transfers || []), ...(tx.transfers || [])])
+                        .map(transfer => {
+                            return {
+                                amount: !transfer.token_id ? transfer.amount / 10 ** 8 : transfer.amount,
+                                account: transfer.account,
+                                ...(transfer.token_id && {tokenAddress: transfer.token_id}),
+                                asset: ""
+                            }
                         }),
-                    nftTransfers: t.nft_transfers || null,
-                    memo: global.atob(t.memo_base64),
-                    transactionId: t.transaction_id,
-                    fee: t.charged_tx_fee,
-                    type: t.name,
-                    consensusTimestamp: t.consensus_timestamp
+                    nftTransfers: tx.nft_transfers.map((nftTransfer: NftTransferDetail) => {
+                        return {
+                            tokenAddress: nftTransfer.token_id,
+                            serial: nftTransfer.serial_number.toString(),
+                            senderAddress: nftTransfer.sender_account_id,
+                            receiverAddress: nftTransfer.receiver_account_id
+                        }
+                    }) || [],
+                    memo: global.atob(tx.memo_base64),
+                    fee: tx.charged_tx_fee,
+                    consensusTimestamp: tx.consensus_timestamp
                 };
-            }))
-            .catch(() => {
-                return [];
-            });
+            })
+        } catch (e) {
+            return []
+        }
     }
 }

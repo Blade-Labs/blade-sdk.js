@@ -106,8 +106,10 @@ export default class TokenServiceEthereum implements ITokenService {
     }
 
     private async initAlchemy() {
-        const alchemyNetwork = ChainMap[this.chainId].isTestnet ? AlchemyNetwork.ETH_SEPOLIA : AlchemyNetwork.ETH_MAINNET;
-        const apiKey = await this.configService.getConfig(`alchemy${ChainMap[this.chainId].isTestnet ? Network.Testnet : Network.Mainnet}APIKey`);
-        this.alchemy = new Alchemy({apiKey, network: alchemyNetwork});
+        if (!this.alchemy) {
+            const alchemyNetwork = ChainMap[this.chainId].isTestnet ? AlchemyNetwork.ETH_SEPOLIA : AlchemyNetwork.ETH_MAINNET;
+            const apiKey = await this.configService.getConfig(`alchemy${ChainMap[this.chainId].isTestnet ? Network.Testnet : Network.Mainnet}APIKey`);
+            this.alchemy = new Alchemy({apiKey, network: alchemyNetwork});
+        }
     }
 }

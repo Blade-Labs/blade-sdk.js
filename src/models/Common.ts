@@ -239,7 +239,7 @@ export interface TransactionData {
     type: MirrorNodeTransactionType,
     time: Date,
     transfers: TransferData[],
-    nftTransfers?: [],
+    nftTransfers: NftTransferData[],
     memo?: string,
     fee?: number,
     showDetailed?: boolean,
@@ -254,7 +254,15 @@ export interface IntegrationUrlData {
 export interface TransferData {
     amount: number,
     account: string,
-    token_id?: string
+    tokenAddress?: string
+    asset: string
+}
+
+export interface NftTransferData {
+    receiverAddress: string,
+    senderAddress: string,
+    serial: string,
+    tokenAddress: string
 }
 
 export enum AccountStatus {

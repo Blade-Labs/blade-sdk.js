@@ -29,7 +29,7 @@ export interface IAccountService {
     getNodeList(): Promise<{nodes: NodeInfo[]}>
     stakeToNode(accountId: string, nodeId: number): Promise<TransactionReceiptData>
     getKeysFromMnemonic(mnemonicRaw: string): Promise<AccountPrivateData>
-    getTransactions(accountId: string, transactionType: string, nextPage: string, transactionsLimit: string): Promise<TransactionsHistoryData>
+    getTransactions(accountAddress: string, transactionType: string, nextPage: string, transactionsLimit: string): Promise<TransactionsHistoryData>
 }
 
 @injectable()
@@ -94,9 +94,9 @@ export default class AccountServiceContext implements IAccountService {
         return this.strategy!.getKeysFromMnemonic(mnemonicRaw);
     }
 
-    getTransactions(accountId: string, transactionType: string, nextPage: string, transactionsLimit: string): Promise<TransactionsHistoryData> {
+    getTransactions(accountAddress: string, transactionType: string, nextPage: string, transactionsLimit: string): Promise<TransactionsHistoryData> {
         this.checkInit();
-        return this.strategy!.getTransactions(accountId, transactionType, nextPage, transactionsLimit);
+        return this.strategy!.getTransactions(accountAddress, transactionType, nextPage, transactionsLimit);
     }
 
     private checkInit() {
