@@ -189,10 +189,11 @@ export class BladeSDK {
                 case AccountProvider.PrivateKey:
                     if (ChainMap[this.chainId].serviceStrategy === ChainServiceStrategy.Hedera) {
                         const key = PrivateKey.fromString(privateKey!);
+                        const client = ChainMap[this.chainId].isTestnet ? Client.forTestnet() : Client.forMainnet();
                         this.userAccountId = accountIdOrEmail;
                         this.userPrivateKey = privateKey!;
                         this.userPublicKey = key.publicKey.toStringDer();
-                        const provider = new HederaProvider({client: this.getClient()})
+                        const provider = new HederaProvider({client})
                         this.signer = new HederaSigner(this.userAccountId, key, provider);
                     } else if (ChainMap[this.chainId].serviceStrategy === ChainServiceStrategy.Ethereum) {
                         const key = PrivateKey.fromStringECDSA(privateKey!);
@@ -334,6 +335,40 @@ export class BladeSDK {
         }
     }
 
+    /**
+     * Send token to specific account.
+     * @param tokenAddress token id to send (0.0.xxxxx or 0x123456789abcdef...)
+     * @param receiverId receiver account address (0.0.xxxxx or 0x123456789abcdef...)
+     * @param amountOrSerial amount of fungible tokens to send (with token-decimals correction) on NFT serial number. (e.g. amount 0.01337 when token decimals 8 will send 1337000 units of token)
+     * @param memo transaction memo
+     * @param freeTransfer if true, Blade will pay fee transaction. Only for single dApp configured fungible-token. In that case tokenId not used
+     * @param completionKey optional field bridge between mobile webViews and native apps
+     * @returns Promise<TransactionResponseData>
+     */
+    async transferTokens(
+        tokenAddress: string,
+        receiverId: string,
+        amountOrSerial: string,
+        memo: string,
+        freeTransfer: boolean = false,
+        completionKey?: string
+    ): Promise<TransactionResponseData> {
+        try {
+            // TODO send NFT for Ethereum tokens
+            const result = await this.tokenServiceContext.transferToken({
+                from: this.userAccountId,
+                to: receiverId,
+                amountOrSerial,
+                tokenAddress,
+                memo,
+                freeTransfer
+            })
+            return this.sendMessageToNative(completionKey, result);
+        } catch (error) {
+            throw this.sendMessageToNative(completionKey, null, error);
+        }
+    }
+
     async getCoinList(completionKey?: string): Promise<CoinListData> {
         try {
             const coinList: CoinInfoRaw[] = await this.apiService.getCoins({
@@ -448,51 +483,19 @@ export class BladeSDK {
         }
     }
 
-    /**
-     * Send token to specific account.
-     * @param tokenAddress token id to send (0.0.xxxxx or 0x123456789abcdef...)
-     * @param receiverId receiver account address (0.0.xxxxx or 0x123456789abcdef...)
-     * @param amountOrSerial amount of fungible tokens to send (with token-decimals correction) on NFT serial number. (e.g. amount 0.01337 when token decimals 8 will send 1337000 units of token)
-     * @param memo transaction memo
-     * @param freeTransfer if true, Blade will pay fee transaction. Only for single dApp configured fungible-token. In that case tokenId not used
-     * @param completionKey optional field bridge between mobile webViews and native apps
-     * @returns Promise<TransactionResponseData>
-     */
-    async transferTokens(
-        tokenAddress: string,
-        receiverId: string,
-        amountOrSerial: string,
-        memo: string,
-        freeTransfer: boolean = false,
-        completionKey?: string
-    ): Promise<TransactionResponseData> {
-        try {
-            // TODO send NFT for Ethereum tokens
-            const result = await this.tokenServiceContext.transferToken({
-                from: this.userAccountId,
-                to: receiverId,
-                amountOrSerial,
-                tokenAddress,
-                memo,
-                freeTransfer
-            })
-            return this.sendMessageToNative(completionKey, result);
-        } catch (error) {
-            throw this.sendMessageToNative(completionKey, null, error);
-        }
-    }
 
     /**
      * Create Hedera account (ECDSA). Only for configured dApps. Depending on dApp config Blade create account, associate tokens, etc.
      * In case of not using pre-created accounts pool and network high load, this method can return transactionId and no accountId.
      * In that case account creation added to queue, and you should wait some time and call `getPendingAccount()` method.
+     * @param privateKey optional field if you need specify account key (hex encoded privateKey with DER-prefix)
      * @param deviceId optional field for headers for backend check
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {CreateAccountData}
      */
-    async createAccount(deviceId?: string, completionKey?: string): Promise<CreateAccountData> {
+    async createAccount(privateKey?: string, deviceId?: string, completionKey?: string): Promise<CreateAccountData> {
         try {
-            const result = await this.accountServiceContext.createAccount(deviceId);
+            const result = await this.accountServiceContext.createAccount(privateKey, deviceId);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -588,7 +591,6 @@ export class BladeSDK {
      * Returned keys with DER header.
      * EvmAddress computed from Public key.
      * @param mnemonicRaw BIP39 mnemonic
-     * @param lookupNames if true, get accountIds from mirror node by public key
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {AccountPrivateData}
      */
@@ -639,24 +641,6 @@ export class BladeSDK {
     }
 
     /**
-     * Sign base64-encoded message with private key using ethers lib. Returns hex-encoded signature.
-     * @param messageString base64-encoded message to sign
-     * @param privateKey hex-encoded private key with DER header
-     * @param completionKey optional field bridge between mobile webViews and native apps
-     * @returns {SignMessageData}
-     */
-    async ethersSign(messageString: string, privateKey: string, completionKey?: string): Promise<SignMessageData> {
-        // TODO add `encoding` argument (hex/base64/string)
-        // TODO remove private key and use signer
-        try {
-            const result = await this.signServiceContext.ethersSign(messageString, privateKey);
-            return this.sendMessageToNative(completionKey, result);
-        } catch (error) {
-            throw this.sendMessageToNative(completionKey, null, error);
-        }
-    }
-
-    /**
      * Split signature to v-r-s format.
      * @param signature hex-encoded signature
      * @param completionKey optional field bridge between mobile webViews and native apps
@@ -691,7 +675,7 @@ export class BladeSDK {
      * Transaction requested from mirror node. Every transaction requested for child transactions. Result are flattened.
      * If transaction type is not provided, all transactions will be returned.
      * If transaction type is CRYPTOTRANSFERTOKEN records will additionally contain plainData field with decoded data.
-     * @param accountId account id to get transactions for (0.0.xxxxx)
+     * @param accountAddress account id to get transactions for (0.0.xxxxx)
      * @param transactionType one of enum MirrorNodeTransactionType or "CRYPTOTRANSFERTOKEN"
      * @param nextPage link to next page of transactions from previous request
      * @param transactionsLimit number of transactions to return. Speed of request depends on this value if transactionType is set.
@@ -920,11 +904,6 @@ export class BladeSDK {
                 userPublicKey: this.userPublicKey
             }
         };
-    }
-
-    // TODO try to remove this method at all
-    private getClient() {
-        return this.network === Network.Testnet ? Client.forTestnet() : Client.forMainnet();
     }
 
     /**

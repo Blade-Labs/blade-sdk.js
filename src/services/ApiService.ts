@@ -74,6 +74,10 @@ export default class ApiService {
         this.visitorId = fingerprint;
     }
 
+    getDappCode() {
+        return this.dAppCode;
+    }
+
     async getTvteHeader() {
         // "X-SDK-TVTE-API" - type-version-timestamp-encrypted
 
@@ -248,7 +252,7 @@ export default class ApiService {
             })
     }
 
-    async createAccount(params: any) {
+    async createAccount(params: { deviceId: string, publicKey: string }) {
         const url = `${this.getApiUrl()}/accounts`;
         const headers: any = {
             "X-NETWORK": this.network.toUpperCase(),

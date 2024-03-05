@@ -39,14 +39,12 @@ export default class TradeServiceHedera implements ITradeService {
     async getC14url(asset: string, account: string, amount: string): Promise<IntegrationUrlData> {
         let clientId;
 
-        // TODO get dAppCode from config
-
-        // if (this.dAppCode.includes("karate")) {
-        //     clientId = "17af1a19-2729-4ecc-8683-324a52eca6fc";
-        // } else {
+        if (this.apiService.getDappCode().includes("karate")) {
+            clientId = "17af1a19-2729-4ecc-8683-324a52eca6fc";
+        } else {
             const {token} = await this.apiService.getC14token();
             clientId = token;
-        // }
+        }
 
         const url = new URL("https://pay.c14.money/");
         const purchaseParams: C14WidgetConfig = {

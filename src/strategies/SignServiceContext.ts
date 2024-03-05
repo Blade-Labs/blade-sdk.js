@@ -34,9 +34,6 @@ export default class SignServiceContext implements ISignService {
         @inject('signService') private readonly signService: SignService,
     ) {}
 
-    // TODO rewrite sign/verify methods to use signer from constructor
-    // TODO do we need chain-specific methods here?
-
     init(chainId: KnownChainIds, signer: Signer | ethers.Signer) {
         this.chainId = chainId;
         this.signer = signer;
@@ -59,16 +56,6 @@ export default class SignServiceContext implements ISignService {
 
     getParamsSignature(paramsEncoded: string | ParametersBuilder, privateKey: string): Promise<SplitSignatureData> {
         return this.signService.getParamsSignature(paramsEncoded, privateKey);
-    }
-
-    // TODO rename to signMessage
-    ethersSign(messageString: string, privateKey: string): Promise<SignMessageData> {
-        return this.signService.ethersSign(messageString, privateKey);
-    }
-
-    // TODO rename to verifyMessage
-    ethersVerify(messageString: string): Promise<SignVerifyMessageData> {
-        return this.signService.ethersVerify(messageString);
     }
 
     sign(encodedMessage: string, encoding: SupportedEncoding): Promise<SignMessageData> {

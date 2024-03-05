@@ -1,4 +1,4 @@
-import {MirrorNodeTransactionType} from "@/models/TransactionType";
+import {MirrorNodeTransactionType} from "./TransactionType";
 
 export type AccountInfoMirrorResponse = APIPagination & {
     accounts: AccountInfo[]

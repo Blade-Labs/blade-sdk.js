@@ -46,10 +46,16 @@ export default class AccountServiceHedera implements IAccountService {
         this.configService = configService;
     }
 
-    async createAccount(deviceId?: string): Promise<CreateAccountData> {
-        const seedPhrase = await Mnemonic.generate12();
-        const privateKey = await seedPhrase.toStandardECDSAsecp256k1PrivateKey();
-        const publicKey = privateKey.publicKey.toStringDer();
+    async createAccount(privateKey: string, deviceId: string): Promise<CreateAccountData> {
+        let key: PrivateKey;
+        let seedPhrase = "";
+        if (privateKey) {
+            key = PrivateKey.fromString(privateKey)
+        } else {
+            const mnemonic = await Mnemonic.generate12();
+            seedPhrase = mnemonic.toString();
+            key = await mnemonic.toStandardECDSAsecp256k1PrivateKey();
+        }
 
         const {
             id,
@@ -57,9 +63,9 @@ export default class AccountServiceHedera implements IAccountService {
             updateAccountTransactionBytes,
             associationPresetTokenStatus,
             transactionId
-        } = await this.apiService.createAccount({deviceId, publicKey});
+        } = await this.apiService.createAccount({deviceId, publicKey: key.publicKey.toStringDer()});
         const client = this.getClient();
-        await executeUpdateAccountTransactions(client, privateKey, updateAccountTransactionBytes, transactionBytes);
+        await executeUpdateAccountTransactions(client, key, updateAccountTransactionBytes, transactionBytes);
 
         if (associationPresetTokenStatus === "FAILED") {
             // if token association failed on backend, fetch /tokens and execute transactionBytes
@@ -69,7 +75,7 @@ export default class AccountServiceHedera implements IAccountService {
                     throw new Error("Token association failed");
                 }
                 const buffer = Buffer.from(tokenTransaction.transactionBytes, "base64");
-                const transaction = await Transaction.fromBytes(buffer).sign(privateKey);
+                const transaction = await Transaction.fromBytes(buffer).sign(key);
                 await transaction.execute(client);
             } catch (error) {
                 // ignore this error, continue
@@ -82,13 +88,13 @@ export default class AccountServiceHedera implements IAccountService {
                     // ignore this error, continue
                 });
         }
-        const evmAddress = ethers.utils.computeAddress(`0x${privateKey.publicKey.toStringRaw()}`);
+        const evmAddress = ethers.utils.computeAddress(`0x${key.publicKey.toStringRaw()}`);
         return {
             transactionId,
             status: transactionId ? "PENDING" : "SUCCESS",
-            seedPhrase: seedPhrase.toString(),
-            publicKey,
-            privateKey: privateKey.toStringDer(),
+            seedPhrase,
+            publicKey: key.publicKey.toStringDer(),
+            privateKey: key.toStringDer(),
             accountId: id || null,
             evmAddress: evmAddress.toLowerCase()
         }

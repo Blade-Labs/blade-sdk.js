@@ -32,19 +32,4 @@ export default class SignService {
         const {v, r, s} = ethers.utils.splitSignature(signed);
         return {v, r, s};
     }
-
-    // TODO rename to signMessage
-    async ethersSign(messageString: string, privateKey: string): Promise<SignMessageData> {
-        const key = PrivateKey.fromString(privateKey);
-        const wallet = new ethers.Wallet(key.toStringRaw());
-        const signedMessage = await wallet.signMessage(Buffer.from(messageString, "base64"));
-        return {
-            signedMessage
-        }
-    }
-
-    // TODO rename to verifyMessage
-    ethersVerify(messageString: string): Promise<SignVerifyMessageData> {
-        throw new Error("Method not implemented.");
-    }
 }

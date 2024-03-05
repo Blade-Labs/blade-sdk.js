@@ -17,7 +17,7 @@ import {
 } from "alchemy-sdk";
 import {Network} from "../../models/Networks";
 import StringHelpers from "../../helpers/StringHelpers";
-const ERC20ABI = require("../../abi/erc20.abi.json");
+import ERC20ABI from "../../abi/erc20.abi";
 
 export default class TokenServiceEthereum implements ITokenService {
     private readonly chainId: KnownChainIds;

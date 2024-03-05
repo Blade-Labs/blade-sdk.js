@@ -14,7 +14,15 @@ import {NodeInfo} from "../../models/MirrorNode";
 import {ethers} from "ethers";
 import {ChainMap, CryptoKeyType, KnownChainIds} from "../../models/Chain";
 import {Network} from "../../models/Networks";
-import { Alchemy, AssetTransfersCategory, AssetTransfersWithMetadataResult, Network as AlchemyNetwork, SortingOrder } from "alchemy-sdk";
+import {
+    Alchemy,
+    AssetTransfersCategory,
+    AssetTransfersWithMetadataParams,
+    AssetTransfersWithMetadataResponse,
+    AssetTransfersWithMetadataResult,
+    Network as AlchemyNetwork,
+    SortingOrder
+} from "alchemy-sdk";
 import {MirrorNodeTransactionType} from "../../models/TransactionType";
 
 export default class AccountServiceEthereum implements IAccountService {
@@ -36,7 +44,7 @@ export default class AccountServiceEthereum implements IAccountService {
         this.configService = configService;
     }
 
-    createAccount(deviceId?: string): Promise<CreateAccountData> {
+    createAccount(privateKey: string, deviceId: string): Promise<CreateAccountData> {
         throw new Error("Method not implemented.");
     }
 
@@ -87,7 +95,7 @@ export default class AccountServiceEthereum implements IAccountService {
     async getTransactions(accountAddress: string, transactionType: string, nextPage: string, transactionsLimit: string): Promise<TransactionsHistoryData> {
         await this.initAlchemy();
         const maxCount = Math.min(parseInt(transactionsLimit, 10), 1000);
-        const params = {
+        const params: AssetTransfersWithMetadataParams = {
             withMetadata: true,
             order: SortingOrder.DESCENDING,
             category: [
@@ -103,25 +111,25 @@ export default class AccountServiceEthereum implements IAccountService {
             // pageKey?: string;
         }
 
-        let dataToPool;
-        let dataFromPool;
+        let dataToPool: AssetTransfersWithMetadataResponse | null = null;
+        let dataFromPool: AssetTransfersWithMetadataResponse | null = null;
         const transfers: AssetTransfersWithMetadataResult[] = [];
 
         while (transfers.length < maxCount) {
             if (!dataToPool || !dataToPool.transfers.length && dataToPool.pageKey) {
                 // fetch next To
-                dataToPool = await this.alchemy.core.getAssetTransfers({
+                dataToPool = await this.alchemy!.core.getAssetTransfers({
                     ...params,
-                    ...(dataToPool?.pageKey && {pageKey: dataToPool.pageKey}),
+                    ...(dataToPool && dataToPool?.pageKey ? {pageKey: dataToPool.pageKey} : {}),
                     toAddress: accountAddress,
                 });
             }
 
             if (!dataFromPool || !dataFromPool.transfers.length && dataFromPool.pageKey) {
                 // fetch next From
-                dataFromPool = await this.alchemy.core.getAssetTransfers({
+                dataFromPool = await this.alchemy!.core.getAssetTransfers({
                     ...params,
-                    ...(dataFromPool?.pageKey && {pageKey: dataFromPool.pageKey}),
+                    ...(dataFromPool && dataFromPool?.pageKey ? {pageKey: dataFromPool.pageKey} : {}),
                     fromAddress: accountAddress,
                 })
             }
@@ -129,9 +137,9 @@ export default class AccountServiceEthereum implements IAccountService {
             if (dataToPool.transfers.length && dataFromPool.transfers.length) {
                 // find max blockNum and shift to transfers
                 if (parseInt(dataToPool.transfers[0].blockNum, 16) > parseInt(dataFromPool.transfers[0].blockNum, 16)) {
-                    transfers.push(dataToPool.transfers.shift());
+                    transfers.push(dataToPool.transfers.shift()!);
                 } else {
-                    transfers.push(dataFromPool.transfers.shift());
+                    transfers.push(dataFromPool.transfers.shift()!);
                 }
                 continue;
             }
@@ -142,9 +150,9 @@ export default class AccountServiceEthereum implements IAccountService {
             ) {
                 // unshift to transfers from existing one by one
                 if (dataToPool.transfers.length) {
-                    transfers.push(dataToPool.transfers.shift());
+                    transfers.push(dataToPool.transfers.shift()!);
                 } else if (dataFromPool.transfers.length) {
-                    transfers.push(dataFromPool.transfers.shift());
+                    transfers.push(dataFromPool.transfers.shift()!);
                 }
             }
 
@@ -167,23 +175,17 @@ export default class AccountServiceEthereum implements IAccountService {
                     type: MirrorNodeTransactionType.CRYPTOTRANSFER, // ?????
                     time: new Date(transfer.metadata.blockTimestamp),
                     transfers: !transfer.tokenId ? [{
-                        amount: transfer.value,
-                        account: transfer.to,
+                        amount: transfer.value || 0,
+                        account: transfer.to || "",
                         ...(transfer.rawContract.address && {tokenAddress: transfer.rawContract.address}),
-                        asset: transfer.asset
+                        asset: transfer.asset || ""
                     }] : [],
-                    nftTransfers: transfer.tokenId ? [
-                        {
-                        tokenAddress: transfer.rawContract.address,
+                    nftTransfers: transfer.tokenId ? [{
+                        tokenAddress: transfer.rawContract.address || "",
                         serial: transfer.tokenId,
                         senderAddress: transfer.from,
-                        receiverAddress: transfer.to
-                    }
-                    ] : [],
-                    memo: "",
-                    fee: 0,
-                    showDetailed: false,
-                    plainData: {},
+                        receiverAddress: transfer.to || ""
+                    }] : [],
                     consensusTimestamp: transfer.metadata.blockTimestamp
                 }
             }),

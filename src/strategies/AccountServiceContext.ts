@@ -22,7 +22,7 @@ import ConfigService from "../services/ConfigService";
 import {NodeInfo} from "../models/MirrorNode";
 
 export interface IAccountService {
-    createAccount(deviceId?: string): Promise<CreateAccountData>
+    createAccount(privateKey?: string, deviceId?: string): Promise<CreateAccountData>
     getPendingAccount(transactionId: string, mnemonic: string): Promise<CreateAccountData>
     deleteAccount(deleteAccountId: string, deletePrivateKey: string, transferAccountId: string): Promise<TransactionReceiptData>
     getAccountInfo(accountId: string): Promise<AccountInfoData>
@@ -59,9 +59,9 @@ export default class AccountServiceContext implements IAccountService {
         }
     }
 
-    createAccount(deviceId?: string): Promise<CreateAccountData> {
+    createAccount(privateKey?: string, deviceId?: string): Promise<CreateAccountData> {
         this.checkInit();
-        return this.strategy!.createAccount(deviceId);
+        return this.strategy!.createAccount(privateKey, deviceId);
     }
 
     getPendingAccount(transactionId: string, mnemonic: string): Promise<CreateAccountData> {
