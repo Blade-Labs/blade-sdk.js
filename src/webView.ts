@@ -5,3 +5,4 @@ if (window) window["ParametersBuilder"] = ParametersBuilder;
 
 export { BladeSDK };
 export { ParametersBuilder };
+export { AccountProvider } from './models/Common';
