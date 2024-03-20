@@ -659,33 +659,29 @@ export class BladeSDK {
      * Create Hedera account (ECDSA). Only for configured dApps. Depending on dApp config Blade create account, associate tokens, etc.
      * In case of not using pre-created accounts pool and network high load, this method can return transactionId and no accountId.
      * In that case account creation added to queue, and you should wait some time and call `getPendingAccount()` method.
+     * @param privateKey optional field if you need specify account key (hex encoded privateKey with DER-prefix)
      * @param deviceId optional field for headers for backend check
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {CreateAccountData}
      */
-    async createAccount(deviceId?: string, completionKey?: string): Promise<CreateAccountData> {
+    async createAccount(privateKey?: string, deviceId?: string, completionKey?: string): Promise<CreateAccountData> {
         try {
-            let seedPhrase: Mnemonic | null = null;
-            let privateKey: PrivateKey | null = null;
+            let seedPhrase = "";
+            let key: PrivateKey;
 
-            let valid = false;
-            // https://github.com/hashgraph/hedera-sdk-js/issues/1396
-            do {
-                seedPhrase = await Mnemonic.generate12();
-                privateKey = await seedPhrase.toEcdsaPrivateKey();
-                const privateKeyString = privateKey.toStringDer();
-                const publicKeyString = privateKey.publicKey.toStringRaw();
-                const restoredPrivateKey = PrivateKey.fromString(privateKeyString);
-                const restoredPublicKeyString = restoredPrivateKey.publicKey.toStringRaw();
-                valid = publicKeyString === restoredPublicKeyString;
-            } while (!valid);
-            const publicKey = privateKey.publicKey.toStringDer();
+            if (privateKey) {
+                key = PrivateKey.fromString(privateKey);
+            } else {
+                const mnemonic = await Mnemonic.generate12();
+                key = await mnemonic.toStandardECDSAsecp256k1PrivateKey();
+                seedPhrase = mnemonic.toString();
+            }
 
             const options = {
                 visitorId: this.visitorId,
                 dAppCode: this.dAppCode,
                 deviceId,
-                publicKey
+                publicKey: key.publicKey.toStringDer()
             };
 
             const {
@@ -697,7 +693,7 @@ export class BladeSDK {
             } = await createAccount(this.network, options);
 
             const client = this.getClient();
-            await executeUpdateAccountTransactions(client, privateKey, updateAccountTransactionBytes, transactionBytes);
+            await executeUpdateAccountTransactions(client, key, updateAccountTransactionBytes, transactionBytes);
 
             if (associationPresetTokenStatus === "FAILED") {
                 // if token association failed on backend, fetch /tokens and execute transactionBytes
@@ -707,7 +703,7 @@ export class BladeSDK {
                         throw new Error("Token association failed");
                     }
                     const buffer = Buffer.from(tokenTransaction.transactionBytes, "base64");
-                    const transaction = await Transaction.fromBytes(buffer).sign(privateKey);
+                    const transaction = await Transaction.fromBytes(buffer).sign(key);
                     await transaction.execute(client);
                 } catch (error) {
                     // ignore this error, continue
@@ -725,14 +721,14 @@ export class BladeSDK {
                 });
             }
 
-            const evmAddress = ethers.utils.computeAddress(`0x${privateKey.publicKey.toStringRaw()}`);
+            const evmAddress = ethers.utils.computeAddress(`0x${key.publicKey.toStringRaw()}`);
 
             const result = {
                 transactionId,
                 status: transactionId ? "PENDING" : "SUCCESS",
                 seedPhrase: seedPhrase.toString(),
-                publicKey,
-                privateKey: privateKey.toStringDer(),
+                publicKey: key.publicKey.toStringDer(),
+                privateKey: key.toStringDer(),
                 accountId: id || null,
                 evmAddress: evmAddress.toLowerCase()
             };
@@ -1561,7 +1557,7 @@ export class BladeSDK {
         completionKey?: string
     ): Promise<TransactionReceiptData> {
         try {
-            if (typeof file === "string") {
+                 if (typeof file === "string") {
                 file = dataURLtoFile(file, "filename");
             }
             if (typeof metadata === "string") {

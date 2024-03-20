@@ -175,15 +175,17 @@ Get coin price and coin info from CoinGecko. Search can be coin id or address in
 
 ### createAccount
 
-▸ **createAccount**(`completionKey?`): `Promise<CreateAccountData>`
+▸ **createAccount**(`privateKey?`, `deviceId?`, `completionKey?`): `Promise<CreateAccountData>`
 
-Create Hedera account (ECDSA). Only for configured dApps. Depending on dApp config Blade create account, associate tokens, etc. In case of not using pre-created accounts pool and network high load, this method can return transactionId and no accountId. In that case account creation added to queue, and you should wait some time and call `getPendingAccount()` method.
+Create Hedera account (ECDSA) or with provided key. Only for configured dApps. Depending on dApp config Blade create account, associate tokens, etc. In case of not using pre-created accounts pool and network high load, this method can return transactionId and no accountId. In that case account creation added to queue, and you should wait some time and call `getPendingAccount()` method.
 
 #### Parameters
 
-| Name             | Type     | Description                                                   |
-| ---------------- | -------- | ------------------------------------------------------------- |
-| `completionKey?` | `string` | optional field bridge between mobile webViews and native apps |
+| Name             | Type     | Description                                                                             |
+|------------------| -------- |-----------------------------------------------------------------------------------------|
+| `privateKey?`    | `string` | optional field if you need specify account key (hex encoded privateKey with DER-prefix) |
+| `deviceId?`      | `string` | optional field for headers for backend check                                            |
+| `completionKey?` | `string` | optional field bridge between mobile webViews and native apps                           |
 
 #### Returns
 
