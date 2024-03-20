@@ -1557,67 +1557,65 @@ export class BladeSDK {
         completionKey?: string
     ): Promise<TransactionReceiptData> {
         try {
-            throw new Error("Method not implemented");
+                 if (typeof file === "string") {
+                file = dataURLtoFile(file, "filename");
+            }
+            if (typeof metadata === "string") {
+                metadata = JSON.parse(metadata);
+            }
 
-            //     if (typeof file === "string") {
-        //         file = dataURLtoFile(file, "filename");
-        //     }
-        //     if (typeof metadata === "string") {
-        //         metadata = JSON.parse(metadata);
-        //     }
-        //
-        //     const groupSize = 1;
-        //     const amount = 1;
-        //
-        //     if (accountId && accountPrivateKey) {
-        //         await this.setUser(AccountProvider.Hedera, accountId, accountPrivateKey);
-        //     }
-        //
-        //     let storageClient;
-        //     if (storageConfig.provider === NFTStorageProvider.nftStorage) {
-        //         // TODO implement through interfaces
-        //         storageClient = new NFTStorage({token: storageConfig.apiKey});
-        //     } else {
-        //         throw new Error("Unknown nft storage provider");
-        //     }
-        //
-        //     const fileName = file.name;
-        //     const dirCID = await storageClient.storeDirectory([file]);
-        //
-        //     metadata = {
-        //         name: fileName,
-        //         type: file.type,
-        //         creator: 'Blade Labs',
-        //         ...metadata as {},
-        //         image: `ipfs://${dirCID}/${encodeURIComponent(fileName)}`,
-        //     }
-        //     const metadataCID = await storageClient.storeBlob(
-        //         new File([JSON.stringify(metadata)], 'metadata.json', {type: 'application/json'}),
-        //     )
-        //
-        //     const CIDs = [metadataCID];
-        //     const mdArray = (new Array(amount)).fill(0).map(
-        //         (el, index) => Buffer.from(CIDs[index % CIDs.length]),
-        //     );
-        //     const mdGroup = mdArray.splice(0, groupSize);
-        //
-        //     return new TokenMintTransaction()
-        //         .setTokenId(tokenId)
-        //         .setMetadata(mdGroup)
-        //         .setMaxTransactionFee(Hbar.from(2 * groupSize, HbarUnit.Hbar))
-        //         .freezeWithSigner(this.signer!)
-        //         .then(tx => tx.signWithSigner(this.signer!))
-        //         .then(tx => tx.executeWithSigner(this.signer!))
-        //         .then(result => result.getReceiptWithSigner(this.signer!))
-        //         .then(txReceipt => {
-        //             if (txReceipt.status !== Status.Success) {
-        //                 throw new Error(`Mint failed`)
-        //             }
-        //             return this.sendMessageToNative(completionKey, formatReceipt(txReceipt));
-        //         })
-        //         .catch(error => {
-        //             return this.sendMessageToNative(completionKey, null, error);
-        //         });
+            const groupSize = 1;
+            const amount = 1;
+
+            if (accountId && accountPrivateKey) {
+                await this.setUser(AccountProvider.Hedera, accountId, accountPrivateKey);
+            }
+
+            let storageClient;
+            if (storageConfig.provider === NFTStorageProvider.nftStorage) {
+                // TODO implement through interfaces
+                storageClient = new NFTStorage({token: storageConfig.apiKey});
+            } else {
+                throw new Error("Unknown nft storage provider");
+            }
+
+            const fileName = file.name;
+            const dirCID = await storageClient.storeDirectory([file]);
+
+            metadata = {
+                name: fileName,
+                type: file.type,
+                creator: 'Blade Labs',
+                ...metadata as {},
+                image: `ipfs://${dirCID}/${encodeURIComponent(fileName)}`,
+            }
+            const metadataCID = await storageClient.storeBlob(
+                new File([JSON.stringify(metadata)], 'metadata.json', {type: 'application/json'}),
+            )
+
+            const CIDs = [metadataCID];
+            const mdArray = (new Array(amount)).fill(0).map(
+                (el, index) => Buffer.from(CIDs[index % CIDs.length]),
+            );
+            const mdGroup = mdArray.splice(0, groupSize);
+
+            return new TokenMintTransaction()
+                .setTokenId(tokenId)
+                .setMetadata(mdGroup)
+                .setMaxTransactionFee(Hbar.from(2 * groupSize, HbarUnit.Hbar))
+                .freezeWithSigner(this.signer!)
+                .then(tx => tx.signWithSigner(this.signer!))
+                .then(tx => tx.executeWithSigner(this.signer!))
+                .then(result => result.getReceiptWithSigner(this.signer!))
+                .then(txReceipt => {
+                    if (txReceipt.status !== Status.Success) {
+                        throw new Error(`Mint failed`)
+                    }
+                    return this.sendMessageToNative(completionKey, formatReceipt(txReceipt));
+                })
+                .catch(error => {
+                    return this.sendMessageToNative(completionKey, null, error);
+                });
         } catch (error) {
             return this.sendMessageToNative(completionKey, null, error);
         }
