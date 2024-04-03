@@ -2,7 +2,6 @@ import {AccountId, Client, ContractCallQuery, Hbar, Mnemonic, PrivateKey} from "
 import {associateToken, checkResult, createToken, getTokenInfo, sleep} from "./helpers";
 import {GET, getTransaction} from "../../src/services/ApiService";
 import {Network} from "../../src/models/Networks";
-import {isEqual} from "lodash";
 import {Buffer} from "buffer";
 import config from "../../src/config";
 import dotenv from "dotenv";
@@ -13,7 +12,14 @@ import crypto from "crypto";
 import {flatArray} from "../../src/helpers/ArrayHelpers";
 import {parseContractFunctionParams} from "../../src/helpers/ContractHelpers";
 import {decrypt, encrypt} from "../../src/helpers/SecurityHelper";
-import {AccountProvider, KeyRecord, KeyType, NFTStorageProvider, SdkEnvironment} from "../../src/models/Common";
+import {
+    AccountProvider,
+    CryptoKeyType,
+    KeyRecord,
+    KeyType,
+    NFTStorageProvider,
+    SdkEnvironment
+} from "../../src/models/Common";
 const {BladeSDK, ParametersBuilder} = require("../../src/webView");
 
 Object.defineProperty(global.self, "crypto", {
@@ -556,6 +562,58 @@ test('bladeSdk.getKeysFromMnemonic', async () => {
     result = await bladeSdk.getKeysFromMnemonic((await Mnemonic.generate12()).toString(), true, completionKey);
     checkResult(result);
     expect(result.data.accounts.length).toEqual(0);
+}, 60_000);
+
+test('bladeSdk.searchAccounts', async () => {
+    await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.VISITOR_ID, process.env.SDK_ENV, sdkVersion, completionKey);
+    let result = await bladeSdk.createAccount("","device-id", completionKey);
+    checkResult(result);
+
+    const accountSample = {
+        accountId: result.data.accountId,
+        privateKey: result.data.privateKey,
+        publicKey: result.data.publicKey,
+        seedPhrase: result.data.seedPhrase,
+        evmAddress: result.data.evmAddress
+    }
+
+    result = await bladeSdk.searchAccounts(accountSample.seedPhrase, completionKey);
+    checkResult(result);
+    await sleep(7000);
+
+    expect(result.data).toHaveProperty("accounts");
+    expect(Array.isArray(result.data.accounts)).toEqual(true);
+    expect(result.data.accounts.length).toEqual(1);
+
+    expect(result.data.accounts[0]).toHaveProperty("privateKey");
+    expect(result.data.accounts[0]).toHaveProperty("publicKey");
+    expect(result.data.accounts[0]).toHaveProperty("evmAddress");
+    expect(result.data.accounts[0]).toHaveProperty("address");
+    expect(result.data.accounts[0]).toHaveProperty("path");
+    expect(result.data.accounts[0]).toHaveProperty("keyType");
+
+    expect(result.data.accounts[0].address).toEqual(accountSample.accountId);
+    expect(result.data.accounts[0].privateKey).toEqual(accountSample.privateKey);
+    expect(result.data.accounts[0].publicKey).toEqual(accountSample.publicKey);
+    expect(result.data.accounts[0].evmAddress).toEqual(accountSample.evmAddress);
+    expect(result.data.accounts[0].keyType).toEqual(CryptoKeyType.ECDSA_SECP256K1);
+
+    result = await bladeSdk.searchAccounts("invalid seed phrase", completionKey);
+    checkResult(result, false);
+
+    result = await bladeSdk.searchAccounts("0xinvalidPrivateKey", completionKey);
+    checkResult(result, false);
+
+    result = await bladeSdk.searchAccounts((await Mnemonic.generate12()).toString(), completionKey);
+    checkResult(result);
+    expect(result.data.accounts.length).toEqual(1);
+    expect(result.data.accounts[0].address).toEqual("");
+
+    // ecdsa key without account
+    result = await bladeSdk.searchAccounts("3030020100300706052b8104000a04220420b355ed04bf673f326da0935df005566646eb30481d08e81dc75fc9b9fda90a3f", completionKey);
+    checkResult(result);
+    expect(result.data.accounts.length).toEqual(0);
+
 }, 60_000);
 
 test('bladeSdk.sign + signVerify', async () => {
