@@ -21,6 +21,7 @@ description: More details on how to use Blade-SDK.js
 * [getNodeList](usage.md#getnodelist)
 * [stakeToNode](usage.md#staketonode)
 * [getKeysFromMnemonic](usage.md#getkeysfrommnemonic)
+* [searchAccounts](usage.md#searchaccounts)
 * [transferHbars](usage.md#transferhbars)
 * [transferTokens](usage.md#transfertokens)
 * [getTransactions](usage.md#gettransactions)
@@ -271,7 +272,7 @@ Stake/unstake account
 
 ***
 
-### getKeysFromMnemonic
+### getKeysFromMnemonic (deprecated)
 
 ▸ **getKeysFromMnemonic**(`mnemonicRaw`, `lookupNames`, `completionKey?`): `Promise<PrivateKeyData>`
 
@@ -288,6 +289,25 @@ Get ECDSA private key from mnemonic. Also try to find accountIds based on public
 #### Returns
 
 `Promise<PrivateKeyData>`
+
+***
+
+### searchAccounts
+
+▸ **searchAccounts**(`keyOrMnemonic`, `completionKey?`): `Promise<AccountPrivateData>`
+
+Get accounts list and keys from private key or mnemonic. Returned keys with DER header.
+
+#### Parameters
+
+| Name             | Type      | Description                                                   |
+|------------------| --------- | ------------------------------------------------------------- |
+| `keyOrMnemonic`  | `string`  | BIP39 mnemonic, private key with DER header                                              |
+| `completionKey?` | `string`  | optional field bridge between mobile webViews and native apps |
+
+#### Returns
+
+`Promise<AccountPrivateData>`
 
 ***
 
