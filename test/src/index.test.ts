@@ -537,18 +537,20 @@ test('bladeSdk.getKeysFromMnemonic', async () => {
     result = await bladeSdk.getKeysFromMnemonic(accountSample.seedPhrase, false, completionKey);
     checkResult(result);
 
+    await sleep(7000);
+
     expect(result.data).toHaveProperty("privateKey");
     expect(result.data).toHaveProperty("publicKey");
     expect(result.data).toHaveProperty("accounts");
     expect(result.data).toHaveProperty("evmAddress");
     expect(Array.isArray(result.data.accounts)).toEqual(true);
-    expect(result.data.accounts.length).toEqual(0);
+    expect(result.data.accounts.length).toEqual(1);
 
     expect(result.data.privateKey).toEqual(accountSample.privateKey);
     expect(result.data.publicKey).toEqual(accountSample.publicKey);
     expect(result.data.evmAddress).toEqual(accountSample.evmAddress);
 
-    await sleep(7000);
+
 
     result = await bladeSdk.getKeysFromMnemonic(accountSample.seedPhrase, true, completionKey);
     checkResult(result);
@@ -561,7 +563,8 @@ test('bladeSdk.getKeysFromMnemonic', async () => {
 
     result = await bladeSdk.getKeysFromMnemonic((await Mnemonic.generate12()).toString(), true, completionKey);
     checkResult(result);
-    expect(result.data.accounts.length).toEqual(0);
+    expect(result.data.accounts.length).toEqual(1);
+    expect(result.data.accounts[0]).toEqual("");
 }, 60_000);
 
 test('bladeSdk.searchAccounts', async () => {

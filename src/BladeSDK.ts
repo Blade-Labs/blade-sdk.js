@@ -934,27 +934,14 @@ export class BladeSDK {
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {PrivateKeyData}
      */
-    async getKeysFromMnemonic(mnemonicRaw: string, lookupNames: boolean, completionKey?: string): Promise<PrivateKeyData> {
+    async getKeysFromMnemonic(mnemonicRaw: string, lookupNames: boolean = true, completionKey?: string): Promise<PrivateKeyData> {
         try {
-            const mnemonic = await Mnemonic.fromString(mnemonicRaw
-                .toLowerCase()
-                .split(" ")
-                .filter(word => word)
-                .join(" ")
-            );
-            const privateKey = await mnemonic.toEcdsaPrivateKey();
-            const publicKey = privateKey.publicKey;
-            let accounts: Partial<AccountInfo>[] = [];
-
-            if (lookupNames) {
-                accounts = await getAccountsFromPublicKey(this.network, publicKey);
-            }
-
+            const accounts = await getAccountsFromMnemonic(mnemonicRaw, this.network);
             return this.sendMessageToNative(completionKey, {
-                privateKey: privateKey.toStringDer(),
-                publicKey: publicKey.toStringDer(),
-                accounts: accounts.map(acc => acc.account),
-                evmAddress: ethers.utils.computeAddress(`0x${publicKey.toStringRaw()}`).toLowerCase()
+                privateKey: accounts[0].privateKey,
+                publicKey: accounts[0].publicKey,
+                accounts: accounts.map(acc => acc.address),
+                evmAddress: accounts[0].evmAddress
             });
         } catch (error) {
             return this.sendMessageToNative(completionKey, null, error);
