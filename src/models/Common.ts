@@ -327,6 +327,8 @@ export interface CoinData { // partial
 export interface CoinInfoData {
     coin: CoinData,
     priceUsd: number
+    price: number,
+    currency: string
 }
 
 export interface TransactionReceiptData {

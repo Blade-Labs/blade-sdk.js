@@ -156,7 +156,7 @@ Get list of all available coins on CoinGecko.
 
 ### getCoinPrice
 
-▸ **getCoinPrice**(`search`, `completionKey?`): `Promise<CoinInfoData>`
+▸ **getCoinPrice**(`search`, `currency`, `completionKey?`): `Promise<CoinInfoData>`
 
 Get coin price and coin info from CoinGecko. Search can be coin id or address in one of the coin platforms.
 
@@ -165,11 +165,33 @@ Get coin price and coin info from CoinGecko. Search can be coin id or address in
 | Name             | Type     | Description                                                                                                 |
 |------------------| -------- |-------------------------------------------------------------------------------------------------------------|
 | `search`         | `string` | CoinGecko coinId, or address in one of the coin platforms or `hbar` (default, alias for `hedera-hashgraph`) |
+| `currency`       | `string` | Define currency for price field. Default: USD                                                               |
 | `completionKey?` | `string` | optional field bridge between mobile webViews and native apps                                               |
 
 #### Returns
 
 `Promise<CoinInfoData>` coin price in USD and all coin info from CoinGecko.
+
+***
+
+### signScheduleId
+
+▸ **signScheduleId**(`scheduleId`, `accountId`, `accountPrivateKey`, `completionKey?`): `Promise<SignMessageData>`
+
+Sign scheduled transaction
+
+#### Parameters
+
+| Name                | Type     | Description                                                                             |
+|---------------------| -------- |-----------------------------------------------------------------------------------------|
+| `scheduleId`        | `string` | scheduled transaction id (0.0.xxxxx)                                                    |
+| `accountId`         | `string` | account id (0.0.xxxxx)                                                                  |
+| `accountPrivateKey` | `string` | optional field if you need specify account key (hex encoded privateKey with DER-prefix) |
+| `completionKey?`    | `string` | optional field bridge between mobile webViews and native apps                           |
+
+#### Returns
+
+`Promise<SignMessageData>`
 
 ***
 

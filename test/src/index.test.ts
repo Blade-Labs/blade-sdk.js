@@ -157,33 +157,36 @@ test('bladeSdk.getCoinList', async () => {
 });
 
 test('bladeSdk.getCoinPrice', async () => {
-    let result = await bladeSdk.getCoinPrice("Hbar", completionKey);
+    let result = await bladeSdk.getCoinPrice("Hbar", "uah", completionKey);
     checkResult(result);
 
     expect(result.data).toHaveProperty("priceUsd");
+    expect(result.data).toHaveProperty("price");
     expect(result.data).toHaveProperty("coin");
+    expect(result.data).toHaveProperty("currency");
     const coin = result.data.coin;
     expect(coin.id).toEqual("hedera-hashgraph");
     expect(coin.symbol).toEqual("hbar");
+    expect(result.data.currency).toEqual("uah");
     expect(coin.market_data.current_price.usd).toEqual(result.data.priceUsd);
 
-    result = await bladeSdk.getCoinPrice("0.0.0", completionKey);
+    result = await bladeSdk.getCoinPrice("0.0.0", "", completionKey);
     checkResult(result);
     expect(result.data.coin.symbol).toEqual("hbar");
 
-    result = await bladeSdk.getCoinPrice("0x80008bcd713c38af90a9930288d446bc3bd2e684", completionKey);
+    result = await bladeSdk.getCoinPrice("0x80008bcd713c38af90a9930288d446bc3bd2e684", "", completionKey);
     checkResult(result);
     expect(result.data.coin.symbol).toEqual("karate");
 
-    result = await bladeSdk.getCoinPrice(process.env.KARATE_TOKEN_ID, completionKey);
+    result = await bladeSdk.getCoinPrice(process.env.KARATE_TOKEN_ID, "", completionKey);
     checkResult(result);
     expect(result.data.coin.symbol).toEqual("karate");
 
-    result = await bladeSdk.getCoinPrice("karate-combat", completionKey);
+    result = await bladeSdk.getCoinPrice("karate-combat", "", completionKey);
     checkResult(result);
     expect(result.data.coin.symbol).toEqual("karate");
 
-    result = await bladeSdk.getCoinPrice("unknown token", completionKey);
+    result = await bladeSdk.getCoinPrice("unknown token", "", completionKey);
     checkResult(result, false);
 }, 10_000);
 

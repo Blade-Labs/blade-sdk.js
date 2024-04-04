@@ -1,25 +1,26 @@
 import {
-    AccountDeleteTransaction,
-    AccountUpdateTransaction,
-    Client,
-    ContractCallQuery,
-    ContractExecuteTransaction,
-    ContractFunctionResult,
-    Hbar,
-    HbarUnit,
-    Mnemonic,
-    PrivateKey,
-    PublicKey,
-    Signer,
-    Status,
-    TokenAssociateTransaction,
-    TokenCreateTransaction,
-    TokenMintTransaction,
-    TokenSupplyType,
-    TokenType,
-    Transaction,
-    TransactionReceipt,
-    TransferTransaction,
+  AccountDeleteTransaction,
+  AccountUpdateTransaction,
+  Client,
+  ContractCallQuery,
+  ContractExecuteTransaction,
+  ContractFunctionResult,
+  Hbar,
+  HbarUnit,
+  Mnemonic,
+  PrivateKey,
+  PublicKey,
+  ScheduleSignTransaction,
+  Signer,
+  Status,
+  TokenAssociateTransaction,
+  TokenCreateTransaction,
+  TokenMintTransaction,
+  TokenSupplyType,
+  TokenType,
+  Transaction,
+  TransactionReceipt,
+  TransferTransaction,
 } from "@hashgraph/sdk";
 import {Buffer} from "buffer";
 import {ethers} from "ethers";
@@ -345,7 +346,7 @@ export class BladeSDK {
         }
     }
 
-    async getCoinPrice(search: string = "hbar", completionKey?: string): Promise<CoinInfoData> {
+    async getCoinPrice(search: string = "hbar", currency: string = "usd", completionKey?: string): Promise<CoinInfoData> {
         try {
             if (search === HbarTokenId || search.toLowerCase() === "hbar") {
                 search = "hedera-hashgraph"
@@ -371,8 +372,10 @@ export class BladeSDK {
             }
 
             const result: CoinInfoData = {
+                coin: coinInfo,
                 priceUsd: coinInfo.market_data.current_price.usd,
-                coin: coinInfo
+                price: coinInfo.market_data.current_price[currency.toLowerCase()] || null,
+                currency: currency.toLowerCase()
             };
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
@@ -650,6 +653,36 @@ export class BladeSDK {
                     });
             }
 
+        } catch (error) {
+            return this.sendMessageToNative(completionKey, null, error);
+        }
+    }
+
+    /**
+     * Sign scheduled transaction
+     * @param scheduleId scheduled transaction id (0.0.xxxxx)
+     * @param accountId account id (0.0.xxxxx)
+     * @param accountPrivateKey optional field if you need specify account key (hex encoded privateKey with DER-prefix)
+     * @param completionKey optional field bridge between mobile webViews and native apps
+     * @returns {SignMessageData}
+     */
+    async signScheduleId(scheduleId: string, accountId: string, accountPrivateKey: string, completionKey?: string): Promise<SignMessageData> {
+        try {
+            if (accountId && accountPrivateKey) {
+                await this.setUser(AccountProvider.Hedera, accountId, accountPrivateKey);
+            }
+
+            return await new ScheduleSignTransaction()
+                .setScheduleId(scheduleId)
+                .freezeWithSigner(this.signer!)
+                .then(tx => tx.signWithSigner(this.signer!))
+                .then(tx => tx.executeWithSigner(this.signer!))
+                .then(result => result.getReceiptWithSigner(this.signer!))
+                .then(data => {
+                    return this.sendMessageToNative(completionKey, formatReceipt(data));
+                }).catch(error => {
+                    return this.sendMessageToNative(completionKey, null, error);
+                });
         } catch (error) {
             return this.sendMessageToNative(completionKey, null, error);
         }
