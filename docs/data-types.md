@@ -297,7 +297,7 @@ export interface CoinData { // partial
 export interface CoinInfoData {
     coin: CoinData,
     priceUsd: number,
-    price: number,
+    price: number | null,
     currency: string
 }
 
