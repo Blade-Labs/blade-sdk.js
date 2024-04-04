@@ -296,7 +296,9 @@ export interface CoinData { // partial
 
 export interface CoinInfoData {
     coin: CoinData,
-    priceUsd: number
+    priceUsd: number,
+    price: number | null,
+    currency: string
 }
 
 export enum KeyType {
