@@ -19,7 +19,6 @@ import {
   TokenSupplyType,
   TokenType,
   Transaction,
-  TransactionReceipt,
   TransferTransaction,
 } from "@hashgraph/sdk";
 import {Buffer} from "buffer";
@@ -48,6 +47,7 @@ import {
     signContractCallTx,
     transferTokens
 } from "./services/ApiService";
+import {getAccountsFromMnemonic, getAccountsFromPrivateKey} from "./services/AccountService";
 import CryptoFlowService from "./services/CryptoFlowService";
 import {HbarTokenId} from "./services/FeeService";
 import {Network} from "./models/Networks";
@@ -60,6 +60,7 @@ import {
 import {CustomError} from "./models/Errors";
 import {
     AccountInfoData,
+    AccountPrivateData, AccountPrivateRecord,
     AccountProvider,
     AccountStatus,
     BalanceData,
@@ -103,7 +104,7 @@ import {
     ICryptoFlowTransaction,
     ICryptoFlowTransactionParams
 } from "./models/CryptoFlow";
-import {NodeInfo} from "./models/MirrorNode";
+import {AccountInfo, NodeInfo} from "./models/MirrorNode";
 import * as FingerprintJS from '@fingerprintjs/fingerprintjs-pro'
 import {File, NFTStorage} from 'nft.storage';
 import {decrypt, encrypt} from "./helpers/SecurityHelper";
@@ -189,6 +190,7 @@ export class BladeSDK {
                 this.visitorId = (await fpPromise.get()).visitorId;
                 localStorage.setItem("BladeSDK.visitorId", await encrypt(`${this.visitorId}@${Date.now()}`, this.apiKey));
             } catch (error) {
+                // tslint:disable-next-line:no-console
                 console.log("failed to get visitor id", error);
             }
         }
@@ -225,7 +227,7 @@ export class BladeSDK {
         try {
             switch (accountProvider) {
                 case AccountProvider.Hedera:
-                    const key = PrivateKey.fromString(privateKey!);
+                    const key = PrivateKey.fromStringDer(privateKey!);
                     this.userAccountId = accountIdOrEmail;
                     this.userPrivateKey = privateKey!;
                     this.userPublicKey = key.publicKey.toStringDer();
@@ -956,6 +958,7 @@ export class BladeSDK {
     }
 
     /**
+     * @deprecated Will be removed in version 0.7, switch to `searchAccounts` method
      * Get ECDSA private key from mnemonic. Also try to find accountIds based on public key if lookupNames is true.
      * Returned keys with DER header.
      * EvmAddress computed from Public key.
@@ -964,27 +967,39 @@ export class BladeSDK {
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {PrivateKeyData}
      */
-    async getKeysFromMnemonic(mnemonicRaw: string, lookupNames: boolean, completionKey?: string): Promise<PrivateKeyData> {
+    async getKeysFromMnemonic(mnemonicRaw: string, lookupNames: boolean = true, completionKey?: string): Promise<PrivateKeyData> {
         try {
-            const mnemonic = await Mnemonic.fromString(mnemonicRaw
-                .toLowerCase()
-                .split(" ")
-                .filter(word => word)
-                .join(" ")
-            );
-            const privateKey = await mnemonic.toEcdsaPrivateKey();
-            const publicKey = privateKey.publicKey;
-            let accounts: string[] = [];
-
-            if (lookupNames) {
-                accounts = await getAccountsFromPublicKey(this.network, publicKey);
-            }
-
+            const accounts = await getAccountsFromMnemonic(mnemonicRaw, this.network);
             return this.sendMessageToNative(completionKey, {
-                privateKey: privateKey.toStringDer(),
-                publicKey: publicKey.toStringDer(),
-                accounts,
-                evmAddress: ethers.utils.computeAddress(`0x${publicKey.toStringRaw()}`).toLowerCase()
+                privateKey: accounts[0].privateKey,
+                publicKey: accounts[0].publicKey,
+                accounts: accounts.map(acc => acc.address),
+                evmAddress: accounts[0].evmAddress
+            });
+        } catch (error) {
+            return this.sendMessageToNative(completionKey, null, error);
+        }
+    }
+
+    /**
+     * Get accounts list and keys from private key or mnemonic
+     * Returned keys with DER header.
+     * EvmAddress computed from ECDSA Public key.
+     * @param keyOrMnemonic BIP39 mnemonic, private key with DER header
+     * @param completionKey optional field bridge between mobile webViews and native apps
+     * @returns {AccountPrivateData}
+     */
+    async searchAccounts(keyOrMnemonic: string, completionKey?: string): Promise<AccountPrivateData> {
+        try {
+            const accounts: AccountPrivateRecord[] = [];
+            if (keyOrMnemonic.trim().split(" ").length > 1) {
+                // mnemonic
+                accounts.push(...await getAccountsFromMnemonic(keyOrMnemonic, this.network));
+            } else {
+                accounts.push(...await getAccountsFromPrivateKey(keyOrMnemonic, this.network));
+            }
+            return this.sendMessageToNative(completionKey, {
+                accounts
             });
         } catch (error) {
             return this.sendMessageToNative(completionKey, null, error);
@@ -1416,16 +1431,16 @@ export class BladeSDK {
 
     /**
      * Create token (NFT or Fungible Token)
-     * @param treasuryAccountId: treasury account id
-     * @param supplyPrivateKey: supply account private key
-     * @param tokenName: token name (string up to 100 bytes)
-     * @param tokenSymbol: token symbol (string up to 100 bytes)
-     * @param isNft: set token type NFT
-     * @param keys: token keys
-     * @param decimals: token decimals (0 for nft)
-     * @param initialSupply: token initial supply (0 for nft)
-     * @param maxSupply: token max supply
-     * @param completionKey: optional field bridge between mobile webViews and native apps
+     * @param treasuryAccountId treasury account id
+     * @param supplyPrivateKey supply account private key
+     * @param tokenName token name (string up to 100 bytes)
+     * @param tokenSymbol token symbol (string up to 100 bytes)
+     * @param isNft set token type NFT
+     * @param keys token keys
+     * @param decimals token decimals (0 for nft)
+     * @param initialSupply token initial supply (0 for nft)
+     * @param maxSupply token max supply
+     * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {tokenId: string}
      */
     async createToken(
@@ -1520,10 +1535,10 @@ export class BladeSDK {
     /**
      * Associate token to account. Association fee will be covered by Blade, if tokenId configured in dApp
      *
-     * @param tokenId: token id to associate. Empty to associate all tokens configured in dApp
-     * @param accountId: account id to associate token
-     * @param accountPrivateKey: account private key
-     * @param completionKey: optional field bridge between mobile webViews and native apps
+     * @param tokenId token id to associate. Empty to associate all tokens configured in dApp
+     * @param accountId account id to associate token
+     * @param accountPrivateKey account private key
+     * @param completionKey optional field bridge between mobile webViews and native apps
      */
     async associateToken(
         tokenId: string,
@@ -1572,13 +1587,13 @@ export class BladeSDK {
     /**
      * Mint one NFT
      *
-     * @param tokenId: token id to mint NFT
-     * @param accountId: token supply account id
-     * @param accountPrivateKey: token supply private key
-     * @param file: image to mint (File or base64 DataUrl image, eg.: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAA...)
-     * @param metadata: NFT metadata (JSON object)
-     * @param storageConfig: {NFTStorageConfig} IPFS provider config
-     * @param completionKey: optional field bridge between mobile webViews and native apps
+     * @param tokenId token id to mint NFT
+     * @param accountId token supply account id
+     * @param accountPrivateKey token supply private key
+     * @param file image to mint (File or base64 DataUrl image, eg.: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAA...)
+     * @param metadata NFT metadata (JSON object)
+     * @param storageConfig {NFTStorageConfig} IPFS provider config
+     * @param completionKey optional field bridge between mobile webViews and native apps
      */
     async nftMint(
         tokenId: string,

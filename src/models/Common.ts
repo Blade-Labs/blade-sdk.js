@@ -34,6 +34,11 @@ export const KnownChainNames = {
     [KnownChainIds[KnownChain.HEDERA_TESTNET]]: "Hedera Testnet"
 }
 
+export enum CryptoKeyType {
+    ECDSA_SECP256K1 = "ECDSA_SECP256K1",
+    ED25519 = "ED25519"
+}
+
 export enum KeyType {
     admin = "admin",
     kyc = "kyc",
@@ -194,6 +199,19 @@ export interface AccountInfoData {
         stakePeriodStart: string | null,
     },
     calculatedEvmAddress?: string
+}
+
+export interface AccountPrivateData {
+    accounts: AccountPrivateRecord[]
+}
+
+export interface AccountPrivateRecord {
+    privateKey: string,
+    publicKey: string,
+    evmAddress: string,
+    address: string,
+    path: string,
+    keyType: CryptoKeyType
 }
 
 export interface PrivateKeyData {
