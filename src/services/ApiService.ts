@@ -540,7 +540,7 @@ export const getCryptoFlowData = async (
         .then(x => x.json());
 };
 
-export const getAccountsFromPublicKey = async (network: Network, publicKey: PublicKey): Promise<AccountInfo[]> => {
+export const getAccountsFromPublicKey = async (network: Network, publicKey: PublicKey): Promise<Partial<AccountInfo>[]> => {
     const formatted = publicKey.toStringRaw();
     return GET(network, `/accounts?account.publickey=${formatted}`)
         .then((x: AccountInfoMirrorResponse) => x.accounts)

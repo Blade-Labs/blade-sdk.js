@@ -944,7 +944,7 @@ export class BladeSDK {
             );
             const privateKey = await mnemonic.toEcdsaPrivateKey();
             const publicKey = privateKey.publicKey;
-            let accounts: AccountInfo[] = [];
+            let accounts: Partial<AccountInfo>[] = [];
 
             if (lookupNames) {
                 accounts = await getAccountsFromPublicKey(this.network, publicKey);

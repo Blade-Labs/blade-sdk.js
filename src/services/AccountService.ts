@@ -4,7 +4,7 @@ import {getAccountsFromPublicKey} from "./ApiService";
 import {Network} from "../models/Networks";
 import { ethers } from "ethers";
 import StringHelpers from "../helpers/StringHelpers";
-import {AccountInfo} from "@/models/MirrorNode";
+import {AccountInfo} from "../models/MirrorNode";
 
 export const getAccountsFromMnemonic = async (mnemonicRaw: string, network: Network): Promise<AccountPrivateRecord[]> => {
     const mnemonic = await Mnemonic.fromString(mnemonicRaw
@@ -74,11 +74,11 @@ export const getAccountsFromPrivateKey = async (privateKeyRaw: string, network: 
     return records;
 };
 
-async function prepareAccountRecord(privateKey: PrivateKey, keyType: CryptoKeyType, network: Network, force: boolean = false) {
-    const accounts: AccountInfo[] = await getAccountsFromPublicKey(network, privateKey.publicKey);
+async function prepareAccountRecord(privateKey: PrivateKey, keyType: CryptoKeyType, network: Network, force: boolean = false): Promise<AccountPrivateRecord[]> {
+    const accounts: Partial<AccountInfo>[] = await getAccountsFromPublicKey(network, privateKey.publicKey);
 
     if (!accounts.length && force) {
-        accounts.push(null);
+        accounts.push({});
     }
 
     return accounts.map(record => {
@@ -88,7 +88,7 @@ async function prepareAccountRecord(privateKey: PrivateKey, keyType: CryptoKeyTy
         return {
             privateKey: privateKey.toStringDer(),
             publicKey: privateKey.publicKey.toStringDer(),
-            evmAddress,
+            evmAddress: evmAddress || "",
             address: record?.account || "",
             path: StringHelpers.pathArrayToString(HEDERA_PATH)!,
             keyType
