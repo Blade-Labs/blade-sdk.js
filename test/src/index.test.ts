@@ -622,6 +622,28 @@ test('bladeSdk.searchAccounts', async () => {
 
 }, 60_000);
 
+test('bladeSdk.dropTokens', async () => {
+    await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.VISITOR_ID, process.env.SDK_ENV, sdkVersion, completionKey);
+    let result = await bladeSdk.createAccount("","device-id", completionKey);
+    checkResult(result);
+    const accountSample = result.data;
+    await sleep(7000);
+
+    result = await bladeSdk.dropTokens(accountSample.accountId, accountSample.privateKey, process.env.NONCE, completionKey);
+    checkResult(result);
+
+    expect(result.data).toHaveProperty("status");
+    expect(result.data).toHaveProperty("statusCode");
+    expect(result.data).toHaveProperty("timestamp");
+    expect(result.data).toHaveProperty("executionStatus");
+    expect(result.data).toHaveProperty("requestId");
+    expect(result.data).toHaveProperty("accountId");
+    expect(result.data).toHaveProperty("redirectUrl");
+
+    result = await bladeSdk.dropTokens(accountSample.accountId, accountSample.privateKey, process.env.NONCE, completionKey);
+    checkResult(result, false);
+}, 60_000);
+
 test('bladeSdk.sign + signVerify', async () => {
     const message = "hello";
     const messageString = Buffer.from(message).toString("base64");
