@@ -1025,7 +1025,7 @@ export class BladeSDK {
             }
             accountId = this.getUser().accountId;
 
-            const signatures = await this.signer.sign([Buffer.from(secretNonce)]);
+            const signatures = await this.signer!.sign([Buffer.from(secretNonce)]);
             return this.sendMessageToNative(completionKey, await dropTokens(this.network, {
                 visitorId: this.visitorId,
                 dAppCode: this.dAppCode,
