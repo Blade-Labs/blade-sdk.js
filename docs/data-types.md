@@ -331,4 +331,14 @@ export interface TransactionReceiptData {
     totalSupply?: string,
     serials: string[],
 }
+
+export interface TokenDropData {
+    status: string,
+    statusCode: number,
+    timestamp: string,
+    executionStatus: string,
+    requestId: string,
+    accountId: string,
+    redirectUrl: string
+}
 ```

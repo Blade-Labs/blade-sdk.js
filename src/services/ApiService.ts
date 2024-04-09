@@ -486,6 +486,30 @@ export const apiCallContractQuery = async (network: Network, params: any) => {
         .then(x => x.json());
 };
 
+export const dropTokens = async (network: Network, params: { accountId: string, signedNonce: string, dAppCode: string, visitorId: string }) => {
+  const url = `${getApiUrl()}/tokens/drop`;
+  const headers: any = {
+    "X-NETWORK": network.toUpperCase(),
+    "X-VISITOR-ID": params.visitorId,
+    "X-DAPP-CODE": params.dAppCode,
+    "X-SDK-TVTE-API": await getTvteHeader(),
+    "Content-Type": "application/json",
+  };
+
+  const options = {
+    method: "POST",
+    headers: new Headers(headers),
+    body: JSON.stringify({
+      accountId: params.accountId,
+      signedNonce: params.signedNonce,
+    }),
+  };
+
+  return fetch(url, options)
+    .then(statusCheck)
+    .then((x) => x.json());
+};
+
 export const getC14token = async (params: any) => {
     const url = `${getApiUrl()}/c14/data`;
     const options = {

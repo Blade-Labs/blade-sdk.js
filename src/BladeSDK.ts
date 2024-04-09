@@ -28,9 +28,9 @@ import {
     checkAccountCreationStatus,
     confirmAccountUpdate,
     createAccount,
+    dropTokens,
     getAccountBalance,
     getAccountInfo,
-    getAccountsFromPublicKey,
     getApiUrl,
     getBladeConfig,
     getC14token,
@@ -87,6 +87,7 @@ import {
     SignVerifyMessageData,
     SplitSignatureData,
     SwapQuotesData,
+    TokenDropData,
     TransactionReceiptData,
     TransactionsHistoryData
 } from "./models/Common";
@@ -169,8 +170,11 @@ export class BladeSDK {
         initApiService(apiKey, dAppCode, sdkEnvironment, sdkVersion, this.network, visitorId);
         if (!this.visitorId) {
             try {
-                const [decryptedVisitorId, timestamp] = (await decrypt(localStorage.getItem("BladeSDK.visitorId") || "", this.apiKey)).split("@");
-                this.visitorId = decryptedVisitorId;
+                const [decryptedVisitorId, timestamp, env] = (await decrypt(localStorage.getItem("BladeSDK.visitorId") || "", this.apiKey)).split("@");
+                if (this.sdkEnvironment === env && Date.now() - parseInt(timestamp, 10) < 3600_000 * 24 * 30) {
+                    // if visitorId was saved less than 30 days ago and in the same environment
+                    this.visitorId = decryptedVisitorId;
+                }
             } catch (e) {
                 // console.log("failed to decrypt visitor id", e);
             }
@@ -188,7 +192,7 @@ export class BladeSDK {
 
                 const fpPromise = await FingerprintJS.load(fpConfig)
                 this.visitorId = (await fpPromise.get()).visitorId;
-                localStorage.setItem("BladeSDK.visitorId", await encrypt(`${this.visitorId}@${Date.now()}`, this.apiKey));
+                localStorage.setItem("BladeSDK.visitorId", await encrypt(`${this.visitorId}@${Date.now()}@${this.sdkEnvironment}`, this.apiKey));
             } catch (error) {
                 // tslint:disable-next-line:no-console
                 console.log("failed to get visitor id", error);
@@ -1001,6 +1005,33 @@ export class BladeSDK {
             return this.sendMessageToNative(completionKey, {
                 accounts
             });
+        } catch (error) {
+            return this.sendMessageToNative(completionKey, null, error);
+        }
+    }
+
+    /**
+     * Bladelink drop to account
+     * @param accountId Hedera account id (0.0.xxxxx)
+     * @param accountPrivateKey account private key (DER encoded hex string)
+     * @param secretNonce configured for dApp. Should be kept in secret
+     * @param completionKey optional field bridge between mobile webViews and native apps
+     * @returns {TokenDropData}
+     */
+    async dropTokens(accountId: string, accountPrivateKey: string, secretNonce: string, completionKey?: string): Promise<TokenDropData> {
+        try {
+            if (accountId && accountPrivateKey) {
+                await this.setUser(AccountProvider.Hedera, accountId, accountPrivateKey);
+            }
+            accountId = this.getUser().accountId;
+
+            const signatures = await this.signer.sign([Buffer.from(secretNonce)]);
+            return this.sendMessageToNative(completionKey, await dropTokens(this.network, {
+                visitorId: this.visitorId,
+                dAppCode: this.dAppCode,
+                accountId,
+                signedNonce: Buffer.from(signatures[0].signature).toString('base64')
+            }));
         } catch (error) {
             return this.sendMessageToNative(completionKey, null, error);
         }
