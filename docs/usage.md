@@ -177,7 +177,7 @@ Get coin price and coin info from CoinGecko. Search can be coin id or address in
 
 ### signScheduleId
 
-▸ **signScheduleId**(`scheduleId`, `accountId`, `accountPrivateKey`, `completionKey?`): `Promise<SignMessageData>`
+▸ **signScheduleId**(`scheduleId`, `accountId`, `accountPrivateKey`, `completionKey?`): `Promise<TransactionReceiptData>`
 
 Sign scheduled transaction
 
@@ -192,7 +192,7 @@ Sign scheduled transaction
 
 #### Returns
 
-`Promise<SignMessageData>`
+`Promise<TransactionReceiptData>`
 
 ***
 
@@ -330,6 +330,27 @@ Get accounts list and keys from private key or mnemonic. Returned keys with DER 
 #### Returns
 
 `Promise<AccountPrivateData>`
+
+***
+
+### dropTokens
+
+▸ **dropTokens**(`accountId`, `accountPrivateKey`, `secretNonce`, `completionKey?`): `Promise<TokenDropData>`
+
+Bladelink drop to account
+
+#### Parameters
+
+| Name                | Type     | Description                                                   |
+|---------------------|----------|---------------------------------------------------------------|
+| `accountId`         | `string` | Hedera account id (0.0.xxxxx)                                 |
+| `accountPrivateKey` | `string` | account private key (DER encoded hex string)                  |
+| `secretNonce`       | `string` | configured for dApp. Should be kept in secret                 |
+| `completionKey?`    | `string` | optional field bridge between mobile webViews and native apps |
+
+#### Returns
+
+`Promise<TokenDropData>`
 
 ***
 
