@@ -1,25 +1,25 @@
 import {
-  AccountDeleteTransaction,
-  AccountUpdateTransaction,
-  Client,
-  ContractCallQuery,
-  ContractExecuteTransaction,
-  ContractFunctionResult,
-  Hbar,
-  HbarUnit,
-  Mnemonic,
-  PrivateKey,
-  PublicKey,
-  ScheduleSignTransaction,
-  Signer,
-  Status,
-  TokenAssociateTransaction,
-  TokenCreateTransaction,
-  TokenMintTransaction,
-  TokenSupplyType,
-  TokenType,
-  Transaction,
-  TransferTransaction,
+    AccountDeleteTransaction,
+    AccountUpdateTransaction,
+    Client,
+    ContractCallQuery,
+    ContractExecuteTransaction,
+    ContractFunctionResult,
+    Hbar,
+    HbarUnit,
+    Mnemonic,
+    PrivateKey,
+    PublicKey,
+    ScheduleSignTransaction,
+    Signer,
+    Status,
+    TokenAssociateTransaction,
+    TokenCreateTransaction,
+    TokenMintTransaction,
+    TokenSupplyType,
+    TokenType,
+    Transaction,
+    TransferTransaction,
 } from "@hashgraph/sdk";
 import {Buffer} from "buffer";
 import {ethers} from "ethers";
@@ -37,6 +37,8 @@ import {
     getCoinInfo,
     getCoins,
     getCryptoFlowData,
+    getNftInfo,
+    getNftMetadataFromIpfs,
     getNodeList,
     getPendingAccountData,
     getTokenAssociateTransactionForAccount,
@@ -115,6 +117,8 @@ import {HederaExtension} from '@magic-ext/hedera';
 import {MagicSigner} from "./signers/magic/MagicSigner";
 import {HederaProvider, HederaSigner} from "./signers/hedera";
 import {getConfig} from "./services/ConfigService";
+import {NftMetadata} from "./models/Nft";
+import {CID} from 'multiformats/cid'
 
 export class BladeSDK {
     private apiKey: string = "";
@@ -227,7 +231,7 @@ export class BladeSDK {
         });
     }
 
-    async setUser(accountProvider: AccountProvider, accountIdOrEmail: string, privateKey?: string, completionKey?: string): Promise<{ accountId: string, accountProvider: AccountProvider }> {
+    async setUser(accountProvider: AccountProvider, accountIdOrEmail: string, privateKey?: string, completionKey?: string): Promise<{accountId: string, accountProvider: AccountProvider}> {
         try {
             switch (accountProvider) {
                 case AccountProvider.Hedera:
@@ -248,11 +252,11 @@ export class BladeSDK {
                         userInfo = await this.magic.user.getInfo()
                         if (userInfo.email !== accountIdOrEmail) {
                             this.magic.user.logout()
-                            await this.magic.auth.loginWithMagicLink({ email: accountIdOrEmail, showUI: false })
+                            await this.magic.auth.loginWithMagicLink({email: accountIdOrEmail, showUI: false})
                             userInfo = await this.magic.user.getInfo()
                         }
                     } else {
-                        await this.magic?.auth.loginWithMagicLink({ email: accountIdOrEmail, showUI: false })
+                        await this.magic?.auth.loginWithMagicLink({email: accountIdOrEmail, showUI: false})
                         userInfo = await this.magic?.user.getInfo()
                     }
 
@@ -261,7 +265,7 @@ export class BladeSDK {
                     }
 
                     this.userAccountId = userInfo.publicAddress;
-                    const { publicKeyDer } = await this.magic.hedera.getPublicKey();
+                    const {publicKeyDer} = await this.magic.hedera.getPublicKey();
                     this.userPublicKey = publicKeyDer;
                     const magicSign = (message: any) => this.magic.hedera.sign(message);
                     this.signer = new MagicSigner(this.userAccountId, this.network, publicKeyDer, magicSign);
@@ -286,7 +290,7 @@ export class BladeSDK {
         }
     }
 
-    async resetUser(completionKey?: string): Promise<{ success: boolean }> {
+    async resetUser(completionKey?: string): Promise<{success: boolean}> {
         try {
             this.userPublicKey = '';
             this.userPrivateKey = '';
@@ -864,7 +868,7 @@ export class BladeSDK {
                 .setAccountId(deleteAccountId)
                 .setTransferAccountId(transferAccountId)
                 .freezeWith(client)
-            ;
+                ;
 
             const signTx = await transaction.sign(deleteAccountKey);
             const txResponse = await signTx.execute(client);
@@ -955,7 +959,7 @@ export class BladeSDK {
                 }).catch(error => {
                     return this.sendMessageToNative(completionKey, null, error);
                 })
-            ;
+                ;
         } catch (error) {
             return this.sendMessageToNative(completionKey, null, error);
         }
@@ -1245,7 +1249,7 @@ export class BladeSDK {
         targetCode: string,
         strategy: CryptoFlowServiceStrategy,
         completionKey?: string
-    ):Promise<SwapQuotesData> {
+    ): Promise<SwapQuotesData> {
         try {
             const useTestnet = this.network === Network.Testnet;
             const chainId = parseInt(KnownChainIds[useTestnet ? KnownChain.HEDERA_TESTNET : KnownChain.HEDERA_MAINNET], 10);
@@ -1515,7 +1519,7 @@ export class BladeSDK {
                 .setSupplyType(TokenSupplyType.Finite)
                 .setMaxSupply(maxSupply)
                 .setSupplyKey(supplyPublicKey)
-            ;
+                ;
 
             for (const key of keys) {
                 const privateKey = PrivateKey.fromString(key.privateKey);
@@ -1636,7 +1640,7 @@ export class BladeSDK {
         completionKey?: string
     ): Promise<TransactionReceiptData> {
         try {
-                 if (typeof file === "string") {
+            if (typeof file === "string") {
                 file = dataURLtoFile(file, "filename");
             }
             if (typeof metadata === "string") {
@@ -1650,7 +1654,7 @@ export class BladeSDK {
                 await this.setUser(AccountProvider.Hedera, accountId, accountPrivateKey);
             }
 
-            let storageClient;
+            let storageClient: NFTStorage;
             if (storageConfig.provider === NFTStorageProvider.nftStorage) {
                 // TODO implement through interfaces
                 storageClient = new NFTStorage({token: storageConfig.apiKey});
@@ -1700,6 +1704,13 @@ export class BladeSDK {
         }
     }
 
+    async getNftMetadata(tokenId: string, serialNumber: number): Promise<NftMetadata> {
+        const nftInfo = await getNftInfo(this.network, tokenId, serialNumber);
+        const cidString = Buffer.from(nftInfo.metadata, 'base64').toString();
+        const cid = CID.parse(cidString);
+        return getNftMetadataFromIpfs(cid);
+    }
+
     private async initMagic() {
         await this.fetchBladeConfig();
         this.magic = new Magic(this.config?.magicLinkPublicKey!, {
@@ -1734,7 +1745,7 @@ export class BladeSDK {
     /**
      * Message that sends response back to native handler
      */
-    private sendMessageToNative(completionKey: string | undefined, data: any | null, error: Partial<CustomError>|any|null = null) {
+    private sendMessageToNative(completionKey: string | undefined, data: any | null, error: Partial<CustomError> | any | null = null) {
         if (!this.webView || !completionKey) {
             if (error) {
                 throw error;
