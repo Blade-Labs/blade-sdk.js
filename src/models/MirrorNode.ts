@@ -1,3 +1,5 @@
+import {CryptoKeyType} from "./Common";
+
 export type AccountInfoMirrorResponse = APIPagination & {
     accounts: AccountInfo[]
 };
@@ -10,6 +12,11 @@ export type APIPagination = {
     links: {
         next: string|null
     }
+}
+
+export type HederaKey = {
+    _type: CryptoKeyType,
+    key: string
 }
 
 export type AccountInfo = {
@@ -30,7 +37,7 @@ export type AccountInfo = {
     pending_reward: number,
     evm_address: string | null,
     expiry_timestamp: string | null,
-    key: { _type: string, key: string },
+    key: HederaKey,
     max_automatic_token_associations: number,
     memo: string,
     receiver_sig_required: boolean,
@@ -68,4 +75,60 @@ export type NodeInfo = {
         from: string,
         to: null
     }
+}
+
+export type TokenInfo = {
+    admin_key: HederaKey,
+    auto_renew_account: string,
+    "auto_renew_period": number,
+    "created_timestamp": string,
+    "custom_fees": {
+        // todo: define this type
+        "created_timestamp": string,
+        "fixed_fees": [],
+        "royalty_fees": []
+    },
+    "decimals": string,
+    "deleted": boolean,
+    "expiry_timestamp": number,
+    "fee_schedule_key": HederaKey | null,
+    "freeze_default": boolean,
+    "freeze_key": HederaKey | null,
+    "initial_supply": string,
+    "kyc_key": HederaKey | null,
+    "max_supply": string,
+    "memo": string,
+    "modified_timestamp": string,
+    "name": string,
+    "pause_key": HederaKey | null,
+    "pause_status": string,
+    "supply_key": HederaKey | null,
+    "supply_type": string,
+    "symbol": string,
+    "token_id": string,
+    "total_supply": string,
+    "treasury_account_id": string,
+    "type": string,
+    "wipe_key": HederaKey | null
+}
+
+export type NftInfo = {
+    account_id: string,
+    token_id: string,
+    delegating_spender: string | null,
+    spender_id: string | null,
+    created_timestamp: string,
+    deleted: boolean,
+    metadata: string,
+    modified_timestamp: string,
+    serial_number: number
+}
+
+export type NftMetadata = {
+    name: string,
+    type: string,
+    creator: string,
+    author: string,
+    properties: { [key: string]: unknown },
+    image: string,
 }

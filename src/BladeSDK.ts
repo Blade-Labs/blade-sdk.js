@@ -90,6 +90,7 @@ import {
     SplitSignatureData,
     SwapQuotesData,
     TokenDropData,
+    TokenInfoData,
     TransactionReceiptData,
     TransactionsHistoryData
 } from "./models/Common";
@@ -107,7 +108,7 @@ import {
     ICryptoFlowTransaction,
     ICryptoFlowTransactionParams
 } from "./models/CryptoFlow";
-import {AccountInfo, NodeInfo} from "./models/MirrorNode";
+import {NodeInfo} from "./models/MirrorNode";
 import * as FingerprintJS from '@fingerprintjs/fingerprintjs-pro'
 import {File, NFTStorage} from 'nft.storage';
 import {decrypt, encrypt} from "./helpers/SecurityHelper";
@@ -117,8 +118,6 @@ import {HederaExtension} from '@magic-ext/hedera';
 import {MagicSigner} from "./signers/magic/MagicSigner";
 import {HederaProvider, HederaSigner} from "./signers/hedera";
 import {getConfig} from "./services/ConfigService";
-import {NftMetadata} from "./models/Nft";
-import {CID} from 'multiformats/cid'
 
 export class BladeSDK {
     private apiKey: string = "";
@@ -1704,11 +1703,25 @@ export class BladeSDK {
         }
     }
 
-    async getNftMetadata(tokenId: string, serialNumber: number): Promise<NftMetadata> {
-        const nftInfo = await getNftInfo(this.network, tokenId, serialNumber);
-        const cidString = Buffer.from(nftInfo.metadata, 'base64').toString();
-        const cid = CID.parse(cidString);
-        return getNftMetadataFromIpfs(cid);
+    async getTokenInfo(tokenId: string, serial: string = "", completionKey?: string): Promise<TokenInfoData> {
+        try {
+            const token = await requestTokenInfo(this.network, tokenId);
+            let nft = null;
+            let metadata = null;
+            if (token.type === TokenType.NonFungibleUnique.toString() && serial) {
+                nft = await getNftInfo(this.network, tokenId, serial);
+                metadata = await getNftMetadataFromIpfs(Buffer.from(nft.metadata, 'base64').toString());
+            }
+            return this.sendMessageToNative(completionKey, {
+                token,
+                nft,
+                metadata
+            });
+        } catch (error) {
+            return this.sendMessageToNative(completionKey, null, error);
+        }
+
+        
     }
 
     private async initMagic() {

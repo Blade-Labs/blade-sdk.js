@@ -6,7 +6,10 @@ import {
     AccountInfoMirrorResponse,
     APIPagination,
     MirrorNodeListResponse,
-    NodeInfo
+    NftInfo,
+    NftMetadata,
+    NodeInfo,
+    TokenInfo
 } from "../models/MirrorNode";
 import {
     ApiAccount,
@@ -29,7 +32,6 @@ import {
     ICryptoFlowTransaction, ICryptoFlowTransactionParams
 } from "../models/CryptoFlow";
 import {getConfig} from "./ConfigService";
-import {NftInfo, NftMetadata} from "../models/Nft";
 import {verifiedFetch} from '@helia/verified-fetch'
 import {CID} from 'multiformats/cid'
 
@@ -401,14 +403,14 @@ const getAccountTokens = async (accountId: string) => {
             // @ts-ignore
             result.push({
                 tokenId: token.token_id,
-                balance: token.balance / 10 ** tokenInfo.decimals,
+                balance: token.balance / 10 ** parseInt(tokenInfo.decimals, 10),
             });
         }
     }
     return result;
 };
 
-export const requestTokenInfo = async (network: Network, tokenId: string) => {
+export const requestTokenInfo = async (network: Network, tokenId: string): Promise<TokenInfo> => {
     if (!tokenInfoCache[network][tokenId]) {
         tokenInfoCache[network][tokenId] = await GET(network, `/tokens/${tokenId}`);
     }
@@ -662,12 +664,11 @@ export const getTransaction = (network: Network, transactionId: string, accountI
         });
 }
 
-export const getNftInfo = async (network: Network, tokenId: string, serialNumber: number): Promise<NftInfo> => {
-    return GET(network, `/tokens/${tokenId}/nfts/${serialNumber}`)
+export const getNftInfo = async (network: Network, tokenId: string, serial: string): Promise<NftInfo> => {
+    return GET(network, `/tokens/${tokenId}/nfts/${serial}`)
 }
 
-export const getNftMetadataFromIpfs = async (cid: CID): Promise<NftMetadata> => {
-    const response = await verifiedFetch(cid);
-
+export const getNftMetadataFromIpfs = async (cid: string): Promise<NftMetadata> => {
+    const response = await verifiedFetch(CID.parse(cid));
     return response.json();
 }
