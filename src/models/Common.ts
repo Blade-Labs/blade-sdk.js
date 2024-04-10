@@ -1,7 +1,7 @@
 import {MirrorNodeTransactionType} from "./TransactionType";
 import {Network} from "./Networks";
 import {ICryptoFlowQuote} from "./CryptoFlow";
-import {NftInfo, NftMetadata, TokenInfo} from "@/models/MirrorNode";
+import {NftInfo, NftMetadata, TokenInfo} from "./MirrorNode";
 
 export enum SdkEnvironment {
     Prod = "Prod",

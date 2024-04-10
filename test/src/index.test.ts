@@ -644,6 +644,32 @@ test('bladeSdk.dropTokens', async () => {
     checkResult(result, false);
 }, 60_000);
 
+test('bladeSdk.getTokenInfo', async () => {
+    await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.VISITOR_ID, process.env.SDK_ENV, sdkVersion, completionKey);
+
+    let result = await bladeSdk.getTokenInfo("0.0.3982458", "5", completionKey);
+    checkResult(result);
+
+    expect(result.data).toHaveProperty("token");
+    expect(result.data).toHaveProperty("nft");
+    expect(result.data).toHaveProperty("metadata");
+    expect(result.data.nft).toHaveProperty("token_id");
+    expect(result.data.nft).toHaveProperty("serial_number");
+    expect(result.data.metadata.token_id).toEqual("0.0.3982458");
+    expect(result.data.metadata.serial_number).toEqual("5");
+    expect(result.data.metadata).toHaveProperty("author");
+    expect(result.data.metadata.author).toEqual("Gary Du");
+
+
+    result = await bladeSdk.getTokenInfo("0.0.2216053", "", completionKey);
+    checkResult(result);
+    expect(result.data.nft).toEqual(null);
+    expect(result.data.metadata).toEqual(null);
+
+    result = await bladeSdk.getTokenInfo("0.0.3982458", "555", completionKey);
+    checkResult(result, false);
+}, 60_000);
+
 test('bladeSdk.sign + signVerify', async () => {
     const message = "hello";
     const messageString = Buffer.from(message).toString("base64");
