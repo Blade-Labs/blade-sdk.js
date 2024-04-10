@@ -29,6 +29,9 @@ import {
     ICryptoFlowTransaction, ICryptoFlowTransactionParams
 } from "../models/CryptoFlow";
 import {getConfig} from "./ConfigService";
+import {NftInfo, NftMetadata} from "../models/Nft";
+import {verifiedFetch} from '@helia/verified-fetch'
+import {CID} from 'multiformats/cid'
 
 let sdkVersion = ``;
 let apiKey = ``;
@@ -37,7 +40,7 @@ let visitorId = ``;
 let environment: SdkEnvironment = SdkEnvironment.Prod;
 let network: Network = Network.Testnet;
 
-const tokenInfoCache: {[key in Network]: { [key: string]: any }} = {
+const tokenInfoCache: {[key in Network]: {[key: string]: any}} = {
     [Network.Mainnet]: {},
     [Network.Testnet]: {}
 };
@@ -121,7 +124,7 @@ const fetchWithRetry = async (url: string, options: RequestInit, maxAttempts = 3
     });
 };
 
-const statusCheck = async (res: Response|any): Promise<Response> => {
+const statusCheck = async (res: Response | any): Promise<Response> => {
     if (!res.ok) {
         let error = await res.text();
         try {
@@ -306,7 +309,7 @@ export const confirmAccountUpdate = async (params: ConfirmUpdateAccountData): Pr
         .then(statusCheck);
 };
 
-export const getTokenAssociateTransactionForAccount = async (tokenId: string|null, accountId: string): Promise<ApiAccount> => {
+export const getTokenAssociateTransactionForAccount = async (tokenId: string | null, accountId: string): Promise<ApiAccount> => {
     const url = `${await getApiUrl()}/tokens`;
     const body: any = {
         id: accountId,
@@ -316,21 +319,21 @@ export const getTokenAssociateTransactionForAccount = async (tokenId: string|nul
     }
 
     const options = {
-      method: "PATCH",
-      headers: new Headers({
-          "X-NETWORK": network.toUpperCase(),
-          "X-VISITOR-ID": visitorId,
-          "X-DAPP-CODE": dAppCode,
-          "X-SDK-TVTE-API": await getTvteHeader(),
-          "Content-Type": "application/json"
-      }),
-      body: JSON.stringify(body)
+        method: "PATCH",
+        headers: new Headers({
+            "X-NETWORK": network.toUpperCase(),
+            "X-VISITOR-ID": visitorId,
+            "X-DAPP-CODE": dAppCode,
+            "X-SDK-TVTE-API": await getTvteHeader(),
+            "Content-Type": "application/json"
+        }),
+        body: JSON.stringify(body)
     };
 
     return fetch(url, options)
-      .then(statusCheck)
-      .then(x => x.json());
-  }
+        .then(statusCheck)
+        .then(x => x.json());
+}
 
 export const getAccountBalance = async (accountId: string) => {
     const account = await GET(network, `/accounts/${accountId}`);
@@ -407,7 +410,7 @@ const getAccountTokens = async (accountId: string) => {
 
 export const requestTokenInfo = async (network: Network, tokenId: string) => {
     if (!tokenInfoCache[network][tokenId]) {
-        tokenInfoCache[network][tokenId] = await GET(network,`/tokens/${tokenId}`);
+        tokenInfoCache[network][tokenId] = await GET(network, `/tokens/${tokenId}`);
     }
     return tokenInfoCache[network][tokenId];
 };
@@ -539,9 +542,9 @@ export const getCryptoFlowData = async (
     const searchParams = new URLSearchParams();
 
     for (const key in params) {
-      if (params.hasOwnProperty(key) && params[key] !== undefined && params[key] !== "") {
-        searchParams.append(key, params[key]);
-      }
+        if (params.hasOwnProperty(key) && params[key] !== undefined && params[key] !== "") {
+            searchParams.append(key, params[key]);
+        }
     }
 
     const path = strategy ? `${route}/${strategy.toLowerCase()}` : route;
@@ -549,14 +552,14 @@ export const getCryptoFlowData = async (
     url.search = searchParams.toString();
 
     const options = {
-      method: "GET",
-      headers: new Headers({
-        "X-NETWORK": network.toUpperCase(),
-        "X-VISITOR-ID": visitorId,
-        // "X-DAPP-CODE": params.dAppCode,
-        // "X-SDK-TVTE-API": await getTvteHeader(),
-        "Content-Type": "application/json"
-      })
+        method: "GET",
+        headers: new Headers({
+            "X-NETWORK": network.toUpperCase(),
+            "X-VISITOR-ID": visitorId,
+            // "X-DAPP-CODE": params.dAppCode,
+            // "X-SDK-TVTE-API": await getTvteHeader(),
+            "Content-Type": "application/json"
+        })
     };
 
     return fetch(url, options)
@@ -595,7 +598,7 @@ export const getTransactionsFrom = async (
     transactionType: string = "",
     nextPage: string | null = null,
     transactionsLimit: string = "10"
-): Promise<{ nextPage: string | null, transactions: TransactionData[] }> => {
+): Promise<{nextPage: string | null, transactions: TransactionData[]}> => {
     const limit = parseInt(transactionsLimit, 10);
     let info;
     const result: TransactionData[] = [];
@@ -611,7 +614,7 @@ export const getTransactionsFrom = async (
 
         const groupedTransactions: {[key: string]: TransactionData[]} = {};
 
-        await Promise.all(info.transactions.map(async(t: any) => {
+        await Promise.all(info.transactions.map(async (t: any) => {
             groupedTransactions[t.transaction_id] = await getTransaction(network, t.transaction_id, accountId);
         }));
 
@@ -623,7 +626,7 @@ export const getTransactionsFrom = async (
         result.push(...transactions);
 
         if (result.length >= limit) {
-            nextPage = `/transactions?account.id=${accountId}&timestamp=lt:${result[limit-1].consensusTimestamp}&limit=${pageLimit}`;
+            nextPage = `/transactions?account.id=${accountId}&timestamp=lt:${result[limit - 1].consensusTimestamp}&limit=${pageLimit}`;
         }
 
         if (!nextPage) {
@@ -657,4 +660,14 @@ export const getTransaction = (network: Network, transactionId: string, accountI
         .catch(() => {
             return [];
         });
+}
+
+export const getNftInfo = async (network: Network, tokenId: string, serialNumber: number): Promise<NftInfo> => {
+    return GET(network, `/tokens/${tokenId}/nfts/${serialNumber}`)
+}
+
+export const getNftMetadataFromIpfs = async (cid: CID): Promise<NftMetadata> => {
+    const response = await verifiedFetch(cid);
+
+    return response.json();
 }
