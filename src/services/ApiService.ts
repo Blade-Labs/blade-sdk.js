@@ -32,8 +32,6 @@ import {
     ICryptoFlowTransaction, ICryptoFlowTransactionParams
 } from "../models/CryptoFlow";
 import {getConfig} from "./ConfigService";
-import {verifiedFetch} from '@helia/verified-fetch'
-import {CID} from 'multiformats/cid'
 
 let sdkVersion = ``;
 let apiKey = ``;
@@ -78,6 +76,10 @@ export const getApiUrl = (isPublic = false): string => {
     }
     // CI
     return `https://api.bld-dev.bladewallet.io/openapi${publicPart}/v7`;
+}
+
+export const getIpfsUrl = (): string => {
+    return 'https://trustless-gateway.link/ipfs'
 }
 
 const fetchWithRetry = async (url: string, options: RequestInit, maxAttempts = 3) => {
@@ -491,28 +493,28 @@ export const apiCallContractQuery = async (network: Network, params: any) => {
         .then(x => x.json());
 };
 
-export const dropTokens = async (network: Network, params: { accountId: string, signedNonce: string, dAppCode: string, visitorId: string }) => {
-  const url = `${getApiUrl()}/tokens/drop`;
-  const headers: any = {
-    "X-NETWORK": network.toUpperCase(),
-    "X-VISITOR-ID": params.visitorId,
-    "X-DAPP-CODE": params.dAppCode,
-    "X-SDK-TVTE-API": await getTvteHeader(),
-    "Content-Type": "application/json",
-  };
+export const dropTokens = async (network: Network, params: {accountId: string, signedNonce: string, dAppCode: string, visitorId: string}) => {
+    const url = `${getApiUrl()}/tokens/drop`;
+    const headers: any = {
+        "X-NETWORK": network.toUpperCase(),
+        "X-VISITOR-ID": params.visitorId,
+        "X-DAPP-CODE": params.dAppCode,
+        "X-SDK-TVTE-API": await getTvteHeader(),
+        "Content-Type": "application/json",
+    };
 
-  const options = {
-    method: "POST",
-    headers: new Headers(headers),
-    body: JSON.stringify({
-      accountId: params.accountId,
-      signedNonce: params.signedNonce,
-    }),
-  };
+    const options = {
+        method: "POST",
+        headers: new Headers(headers),
+        body: JSON.stringify({
+            accountId: params.accountId,
+            signedNonce: params.signedNonce,
+        }),
+    };
 
-  return fetch(url, options)
-    .then(statusCheck)
-    .then((x) => x.json());
+    return fetch(url, options)
+        .then(statusCheck)
+        .then((x) => x.json());
 };
 
 export const getC14token = async (params: any) => {
@@ -669,6 +671,10 @@ export const getNftInfo = async (network: Network, tokenId: string, serial: stri
 }
 
 export const getNftMetadataFromIpfs = async (cid: string): Promise<NftMetadata> => {
-    const response = await verifiedFetch(CID.parse(cid));
+
+    // https://trustless-gateway.link/ipfs/bafkreicdgd4avakum23fgbgl6ndztmywvcoa7vef2ctrxg3mtqg2f3dfxu?format=raw
+    // const response = await verifiedFetch(CID.parse(cid));
+    const response = await fetch(`${getIpfsUrl()}/${cid}?format=raw`)
+
     return response.json();
 }
