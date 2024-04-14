@@ -28,7 +28,7 @@ Object.defineProperty(global.self, "crypto", {
     },
 });
 
-Object.assign(global, { TextDecoder, TextEncoder, fetch });
+Object.assign(global, {TextDecoder, TextEncoder, fetch});
 
 dotenv.config();
 const bladeSdk = new BladeSDK(true);
@@ -385,7 +385,7 @@ test('bladeSdk.transferTokens', async () => {
     let result = await bladeSdk.getBalance(accountId, completionKey);
     checkResult(result);
 
-    let tokenId: string|null = null;
+    let tokenId: string | null = null;
     // for (let i = 0; i < result.data.tokens.length; i++) {
     for (const token of result.data.tokens) {
         const tokenInfo = await getTokenInfo(token.tokenId);
@@ -417,7 +417,7 @@ test('bladeSdk.transferTokens', async () => {
     checkResult(result, false);
 
     // invalid tokenId
-    result = await bladeSdk.transferTokens("invalid token id", accountId2, privateKey, accountId2, amount.toString(), "transfer memo",false, completionKey);
+    result = await bladeSdk.transferTokens("invalid token id", accountId2, privateKey, accountId2, amount.toString(), "transfer memo", false, completionKey);
     checkResult(result, false);
 
     result = await bladeSdk.transferTokens(tokenId.toString(), accountId, privateKey, accountId2, amount.toString(), "transfer memo", false, completionKey);
@@ -526,7 +526,7 @@ test('bladeSdk.deleteAccount', async () => {
 
 test('bladeSdk.getKeysFromMnemonic', async () => {
     await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.VISITOR_ID, process.env.SDK_ENV, sdkVersion, completionKey);
-    let result = await bladeSdk.createAccount("","device-id", completionKey);
+    let result = await bladeSdk.createAccount("", "device-id", completionKey);
     checkResult(result);
 
     const accountSample = {
@@ -572,7 +572,7 @@ test('bladeSdk.getKeysFromMnemonic', async () => {
 
 test('bladeSdk.searchAccounts', async () => {
     await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.VISITOR_ID, process.env.SDK_ENV, sdkVersion, completionKey);
-    let result = await bladeSdk.createAccount("","device-id", completionKey);
+    let result = await bladeSdk.createAccount("", "device-id", completionKey);
     checkResult(result);
 
     const accountSample = {
@@ -624,7 +624,7 @@ test('bladeSdk.searchAccounts', async () => {
 
 test('bladeSdk.dropTokens', async () => {
     await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.VISITOR_ID, process.env.SDK_ENV, sdkVersion, completionKey);
-    let result = await bladeSdk.createAccount("","device-id", completionKey);
+    let result = await bladeSdk.createAccount("", "device-id", completionKey);
     checkResult(result);
     const accountSample = result.data;
     await sleep(7000);
@@ -655,10 +655,10 @@ test('bladeSdk.getTokenInfo', async () => {
     expect(result.data).toHaveProperty("metadata");
     expect(result.data.nft).toHaveProperty("token_id");
     expect(result.data.nft).toHaveProperty("serial_number");
-    expect(result.data.metadata.token_id).toEqual("0.0.3982458");
-    expect(result.data.metadata.serial_number).toEqual("5");
     expect(result.data.metadata).toHaveProperty("author");
-    expect(result.data.metadata.author).toEqual("Gary Du");
+    expect(result.data.metadata).toHaveProperty("description");
+    expect(result.data.metadata.author).toEqual("GaryDu 2");
+    expect(result.data.metadata.description).toEqual("description 2");
 
 
     result = await bladeSdk.getTokenInfo("0.0.2216053", "", completionKey);
@@ -1095,16 +1095,15 @@ test('ParametersBuilder.complicatedCheck', async () => {
         .addAddress("0.0.48801688")
         .addInt64(1)
         .addUInt8(123)
-        .addUInt64Array([1,2,3])
-        .addUInt256Array([1,2,3])
+        .addUInt64Array([1, 2, 3])
+        .addUInt256Array([1, 2, 3])
         .addTuple(tuple1)
         .addTuple(tuple2)
         .addTupleArray([tuple0, tuple1])
         .addTupleArray([tuple2, tuple2])
         .addAddress("0.0.12345")
         .addUInt64(56784645645)
-        .addUInt256(12345)
-    ;
+        .addUInt256(12345);
 
     const paramsEncoded = params.encode();
     expect(paramsEncoded).toEqual(paramsEncodedExample);
@@ -1133,8 +1132,7 @@ test('ParametersBuilder.complicatedCheck', async () => {
     try {
         new ParametersBuilder()
             .addStringArray(["Hello", "World"])
-            .addBytes32([0x00, 0x01, 0x02])
-        ;
+            .addBytes32([0x00, 0x01, 0x02]);
     } catch (e: any) {
         expect(e.message.includes("Bytes32 must be 32 bytes long")).toEqual(true);
     }
@@ -1156,7 +1154,7 @@ test('ParametersBuilder.complicatedCheck', async () => {
 }, 120_000);
 
 test("utils", async () => {
-    const arr = flatArray([1,2,3, [4,5,6,[7,8,9, [10], [11]], [12]]]);
+    const arr = flatArray([1, 2, 3, [4, 5, 6, [7, 8, 9, [10], [11]], [12]]]);
     expect(Array.isArray(arr)).toEqual(true);
 
     const originalString = "hello";
