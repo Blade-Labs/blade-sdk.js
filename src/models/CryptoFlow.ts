@@ -135,7 +135,7 @@ export interface IAssetQuote {
 export type FeeManualOptions = {
     type: FeeType,
     amount: BigNumber,
-    amountTokenId: string
+    amountTokenId?: string
 }
 
 export enum FeeType {

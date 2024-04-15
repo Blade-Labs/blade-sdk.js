@@ -130,7 +130,7 @@ export class BladeSDK {
     private readonly webView: boolean = false;
     private config: BladeConfig | null = null;
     private accountProvider: AccountProvider | null = null;
-    private signer: Signer | null = null;
+    private signer: Signer = null!;
     private magic: any;
     private userAccountId: string = "";
     private userPublicKey: string = "";
@@ -197,7 +197,7 @@ export class BladeSDK {
                 const fpPromise = await FingerprintJS.load(fpConfig)
                 this.visitorId = (await fpPromise.get()).visitorId;
                 localStorage.setItem("BladeSDK.visitorId", await encrypt(`${this.visitorId}@${Date.now()}@${this.sdkEnvironment}`, this.apiKey));
-            } catch (error) {
+            } catch (error: any) {
                 // tslint:disable-next-line:no-console
                 console.log("failed to get visitor id", error);
             }
@@ -235,7 +235,7 @@ export class BladeSDK {
         try {
             switch (accountProvider) {
                 case AccountProvider.Hedera:
-                    const key = PrivateKey.fromStringDer(privateKey);
+                    const key = PrivateKey.fromStringDer(privateKey!);
                     this.userAccountId = accountIdOrEmail;
                     this.userPrivateKey = privateKey!;
                     this.userPublicKey = key.publicKey.toStringDer();
@@ -280,11 +280,11 @@ export class BladeSDK {
                 accountProvider: this.accountProvider,
             });
 
-        } catch (error) {
+        } catch (error: any) {
             this.userAccountId = "";
             this.userPrivateKey = "";
             this.userPublicKey = "";
-            this.signer = null;
+            this.signer = null!;
             this.magic = null;
             return this.sendMessageToNative(completionKey, null, error);
         }
@@ -295,7 +295,7 @@ export class BladeSDK {
             this.userPublicKey = '';
             this.userPrivateKey = '';
             this.userAccountId = '';
-            this.signer = null;
+            this.signer = null!;
             if (this.accountProvider === AccountProvider.Magic) {
                 if (!this.magic) {
                     await this.initMagic();
@@ -308,7 +308,7 @@ export class BladeSDK {
                 success: true
             });
 
-        } catch (error) {
+        } catch (error: any) {
             return this.sendMessageToNative(completionKey, null, error);
         }
     }
@@ -325,7 +325,7 @@ export class BladeSDK {
                 accountId = this.getUser().accountId;
             }
             return this.sendMessageToNative(completionKey, await getAccountBalance(accountId));
-        } catch (error) {
+        } catch (error: any) {
             return this.sendMessageToNative(completionKey, null, error);
         }
     }
@@ -351,7 +351,7 @@ export class BladeSDK {
                 })
             };
             return this.sendMessageToNative(completionKey, result);
-        } catch (error) {
+        } catch (error: any) {
             return this.sendMessageToNative(completionKey, null, error);
         }
     }
@@ -371,7 +371,7 @@ export class BladeSDK {
             try {
                 // try to get coin info from CoinGecko
                 coinInfo = await getCoinInfo(search, params);
-            } catch (error) {
+            } catch (error: any) {
                 // on fail try to get coin info from CoinGecko and match by address
                 const coinList: CoinInfoRaw[] = await getCoins(params);
                 const coin = coinList.find(item => Object.values(item.platforms).includes(search));
@@ -388,7 +388,7 @@ export class BladeSDK {
                 currency: currency.toLowerCase()
             };
             return this.sendMessageToNative(completionKey, result);
-        } catch (error) {
+        } catch (error: any) {
             return this.sendMessageToNative(completionKey, null, error);
         }
     }
@@ -424,7 +424,7 @@ export class BladeSDK {
                 }).catch(error => {
                     return this.sendMessageToNative(completionKey, null, error);
                 });
-        } catch (error) {
+        } catch (error: any) {
             return this.sendMessageToNative(completionKey, null, error);
         }
 
@@ -490,7 +490,7 @@ export class BladeSDK {
                 }).catch(error => {
                     return this.sendMessageToNative(completionKey, null, error);
                 });
-        } catch (error) {
+        } catch (error: any) {
             return this.sendMessageToNative(completionKey, null, error);
         }
     }
@@ -567,10 +567,10 @@ export class BladeSDK {
                     values,
                     gasUsed: parseInt(response.gasUsed.toString(), 10)
                 });
-            } catch (error) {
+            } catch (error: any) {
                 return this.sendMessageToNative(completionKey, null, error);
             }
-        } catch (error) {
+        } catch (error: any) {
             return this.sendMessageToNative(completionKey, null, error);
         }
     }
@@ -663,7 +663,7 @@ export class BladeSDK {
                     });
             }
 
-        } catch (error) {
+        } catch (error: any) {
             return this.sendMessageToNative(completionKey, null, error);
         }
     }
@@ -693,7 +693,7 @@ export class BladeSDK {
                 }).catch(error => {
                     return this.sendMessageToNative(completionKey, null, error);
                 });
-        } catch (error) {
+        } catch (error: any) {
             return this.sendMessageToNative(completionKey, null, error);
         }
     }
@@ -748,7 +748,7 @@ export class BladeSDK {
                     const buffer = Buffer.from(tokenTransaction.transactionBytes, "base64");
                     const transaction = await Transaction.fromBytes(buffer).sign(key);
                     await transaction.execute(client);
-                } catch (error) {
+                } catch (error: any) {
                     // ignore this error, continue
                 }
             }
@@ -776,7 +776,7 @@ export class BladeSDK {
                 evmAddress: evmAddress.toLowerCase()
             };
             return this.sendMessageToNative(completionKey, result);
-        } catch (error) {
+        } catch (error: any) {
             return this.sendMessageToNative(completionKey, null, error);
         }
     }
@@ -842,7 +842,7 @@ export class BladeSDK {
             }
 
             return this.sendMessageToNative(completionKey, result);
-        } catch (error) {
+        } catch (error: any) {
             return this.sendMessageToNative(completionKey, null, error);
         }
     }
@@ -875,7 +875,7 @@ export class BladeSDK {
             const txReceipt = await txResponse.getReceipt(client);
 
             return this.sendMessageToNative(completionKey, formatReceipt(txReceipt));
-        } catch (error) {
+        } catch (error: any) {
             return this.sendMessageToNative(completionKey, null, error);
         }
     }
@@ -907,7 +907,7 @@ export class BladeSDK {
                 },
                 calculatedEvmAddress: ethers.utils.computeAddress(`0x${publicKey.toStringRaw()}`).toLowerCase()
             } as AccountInfoData);
-        } catch (error) {
+        } catch (error: any) {
             return this.sendMessageToNative(completionKey, null, error);
         }
     }
@@ -921,7 +921,7 @@ export class BladeSDK {
         try {
             const nodeList = await getNodeList(this.network);
             return this.sendMessageToNative(completionKey, {nodes: nodeList});
-        } catch (error) {
+        } catch (error: any) {
             return this.sendMessageToNative(completionKey, null, error);
         }
     }
@@ -960,7 +960,7 @@ export class BladeSDK {
                     return this.sendMessageToNative(completionKey, null, error);
                 })
                 ;
-        } catch (error) {
+        } catch (error: any) {
             return this.sendMessageToNative(completionKey, null, error);
         }
     }
@@ -985,7 +985,7 @@ export class BladeSDK {
                 accounts: accounts.map(acc => acc.address),
                 evmAddress: accounts[0].evmAddress
             });
-        } catch (error) {
+        } catch (error: any) {
             return this.sendMessageToNative(completionKey, null, error);
         }
     }
@@ -1010,7 +1010,7 @@ export class BladeSDK {
             return this.sendMessageToNative(completionKey, {
                 accounts
             });
-        } catch (error) {
+        } catch (error: any) {
             return this.sendMessageToNative(completionKey, null, error);
         }
     }
@@ -1037,7 +1037,7 @@ export class BladeSDK {
                 accountId,
                 signedNonce: Buffer.from(signatures[0].signature).toString('base64')
             }));
-        } catch (error) {
+        } catch (error: any) {
             return this.sendMessageToNative(completionKey, null, error);
         }
     }
@@ -1057,7 +1057,7 @@ export class BladeSDK {
             return this.sendMessageToNative(completionKey, {
                 signedMessage: Buffer.from(signed).toString("hex")
             });
-        } catch (error) {
+        } catch (error: any) {
             return this.sendMessageToNative(completionKey, null, error);
         }
     }
@@ -1077,7 +1077,7 @@ export class BladeSDK {
                 Buffer.from(signature, "hex")
             );
             return this.sendMessageToNative(completionKey, {valid});
-        } catch (error) {
+        } catch (error: any) {
             return this.sendMessageToNative(completionKey, null, error);
         }
     }
@@ -1100,7 +1100,7 @@ export class BladeSDK {
                         signedMessage
                     });
                 });
-        } catch (error) {
+        } catch (error: any) {
             return this.sendMessageToNative(completionKey, null, error);
         }
 
@@ -1116,7 +1116,7 @@ export class BladeSDK {
         try {
             const {v, r, s} = ethers.utils.splitSignature(signature);
             return this.sendMessageToNative(completionKey, {v, r, s});
-        } catch (error) {
+        } catch (error: any) {
             return this.sendMessageToNative(completionKey, null, error);
         }
     }
@@ -1142,7 +1142,7 @@ export class BladeSDK {
 
             const {v, r, s} = ethers.utils.splitSignature(signed);
             return this.sendMessageToNative(completionKey, {v, r, s});
-        } catch (error) {
+        } catch (error: any) {
             return this.sendMessageToNative(completionKey, null, error);
         }
     }
@@ -1166,7 +1166,7 @@ export class BladeSDK {
             }
             const transactionData = await getTransactionsFrom(this.network, accountId, transactionType, nextPage, transactionsLimit);
             return this.sendMessageToNative(completionKey, transactionData);
-        } catch (error) {
+        } catch (error: any) {
             return this.sendMessageToNative(completionKey, null, error);
         }
     }
@@ -1230,7 +1230,7 @@ export class BladeSDK {
 
             url.search = new URLSearchParams(purchaseParams as Record<keyof C14WidgetConfig, any>).toString();
             return this.sendMessageToNative(completionKey, {url: url.toString()});
-        } catch (error) {
+        } catch (error: any) {
             return this.sendMessageToNative(completionKey, null, error);
         }
     }
@@ -1297,7 +1297,7 @@ export class BladeSDK {
                 strategy
             );
             return this.sendMessageToNative(completionKey, {quotes});
-        } catch (error) {
+        } catch (error: any) {
             return this.sendMessageToNative(completionKey, null, error);
         }
     }
@@ -1384,7 +1384,7 @@ export class BladeSDK {
                 throw new Error("Invalid signature of txData");
             }
             return this.sendMessageToNative(completionKey, {success: true});
-        } catch (error) {
+        } catch (error: any) {
             return this.sendMessageToNative(completionKey, null, error);
         }
     }
@@ -1462,7 +1462,7 @@ export class BladeSDK {
             }
 
             return this.sendMessageToNative(completionKey, {url: selectedQuote.widgetUrl});
-        } catch (error) {
+        } catch (error: any) {
             return this.sendMessageToNative(completionKey, null, error);
         }
     }
@@ -1565,7 +1565,7 @@ export class BladeSDK {
 
             const tokenId = nftCreateRx.tokenId?.toString();
             return this.sendMessageToNative(completionKey, {tokenId}, null);
-        } catch (error) {
+        } catch (error: any) {
             return this.sendMessageToNative(completionKey, null, error);
         }
     }
@@ -1590,7 +1590,7 @@ export class BladeSDK {
             }
             accountId = this.getUser().accountId;
 
-            let transaction;
+            let transaction: Transaction;
             const freeAssociationTokens = (await getConfig("tokens"))[this.network.toLowerCase()]?.association || [];
             if (freeAssociationTokens.includes(tokenId) || !tokenId) {
                 const result = await getTokenAssociateTransactionForAccount(tokenId, accountId);
@@ -1617,7 +1617,7 @@ export class BladeSDK {
                 .catch(error => {
                     return this.sendMessageToNative(completionKey, null, error);
                 });
-        } catch (error) {
+        } catch (error: any) {
             return this.sendMessageToNative(completionKey, null, error);
         }
     }
@@ -1702,7 +1702,7 @@ export class BladeSDK {
                 .catch(error => {
                     return this.sendMessageToNative(completionKey, null, error);
                 });
-        } catch (error) {
+        } catch (error: any) {
             return this.sendMessageToNative(completionKey, null, error);
         }
     }
@@ -1721,7 +1721,7 @@ export class BladeSDK {
                 nft,
                 metadata
             });
-        } catch (error) {
+        } catch (error: any) {
             return this.sendMessageToNative(completionKey, null, error);
         }
 
@@ -1730,7 +1730,7 @@ export class BladeSDK {
 
     private async initMagic() {
         await this.fetchBladeConfig();
-        this.magic = new Magic(this.config?.magicLinkPublicKey, {
+        this.magic = new Magic(this.config?.magicLinkPublicKey!, {
             extensions: [new HederaExtension({
                 network: this.network.toLowerCase()
             })]

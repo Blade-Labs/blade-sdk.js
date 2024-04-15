@@ -146,7 +146,8 @@ export const parseContractQueryResponse = (contractFunctionResult: ContractFunct
         }
 
         const method = `get${type.slice(0, 1).toUpperCase()}${type.slice(1)}`;
-        let value = contractFunctionResult[method](index).toString();
+        // @ts-ignore
+        let value: any = contractFunctionResult[method](index).toString();
 
         if (type === "bytes32") {
             value = Buffer.from(value).toString("hex")

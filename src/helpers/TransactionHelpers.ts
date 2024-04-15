@@ -1,6 +1,6 @@
 import {TransactionReceipt} from "@hashgraph/sdk";
 import {TransactionData, TransactionReceiptData} from "../models/Common";
-import {MirrorNodeTransactionType} from "@/models/TransactionType";
+import {MirrorNodeTransactionType} from "../models/TransactionType";
 
 export const filterAndFormatTransactions = (transactions: TransactionData[], transactionType: string, accountId: string): TransactionData[] => {
 

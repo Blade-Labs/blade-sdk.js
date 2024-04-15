@@ -3,7 +3,7 @@ import {AccountId, Hbar, ScheduleCreateTransaction, Transaction, TransferTransac
 import {FeeManualOptions, FeeType} from "../models/CryptoFlow";
 import BigNumber from "bignumber.js";
 import {getConfig} from "./ConfigService";
-import {FeeConfig} from "@/models/Common";
+import {FeeConfig} from "../models/Common";
 
 export const HbarTokenId = "0.0.0";
 
@@ -80,8 +80,8 @@ async function calculateFeeAmount(
     let rate = BigNumber(1);
     let decimals = 8;
     if (manualOptions.amountTokenId !== HbarTokenId) {
-        rate = await getHBARRateByTokenId(network, manualOptions.amountTokenId);
-        decimals = await getDecimalsForTokenId(network, manualOptions.amountTokenId);
+        rate = await getHBARRateByTokenId(network, manualOptions.amountTokenId!);
+        decimals = await getDecimalsForTokenId(network, manualOptions.amountTokenId!);
     }
     spentAmount = BigNumber(manualOptions.amount).shiftedBy(decimals).multipliedBy(rate);
     const feeAmount = spentAmount.multipliedBy(config.amount / 100);
@@ -180,7 +180,7 @@ async function loadRatesPerNetwork(network: Network): Promise<void> {
 }
 
 async function fetchRates(network: Network): Promise<APIRateData[]> {
-    const saucerswapApi: unknown = JSON.parse(await getConfig("saucerswapApi"));
+    const saucerswapApi: {[key in Network]: unknown} = JSON.parse(await getConfig("saucerswapApi"));
     const url = `${saucerswapApi[network]}tokens`;
     return fetch(url).then(result => result.json()).catch(() => []) as Promise<APIRateData[]>;
 }

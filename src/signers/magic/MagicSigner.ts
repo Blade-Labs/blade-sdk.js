@@ -39,7 +39,7 @@ export class MagicSigner implements Signer {
         return this.publicKey;
     }
 
-    getLedgerId(): LedgerId {
+    getLedgerId(): LedgerId | null {
         return this.provider == null ? null : this.provider.getLedgerId();
     }
 

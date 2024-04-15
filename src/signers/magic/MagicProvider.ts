@@ -8,6 +8,8 @@ import {
     Executable,
     TransactionReceipt,
     TransactionResponse,
+    TransactionId,
+    AccountId,
 } from "@hashgraph/sdk";
 
 export class MagicProvider implements Provider {
@@ -35,25 +37,25 @@ export class MagicProvider implements Provider {
         return this._client.mirrorNetwork;
     }
 
-    getAccountBalance(accountId: string) {
+    getAccountBalance(accountId: AccountId | string) {
         return new AccountBalanceQuery()
             .setAccountId(accountId)
             .execute(this._client);
     }
 
-    getAccountInfo(accountId: string) {
+    getAccountInfo(accountId: AccountId | string) {
         return new AccountInfoQuery()
             .setAccountId(accountId)
             .execute(this._client);
     }
 
-    getAccountRecords(accountId: string) {
+    getAccountRecords(accountId: AccountId | string) {
         return new AccountRecordsQuery()
             .setAccountId(accountId)
             .execute(this._client);
     }
 
-    getTransactionReceipt(transactionId: string) {
+    getTransactionReceipt(transactionId: TransactionId | string) {
         return new TransactionReceiptQuery()
             .setTransactionId(transactionId)
             .execute(this._client);

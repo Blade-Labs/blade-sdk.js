@@ -1,5 +1,9 @@
 
-import { resolve as _resolve } from 'path';
+import path from 'path';
+import {fileURLToPath} from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export const entry = { JSWrapper: "./src/webView.ts" };
 export const module = {
@@ -12,7 +16,7 @@ export const module = {
     ]
 };
 export const output = {
-    path: _resolve(__dirname, 'dist'),
+    path: path.resolve(__dirname, 'dist'),
     filename: "[name].bundle.js",
     library: "[name]",
     libraryTarget: "var"
@@ -21,3 +25,11 @@ export const devtool = "source-map";
 export const resolve = {
     extensions: ['.tsx', '.ts', '.js'],
 };
+
+export default {
+    entry,
+    module,
+    output,
+    devtool,
+    resolve,
+}

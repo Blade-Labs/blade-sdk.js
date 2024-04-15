@@ -82,7 +82,7 @@ export const getIpfsGatewayUrl = (): string => {
     return 'https://trustless-gateway.link/ipfs'
 }
 
-const fetchWithRetry = async (url: string, options: RequestInit, maxAttempts = 3) => {
+const fetchWithRetry = async (url: string, options: RequestInit, maxAttempts = 3): Promise<Response> => {
     return new Promise((resolve, reject) => {
         let attemptCounter = 0;
 
@@ -545,8 +545,10 @@ export const getCryptoFlowData = async (
     const searchParams = new URLSearchParams();
 
     for (const key in params) {
-        if (params.hasOwnProperty(key) && params[key] !== undefined && params[key] !== "") {
-            searchParams.append(key, params[key]);
+        const typedKey = key as Extract<keyof typeof params, string>;
+        if (params.hasOwnProperty(typedKey) && params[typedKey] !== undefined && params[typedKey] !== "") {
+            const b = params[typedKey]
+            searchParams.append(typedKey, params[typedKey]!.toString());
         }
     }
 

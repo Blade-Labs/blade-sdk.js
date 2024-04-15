@@ -6,7 +6,7 @@ import {
 } from "../models/CryptoFlow";
 import {Buffer} from "buffer";
 import BigNumber from "bignumber.js";
-import {AccountAllowanceApproveTransaction,  Signer, Status, Transaction} from "@hashgraph/sdk";
+import {AccountAllowanceApproveTransaction, Signer, Status, Transaction} from "@hashgraph/sdk";
 import {Network} from "../models/Networks";
 import {createFeeTransaction, HbarTokenId} from "./FeeService";
 import {getConfig} from "./ConfigService";
@@ -45,7 +45,7 @@ export const validateMessage = async (tx: ICryptoFlowTransaction) => {
     }
 }
 
-export const executeAllowanceApprove = async(selectedQuote: ICryptoFlowQuote, activeAccount: string, network: Network, signer: Signer, approve: boolean = true): Promise<void> => {
+export const executeAllowanceApprove = async (selectedQuote: ICryptoFlowQuote, activeAccount: string, network: Network, signer: Signer, approve: boolean = true): Promise<void> => {
     const sourceToken = selectedQuote.source.asset;
     if (!sourceToken.address)
         return;
@@ -56,7 +56,7 @@ export const executeAllowanceApprove = async(selectedQuote: ICryptoFlowQuote, ac
         const swapContract = JSON.parse(await getConfig("swapContract"));
         const amount = approve
             ? Math.ceil(
-                Math.pow(10, sourceToken.decimals) * (
+                Math.pow(10, sourceToken.decimals!) * (
                     selectedQuote.source.amountExpected * 1.2 // with a little buffer
                 )
             )
@@ -99,7 +99,7 @@ export const executeHederaBladeFeeTx = async (selectedQuote: ICryptoFlowQuote, a
     const feeOptions: FeeManualOptions = {
         type: FeeType.Swap,
         amount: BigNumber(selectedQuote.source.amountExpected),
-        amountTokenId: selectedQuote.source.asset.address
+        amountTokenId: selectedQuote.source.asset.address,
     };
     let transaction = await createFeeTransaction(
         network,
