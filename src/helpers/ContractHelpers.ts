@@ -225,6 +225,7 @@ export const parseContractQueryResponse = (contractFunctionResult: ContractFunct
         }
 
         const method = `get${type.slice(0, 1).toUpperCase()}${type.slice(1)}`;
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         let value: any = contractFunctionResult[method](index).toString();
 

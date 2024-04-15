@@ -1019,6 +1019,7 @@ export class BladeSDK {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     async getKeysFromMnemonic(
         mnemonicRaw: string,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         lookupNames: boolean = true,
         completionKey?: string
     ): Promise<PrivateKeyData> {
@@ -1821,6 +1822,7 @@ export class BladeSDK {
 
     private async initMagic() {
         await this.fetchBladeConfig();
+        // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
         this.magic = new Magic(this.config?.magicLinkPublicKey!, {
             extensions: [
                 new HederaExtension({

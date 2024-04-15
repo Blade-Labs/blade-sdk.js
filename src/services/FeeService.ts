@@ -179,7 +179,7 @@ async function loadRatesPerNetwork(network: Network): Promise<void> {
 }
 
 async function fetchRates(network: Network): Promise<APIRateData[]> {
-    const saucerswapApi: { [key in Network]: unknown } = JSON.parse(await getConfig("saucerswapApi"));
+    const saucerswapApi: { [key in Network]: string } = JSON.parse(await getConfig("saucerswapApi"));
     const url = `${saucerswapApi[network]}tokens`;
     return fetch(url)
         .then((result) => result.json())

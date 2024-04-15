@@ -571,7 +571,6 @@ export const getCryptoFlowData = async (
     for (const key in params) {
         const typedKey = key as Extract<keyof typeof params, string>;
         if (params.hasOwnProperty(typedKey) && params[typedKey] !== undefined && params[typedKey] !== "") {
-            const b = params[typedKey];
             searchParams.append(typedKey, params[typedKey]!.toString());
         }
     }
@@ -681,6 +680,7 @@ export const getTransactionsFrom = async (
 export const getTransaction = (
     network: Network,
     transactionId: string,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     accountId: string
 ): Promise<TransactionData[]> => {
     return GET(network, `/transactions/${transactionId}`)
