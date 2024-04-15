@@ -17,9 +17,7 @@ export class MagicProvider implements Provider {
 
     constructor(hederaNetwork: string) {
         if (!hederaNetwork) {
-            throw new Error(
-                "LocalProvider requires the `HEDERA_NETWORK` environment variable to be set"
-            );
+            throw new Error("LocalProvider requires the `HEDERA_NETWORK` environment variable to be set");
         }
 
         this._client = Client.forName(hederaNetwork.toLowerCase());
@@ -38,27 +36,19 @@ export class MagicProvider implements Provider {
     }
 
     getAccountBalance(accountId: AccountId | string) {
-        return new AccountBalanceQuery()
-            .setAccountId(accountId)
-            .execute(this._client);
+        return new AccountBalanceQuery().setAccountId(accountId).execute(this._client);
     }
 
     getAccountInfo(accountId: AccountId | string) {
-        return new AccountInfoQuery()
-            .setAccountId(accountId)
-            .execute(this._client);
+        return new AccountInfoQuery().setAccountId(accountId).execute(this._client);
     }
 
     getAccountRecords(accountId: AccountId | string) {
-        return new AccountRecordsQuery()
-            .setAccountId(accountId)
-            .execute(this._client);
+        return new AccountRecordsQuery().setAccountId(accountId).execute(this._client);
     }
 
     getTransactionReceipt(transactionId: TransactionId | string) {
-        return new TransactionReceiptQuery()
-            .setTransactionId(transactionId)
-            .execute(this._client);
+        return new TransactionReceiptQuery().setTransactionId(transactionId).execute(this._client);
     }
 
     waitForReceipt(response: TransactionResponse): Promise<TransactionReceipt> {

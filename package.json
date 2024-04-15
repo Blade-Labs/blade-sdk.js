@@ -13,7 +13,10 @@
     "clean": "rimraf lib",
     "publish:web-view": "cross-env SDK_VERSION=$npm_package_version NODE_ENV=production node utils/fixConfig.js && npm run build:web-view && node utils/publish-sdk-bundle.js",
     "test": "cross-env SDK_VERSION=$npm_package_version NODE_ENV=test node utils/fixConfig.js && jest --coverage",
-    "deploy-test-contract": "solcjs --bin --abi test/contract/TestContract.sol -o ./test/contract && node test/contract/deploy.js"
+    "deploy-test-contract": "solcjs --bin --abi test/contract/TestContract.sol -o ./test/contract && node test/contract/deploy.js",
+    "lint": "eslint .",
+    "lint:quiet": "eslint . --quiet",
+    "format": "prettier . --write "
   },
   "keywords": [
     "hedera",
@@ -87,7 +90,6 @@
     "ts-jest": "^29.0.3",
     "ts-loader": "^9.4.1",
     "ts-node": "^10.9.1",
-    "tslint": "^6.1.3",
     "tslint-config-prettier": "^1.18.0",
     "typedoc": "0.24.0",
     "typedoc-plugin-markdown": "3.17.1",

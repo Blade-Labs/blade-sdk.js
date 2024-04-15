@@ -1,9 +1,24 @@
-import {AccountBalance, AccountBalanceQuery, AccountId, AccountInfo, AccountInfoQuery, AccountRecordsQuery, Client, Executable, Provider, TransactionId, TransactionReceipt, TransactionReceiptQuery, TransactionRecord, TransactionResponse} from "@hashgraph/sdk";
+import {
+    AccountBalance,
+    AccountBalanceQuery,
+    AccountId,
+    AccountInfo,
+    AccountInfoQuery,
+    AccountRecordsQuery,
+    Client,
+    Executable,
+    Provider,
+    TransactionId,
+    TransactionReceipt,
+    TransactionReceiptQuery,
+    TransactionRecord,
+    TransactionResponse,
+} from "@hashgraph/sdk";
 
 export default class HederaProvider implements Provider {
     private readonly _client: Client;
 
-    constructor(props: {client: Client}) {
+    constructor(props: { client: Client }) {
         if (props != null && props.client != null) {
             this._client = props.client;
             return;
@@ -12,7 +27,7 @@ export default class HederaProvider implements Provider {
     }
 
     static fromClient(client: Client) {
-        return new HederaProvider({client});
+        return new HederaProvider({ client });
     }
 
     getLedgerId() {
@@ -28,27 +43,19 @@ export default class HederaProvider implements Provider {
     }
 
     getAccountBalance(accountId: string | AccountId): Promise<AccountBalance> {
-        return new AccountBalanceQuery()
-            .setAccountId(accountId)
-            .execute(this._client);
+        return new AccountBalanceQuery().setAccountId(accountId).execute(this._client);
     }
 
     getAccountInfo(accountId: string | AccountId): Promise<AccountInfo> {
-        return new AccountInfoQuery()
-            .setAccountId(accountId)
-            .execute(this._client);
+        return new AccountInfoQuery().setAccountId(accountId).execute(this._client);
     }
 
     getAccountRecords(accountId: string | AccountId): Promise<TransactionRecord[]> {
-        return new AccountRecordsQuery()
-            .setAccountId(accountId)
-            .execute(this._client);
+        return new AccountRecordsQuery().setAccountId(accountId).execute(this._client);
     }
 
     getTransactionReceipt(transactionId: string | TransactionId): Promise<TransactionReceipt> {
-        return new TransactionReceiptQuery()
-            .setTransactionId(transactionId)
-            .execute(this._client);
+        return new TransactionReceiptQuery().setTransactionId(transactionId).execute(this._client);
     }
 
     waitForReceipt(response: TransactionResponse): Promise<TransactionReceipt> {

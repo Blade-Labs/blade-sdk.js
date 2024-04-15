@@ -3,14 +3,21 @@
  */
 
 require("dotenv").config();
-const {FileCreateTransaction, AccountId, PrivateKey, Client, ContractCreateTransaction, ContractFunctionParameters} = require("@hashgraph/sdk");
+const {
+    FileCreateTransaction,
+    AccountId,
+    PrivateKey,
+    Client,
+    ContractCreateTransaction,
+    ContractFunctionParameters,
+} = require("@hashgraph/sdk");
 const fs = require("fs");
 
 const contractBytecode = fs.readFileSync("./test/contract/test_contract_TestContract_sol_HelloHedera.bin", "utf8");
 
 (async () => {
     const accountIdTest = AccountId.fromString(process.env.ACCOUNT_ID);
-    const accountKeyTest = PrivateKey.fromStringECDSA( process.env.PRIVATE_KEY);
+    const accountKeyTest = PrivateKey.fromStringECDSA(process.env.PRIVATE_KEY);
 
     // If we weren't able to grab it, we should throw a new error
     if (accountIdTest == null || accountKeyTest == null) {

@@ -133,10 +133,10 @@ export interface IAssetQuote {
 }
 
 export type FeeManualOptions = {
-    type: FeeType,
-    amount: BigNumber,
-    amountTokenId?: string
-}
+    type: FeeType;
+    amount: BigNumber;
+    amountTokenId?: string;
+};
 
 export enum FeeType {
     TradeNFT = "TradeNFT",
@@ -148,5 +148,5 @@ export enum FeeType {
     StakingClaim = "StakingClaim",
     Swap = "Swap",
     AccountCreate = "AccountCreate",
-    Default = "Default"
+    Default = "Default",
 }

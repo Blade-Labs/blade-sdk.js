@@ -11,8 +11,8 @@ import {
     Executable,
     Transaction,
 } from "@hashgraph/sdk";
-import {shuffle} from '@magic-ext/hedera'
-import {MagicProvider} from "./MagicProvider";
+import { shuffle } from "@magic-ext/hedera";
+import { MagicProvider } from "./MagicProvider";
 
 export class MagicSigner implements Signer {
     private readonly publicKey: PublicKey;
@@ -20,11 +20,16 @@ export class MagicSigner implements Signer {
     private readonly provider: MagicProvider;
     private readonly accountId: AccountId;
 
-    constructor(accountId: AccountId | string, network: string, publicKey: string, magicSign: (messages: Uint8Array) => Promise<Uint8Array>) {
+    constructor(
+        accountId: AccountId | string,
+        network: string,
+        publicKey: string,
+        magicSign: (messages: Uint8Array) => Promise<Uint8Array>
+    ) {
         this.publicKey = PublicKey.fromString(publicKey);
         this.signer = magicSign;
         this.provider = new MagicProvider(network);
-        this.accountId = typeof accountId === 'string' ? AccountId.fromString(accountId) : accountId;
+        this.accountId = typeof accountId === "string" ? AccountId.fromString(accountId) : accountId;
     }
 
     getProvider(): MagicProvider {
@@ -43,7 +48,7 @@ export class MagicSigner implements Signer {
         return this.provider == null ? null : this.provider.getLedgerId();
     }
 
-    getNetwork(): {[key: string]: string | AccountId} {
+    getNetwork(): { [key: string]: string | AccountId } {
         return this.provider == null ? {} : this.provider.getNetwork();
     }
 
@@ -68,9 +73,7 @@ export class MagicSigner implements Signer {
     }
 
     getAccountBalance() {
-        return this.call(
-            new AccountBalanceQuery().setAccountId(this.accountId)
-        );
+        return this.call(new AccountBalanceQuery().setAccountId(this.accountId));
     }
 
     getAccountInfo() {
@@ -78,9 +81,7 @@ export class MagicSigner implements Signer {
     }
 
     getAccountRecords() {
-        return this.call(
-            new AccountRecordsQuery().setAccountId(this.accountId)
-        );
+        return this.call(new AccountRecordsQuery().setAccountId(this.accountId));
     }
 
     signTransaction<T extends Transaction>(transaction: T): Promise<T> {
@@ -94,31 +95,20 @@ export class MagicSigner implements Signer {
             transactionId.accountId != null &&
             transactionId.accountId.compare(this.accountId) !== 0
         ) {
-            throw new Error(
-                "transaction's ID constructed with a different account ID"
-            );
+            throw new Error("transaction's ID constructed with a different account ID");
         }
 
         if (this.provider == null) {
             return Promise.resolve(transaction);
         }
 
-        const nodeAccountIds: string[] = (
-            transaction.nodeAccountIds != null ? transaction.nodeAccountIds : []
-        ).map((nodeAccountId: AccountId) => nodeAccountId.toString());
-        const network = Object.values(this.provider.getNetwork()).map(
-            (nodeAccountId) => nodeAccountId.toString()
+        const nodeAccountIds: string[] = (transaction.nodeAccountIds != null ? transaction.nodeAccountIds : []).map(
+            (nodeAccountId: AccountId) => nodeAccountId.toString()
         );
+        const network = Object.values(this.provider.getNetwork()).map((nodeAccountId) => nodeAccountId.toString());
 
-        if (
-            !nodeAccountIds.reduce(
-                (previous, current) => previous && network.includes(current),
-                true
-            )
-        ) {
-            throw new Error(
-                "Transaction already set node account IDs to values not within the current network"
-            );
+        if (!nodeAccountIds.reduce((previous, current) => previous && network.includes(current), true)) {
+            throw new Error("Transaction already set node account IDs to values not within the current network");
         }
 
         return Promise.resolve(transaction);
@@ -128,15 +118,10 @@ export class MagicSigner implements Signer {
         transaction._freezeWithAccountId(this.accountId);
 
         if (transaction.transactionId == null) {
-            transaction.setTransactionId(
-                TransactionId.generate(this.accountId)
-            );
+            transaction.setTransactionId(TransactionId.generate(this.accountId));
         }
 
-        if (
-            transaction.nodeAccountIds != null &&
-            transaction.nodeAccountIds.length !== 0
-        ) {
+        if (transaction.nodeAccountIds != null && transaction.nodeAccountIds.length !== 0) {
             return Promise.resolve(transaction.freeze());
         }
 
@@ -144,30 +129,20 @@ export class MagicSigner implements Signer {
             return Promise.resolve(transaction);
         }
 
-        const nodeAccountIds = Object.values(this.provider.getNetwork()).map(
-            (id) => (typeof id === "string" ? AccountId.fromString(id) : id)
+        const nodeAccountIds = Object.values(this.provider.getNetwork()).map((id) =>
+            typeof id === "string" ? AccountId.fromString(id) : id
         );
         shuffle(nodeAccountIds);
-        transaction.setNodeAccountIds(
-            nodeAccountIds.slice(0, (nodeAccountIds.length + 3 - 1) / 3)
-        );
+        transaction.setNodeAccountIds(nodeAccountIds.slice(0, (nodeAccountIds.length + 3 - 1) / 3));
 
         return Promise.resolve(transaction.freeze());
     }
 
     call<RequestT, ResponseT, OutputT>(request: Executable<RequestT, ResponseT, OutputT>): Promise<OutputT> {
         if (this.provider == null) {
-            throw new Error(
-                "cannot send request with an wallet that doesn't contain a provider"
-            );
+            throw new Error("cannot send request with an wallet that doesn't contain a provider");
         }
 
-        return this.provider.call(
-            request._setOperatorWith(
-                this.accountId,
-                this.publicKey,
-                this.signer
-            )
-        );
+        return this.provider.call(request._setOperatorWith(this.accountId, this.publicKey, this.signer));
     }
 }

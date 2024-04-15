@@ -7,7 +7,11 @@ dist
 **/*.json
 node_modules
 config
-/test/src/__mocks__
+# .github/workflows/node.js.yml
+*.md
+*.yml
+*.html
 
 # TODO: fix and un-ignore
 test/src/index.test.ts
+test/src/__mocks__

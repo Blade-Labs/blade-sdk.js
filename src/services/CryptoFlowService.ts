@@ -1,16 +1,11 @@
-import {
-    FeeManualOptions,
-    FeeType,
-    ICryptoFlowQuote,
-    ICryptoFlowTransaction
-} from "../models/CryptoFlow";
-import {Buffer} from "buffer";
+import { FeeManualOptions, FeeType, ICryptoFlowQuote, ICryptoFlowTransaction } from "../models/CryptoFlow";
+import { Buffer } from "buffer";
 import BigNumber from "bignumber.js";
-import {AccountAllowanceApproveTransaction, Signer, Status, Transaction} from "@hashgraph/sdk";
-import {Network} from "../models/Networks";
-import {createFeeTransaction, HbarTokenId} from "./FeeService";
-import {getConfig} from "./ConfigService";
-import {flatArray} from "../helpers/ArrayHelpers";
+import { AccountAllowanceApproveTransaction, Signer, Status, Transaction } from "@hashgraph/sdk";
+import { Network } from "../models/Networks";
+import { createFeeTransaction, HbarTokenId } from "./FeeService";
+import { getConfig } from "./ConfigService";
+import { flatArray } from "../helpers/ArrayHelpers";
 
 export const validateMessage = async (tx: ICryptoFlowTransaction) => {
     try {
@@ -24,7 +19,7 @@ export const validateMessage = async (tx: ICryptoFlowTransaction) => {
             publicKeyJwk, // Parse the JWK from string format
             {
                 name: "ECDSA",
-                namedCurve: "P-256"
+                namedCurve: "P-256",
             },
             true,
             ["verify"]
@@ -34,7 +29,7 @@ export const validateMessage = async (tx: ICryptoFlowTransaction) => {
         return await global.crypto.subtle.verify(
             {
                 name: "ECDSA",
-                hash: "SHA-256"
+                hash: "SHA-256",
             },
             importedPublicKey,
             Buffer.from(tx.signature, "hex"), // The signature in ArrayBuffer format
@@ -43,12 +38,17 @@ export const validateMessage = async (tx: ICryptoFlowTransaction) => {
     } catch (e) {
         return false;
     }
-}
+};
 
-export const executeAllowanceApprove = async (selectedQuote: ICryptoFlowQuote, activeAccount: string, network: Network, signer: Signer, approve: boolean = true): Promise<void> => {
+export const executeAllowanceApprove = async (
+    selectedQuote: ICryptoFlowQuote,
+    activeAccount: string,
+    network: Network,
+    signer: Signer,
+    approve: boolean = true
+): Promise<void> => {
     const sourceToken = selectedQuote.source.asset;
-    if (!sourceToken.address)
-        return;
+    if (!sourceToken.address) return;
 
     const isTokenHbar = await isHbar(sourceToken.address);
 
@@ -56,20 +56,13 @@ export const executeAllowanceApprove = async (selectedQuote: ICryptoFlowQuote, a
         const swapContract = JSON.parse(await getConfig("swapContract"));
         const amount = approve
             ? Math.ceil(
-                Math.pow(10, sourceToken.decimals!) * (
-                    selectedQuote.source.amountExpected * 1.2 // with a little buffer
-                )
-            )
+                  Math.pow(10, sourceToken.decimals!) * (selectedQuote.source.amountExpected * 1.2) // with a little buffer
+              )
             : 0;
 
         const tx = new AccountAllowanceApproveTransaction()
             .setMaxTransactionFee(100)
-            .approveTokenAllowance(
-                sourceToken.address,
-                activeAccount,
-                swapContract[network],
-                amount
-            );
+            .approveTokenAllowance(sourceToken.address, activeAccount, swapContract[network], amount);
         const freezedTx = await tx.freezeWithSigner(signer);
         const signedTx = await freezedTx.signWithSigner(signer);
         const txResponse = await signedTx.executeWithSigner(signer);
@@ -79,13 +72,11 @@ export const executeAllowanceApprove = async (selectedQuote: ICryptoFlowQuote, a
             throw new Error("Allowance giving failed");
         }
     }
-}
+};
 
 export const executeHederaSwapTx = async (txHex: string, signer: Signer) => {
     const buffer: Buffer = Buffer.from(txHex, "hex");
-    const transaction = await Transaction
-        .fromBytes(buffer)
-        .freezeWithSigner(signer);
+    const transaction = await Transaction.fromBytes(buffer).freezeWithSigner(signer);
     const signedTx = await transaction.signWithSigner(signer);
     const txResponse = await signedTx.executeWithSigner(signer);
     const receipt = await txResponse.getReceiptWithSigner(signer);
@@ -93,19 +84,20 @@ export const executeHederaSwapTx = async (txHex: string, signer: Signer) => {
     if (receipt?.status !== Status.Success) {
         throw new Error("Swap transaction failed");
     }
-}
+};
 
-export const executeHederaBladeFeeTx = async (selectedQuote: ICryptoFlowQuote, activeAccount: string, network: Network, signer: Signer) => {
+export const executeHederaBladeFeeTx = async (
+    selectedQuote: ICryptoFlowQuote,
+    activeAccount: string,
+    network: Network,
+    signer: Signer
+) => {
     const feeOptions: FeeManualOptions = {
         type: FeeType.Swap,
         amount: BigNumber(selectedQuote.source.amountExpected),
         amountTokenId: selectedQuote.source.asset.address,
     };
-    let transaction = await createFeeTransaction(
-        network,
-        activeAccount,
-        feeOptions
-    );
+    let transaction = await createFeeTransaction(network, activeAccount, feeOptions);
     if (!transaction) {
         return;
     }
@@ -117,7 +109,7 @@ export const executeHederaBladeFeeTx = async (selectedQuote: ICryptoFlowQuote, a
     if (receiptFee?.status !== Status.Success) {
         throw new Error("Fee transfer execution failed");
     }
-}
+};
 
 async function isHbar(tokenId: string): Promise<boolean> {
     const WHBARs = JSON.parse(await getConfig("swapWrapHbar"));
@@ -130,5 +122,5 @@ export default {
     executeAllowanceApprove,
     executeHederaSwapTx,
     executeHederaBladeFeeTx,
-    validateMessage
-}
+    validateMessage,
+};

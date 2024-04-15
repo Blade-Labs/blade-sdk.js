@@ -1,7 +1,7 @@
-import {Client, Hbar, PrivateKey, TokenAssociateTransaction, TokenCreateTransaction} from "@hashgraph/sdk";
-import {GET} from "../../src/services/ApiService";
-import {Network} from "../../src/models/Networks";
-import {completionKey} from "./index.test";
+import { Client, Hbar, PrivateKey, TokenAssociateTransaction, TokenCreateTransaction } from "@hashgraph/sdk";
+import { GET } from "../../src/services/ApiService";
+import { Network } from "../../src/models/Networks";
+import { completionKey } from "./index.test";
 
 export const privateKeyFromString = (privateKey: string): PrivateKey => {
     // TODO TRY different keys in different format (ecdsa, ed25, .raw, .der)
@@ -10,13 +10,12 @@ export const privateKeyFromString = (privateKey: string): PrivateKey => {
     } catch (e) {
         return PrivateKey.fromStringED25519(privateKey);
     }
-}
+};
 
 export const createToken = async (accountId: string, privateKey: string, tokenName: string): Promise<string> => {
     const client = Client.forTestnet();
     client.setOperator(accountId, privateKey);
     const key = PrivateKey.fromString(privateKey);
-
 
     // Create the transaction and freeze for manual signing
     const transaction = new TokenCreateTransaction()
@@ -39,8 +38,7 @@ export const createToken = async (accountId: string, privateKey: string, tokenNa
 
     // Get the token ID from the receipt
     return receipt.tokenId?.toString() || "";
-}
-
+};
 
 export const associateToken = async (tokenId: string, accountId: string, privateKey: string) => {
     const client = Client.forTestnet();
@@ -55,23 +53,23 @@ export const associateToken = async (tokenId: string, accountId: string, private
 
     const signTx = await transaction.sign(key);
 
-    return await signTx.execute(client).catch(err => {
+    return await signTx.execute(client).catch((err) => {
         // tslint:disable-next-line:no-console
         console.log(err);
         return null;
     });
-}
+};
 
 export const getTokenInfo = async (tokenId: string) => {
-    return GET(Network.Testnet, `/tokens/${tokenId}`).catch(err => {
+    return GET(Network.Testnet, `/tokens/${tokenId}`).catch((err) => {
         // tslint:disable-next-line:no-console
         console.log(err);
         return null;
     });
-}
+};
 
 export function sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 // utils
@@ -80,7 +78,7 @@ export function checkResult(result: any, success = true) {
     expect(result).toEqual(
         expect.objectContaining({
             completionKey,
-        }),
+        })
     );
     if (success) {
         expect(result).toHaveProperty("data");

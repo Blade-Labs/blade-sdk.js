@@ -1,41 +1,41 @@
-import {Network} from "../models/Networks";
-import {AccountId, Hbar, ScheduleCreateTransaction, Transaction, TransferTransaction} from "@hashgraph/sdk";
-import {FeeManualOptions, FeeType} from "../models/CryptoFlow";
+import { Network } from "../models/Networks";
+import { AccountId, Hbar, ScheduleCreateTransaction, Transaction, TransferTransaction } from "@hashgraph/sdk";
+import { FeeManualOptions, FeeType } from "../models/CryptoFlow";
 import BigNumber from "bignumber.js";
-import {getConfig} from "./ConfigService";
-import {FeeConfig} from "../models/Common";
+import { getConfig } from "./ConfigService";
+import { FeeConfig } from "../models/Common";
 
 export const HbarTokenId = "0.0.0";
 
 type FeatureFeeConfig = {
-    collector: string,
-    min: number,
-    amount: number, // Percentage value
-    max: number,
-    limitsCurrency: string
-}
+    collector: string;
+    min: number;
+    amount: number; // Percentage value
+    max: number;
+    limitsCurrency: string;
+};
 
 export type RateData = {
     hbarPrice: BigNumber;
     usdPrice: BigNumber;
     decimals: number;
-}
+};
 
 type APIRateData = {
-    decimals: number,
-    icon: string | null,
-    id: string,
-    name: string,
-    price: string,
-    priceUsd: number,
-    symbol: string,
-    dueDiligenceComplete: boolean,
-    isFeeOnTransferToken: boolean,
-    description: string | null,
-    website: string | null,
-    twitterHandle: string | null,
-    timestampSecondsLastListingChange: number
-}
+    decimals: number;
+    icon: string | null;
+    id: string;
+    name: string;
+    price: string;
+    priceUsd: number;
+    symbol: string;
+    dueDiligenceComplete: boolean;
+    isFeeOnTransferToken: boolean;
+    description: string | null;
+    website: string | null;
+    twitterHandle: string | null;
+    timestampSecondsLastListingChange: number;
+};
 
 export const createFeeTransaction = async (
     network: Network,
@@ -45,7 +45,7 @@ export const createFeeTransaction = async (
     const tx = new TransferTransaction();
     const txWithFee = await addBladeFee<TransferTransaction>(tx, network, payerAccount, manualOptions);
     return txWithFee.hbarTransfers.size > 0 ? txWithFee : null;
-}
+};
 
 export const addBladeFee = async <T extends Transaction>(
     tx: T,
@@ -58,8 +58,8 @@ export const addBladeFee = async <T extends Transaction>(
             return tx;
         }
 
-        const feature: FeeType = manualOptions.type;// || detectFeeType(tx);
-        const feesConfig = await getConfig("fees") as {[key in Lowercase<Network>]: FeeConfig};
+        const feature: FeeType = manualOptions.type; // || detectFeeType(tx);
+        const feesConfig = (await getConfig("fees")) as { [key in Lowercase<Network>]: FeeConfig };
         const featureConfig = feesConfig[network.toLowerCase() as Lowercase<Network>][feature];
         const feeAmount = await calculateFeeAmount(tx, network, featureConfig, manualOptions);
         modifyTransactionWithFee(tx, payerAccount, featureConfig.collector, feeAmount);
@@ -68,7 +68,7 @@ export const addBladeFee = async <T extends Transaction>(
     } catch (e) {
         return tx;
     }
-}
+};
 
 async function calculateFeeAmount(
     tx: Transaction,
@@ -99,7 +99,7 @@ function modifyTransactionWithFee(
     }
 
     if (tx instanceof ScheduleCreateTransaction) {
-        const schedule = (tx);
+        const schedule = tx;
         // @ts-expect-error need to access private variable
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const scheduledTransaction = schedule._scheduledTransaction;
@@ -156,8 +156,8 @@ async function convertAmountToTinyBarsByCurrencyType(
 
 const cryptoExchangeRates: Record<Network, Record<string, RateData>> = {
     [Network.Mainnet]: {},
-    [Network.Testnet]: {}
-}
+    [Network.Testnet]: {},
+};
 
 async function getHBARRateByTokenId(network: Network, tokenId: string): Promise<BigNumber> {
     if (!cryptoExchangeRates || !cryptoExchangeRates[network] || !cryptoExchangeRates[network][tokenId]) {
@@ -168,21 +168,22 @@ async function getHBARRateByTokenId(network: Network, tokenId: string): Promise<
 
 async function loadRatesPerNetwork(network: Network): Promise<void> {
     const apiRates = await fetchRates(network);
-    cryptoExchangeRates[network] = apiRates
-        .reduce((rates, rate) => {
-            rates[rate.id] = {
-                hbarPrice: BigNumber(rate.price).shiftedBy(-rate.decimals),
-                usdPrice: BigNumber(rate.priceUsd),
-                decimals: rate.decimals
-            };
-            return rates;
-        }, {} as Record<string, RateData>);
+    cryptoExchangeRates[network] = apiRates.reduce((rates, rate) => {
+        rates[rate.id] = {
+            hbarPrice: BigNumber(rate.price).shiftedBy(-rate.decimals),
+            usdPrice: BigNumber(rate.priceUsd),
+            decimals: rate.decimals,
+        };
+        return rates;
+    }, {} as Record<string, RateData>);
 }
 
 async function fetchRates(network: Network): Promise<APIRateData[]> {
-    const saucerswapApi: {[key in Network]: unknown} = JSON.parse(await getConfig("saucerswapApi"));
+    const saucerswapApi: { [key in Network]: unknown } = JSON.parse(await getConfig("saucerswapApi"));
     const url = `${saucerswapApi[network]}tokens`;
-    return fetch(url).then(result => result.json()).catch(() => []) as Promise<APIRateData[]>;
+    return fetch(url)
+        .then((result) => result.json())
+        .catch(() => []) as Promise<APIRateData[]>;
 }
 
 async function getDecimalsForTokenId(network: Network, tokenId: string): Promise<number> {

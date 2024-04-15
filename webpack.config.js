@@ -1,6 +1,5 @@
-
-import path from 'path';
-import {fileURLToPath} from 'url';
+import path from "path";
+import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -10,20 +9,20 @@ export const module = {
     rules: [
         {
             test: /\.tsx?$/,
-            use: 'ts-loader',
+            use: "ts-loader",
             exclude: /node_modules/,
         },
-    ]
+    ],
 };
 export const output = {
-    path: path.resolve(__dirname, 'dist'),
+    path: path.resolve(__dirname, "dist"),
     filename: "[name].bundle.js",
     library: "[name]",
-    libraryTarget: "var"
+    libraryTarget: "var",
 };
 export const devtool = "source-map";
 export const resolve = {
-    extensions: ['.tsx', '.ts', '.js'],
+    extensions: [".tsx", ".ts", ".js"],
 };
 
 export default {
@@ -32,4 +31,4 @@ export default {
     output,
     devtool,
     resolve,
-}
+};

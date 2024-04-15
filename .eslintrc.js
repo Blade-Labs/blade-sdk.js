@@ -12,59 +12,56 @@ https://github.com/typescript-eslint/tslint-to-eslint-config/blob/master/docs/FA
 Happy linting! 💖
 */
 module.exports = {
-    "env": {
-        "browser": true,
-        "es6": true
+    env: {
+        browser: true,
+        es6: true,
     },
-    "extends": [
+    extends: [
         "plugin:@typescript-eslint/recommended",
         "plugin:@typescript-eslint/recommended-requiring-type-checking",
-        "prettier"
+        "prettier",
     ],
-    "parser": "@typescript-eslint/parser",
-    "parserOptions": {
-        "project": "tsconfig.json",
-        "sourceType": "module",
+    parser: "@typescript-eslint/parser",
+    parserOptions: {
+        project: "tsconfig.json",
+        sourceType: "module",
     },
     // TODO: fix tests
-    "ignorePatterns": ["test/**", "lib/**", "dist/**", '.eslintrc.js'],
-    "plugins": [
-        "eslint-plugin-prefer-arrow",
-        "@typescript-eslint"
-    ],
-    "root": true,
-    "rules": {
+    ignorePatterns: ["test/**", "lib/**", "dist/**", ".eslintrc.js"],
+    plugins: ["eslint-plugin-prefer-arrow", "@typescript-eslint"],
+    root: true,
+    rules: {
         "@typescript-eslint/adjacent-overload-signatures": "error",
         "@typescript-eslint/array-type": [
             "error",
             {
-                "default": "array"
-            }
+                default: "array",
+            },
         ],
         "@typescript-eslint/ban-types": [
             "error",
             {
-                "types": {
-                    "Object": {
-                        "message": "Avoid using the `Object` type. Did you mean `object`?"
+                types: {
+                    Object: {
+                        message: "Avoid using the `Object` type. Did you mean `object`?",
                     },
-                    "Function": {
-                        "message": "Avoid using the `Function` type. Prefer a specific function type, like `() => void`."
+                    Function: {
+                        message: "Avoid using the `Function` type. Prefer a specific function type, like `() => void`.",
                     },
-                    "Boolean": {
-                        "message": "Avoid using the `Boolean` type. Did you mean `boolean`?"
+                    Boolean: {
+                        message: "Avoid using the `Boolean` type. Did you mean `boolean`?",
                     },
-                    "Number": {
-                        "message": "Avoid using the `Number` type. Did you mean `number`?"
+                    Number: {
+                        message: "Avoid using the `Number` type. Did you mean `number`?",
                     },
-                    "String": {
-                        "message": "Avoid using the `String` type. Did you mean `string`?"
+                    String: {
+                        message: "Avoid using the `String` type. Did you mean `string`?",
                     },
-                    "Symbol": {
-                        "message": "Avoid using the `Symbol` type. Did you mean `symbol`?"
-                    }
-                }
-            }
+                    Symbol: {
+                        message: "Avoid using the `Symbol` type. Did you mean `symbol`?",
+                    },
+                },
+            },
         ],
         "@typescript-eslint/consistent-type-assertions": "error",
         "@typescript-eslint/dot-notation": "error",
@@ -74,28 +71,24 @@ module.exports = {
         "@typescript-eslint/member-delimiter-style": [
             "off",
             {
-                "multiline": {
-                    "delimiter": "none",
-                    "requireLast": true
+                multiline: {
+                    delimiter: "none",
+                    requireLast: true,
                 },
-                "singleline": {
-                    "delimiter": "semi",
-                    "requireLast": false
-                }
-            }
+                singleline: {
+                    delimiter: "semi",
+                    requireLast: false,
+                },
+            },
         ],
         "@typescript-eslint/naming-convention": [
             "error",
             {
-                "selector": "variable",
-                "format": [
-                    "camelCase",
-                    "UPPER_CASE",
-                    "PascalCase"
-                ],
-                "leadingUnderscore": "allow",
-                "trailingUnderscore": "forbid"
-            }
+                selector: "variable",
+                format: ["camelCase", "UPPER_CASE", "PascalCase"],
+                leadingUnderscore: "allow",
+                trailingUnderscore: "forbid",
+            },
         ],
         "@typescript-eslint/no-empty-function": "error",
         "@typescript-eslint/no-empty-interface": "error",
@@ -111,8 +104,8 @@ module.exports = {
         "@typescript-eslint/no-shadow": [
             "warn",
             {
-                "hoist": "all"
-            }
+                hoist: "all",
+            },
         ],
         "@typescript-eslint/no-unused-expressions": "error",
         "@typescript-eslint/no-use-before-define": "off",
@@ -121,38 +114,26 @@ module.exports = {
         "@typescript-eslint/prefer-function-type": "error",
         "@typescript-eslint/prefer-namespace-keyword": "error",
         "@typescript-eslint/quotes": "off",
-        "@typescript-eslint/semi": [
-            "off",
-            null
-        ],
+        "@typescript-eslint/semi": ["off", null],
         "@typescript-eslint/triple-slash-reference": [
             "error",
             {
-                "path": "always",
-                "types": "prefer-import",
-                "lib": "always"
-            }
+                path: "always",
+                types: "prefer-import",
+                lib: "always",
+            },
         ],
         "@typescript-eslint/type-annotation-spacing": "off",
         "@typescript-eslint/typedef": "off",
         "@typescript-eslint/unified-signatures": "error",
-        "arrow-parens": [
-            "off",
-            "always"
-        ],
-        "brace-style": [
-            "off",
-            "off"
-        ],
+        "arrow-parens": ["off", "always"],
+        "brace-style": ["off", "off"],
         "comma-dangle": "off",
-        "complexity": "off",
+        complexity: "off",
         "constructor-super": "error",
         "dot-notation": "off",
         "eol-last": "off",
-        "eqeqeq": [
-            "error",
-            "smart"
-        ],
+        eqeqeq: ["error", "smart"],
         "guard-for-in": "error",
         "id-denylist": [
             "error",
@@ -164,15 +145,12 @@ module.exports = {
             "Boolean",
             "boolean",
             "Undefined",
-            "undefined"
+            "undefined",
         ],
         "id-match": "error",
-        "indent": "off",
+        indent: "off",
         "linebreak-style": "off",
-        "max-classes-per-file": [
-            "error",
-            1
-        ],
+        "max-classes-per-file": ["error", 1],
         "max-len": "off",
         "new-parens": "off",
         "newline-per-chained-call": "off",
@@ -200,55 +178,47 @@ module.exports = {
         "no-use-before-define": "off",
         "no-var": "error",
         "object-shorthand": "error",
-        "one-var": [
-            "error",
-            "never"
-        ],
+        "one-var": ["error", "never"],
         "padded-blocks": [
             "off",
             {
-                "blocks": "never"
+                blocks: "never",
             },
             {
-                "allowSingleLineBlocks": true
-            }
+                allowSingleLineBlocks: true,
+            },
         ],
         "prefer-arrow/prefer-arrow-functions": [
             "error",
             {
-                "allowStandaloneDeclarations": true
-            }
+                allowStandaloneDeclarations: true,
+            },
         ],
         "prefer-const": "error",
         "quote-props": "off",
-        "quotes": "off",
-        "radix": "error",
+        quotes: "off",
+        radix: "error",
         "react/jsx-curly-spacing": "off",
         "react/jsx-equals-spacing": "off",
         "react/jsx-tag-spacing": [
             "off",
             {
-                "afterOpening": "allow",
-                "closingSlash": "allow"
-            }
+                afterOpening: "allow",
+                closingSlash: "allow",
+            },
         ],
         "react/jsx-wrap-multilines": "off",
-        "semi": "off",
+        semi: "off",
         "space-before-function-paren": "off",
-        "space-in-parens": [
-            "off",
-            "never"
-        ],
+        "space-in-parens": ["off", "never"],
         "spaced-comment": [
             "error",
             "always",
             {
-                "markers": [
-                    "/"
-                ]
-            }
+                markers: ["/"],
+            },
         ],
         "use-isnan": "error",
-        "valid-typeof": "off"
-    }
+        "valid-typeof": "off",
+    },
 };

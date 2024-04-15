@@ -1,12 +1,9 @@
-import type {Config} from '@jest/types';
+import type { Config } from "@jest/types";
 // Sync object
 const config: Config.InitialOptions = {
     verbose: true,
     transform: {
-        '^.+\\.tsx?$': [
-            'ts-jest',
-            {tsconfig: './tsconfig.json'}
-        ],
+        "^.+\\.tsx?$": ["ts-jest", { tsconfig: "./tsconfig.json" }],
     },
     testEnvironment: "jsdom",
     setupFiles: ["core-js"],
@@ -14,7 +11,7 @@ const config: Config.InitialOptions = {
     maxConcurrency: 5,
     globals: {
         Uint8Array,
-        ArrayBuffer
-    }
+        ArrayBuffer,
+    },
 };
 export default config;
