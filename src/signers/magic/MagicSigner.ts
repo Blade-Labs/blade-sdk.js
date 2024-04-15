@@ -7,13 +7,16 @@ import {
     TransactionId,
     PublicKey,
     Signer,
+    LedgerId,
+    Executable,
+    Transaction,
 } from "@hashgraph/sdk";
-import { shuffle } from '@magic-ext/hedera'
+import {shuffle} from '@magic-ext/hedera'
 import {MagicProvider} from "./MagicProvider";
 
 export class MagicSigner implements Signer {
     private readonly publicKey: PublicKey;
-    private readonly signer: (message: Uint8Array) => Promise<any>;
+    private readonly signer: (message: Uint8Array) => Promise<Uint8Array>;
     private readonly provider: MagicProvider;
     private readonly accountId: AccountId;
 
@@ -24,35 +27,35 @@ export class MagicSigner implements Signer {
         this.accountId = typeof accountId === 'string' ? AccountId.fromString(accountId) : accountId;
     }
 
-    getProvider() {
+    getProvider(): MagicProvider {
         return this.provider;
     }
 
-    getAccountId() {
+    getAccountId(): AccountId {
         return this.accountId;
     }
 
-    getAccountKey() {
+    getAccountKey(): PublicKey {
         return this.publicKey;
     }
 
-    getLedgerId() {
+    getLedgerId(): LedgerId {
         return this.provider == null ? null : this.provider.getLedgerId();
     }
 
-    getNetwork() {
+    getNetwork(): {[key: string]: string | AccountId} {
         return this.provider == null ? {} : this.provider.getNetwork();
     }
 
-    getMirrorNetwork() {
+    getMirrorNetwork(): string[] {
         return this.provider == null ? [] : this.provider.getMirrorNetwork();
     }
 
-    async sign(messages: any) {
-        const sigantures = [];
+    async sign(messages: Uint8Array[]): Promise<SignerSignature[]> {
+        const signatures: SignerSignature[] = [];
 
         for (const message of messages) {
-            sigantures.push(
+            signatures.push(
                 new SignerSignature({
                     publicKey: this.publicKey,
                     signature: await this.signer(message),
@@ -61,7 +64,7 @@ export class MagicSigner implements Signer {
             );
         }
 
-        return sigantures;
+        return signatures;
     }
 
     getAccountBalance() {
@@ -80,11 +83,11 @@ export class MagicSigner implements Signer {
         );
     }
 
-    signTransaction(transaction: any) {
+    signTransaction<T extends Transaction>(transaction: T): Promise<T> {
         return transaction.signWith(this.publicKey, this.signer);
     }
 
-    checkTransaction(transaction: any) {
+    checkTransaction<T extends Transaction>(transaction: T): Promise<T> {
         const transactionId = transaction.transactionId;
         if (
             transactionId != null &&
@@ -100,16 +103,16 @@ export class MagicSigner implements Signer {
             return Promise.resolve(transaction);
         }
 
-        const nodeAccountIds = (
+        const nodeAccountIds: string[] = (
             transaction.nodeAccountIds != null ? transaction.nodeAccountIds : []
-        ).map((nodeAccountId: any) => nodeAccountId.toString());
+        ).map((nodeAccountId: AccountId) => nodeAccountId.toString());
         const network = Object.values(this.provider.getNetwork()).map(
             (nodeAccountId) => nodeAccountId.toString()
         );
 
         if (
             !nodeAccountIds.reduce(
-                (previous: any, current: any) => previous && network.includes(current),
+                (previous, current) => previous && network.includes(current),
                 true
             )
         ) {
@@ -121,7 +124,7 @@ export class MagicSigner implements Signer {
         return Promise.resolve(transaction);
     }
 
-    populateTransaction(transaction: any) {
+    populateTransaction<T extends Transaction>(transaction: T): Promise<Awaited<T>> {
         transaction._freezeWithAccountId(this.accountId);
 
         if (transaction.transactionId == null) {
@@ -152,7 +155,7 @@ export class MagicSigner implements Signer {
         return Promise.resolve(transaction.freeze());
     }
 
-    call(request: any) {
+    call<RequestT, ResponseT, OutputT>(request: Executable<RequestT, ResponseT, OutputT>): Promise<OutputT> {
         if (this.provider == null) {
             throw new Error(
                 "cannot send request with an wallet that doesn't contain a provider"

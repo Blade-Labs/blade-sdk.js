@@ -1,0 +1,13 @@
+# Ignore artifacts:
+build
+coverage
+dist
+.idea
+.vscode
+**/*.json
+node_modules
+config
+/test/src/__mocks__
+
+# TODO: fix and un-ignore
+test/src/index.test.ts

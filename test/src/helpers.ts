@@ -4,7 +4,7 @@ import {Network} from "../../src/models/Networks";
 import {completionKey} from "./index.test";
 
 export const privateKeyFromString = (privateKey: string): PrivateKey => {
-  // TODO TRY different keys in different format (ecdsa, ed25, .raw, .der)
+    // TODO TRY different keys in different format (ecdsa, ed25, .raw, .der)
     try {
         return PrivateKey.fromStringECDSA(privateKey);
     } catch (e) {
@@ -19,7 +19,7 @@ export const createToken = async (accountId: string, privateKey: string, tokenNa
 
 
     // Create the transaction and freeze for manual signing
-    const transaction = await new TokenCreateTransaction()
+    const transaction = new TokenCreateTransaction()
         .setTokenName(tokenName)
         .setTokenSymbol("JTT")
         .setTreasuryAccountId(accountId)
@@ -29,7 +29,7 @@ export const createToken = async (accountId: string, privateKey: string, tokenNa
         .freezeWith(client);
 
     // Sign the transaction with the token adminKey and the token treasury account private key
-    const signTx =  await (await transaction.sign(key)).sign(key);
+    const signTx = await (await transaction.sign(key)).sign(key);
 
     // Sign the transaction with the client operator private key and submit to a Hedera network
     const txResponse = await signTx.execute(client);
@@ -38,7 +38,7 @@ export const createToken = async (accountId: string, privateKey: string, tokenNa
     const receipt = await txResponse.getReceipt(client);
 
     // Get the token ID from the receipt
-    return  receipt.tokenId?.toString() || "";
+    return receipt.tokenId?.toString() || "";
 }
 
 
@@ -48,7 +48,7 @@ export const associateToken = async (tokenId: string, accountId: string, private
     client.setOperator(accountId, key);
 
     // Associate a token to an account and freeze the unsigned transaction for signing
-    const transaction = await new TokenAssociateTransaction()
+    const transaction = new TokenAssociateTransaction()
         .setAccountId(accountId)
         .setTokenIds([tokenId])
         .freezeWith(client);

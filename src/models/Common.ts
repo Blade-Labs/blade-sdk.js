@@ -114,7 +114,7 @@ export interface DAppConfig {
     redirectSameWindow: string, // boolean
     closeAfterSuccess: string, // boolean
     mirrorNode: IMirrorNodeServiceNetworkConfigs,
-    [key: string]: any | undefined; // Index signature
+    [key: string]: unknown; // Index signature
 }
 
 export interface IMirrorNodeServiceNetworkConfigs {
@@ -135,7 +135,7 @@ export type ApiAccount = {
     network: "MAINNET" | "TESTNET",
     transactionBytes?: string,
     maxAutoTokenAssociation?: number,
-    associationPresetTokenStatus?: "NEEDLESS"|"PENDING"|"FAILED"|"SUCCESSFUL",
+    associationPresetTokenStatus?: "NEEDLESS" | "PENDING" | "FAILED" | "SUCCESSFUL",
     updateAccountTransactionBytes?: string,
     transactionId?: string | null
 }
@@ -268,7 +268,7 @@ export enum AccountStatus {
     PENDING = "PENDING",
     SUCCESS = "SUCCESS",
     RETRY = "RETRY",
-    FAILED ="FAILED"
+    FAILED = "FAILED"
 }
 
 export interface C14WidgetConfig {

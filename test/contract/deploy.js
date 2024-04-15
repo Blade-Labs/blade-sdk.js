@@ -24,42 +24,42 @@ const contractBytecode = fs.readFileSync("./test/contract/test_contract_TestCont
 
     // Store Smart contract bytecode
 
-    //Create a file on Hedera and store the hex-encoded bytecode
+    // Create a file on Hedera and store the hex-encoded bytecode
     const fileCreateTx = new FileCreateTransaction()
-        //Set the bytecode of the contract
+        // Set the bytecode of the contract
         .setContents(contractBytecode);
 
-    //Submit the file to the Hedera test network signing with the transaction fee payer key specified with the client
+    // Submit the file to the Hedera test network signing with the transaction fee payer key specified with the client
     const submitTx = await fileCreateTx.execute(client);
 
-    //Get the receipt of the file create transaction
+    // Get the receipt of the file create transaction
     const fileReceipt = await submitTx.getReceipt(client);
 
-    //Get the file ID from the receipt
+    // Get the file ID from the receipt
     const bytecodeFileId = fileReceipt.fileId;
 
-    //Log the file ID
+    // Log the file ID
     // console.log(`*** The smart contract byte code file ID is ${bytecodeFileId} ***`)
 
     // Instantiate the contract instance
     const contractTx = await new ContractCreateTransaction()
-        //Set the file ID of the Hedera file storing the bytecode
+        // Set the file ID of the Hedera file storing the bytecode
         .setBytecodeFileId(bytecodeFileId)
-        //Set the gas to instantiate the contract
+        // Set the gas to instantiate the contract
         .setGas(1000000)
-        //Provide the constructor parameters for the contract
+        // Provide the constructor parameters for the contract
         .setConstructorParameters(new ContractFunctionParameters().addString("Just created!"));
 
-    //Submit the transaction to the Hedera test network
+    // Submit the transaction to the Hedera test network
     const contractResponse = await contractTx.execute(client);
 
-    //Get the receipt of the file create transaction
+    // Get the receipt of the file create transaction
     const contractReceipt = await contractResponse.getReceipt(client);
 
-    //Get the smart contract ID
+    // Get the smart contract ID
     const newContractId = contractReceipt.contractId;
 
-    //Log the smart contract ID
+    // Log the smart contract ID
     console.log("************************************************************");
     console.log("************************************************************");
     console.log(`*** The smart contract ID is ${newContractId}`);

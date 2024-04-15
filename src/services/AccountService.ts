@@ -90,7 +90,7 @@ async function prepareAccountRecord(privateKey: PrivateKey, keyType: CryptoKeyTy
             publicKey: privateKey.publicKey.toStringDer(),
             evmAddress: evmAddress || "",
             address: record?.account || "",
-            path: StringHelpers.pathArrayToString(HEDERA_PATH)!,
+            path: StringHelpers.pathArrayToString(HEDERA_PATH),
             keyType
         }
     })

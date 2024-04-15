@@ -33,21 +33,19 @@ export const parseContractFunctionParams = async (paramsEncoded: string | Parame
         Buffer.from(paramsEncoded, "base64").toString()
     );
 
-    for (let i = 0; i < paramsData.length; i++) {
-        const param = paramsData[i];
-
+    for (const param of paramsData) {
         switch (param?.type) {
             case "address": {
                 // ["0.0.48619523"]
                 types.push(param.type);
-                values.push(await valueToSolidity(param.value[0]));
+                values.push(valueToSolidity(param.value[0]));
             } break;
 
             case "address[]": {
                 // ["0.0.48619523", "0.0.4861934333"]
                 const result: any[] = [];
-                for (let i = 0; i < param.value.length; i++) {
-                    result.push(await valueToSolidity(param.value[i]));
+                for (const paramValue of param.value) {
+                    result.push(valueToSolidity(paramValue))
                 }
 
                 types.push(param.type);
@@ -76,20 +74,21 @@ export const parseContractFunctionParams = async (paramsEncoded: string | Parame
             case "tuple": {
                 const result = await parseContractFunctionParams(param.value[0]);
 
+                // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
                 types.push(`(${result.types})`);
                 values.push(result.values);
             } break;
 
             case "tuple[]": {
                 const result: any[] = [];
-                for (let i = 0; i < param.value.length; i++) {
-                    result.push(await parseContractFunctionParams(param.value[i]));
+                for (const paramValue of param.value) {
+                    result.push(await parseContractFunctionParams(paramValue));
                 }
 
                 // check if all types are the same (tuple structure must be the same in array)
                 const tupleTypes = result[0].types.toString();
-                for (let i = 1; i < result.length; i++) {
-                    if (result[i].types.toString() !== tupleTypes) {
+                for (const res of result) {
+                    if (res.types.toString() !== tupleTypes) {
                         throw {
                             name: "BladeSDK.JS",
                             reason: `Tuple structure in array must be the same`
@@ -120,7 +119,7 @@ export const parseContractFunctionParams = async (paramsEncoded: string | Parame
     return {types, values};
 }
 
-const valueToSolidity = async (value: string) => {
+const valueToSolidity = (value: string) => {
     // if input.length >=32 - return as EVM address
     // else convert input to solidity
 
@@ -131,22 +130,22 @@ const valueToSolidity = async (value: string) => {
     }
 };
 
-export const parseContractQueryResponse = async (contractFunctionResult: ContractFunctionResult, resultTypes: string[]) => {
+export const parseContractQueryResponse = (contractFunctionResult: ContractFunctionResult, resultTypes: string[]) => {
     const result: {type: string, value: any}[] = [];
-    const availableTypes = ["bytes32","address","string","bool","int32","uint32","int40","uint40","int48","uint48","int56","uint56","int64","uint64","int72","uint72","int80","uint80","int88","uint88","int96","uint96","int104","uint104","int112","uint112","int120","uint120","int128","uint128","int136","uint136","int144","uint144","int152","uint152","int160","uint160","int168","uint168","int176","uint176","int184","uint184","int192","uint192","int200","uint200","int208","uint208","int216","uint216","int224","uint224","int232","uint232","int240","uint240","int248","uint248","int256","uint256"];
+    const availableTypes = ["bytes32", "address", "string", "bool", "int32", "uint32", "int40", "uint40", "int48", "uint48", "int56", "uint56", "int64", "uint64", "int72", "uint72", "int80", "uint80", "int88", "uint88", "int96", "uint96", "int104", "uint104", "int112", "uint112", "int120", "uint120", "int128", "uint128", "int136", "uint136", "int144", "uint144", "int152", "uint152", "int160", "uint160", "int168", "uint168", "int176", "uint176", "int184", "uint184", "int192", "uint192", "int200", "uint200", "int208", "uint208", "int216", "uint216", "int224", "uint224", "int232", "uint232", "int240", "uint240", "int248", "uint248", "int256", "uint256"];
 
     resultTypes.forEach((type, index) => {
         type = type.toLowerCase();
 
         if (!availableTypes.includes(type)) {
-            throw {
+            const error = {
                 name: "BladeSDK.JS",
                 reason: `Type '${type}' unsupported. Available types: ${availableTypes.join(", ")}`
             }
+            throw error;
         }
 
         const method = `get${type.slice(0, 1).toUpperCase()}${type.slice(1)}`;
-        // @ts-ignore
         let value = contractFunctionResult[method](index).toString();
 
         if (type === "bytes32") {

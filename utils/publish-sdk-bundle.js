@@ -1,4 +1,4 @@
-const shell = require('shelljs')
+import { which, echo, exit, rm, exec, cd, cp } from 'shelljs';
 
 const dir = 'publish';
 const sourcePaths = ['dist/*', 'assets/index.html'];
@@ -19,23 +19,23 @@ const sdkConfigs = [
 ];
 
 
-if (!shell.which('git')) {
-    shell.echo('Sorry, this script requires git');
-    shell.exit(1);
+if (!which('git')) {
+    echo('Sorry, this script requires git');
+    exit(1);
 }
 
 for (const {destinationPath, repoUrl, sdkName} of sdkConfigs) {
-    shell.rm('-rf', `${dir}/${sdkName}`);
-    shell.exec(`git clone ${repoUrl} ${dir}/${sdkName}`);
-    shell.cd(`${dir}/${sdkName}`);
-    shell.exec(`git checkout -b ${branch}`);
+    rm('-rf', `${dir}/${sdkName}`);
+    exec(`git clone ${repoUrl} ${dir}/${sdkName}`);
+    cd(`${dir}/${sdkName}`);
+    exec(`git checkout -b ${branch}`);
 
     for (const sourcePath of sourcePaths) {
-        shell.cp(`../../${sourcePath}`, destinationPath);
+        cp(`../../${sourcePath}`, destinationPath);
     }
-    shell.exec(`git add ${destinationPath}`);
-    shell.exec(`git commit -m "${message}"`);
-    shell.exec(`git push --set-upstream origin ${branch} --force`);
-    shell.cd('../..');
-    shell.rm('-rf', `${dir}/${sdkName}`);
+    exec(`git add ${destinationPath}`);
+    exec(`git commit -m "${message}"`);
+    exec(`git push --set-upstream origin ${branch} --force`);
+    cd('../..');
+    rm('-rf', `${dir}/${sdkName}`);
 }

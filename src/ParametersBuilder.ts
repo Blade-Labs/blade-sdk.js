@@ -89,7 +89,7 @@ export class ParametersBuilder {
     }
 
     addStringArray(value: string[]): ParametersBuilder {
-        this.params.push({type: "string[]", value: value});
+        this.params.push({type: "string[]", value});
         return this
     }
 

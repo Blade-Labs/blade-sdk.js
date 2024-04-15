@@ -3,6 +3,7 @@ import {AccountId, Hbar, ScheduleCreateTransaction, Transaction, TransferTransac
 import {FeeManualOptions, FeeType} from "../models/CryptoFlow";
 import BigNumber from "bignumber.js";
 import {getConfig} from "./ConfigService";
+import {FeeConfig} from "@/models/Common";
 
 export const HbarTokenId = "0.0.0";
 
@@ -58,8 +59,8 @@ export const addBladeFee = async <T extends Transaction>(
         }
 
         const feature: FeeType = manualOptions.type;// || detectFeeType(tx);
-        const feesConfig = await getConfig("fees");
-        const featureConfig = feesConfig[network.toLowerCase()][feature];
+        const feesConfig = await getConfig("fees") as {[key in Lowercase<Network>]: FeeConfig};
+        const featureConfig = feesConfig[network.toLowerCase() as Lowercase<Network>][feature];
         const feeAmount = await calculateFeeAmount(tx, network, featureConfig, manualOptions);
         modifyTransactionWithFee(tx, payerAccount, featureConfig.collector, feeAmount);
 
@@ -98,8 +99,9 @@ function modifyTransactionWithFee(
     }
 
     if (tx instanceof ScheduleCreateTransaction) {
-        const schedule = (tx as ScheduleCreateTransaction);
-        // @ts-ignore
+        const schedule = (tx);
+        // @ts-expect-error need to access private variable
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const scheduledTransaction = schedule._scheduledTransaction;
         if (scheduledTransaction instanceof TransferTransaction) {
             scheduledTransaction.addHbarTransfer(collectorAccount, amount);
@@ -178,7 +180,7 @@ async function loadRatesPerNetwork(network: Network): Promise<void> {
 }
 
 async function fetchRates(network: Network): Promise<APIRateData[]> {
-    const saucerswapApi = JSON.parse(await getConfig("saucerswapApi"));
+    const saucerswapApi: unknown = JSON.parse(await getConfig("saucerswapApi"));
     const url = `${saucerswapApi[network]}tokens`;
     return fetch(url).then(result => result.json()).catch(() => []) as Promise<APIRateData[]>;
 }

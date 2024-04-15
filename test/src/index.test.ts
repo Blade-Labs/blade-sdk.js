@@ -20,7 +20,7 @@ import {
     NFTStorageProvider,
     SdkEnvironment
 } from "../../src/models/Common";
-const {BladeSDK, ParametersBuilder} = require("../../src/webView");
+import {BladeSDK, ParametersBuilder} from "../../src/webView";
 
 Object.defineProperty(global.self, "crypto", {
     value: {
@@ -37,12 +37,15 @@ export const completionKey = "completionKey1";
 const privateKey = process.env.PRIVATE_KEY || ""; // ECDSA
 const accountId = process.env.ACCOUNT_ID || "";
 const privateKey1 = process.env.PRIVATE_KEY1 || "";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const accountId1 = process.env.ACCOUNT_ID1;
 const privateKey2 = process.env.PRIVATE_KEY2 || ""; // ECDSA
 const accountId2 = process.env.ACCOUNT_ID2 || "";
 const privateKey3 = process.env.PRIVATE_KEY3 || "";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const accountId3 = process.env.ACCOUNT_ID3 || "";
 const privateKey4 = process.env.PRIVATE_KEY_ED25519 || "";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const accountId4 = process.env.ACCOUNT_ID_ED25519 || "";
 
 
@@ -52,7 +55,7 @@ beforeEach(async () => {
         process.env.NETWORK,
         process.env.DAPP_CODE,
         process.env.VISITOR_ID,
-        process.env.SDK_ENV,
+        process.env.SDK_ENV as SdkEnvironment,
         sdkVersion,
         completionKey);
     checkResult(result);
@@ -68,7 +71,7 @@ test('bladeSdk.init', async () => {
         process.env.NETWORK,
         process.env.DAPP_CODE,
         "", // empty visitor id,
-        process.env.SDK_ENV,
+        process.env.SDK_ENV as SdkEnvironment,
         sdkVersion,
         completionKey);
     checkResult(result);

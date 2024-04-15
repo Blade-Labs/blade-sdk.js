@@ -88,16 +88,16 @@ const fetchWithRetry = async (url: string, options: RequestInit, maxAttempts = 3
 
         const interval = 5000;
         // tslint:disable-next-line:no-shadowed-variable
-        const makeRequest = (url: string, options: RequestInit) => {
+        const makeRequest = (fetchUrl: string, options: RequestInit) => {
             attemptCounter += 1;
-            fetch(url, options)
+            fetch(fetchUrl, options)
                 .then(async (res) => {
                     if (!res.ok) {
                         // Request timeout check
                         if ((res.status === 408 || res.status === 429) && attemptCounter < maxAttempts) {
                             /* istanbul ignore next */
                             setTimeout(() => {
-                                makeRequest(url, options);
+                                makeRequest(fetchUrl, options);
                             }, interval * attemptCounter);
                         } else {
                             const rawData = await res.text();
@@ -119,7 +119,7 @@ const fetchWithRetry = async (url: string, options: RequestInit, maxAttempts = 3
                 })
                 .catch(e => {
                     reject({
-                        url,
+                        url: fetchUrl,
                         error: e.message
                     });
                 });
@@ -128,9 +128,9 @@ const fetchWithRetry = async (url: string, options: RequestInit, maxAttempts = 3
     });
 };
 
-const statusCheck = async (res: Response | any): Promise<Response> => {
+const statusCheck = async (res: Response): Promise<Response> => {
     if (!res.ok) {
-        let error = await res.text();
+        let error: any = await res.text();
         try {
             error = JSON.parse(error);
             error._code = res.status;
@@ -314,7 +314,7 @@ export const confirmAccountUpdate = async (params: ConfirmUpdateAccountData): Pr
 };
 
 export const getTokenAssociateTransactionForAccount = async (tokenId: string | null, accountId: string): Promise<ApiAccount> => {
-    const url = `${await getApiUrl()}/tokens`;
+    const url = `${getApiUrl()}/tokens`;
     const body: any = {
         id: accountId,
     };
@@ -402,7 +402,6 @@ const getAccountTokens = async (accountId: string) => {
 
         for (const token of response.tokens) {
             const tokenInfo = await requestTokenInfo(network, token.token_id);
-            // @ts-ignore
             result.push({
                 tokenId: token.token_id,
                 balance: token.balance / 10 ** parseInt(tokenInfo.decimals, 10),
@@ -517,7 +516,7 @@ export const dropTokens = async (network: Network, params: {accountId: string, s
         .then((x) => x.json());
 };
 
-export const getC14token = async (params: any) => {
+export const getC14token = async (params: {network: Network, visitorId: string, dAppCode: string}) => {
     const url = `${getApiUrl()}/c14/data`;
     const options = {
         method: "GET",
@@ -539,7 +538,7 @@ export const getCryptoFlowData = async (
     network: Network,
     visitorId: string,
     route: CryptoFlowRoutes,
-    params: ICryptoFlowAssetsParams | ICryptoFlowQuoteParams | ICryptoFlowTransactionParams | any,
+    params: ICryptoFlowAssetsParams | ICryptoFlowQuoteParams | ICryptoFlowTransactionParams,
     strategy?: CryptoFlowServiceStrategy
 ): Promise<ICryptoFlowAssets | ICryptoFlowQuote[] | ICryptoFlowTransaction> => {
     const url = new URL(`${getApiUrl()}/exchange/v2/`);
@@ -604,7 +603,7 @@ export const getTransactionsFrom = async (
     transactionsLimit: string = "10"
 ): Promise<{nextPage: string | null, transactions: TransactionData[]}> => {
     const limit = parseInt(transactionsLimit, 10);
-    let info;
+    let info: any;
     const result: TransactionData[] = [];
     const pageLimit = limit >= 100 ? 100 : 25;
 
@@ -644,6 +643,7 @@ export const getTransactionsFrom = async (
     };
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const getTransaction = (network: Network, transactionId: string, accountId: string): Promise<TransactionData[]> => {
     return GET(network, `/transactions/${transactionId}`)
         .then(x => x.transactions.map((t: any) => {

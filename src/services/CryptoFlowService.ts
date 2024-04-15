@@ -56,8 +56,8 @@ export const executeAllowanceApprove = async(selectedQuote: ICryptoFlowQuote, ac
         const swapContract = JSON.parse(await getConfig("swapContract"));
         const amount = approve
             ? Math.ceil(
-                Math.pow(10, sourceToken!.decimals!) * (
-                    selectedQuote.source.amountExpected! * 1.2 // with a little buffer
+                Math.pow(10, sourceToken.decimals) * (
+                    selectedQuote.source.amountExpected * 1.2 // with a little buffer
                 )
             )
             : 0;
@@ -65,7 +65,7 @@ export const executeAllowanceApprove = async(selectedQuote: ICryptoFlowQuote, ac
         const tx = new AccountAllowanceApproveTransaction()
             .setMaxTransactionFee(100)
             .approveTokenAllowance(
-                sourceToken.address as string,
+                sourceToken.address,
                 activeAccount,
                 swapContract[network],
                 amount
@@ -99,7 +99,7 @@ export const executeHederaBladeFeeTx = async (selectedQuote: ICryptoFlowQuote, a
     const feeOptions: FeeManualOptions = {
         type: FeeType.Swap,
         amount: BigNumber(selectedQuote.source.amountExpected),
-        amountTokenId: selectedQuote.source.asset.address as string
+        amountTokenId: selectedQuote.source.asset.address
     };
     let transaction = await createFeeTransaction(
         network,

@@ -75,6 +75,7 @@ import {
     CoinListData,
     ContractCallQueryRecord,
     CreateAccountData,
+    CryptoKeyType,
     InfoData,
     IntegrationUrlData,
     KeyRecord,
@@ -174,7 +175,7 @@ export class BladeSDK {
         if (!this.visitorId) {
             try {
                 const [decryptedVisitorId, timestamp, env] = (await decrypt(localStorage.getItem("BladeSDK.visitorId") || "", this.apiKey)).split("@");
-                if (this.sdkEnvironment === env && Date.now() - parseInt(timestamp, 10) < 3600_000 * 24 * 30) {
+                if (this.sdkEnvironment === env as SdkEnvironment && Date.now() - parseInt(timestamp, 10) < 3600_000 * 24 * 30) {
                     // if visitorId was saved less than 30 days ago and in the same environment
                     this.visitorId = decryptedVisitorId;
                 }
@@ -234,7 +235,7 @@ export class BladeSDK {
         try {
             switch (accountProvider) {
                 case AccountProvider.Hedera:
-                    const key = PrivateKey.fromStringDer(privateKey!);
+                    const key = PrivateKey.fromStringDer(privateKey);
                     this.userAccountId = accountIdOrEmail;
                     this.userPrivateKey = privateKey!;
                     this.userPublicKey = key.publicKey.toStringDer();
@@ -414,10 +415,10 @@ export class BladeSDK {
                 .addHbarTransfer(accountId, -1 * parsedAmount)
                 .addHbarTransfer(receiverId, parsedAmount)
                 .setTransactionMemo(memo)
-                .freezeWithSigner(this.signer!)
-                .then(tx => tx.signWithSigner(this.signer!))
-                .then(tx => tx.executeWithSigner(this.signer!))
-                .then(result => result.getReceiptWithSigner(this.signer!))
+                .freezeWithSigner(this.signer)
+                .then(tx => tx.signWithSigner(this.signer))
+                .then(tx => tx.executeWithSigner(this.signer))
+                .then(result => result.getReceiptWithSigner(this.signer))
                 .then(data => {
                     return this.sendMessageToNative(completionKey, formatReceipt(data));
                 }).catch(error => {
@@ -480,10 +481,10 @@ export class BladeSDK {
             }
 
             return transaction
-                .freezeWithSigner(this.signer!)
-                .then(tx => tx.signWithSigner(this.signer!))
-                .then(tx => tx.executeWithSigner(this.signer!))
-                .then(result => result.getReceiptWithSigner(this.signer!))
+                .freezeWithSigner(this.signer)
+                .then(tx => tx.signWithSigner(this.signer))
+                .then(tx => tx.executeWithSigner(this.signer))
+                .then(result => result.getReceiptWithSigner(this.signer))
                 .then(data => {
                     return this.sendMessageToNative(completionKey, formatReceipt(data));
                 }).catch(error => {
@@ -558,10 +559,10 @@ export class BladeSDK {
                         .setGas(gas)
                         .setFunction(functionName)
                         .setFunctionParameters(contractFunctionParameters)
-                        .executeWithSigner(this.signer!);
+                        .executeWithSigner(this.signer);
                 }
 
-                const values = await parseContractQueryResponse(response, resultTypes);
+                const values = parseContractQueryResponse(response, resultTypes);
                 return this.sendMessageToNative(completionKey, {
                     values,
                     gasUsed: parseInt(response.gasUsed.toString(), 10)
@@ -629,10 +630,10 @@ export class BladeSDK {
                 const transaction = Transaction.fromBytes(buffer);
 
                 return transaction
-                    .freezeWithSigner(this.signer!)
-                    .then(tx => tx.signWithSigner(this.signer!))
-                    .then(tx => tx.executeWithSigner(this.signer!))
-                    .then(result => result.getReceiptWithSigner(this.signer!))
+                    .freezeWithSigner(this.signer)
+                    .then(tx => tx.signWithSigner(this.signer))
+                    .then(tx => tx.executeWithSigner(this.signer))
+                    .then(result => result.getReceiptWithSigner(this.signer))
                     .then(data => {
                         return this.sendMessageToNative(completionKey, formatReceipt(data));
                     }).catch(error => {
@@ -651,10 +652,10 @@ export class BladeSDK {
                         .addTokenTransfer(tokenId, accountId, -1 * correctedAmount);
                 }
                 return tokenTransferTx
-                    .freezeWithSigner(this.signer!)
-                    .then(tx => tx.signWithSigner(this.signer!))
-                    .then(tx => tx.executeWithSigner(this.signer!))
-                    .then(result => result.getReceiptWithSigner(this.signer!))
+                    .freezeWithSigner(this.signer)
+                    .then(tx => tx.signWithSigner(this.signer))
+                    .then(tx => tx.executeWithSigner(this.signer))
+                    .then(result => result.getReceiptWithSigner(this.signer))
                     .then(data => {
                         return this.sendMessageToNative(completionKey, formatReceipt(data));
                     }).catch(error => {
@@ -683,10 +684,10 @@ export class BladeSDK {
 
             return await new ScheduleSignTransaction()
                 .setScheduleId(scheduleId)
-                .freezeWithSigner(this.signer!)
-                .then(tx => tx.signWithSigner(this.signer!))
-                .then(tx => tx.executeWithSigner(this.signer!))
-                .then(result => result.getReceiptWithSigner(this.signer!))
+                .freezeWithSigner(this.signer)
+                .then(tx => tx.signWithSigner(this.signer))
+                .then(tx => tx.executeWithSigner(this.signer))
+                .then(result => result.getReceiptWithSigner(this.signer))
                 .then(data => {
                     return this.sendMessageToNative(completionKey, formatReceipt(data));
                 }).catch(error => {
@@ -863,7 +864,7 @@ export class BladeSDK {
             const operatorAccountKey = PrivateKey.fromString(operatorPrivateKey);
             client.setOperator(operatorAccountId, operatorAccountKey);
 
-            const transaction = await new AccountDeleteTransaction()
+            const transaction = new AccountDeleteTransaction()
                 .setAccountId(deleteAccountId)
                 .setTransferAccountId(transferAccountId)
                 .freezeWith(client)
@@ -894,7 +895,7 @@ export class BladeSDK {
             }
             const account = await getAccountInfo(this.network, accountId);
 
-            const publicKey = account.key._type === "ECDSA_SECP256K1" ? PublicKey.fromStringECDSA(account.key.key) : PublicKey.fromStringED25519(account.key.key);
+            const publicKey = account.key._type === CryptoKeyType.ECDSA_SECP256K1 ? PublicKey.fromStringECDSA(account.key.key) : PublicKey.fromStringED25519(account.key.key);
             return this.sendMessageToNative(completionKey, {
                 accountId,
                 publicKey: publicKey.toStringDer(),
@@ -949,10 +950,10 @@ export class BladeSDK {
                 transaction.setStakedNodeId(nodeId);
             }
             return transaction
-                .freezeWithSigner(this.signer!)
-                .then(tx => tx.signWithSigner(this.signer!))
-                .then(tx => tx.executeWithSigner(this.signer!))
-                .then(result => result.getReceiptWithSigner(this.signer!))
+                .freezeWithSigner(this.signer)
+                .then(tx => tx.signWithSigner(this.signer))
+                .then(tx => tx.executeWithSigner(this.signer))
+                .then(result => result.getReceiptWithSigner(this.signer))
                 .then(data => {
                     return this.sendMessageToNative(completionKey, formatReceipt(data));
                 }).catch(error => {
@@ -974,6 +975,7 @@ export class BladeSDK {
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {PrivateKeyData}
      */
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     async getKeysFromMnemonic(mnemonicRaw: string, lookupNames: boolean = true, completionKey?: string): Promise<PrivateKeyData> {
         try {
             const accounts = await getAccountsFromMnemonic(mnemonicRaw, this.network);
@@ -1028,7 +1030,7 @@ export class BladeSDK {
             }
             accountId = this.getUser().accountId;
 
-            const signatures = await this.signer!.sign([Buffer.from(secretNonce)]);
+            const signatures = await this.signer.sign([Buffer.from(secretNonce)]);
             return this.sendMessageToNative(completionKey, await dropTokens(this.network, {
                 visitorId: this.visitorId,
                 dAppCode: this.dAppCode,
@@ -1252,7 +1254,7 @@ export class BladeSDK {
         try {
             const useTestnet = this.network === Network.Testnet;
             const chainId = parseInt(KnownChainIds[useTestnet ? KnownChain.HEDERA_TESTNET : KnownChain.HEDERA_MAINNET], 10);
-            const params: ICryptoFlowAssetsParams | ICryptoFlowQuoteParams | ICryptoFlowTransactionParams | any = {
+            const params: ICryptoFlowAssetsParams | ICryptoFlowQuoteParams | ICryptoFlowTransactionParams = {
                 sourceCode,
                 sourceAmount,
                 targetCode,
@@ -1275,7 +1277,7 @@ export class BladeSDK {
                     ) as ICryptoFlowAssets;
 
                     if (assets?.limits?.rates && assets.limits.rates.length > 0) {
-                        params.targetAmount = assets.limits.rates[0] * sourceAmount;
+                        (params as ICryptoFlowQuoteParams).targetAmount = assets.limits.rates[0] * sourceAmount;
                     }
                     break;
                 }
@@ -1329,7 +1331,7 @@ export class BladeSDK {
             accountId = this.getUser().accountId;
 
             const useTestnet = this.network === Network.Testnet;
-            const chainId = KnownChainIds[useTestnet ? KnownChain.HEDERA_TESTNET : KnownChain.HEDERA_MAINNET];
+            const chainId = +KnownChainIds[useTestnet ? KnownChain.HEDERA_TESTNET : KnownChain.HEDERA_MAINNET];
             const quotes = await getCryptoFlowData(
                 this.network,
                 this.visitorId,
@@ -1349,6 +1351,7 @@ export class BladeSDK {
                 throw new Error("Quote not found");
             }
 
+            const stringifiedSlippage = slippage.toString();
             const txData: ICryptoFlowTransaction = await getCryptoFlowData(
                 this.network,
                 this.visitorId,
@@ -1363,20 +1366,20 @@ export class BladeSDK {
                     targetChainId: chainId,
                     targetAddress: selectedQuote.target.asset.address,
                     walletAddress: accountId,
-                    slippage,
+                    slippage: stringifiedSlippage,
                     useTestnet
                 }
             ) as ICryptoFlowTransaction;
 
             if (await CryptoFlowService.validateMessage(txData)) {
-                await CryptoFlowService.executeAllowanceApprove(selectedQuote, accountId, this.network, this.signer!, true);
+                await CryptoFlowService.executeAllowanceApprove(selectedQuote, accountId, this.network, this.signer, true);
                 try {
-                    await CryptoFlowService.executeHederaSwapTx(txData.calldata, this.signer!);
+                    await CryptoFlowService.executeHederaSwapTx(txData.calldata, this.signer);
                 } catch (e) {
-                    await CryptoFlowService.executeAllowanceApprove(selectedQuote, accountId, this.network, this.signer!, false);
+                    await CryptoFlowService.executeAllowanceApprove(selectedQuote, accountId, this.network, this.signer, false);
                     throw e
                 }
-                await CryptoFlowService.executeHederaBladeFeeTx(selectedQuote, accountId, this.network, this.signer!);
+                await CryptoFlowService.executeHederaBladeFeeTx(selectedQuote, accountId, this.network, this.signer);
             } else {
                 throw new Error("Invalid signature of txData");
             }
@@ -1414,22 +1417,23 @@ export class BladeSDK {
             }
             const useTestnet = this.network === Network.Testnet;
             const chainId = KnownChainIds[useTestnet ? KnownChain.HEDERA_TESTNET : KnownChain.HEDERA_MAINNET];
-            const params: ICryptoFlowAssetsParams | ICryptoFlowQuoteParams | ICryptoFlowTransactionParams | any = {
+            const stringifiedSlippage = slippage.toString();
+            const params: ICryptoFlowAssetsParams | ICryptoFlowQuoteParams | ICryptoFlowTransactionParams = {
                 sourceCode,
                 sourceAmount,
                 targetCode,
                 useTestnet,
                 walletAddress: accountId,
-                slippage
+                slippage: stringifiedSlippage
             }
 
             switch (strategy.toLowerCase()) {
                 case CryptoFlowServiceStrategy.BUY.toLowerCase(): {
-                    params.targetChainId = chainId;
+                    params.targetChainId = +chainId;
                     break;
                 }
                 case CryptoFlowServiceStrategy.SELL.toLowerCase(): {
-                    params.sourceChainId = chainId;
+                    params.sourceChainId = +chainId;
                     const assets = await getCryptoFlowData(
                         this.network,
                         this.visitorId,
@@ -1547,17 +1551,17 @@ export class BladeSDK {
                         throw new Error("Unknown key type");
                 }
             }
-            nftCreate = await nftCreate.freezeWithSigner(this.signer!);
+            nftCreate = await nftCreate.freezeWithSigner(this.signer);
             let nftCreateTxSign;
 
             if (adminKey) {
                 nftCreateTxSign = await nftCreate.sign(adminKey);
             } else {
-                nftCreateTxSign = await nftCreate.signWithSigner(this.signer!)
+                nftCreateTxSign = await nftCreate.signWithSigner(this.signer)
             }
 
-            const nftCreateSubmit = await nftCreateTxSign.executeWithSigner(this.signer!);
-            const nftCreateRx = await nftCreateSubmit.getReceiptWithSigner(this.signer!);
+            const nftCreateSubmit = await nftCreateTxSign.executeWithSigner(this.signer);
+            const nftCreateRx = await nftCreateSubmit.getReceiptWithSigner(this.signer);
 
             const tokenId = nftCreateRx.tokenId?.toString();
             return this.sendMessageToNative(completionKey, {tokenId}, null);
@@ -1594,16 +1598,16 @@ export class BladeSDK {
                     throw new Error("Failed to get transaction bytes for free association. Token already associated?");
                 }
                 const buffer = Buffer.from(result.transactionBytes, "base64");
-                transaction = await Transaction.fromBytes(buffer);
+                transaction = Transaction.fromBytes(buffer);
             } else {
                 transaction = await new TokenAssociateTransaction()
                     .setAccountId(accountId)
                     .setTokenIds([tokenId])
-                    .freezeWithSigner(this.signer!);
+                    .freezeWithSigner(this.signer);
             }
-            return transaction.signWithSigner(this.signer!)
-                .then(tx => tx.executeWithSigner(this.signer!))
-                .then(result => result.getReceiptWithSigner(this.signer!))
+            return transaction.signWithSigner(this.signer)
+                .then(tx => tx.executeWithSigner(this.signer))
+                .then(result => result.getReceiptWithSigner(this.signer))
                 .then(txReceipt => {
                     if (txReceipt.status !== Status.Success) {
                         throw new Error(`Association failed`)
@@ -1634,7 +1638,7 @@ export class BladeSDK {
         accountId: string,
         accountPrivateKey: string,
         file: File | string,
-        metadata: {},
+        metadata: object,
         storageConfig: NFTStorageConfig,
         completionKey?: string
     ): Promise<TransactionReceiptData> {
@@ -1668,7 +1672,7 @@ export class BladeSDK {
                 name: fileName,
                 type: file.type,
                 creator: 'Blade Labs',
-                ...metadata as {},
+                ...metadata,
                 image: `ipfs://${dirCID}/${encodeURIComponent(fileName)}`,
             }
             const metadataCID = await storageClient.storeBlob(
@@ -1685,10 +1689,10 @@ export class BladeSDK {
                 .setTokenId(tokenId)
                 .setMetadata(mdGroup)
                 .setMaxTransactionFee(Hbar.from(2 * groupSize, HbarUnit.Hbar))
-                .freezeWithSigner(this.signer!)
-                .then(tx => tx.signWithSigner(this.signer!))
-                .then(tx => tx.executeWithSigner(this.signer!))
-                .then(result => result.getReceiptWithSigner(this.signer!))
+                .freezeWithSigner(this.signer)
+                .then(tx => tx.signWithSigner(this.signer))
+                .then(tx => tx.executeWithSigner(this.signer))
+                .then(result => result.getReceiptWithSigner(this.signer))
                 .then(txReceipt => {
                     if (txReceipt.status !== Status.Success) {
                         throw new Error(`Mint failed`)
@@ -1721,12 +1725,12 @@ export class BladeSDK {
             return this.sendMessageToNative(completionKey, null, error);
         }
 
-        
+
     }
 
     private async initMagic() {
         await this.fetchBladeConfig();
-        this.magic = new Magic(this.config?.magicLinkPublicKey!, {
+        this.magic = new Magic(this.config?.magicLinkPublicKey, {
             extensions: [new HederaExtension({
                 network: this.network.toLowerCase()
             })]
@@ -1758,7 +1762,7 @@ export class BladeSDK {
     /**
      * Message that sends response back to native handler
      */
-    private sendMessageToNative(completionKey: string | undefined, data: any | null, error: Partial<CustomError> | any | null = null) {
+    private sendMessageToNative(completionKey: string | undefined, data: unknown, error: Partial<CustomError> | null = null): any {
         if (!this.webView || !completionKey) {
             if (error) {
                 throw error;
@@ -1778,11 +1782,16 @@ export class BladeSDK {
             };
         }
 
-        // @ts-ignore  // IOS or Android
+        // IOS or Android
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-expect-error
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
         const bladeMessageHandler = window?.webkit?.messageHandlers?.bladeMessageHandler || window?.bladeMessageHandler;
         if (bladeMessageHandler) {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
             bladeMessageHandler.postMessage(JSON.stringify(responseObject));
         }
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
         return JSON.parse(JSON.stringify(responseObject));
     }
 }

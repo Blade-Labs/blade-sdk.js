@@ -1,5 +1,5 @@
 import {
-    AccountBalance, Client,
+    Client,
     PrivateKey, Status, Transaction
 } from "@hashgraph/sdk";
 import {Buffer} from "buffer";
