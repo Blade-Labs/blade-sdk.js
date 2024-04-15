@@ -78,7 +78,7 @@ export const getApiUrl = (isPublic = false): string => {
     return `https://api.bld-dev.bladewallet.io/openapi${publicPart}/v7`;
 }
 
-export const getIpfsUrl = (): string => {
+export const getIpfsGatewayUrl = (): string => {
     return 'https://trustless-gateway.link/ipfs'
 }
 
@@ -671,10 +671,7 @@ export const getNftInfo = async (network: Network, tokenId: string, serial: stri
 }
 
 export const getNftMetadataFromIpfs = async (cid: string): Promise<NftMetadata> => {
-
-    // https://trustless-gateway.link/ipfs/bafkreicdgd4avakum23fgbgl6ndztmywvcoa7vef2ctrxg3mtqg2f3dfxu?format=raw
-    // const response = await verifiedFetch(CID.parse(cid));
-    const response = await fetch(`${getIpfsUrl()}/${cid}?format=raw`)
+    const response = await fetch(`${getIpfsGatewayUrl()}/${cid}?format=raw`)
 
     return response.json();
 }
