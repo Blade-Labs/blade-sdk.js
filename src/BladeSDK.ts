@@ -1340,11 +1340,12 @@ export class BladeSDK {
                 KnownChainIds[useTestnet ? KnownChain.HEDERA_TESTNET : KnownChain.HEDERA_MAINNET],
                 10
             );
-            const params: ICryptoFlowAssetsParams | ICryptoFlowQuoteParams | ICryptoFlowTransactionParams = {
+            const params: ICryptoFlowQuoteParams = {
                 sourceCode,
                 sourceAmount,
                 targetCode,
                 useTestnet,
+                walletAddress: HbarTokenId
             };
 
             switch (strategy.toLowerCase()) {
