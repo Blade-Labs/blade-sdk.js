@@ -12,7 +12,7 @@ export const encrypt = async (data: string, token: string): Promise<string> => {
     const tokenArr = encoder.encode(token);
     const rawKey = new Uint8Array(CIPHER_KEY_LENGTH);
     for (let i = 0; i < CIPHER_KEY_LENGTH; i++) {
-        rawKey[i] = tokenArr[(i + tokenIdx) % tokenArr.length]
+        rawKey[i] = tokenArr[(i + tokenIdx) % tokenArr.length];
     }
     const key = await crypto.subtle.importKey(
         "raw",
@@ -26,16 +26,17 @@ export const encrypt = async (data: string, token: string): Promise<string> => {
 
     const encoded = encoder.encode(data);
 
-    const cipher = await crypto.subtle.encrypt({
-        name: 'AES-GCM',
-        iv,
-    }, key, encoded);
-
-
-    return btoa(
-        ivStr + String.fromCharCode.apply(null, [...new Uint8Array(cipher)])
+    const cipher = await crypto.subtle.encrypt(
+        {
+            name: "AES-GCM",
+            iv,
+        },
+        key,
+        encoded
     );
-}
+
+    return btoa(ivStr + String.fromCharCode.apply(null, [...new Uint8Array(cipher)]));
+};
 
 export const decrypt = async (cipherStr: string, token: string): Promise<string> => {
     const encoder = new TextEncoder();
@@ -51,7 +52,7 @@ export const decrypt = async (cipherStr: string, token: string): Promise<string>
     const tokenArr = encoder.encode(token);
     const rawKey = new Uint8Array(CIPHER_KEY_LENGTH);
     for (let i = 0; i < CIPHER_KEY_LENGTH; i++) {
-        rawKey[i] = tokenArr[(i + tokenIdx) % tokenArr.length]
+        rawKey[i] = tokenArr[(i + tokenIdx) % tokenArr.length];
     }
 
     const key = await crypto.subtle.importKey(
@@ -70,13 +71,17 @@ export const decrypt = async (cipherStr: string, token: string): Promise<string>
         bufferView[i] = cipherDataStr.charCodeAt(i);
     }
 
-    const deciphered = await window.crypto.subtle.decrypt({
-        name: 'AES-GCM',
-        iv,
-    }, key, buffer);
+    const deciphered = await window.crypto.subtle.decrypt(
+        {
+            name: "AES-GCM",
+            iv,
+        },
+        key,
+        buffer
+    );
 
     return decoder.decode(deciphered);
-}
+};
 
 const generateRandomString = (length: number) => {
     let result = "";
