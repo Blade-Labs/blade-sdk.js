@@ -1,137 +1,74 @@
-import {
-    AccountDeleteTransaction,
-    AccountUpdateTransaction,
-    Client,
-    ContractCallQuery,
-    ContractExecuteTransaction,
-    ContractFunctionResult,
-    Hbar,
-    HbarUnit,
-    Mnemonic,
-    PrivateKey,
-    PublicKey,
-    ScheduleSignTransaction,
-    Signer,
-    Status,
-    TokenAssociateTransaction,
-    TokenCreateTransaction,
-    TokenMintTransaction,
-    TokenSupplyType,
-    TokenType,
-    Transaction,
-    TransferTransaction,
-} from "@hashgraph/sdk";
-import { Buffer } from "buffer";
-import { ethers } from "ethers";
-import {
-    apiCallContractQuery,
-    checkAccountCreationStatus,
-    confirmAccountUpdate,
-    createAccount,
-    dropTokens,
-    getAccountBalance,
-    getAccountInfo,
-    getApiUrl,
-    getBladeConfig,
-    getC14token,
-    getCoinInfo,
-    getCoins,
-    getCryptoFlowData,
-    getNftInfo,
-    getNftMetadataFromIpfs,
-    getNodeList,
-    getPendingAccountData,
-    getTokenAssociateTransactionForAccount,
-    getTransactionsFrom,
-    initApiService,
-    requestTokenInfo,
-    setVisitorId,
-    signContractCallTx,
-    transferTokens,
-} from "./services/ApiService";
-import { getAccountsFromMnemonic, getAccountsFromPrivateKey } from "./services/AccountService";
+import {inject, injectable} from 'inversify';
+import 'reflect-metadata';
+
+import {Client, PrivateKey, Signer, TransactionReceipt} from "@hashgraph/sdk";
+import {ethers} from "ethers";
+import ApiService from "./services/ApiService";
 import CryptoFlowService from "./services/CryptoFlowService";
-import { HbarTokenId } from "./services/FeeService";
-import { Network } from "./models/Networks";
+import {HbarTokenId} from "./services/FeeService";
+import ConfigService from "./services/ConfigService";
+import {Network} from "./models/Networks";
 import StringHelpers from "./helpers/StringHelpers";
-import {
-    getContractFunctionBytecode,
-    parseContractFunctionParams,
-    parseContractQueryResponse,
-} from "./helpers/ContractHelpers";
-import { CustomError } from "./models/Errors";
+import {CustomError} from "./models/Errors";
 import {
     AccountInfoData,
     AccountPrivateData,
-    AccountPrivateRecord,
     AccountProvider,
-    AccountStatus,
     BalanceData,
-    BladeConfig,
     BridgeResponse,
-    C14WidgetConfig,
     CoinData,
     CoinInfoData,
     CoinInfoRaw,
     CoinListData,
-    ContractCallQueryRecord,
+    ContractCallQueryRecordsData,
     CreateAccountData,
-    CryptoKeyType,
     InfoData,
     IntegrationUrlData,
     KeyRecord,
-    KeyType,
-    KnownChain,
-    KnownChainIds,
     NFTStorageConfig,
-    NFTStorageProvider,
-    PrivateKeyData,
     SdkEnvironment,
     SignMessageData,
     SignVerifyMessageData,
     SplitSignatureData,
+    SupportedEncoding,
     SwapQuotesData,
-    TokenDropData,
-    TokenInfoData,
     TransactionReceiptData,
+    TransactionResponseData,
     TransactionsHistoryData,
+    UserInfoData
 } from "./models/Common";
+import {ChainMap, ChainServiceStrategy, KnownChainIds} from "./models/Chain";
 import config from "./config";
-import { executeUpdateAccountTransactions } from "./helpers/AccountHelpers";
-import { dataURLtoFile } from "./helpers/FileHelper";
-import { ParametersBuilder } from "./ParametersBuilder";
-import {
-    CryptoFlowRoutes,
-    CryptoFlowServiceStrategy,
-    ICryptoFlowAssets,
-    ICryptoFlowAssetsParams,
-    ICryptoFlowQuote,
-    ICryptoFlowQuoteParams,
-    ICryptoFlowTransaction,
-    ICryptoFlowTransactionParams,
-} from "./models/CryptoFlow";
-import { NodeInfo } from "./models/MirrorNode";
-import * as FingerprintJS from "@fingerprintjs/fingerprintjs-pro";
-import { File, NFTStorage } from "nft.storage";
-import { decrypt, encrypt } from "./helpers/SecurityHelper";
-import { formatReceipt } from "./helpers/TransactionHelpers";
-import { Magic } from "magic-sdk";
-import { HederaExtension } from "@magic-ext/hedera";
-import { MagicSigner } from "./signers/magic/MagicSigner";
-import { HederaProvider, HederaSigner } from "./signers/hedera";
-import { getConfig } from "./services/ConfigService";
+import {ParametersBuilder} from "./ParametersBuilder";
+import {CryptoFlowServiceStrategy} from "./models/CryptoFlow";
+import {NodeInfo} from "./models/MirrorNode";
+import * as FingerprintJS from '@fingerprintjs/fingerprintjs-pro'
+import {File} from 'nft.storage';
+import {decrypt, encrypt} from "./helpers/SecurityHelper";
+import {Magic, MagicSDKAdditionalConfiguration} from 'magic-sdk';
+import {HederaExtension} from '@magic-ext/hedera';
+import {MagicSigner} from "./signers/magic/MagicSigner";
+import {HederaProvider, HederaSigner} from "./signers/hedera";
+import TokenServiceContext from "./strategies/TokenServiceContext";
+import AccountServiceContext from "./strategies/AccountServiceContext";
+import SignServiceContext from "./strategies/SignServiceContext";
+import ContractServiceContext from "./strategies/ContractServiceContext";
+import TradeServiceContext from "./strategies/TradeServiceContext";
 
+@injectable()
 export class BladeSDK {
+    // todo update method annotations
+
     private apiKey: string = "";
     private network: Network = Network.Testnet;
+    private chainId: KnownChainIds = KnownChainIds.HEDERA_TESTNET;
     private dAppCode: string = "";
     private visitorId: string = "";
     private sdkEnvironment: SdkEnvironment = SdkEnvironment.Prod;
     private sdkVersion: string = config.sdkVersion;
     private readonly webView: boolean = false;
-    private config: BladeConfig | null = null;
     private accountProvider: AccountProvider | null = null;
-    private signer: Signer = null!;
+    private signer: Signer | ethers.Signer | null = null;
     private magic: any;
     private userAccountId: string = "";
     private userPublicKey: string = "";
@@ -139,16 +76,35 @@ export class BladeSDK {
 
     /**
      * BladeSDK constructor.
+     * @param configService - instance of ConfigService
+     * @param apiService - instance of ApiService
+     * @param accountServiceContext - instance of AccountServiceContext
+     * @param tokenServiceContext - instance of TokenServiceContext
+     * @param signServiceContext - instance of SignServiceContext
+     * @param contractServiceContext - instance of ContractServiceContext
+     * @param tradeServiceContext - instance of TradeServiceContext
+     * @param cryptoFlowService - instance of CryptoFlowService
      * @param isWebView - true if you are using this SDK in webview of native app. It changes the way of communication with native app.
      */
-    constructor(isWebView = false) {
+    constructor(
+        @inject('configService') private readonly configService: ConfigService,
+        @inject('apiService') private readonly apiService: ApiService,
+        @inject('accountServiceContext') private readonly accountServiceContext: AccountServiceContext,
+        @inject('tokenServiceContext') private readonly tokenServiceContext: TokenServiceContext,
+        @inject('signServiceContext') private readonly signServiceContext: SignServiceContext,
+        @inject('contractServiceContext') private readonly contractServiceContext: ContractServiceContext,
+        @inject('tradeServiceContext') private readonly tradeServiceContext: TradeServiceContext,
+
+        @inject('cryptoFlowService') private readonly cryptoFlowService: CryptoFlowService,
+        @inject("isWebView") private readonly isWebView: boolean
+    ) {
         this.webView = isWebView;
     }
 
     /**
-     * Inits instance of BladeSDK for correct work with Blade API and Hedera network.
+     * Inits instance of BladeSDK for correct work with Blade API and other endpoints.
      * @param apiKey Unique key for API provided by Blade team.
-     * @param network "Mainnet" or "Testnet" of Hedera network
+     * @param chainId https://github.com/ethereum-lists/chains
      * @param dAppCode your dAppCode - request specific one by contacting us
      * @param visitorId client unique id. If not provided, SDK will try to get it using fingerprintjs-pro library
      * @param sdkEnvironment environment to choose BladeAPI server (Prod, CI)
@@ -158,21 +114,28 @@ export class BladeSDK {
      */
     async init(
         apiKey: string,
-        network: string,
+        chainId: string | KnownChainIds,
         dAppCode: string,
         visitorId: string,
         sdkEnvironment: SdkEnvironment = SdkEnvironment.Prod,
         sdkVersion: string = config.sdkVersion,
         completionKey?: string
     ): Promise<InfoData> {
+        // TODO make service and variable values cleanup on init (in case of re-init)
+
         this.apiKey = apiKey;
-        this.network = StringHelpers.stringToNetwork(network);
+        this.chainId = StringHelpers.stringToChainId(chainId);
+        this.network = ChainMap[this.chainId].isTestnet ? Network.Testnet : Network.Mainnet;
         this.dAppCode = dAppCode;
         this.sdkEnvironment = sdkEnvironment;
         this.sdkVersion = sdkVersion;
         this.visitorId = visitorId;
 
-        initApiService(apiKey, dAppCode, sdkEnvironment, sdkVersion, this.network, visitorId);
+        // TODO
+        // set account on init
+        // remove accountId and privateKey fields from methods
+
+        this.apiService.initApiService(apiKey, dAppCode, sdkEnvironment, sdkVersion, this.chainId, visitorId);
         if (!this.visitorId) {
             try {
                 const [decryptedVisitorId, timestamp, env] = (
@@ -193,48 +156,37 @@ export class BladeSDK {
             try {
                 const fpConfig = {
                     apiKey: "key", // the valid key is passed on the backend side, and ".get()" does not require the key as well
-                    scriptUrlPattern: `${getApiUrl(true)}/fpjs/<version>/<loaderVersion>`,
-                    endpoint: ["https://identity.bladewallet.io", FingerprintJS.defaultEndpoint],
+                    scriptUrlPattern: `${this.apiService.getApiUrl(true)}/fpjs/<version>/<loaderVersion>`,
+                    endpoint: [
+                        await this.configService.getConfig(`fingerprintSubdomain`),
+                        FingerprintJS.defaultEndpoint
+                    ]
                 };
-
                 const fpPromise = await FingerprintJS.load(fpConfig);
                 this.visitorId = (await fpPromise.get()).visitorId;
                 localStorage.setItem(
                     "BladeSDK.visitorId",
                     await encrypt(`${this.visitorId}@${Date.now()}@${this.sdkEnvironment}`, this.apiKey)
                 );
-            } catch (error: any) {
+            } catch (error) {
                 // tslint:disable-next-line:no-console
                 console.log("failed to get visitor id", error);
             }
         }
-        setVisitorId(this.visitorId);
+        this.apiService.setVisitorId(this.visitorId);
+        this.accountServiceContext.init(this.chainId, null); // init without signer, to be able to create account
+        this.tokenServiceContext.init(this.chainId, null); // init without signer, to be able to getBalance
+        this.tradeServiceContext.init(this.chainId, null); // init without signer, to be able to get14Url
 
-        return this.sendMessageToNative(completionKey, {
-            apiKey: this.apiKey,
-            dAppCode: this.dAppCode,
-            network: this.network,
-            visitorId: this.visitorId,
-            sdkEnvironment: this.sdkEnvironment,
-            sdkVersion: this.sdkVersion,
-            nonce: Math.round(Math.random() * 1000000000),
-        });
+        return this.sendMessageToNative(completionKey, this.getInfoData());
     }
 
     /**
      * Returns information about initialized instance of BladeSDK.
      * @returns {InfoData}
      */
-    getInfo(completionKey?: string): Promise<InfoData> {
-        return this.sendMessageToNative(completionKey, {
-            apiKey: this.apiKey,
-            dAppCode: this.dAppCode,
-            network: this.network,
-            visitorId: this.visitorId,
-            sdkEnvironment: this.sdkEnvironment,
-            sdkVersion: this.sdkVersion,
-            nonce: Math.round(Math.random() * 1000000000),
-        });
+    async getInfo(completionKey?: string): Promise<InfoData> {
+        return this.sendMessageToNative(completionKey, this.getInfoData());
     }
 
     async setUser(
@@ -242,33 +194,49 @@ export class BladeSDK {
         accountIdOrEmail: string,
         privateKey?: string,
         completionKey?: string
-    ): Promise<{ accountId: string; accountProvider: AccountProvider }> {
+    ): Promise<UserInfoData> {
         try {
             switch (accountProvider) {
-                case AccountProvider.Hedera:
-                    const key = PrivateKey.fromStringDer(privateKey!);
-                    this.userAccountId = accountIdOrEmail;
-                    this.userPrivateKey = privateKey!;
-                    this.userPublicKey = key.publicKey.toStringDer();
-                    const provider = new HederaProvider({ client: this.getClient() });
-                    this.signer = new HederaSigner(this.userAccountId, key, provider);
+                case AccountProvider.PrivateKey:
+                    if (ChainMap[this.chainId].serviceStrategy === ChainServiceStrategy.Hedera) {
+                        const key = PrivateKey.fromString(privateKey!);
+                        const client = ChainMap[this.chainId].isTestnet ? Client.forTestnet() : Client.forMainnet();
+                        this.userAccountId = accountIdOrEmail;
+                        this.userPrivateKey = privateKey!;
+                        this.userPublicKey = key.publicKey.toStringDer();
+                        const provider = new HederaProvider({client})
+                        this.signer = new HederaSigner(this.userAccountId, key, provider);
+                    } else if (ChainMap[this.chainId].serviceStrategy === ChainServiceStrategy.Ethereum) {
+                        const key = PrivateKey.fromStringECDSA(privateKey!);
+                        this.userPrivateKey = `0x${key.toStringRaw()}`;
+                        this.userPublicKey = `0x${key.publicKey.toStringRaw()}`;
+                        
+                        this.userAccountId = ethers.utils.computeAddress(this.userPublicKey);
+                        const alchemyRpc = await this.configService.getConfig(`alchemy${this.network}RPC`);
+                        const alchemyApiKey = await this.configService.getConfig(`alchemy${this.network}APIKey`);
+
+                        const provider = new ethers.providers.JsonRpcProvider(alchemyRpc + alchemyApiKey);
+                        this.signer = new ethers.Wallet(this.userPrivateKey, provider);
+                    } else {
+                        throw new Error('Unsupported chain');
+                    }
                     break;
                 case AccountProvider.Magic:
                     let userInfo;
                     if (!this.magic) {
-                        await this.initMagic();
+                        await this.initMagic(this.chainId);
                     }
 
                     if (await this.magic?.user.isLoggedIn()) {
-                        userInfo = await this.magic.user.getInfo();
+                        userInfo = await this.magic.user.getInfo()
                         if (userInfo.email !== accountIdOrEmail) {
-                            this.magic.user.logout();
-                            await this.magic.auth.loginWithMagicLink({ email: accountIdOrEmail, showUI: false });
-                            userInfo = await this.magic.user.getInfo();
+                            this.magic.user.logout()
+                            await this.magic.auth.loginWithMagicLink({ email: accountIdOrEmail, showUI: false })
+                            userInfo = await this.magic.user.getInfo()
                         }
                     } else {
-                        await this.magic?.auth.loginWithMagicLink({ email: accountIdOrEmail, showUI: false });
-                        userInfo = await this.magic?.user.getInfo();
+                        await this.magic?.auth.loginWithMagicLink({ email: accountIdOrEmail, showUI: false })
+                        userInfo = await this.magic?.user.getInfo()
                     }
 
                     if (!(await this.magic?.user.isLoggedIn())) {
@@ -276,19 +244,33 @@ export class BladeSDK {
                     }
 
                     this.userAccountId = userInfo.publicAddress;
-                    const { publicKeyDer } = await this.magic.hedera.getPublicKey();
-                    this.userPublicKey = publicKeyDer;
-                    const magicSign = (message: any) => this.magic.hedera.sign(message);
-                    this.signer = new MagicSigner(this.userAccountId, this.network, publicKeyDer, magicSign);
+                    if (ChainMap[this.chainId].serviceStrategy === ChainServiceStrategy.Hedera) {
+                        const { publicKeyDer } = await this.magic.hedera.getPublicKey();
+                        this.userPublicKey = publicKeyDer;
+                        const magicSign = (message: any) => this.magic.hedera.sign(message);
+                        this.signer = new MagicSigner(this.userAccountId, this.network, publicKeyDer, magicSign);
+                    } else if (ChainMap[this.chainId].serviceStrategy === ChainServiceStrategy.Ethereum) {
+                        const provider = new ethers.providers.Web3Provider(this.magic.rpcProvider);
+                        this.signer = provider.getSigner();
+                        // TODO check how to get public key from magic
+                        this.userPublicKey = "";
+                    }
                     break;
                 default:
                     break;
             }
+            this.tokenServiceContext.init(this.chainId, this.signer!);
+            this.accountServiceContext.init(this.chainId, this.signer!);
+            this.signServiceContext.init(this.chainId, this.signer!);
+            this.contractServiceContext.init(this.chainId, this.signer!);
+            this.tradeServiceContext.init(this.chainId, this.signer!);
             this.accountProvider = accountProvider;
 
             return this.sendMessageToNative(completionKey, {
                 accountId: this.userAccountId,
                 accountProvider: this.accountProvider,
+                userPrivateKey: this.userPrivateKey,
+                userPublicKey: this.userPublicKey
             });
         } catch (error: any) {
             this.userAccountId = "";
@@ -296,7 +278,7 @@ export class BladeSDK {
             this.userPublicKey = "";
             this.signer = null!;
             this.magic = null;
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -308,7 +290,7 @@ export class BladeSDK {
             this.signer = null!;
             if (this.accountProvider === AccountProvider.Magic) {
                 if (!this.magic) {
-                    await this.initMagic();
+                    await this.initMagic(this.chainId);
                 }
                 await this.magic.user.logout();
             }
@@ -317,14 +299,14 @@ export class BladeSDK {
             return this.sendMessageToNative(completionKey, {
                 success: true,
             });
-        } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+        } catch (error) {
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
     /**
-     * Get hbar and token balances for specific account.
-     * @param accountId Hedera account id (0.0.xxxxx)
+     * Get balance and token balances for specific account.
+     * @param accountId Hedera account id (0.0.xxxxx) or Ethereum address (0x...) or empty string to use current user account
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {BalanceData} hbars: number, tokens: [{tokenId: string, balance: number}]
      */
@@ -333,35 +315,92 @@ export class BladeSDK {
             if (!accountId) {
                 accountId = this.getUser().accountId;
             }
-            return this.sendMessageToNative(completionKey, await getAccountBalance(accountId));
-        } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            return this.sendMessageToNative(completionKey, await this.tokenServiceContext.getBalance(accountId));
+        } catch (error) {
+            throw this.sendMessageToNative(completionKey, null, error);
+        }
+    }
+
+    /**
+     * Send HBAR/ETH to specific account.
+     * @param receiverId receiver account id (0.0.xxxxx)
+     * @param amount of hbars to send (decimal number)
+     * @param memo transaction memo
+     * @param completionKey optional field bridge between mobile webViews and native apps
+     * @returns Promise<TransactionResponseData>
+     */
+    async transferBalance(receiverId: string, amount: string, memo: string, completionKey?: string): Promise<TransactionResponseData> {
+        try {
+            const result = await this.tokenServiceContext.transferBalance({
+                from: this.userAccountId,
+                to: receiverId,
+                amount,
+                memo,
+            })
+
+            return this.sendMessageToNative(completionKey, result);
+        } catch (error) {
+            throw this.sendMessageToNative(completionKey, null, error);
+        }
+    }
+
+    /**
+     * Send token to specific account.
+     * @param tokenAddress token id to send (0.0.xxxxx or 0x123456789abcdef...)
+     * @param receiverId receiver account address (0.0.xxxxx or 0x123456789abcdef...)
+     * @param amountOrSerial amount of fungible tokens to send (with token-decimals correction) on NFT serial number. (e.g. amount 0.01337 when token decimals 8 will send 1337000 units of token)
+     * @param memo transaction memo
+     * @param freeTransfer if true, Blade will pay fee transaction. Only for single dApp configured fungible-token. In that case tokenId not used
+     * @param completionKey optional field bridge between mobile webViews and native apps
+     * @returns Promise<TransactionResponseData>
+     */
+    async transferTokens(
+        tokenAddress: string,
+        receiverId: string,
+        amountOrSerial: string,
+        memo: string,
+        freeTransfer: boolean = false,
+        completionKey?: string
+    ): Promise<TransactionResponseData> {
+        try {
+            // TODO send NFT for Ethereum tokens
+            const result = await this.tokenServiceContext.transferToken({
+                from: this.userAccountId,
+                to: receiverId,
+                amountOrSerial,
+                tokenAddress,
+                memo,
+                freeTransfer
+            })
+            return this.sendMessageToNative(completionKey, result);
+        } catch (error) {
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
     async getCoinList(completionKey?: string): Promise<CoinListData> {
         try {
-            const coinList: CoinInfoRaw[] = await getCoins({
+            const coinList: CoinInfoRaw[] = await this.apiService.getCoins({
                 dAppCode: this.dAppCode,
                 visitorId: this.visitorId,
             });
 
             const result: CoinListData = {
-                coins: coinList.map((coin) => {
+                coins: coinList.map(coin => {
                     return {
                         ...coin,
-                        platforms: Object.keys(coin.platforms).map((name) => {
+                        platforms: Object.keys(coin.platforms).map(name => {
                             return {
                                 name,
-                                address: coin.platforms[name],
-                            };
-                        }),
-                    };
-                }),
+                                address: coin.platforms[name]
+                            }
+                        })
+                    }
+                })
             };
             return this.sendMessageToNative(completionKey, result);
-        } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+        } catch (error) {
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -383,15 +422,15 @@ export class BladeSDK {
             let coinInfo: CoinData | null = null;
             try {
                 // try to get coin info from CoinGecko
-                coinInfo = await getCoinInfo(search, params);
-            } catch (error: any) {
+                coinInfo = await this.apiService.getCoinInfo(search, params);
+            } catch (error) {
                 // on fail try to get coin info from CoinGecko and match by address
-                const coinList: CoinInfoRaw[] = await getCoins(params);
-                const coin = coinList.find((item) => Object.values(item.platforms).includes(search));
+                const coinList: CoinInfoRaw[] = await this.apiService.getCoins(params);
+                const coin = coinList.find(item => Object.values(item.platforms).includes(search));
                 if (!coin) {
                     throw new Error(`Coin with address ${search} not found`);
                 }
-                coinInfo = await getCoinInfo(coin.id, params);
+                coinInfo = await this.apiService.getCoinInfo(coin.id, params);
             }
 
             const result: CoinInfoData = {
@@ -401,52 +440,8 @@ export class BladeSDK {
                 currency: currency.toLowerCase(),
             };
             return this.sendMessageToNative(completionKey, result);
-        } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
-        }
-    }
-
-    /**
-     * Send hbars to specific account.
-     * @param accountId sender account id (0.0.xxxxx)
-     * @param accountPrivateKey sender's hex-encoded private key with DER-header (302e020100300506032b657004220420...). ECDSA or Ed25519
-     * @param receiverId receiver account id (0.0.xxxxx)
-     * @param amount of hbars to send (decimal number)
-     * @param memo transaction memo
-     * @param completionKey optional field bridge between mobile webViews and native apps
-     * @returns Promise<TransactionReceiptData>
-     */
-    async transferHbars(
-        accountId: string,
-        accountPrivateKey: string,
-        receiverId: string,
-        amount: string,
-        memo: string,
-        completionKey?: string
-    ): Promise<TransactionReceiptData> {
-        try {
-            if (accountId && accountPrivateKey) {
-                await this.setUser(AccountProvider.Hedera, accountId, accountPrivateKey);
-            }
-            accountId = this.getUser().accountId;
-
-            const parsedAmount = parseFloat(amount);
-            return new TransferTransaction()
-                .addHbarTransfer(accountId, -1 * parsedAmount)
-                .addHbarTransfer(receiverId, parsedAmount)
-                .setTransactionMemo(memo)
-                .freezeWithSigner(this.signer)
-                .then((tx) => tx.signWithSigner(this.signer))
-                .then((tx) => tx.executeWithSigner(this.signer))
-                .then((result) => result.getReceiptWithSigner(this.signer))
-                .then((data) => {
-                    return this.sendMessageToNative(completionKey, formatReceipt(data));
-                })
-                .catch((error) => {
-                    return this.sendMessageToNative(completionKey, null, error);
-                });
-        } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+        } catch (error) {
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -455,8 +450,6 @@ export class BladeSDK {
      * @param contractId - contract id (0.0.xxxxx)
      * @param functionName - name of the contract function to call
      * @param paramsEncoded - function argument. Can be generated with {@link ParametersBuilder} object
-     * @param accountId - operator account id (0.0.xxxxx)
-     * @param accountPrivateKey - operator's hex-encoded private key with DER-header, ECDSA or Ed25519
      * @param gas - gas limit for the transaction
      * @param bladePayFee - if true, fee will be paid by Blade (note: msg.sender inside the contract will be Blade Payer account)
      * @param completionKey - optional field bridge between mobile webViews and native apps
@@ -466,53 +459,15 @@ export class BladeSDK {
         contractId: string,
         functionName: string,
         paramsEncoded: string | ParametersBuilder,
-        accountId: string,
-        accountPrivateKey: string,
         gas: number = 100000,
         bladePayFee: boolean = false,
         completionKey?: string
     ): Promise<TransactionReceiptData> {
         try {
-            if (accountId && accountPrivateKey) {
-                await this.setUser(AccountProvider.Hedera, accountId, accountPrivateKey);
-            }
-            bladePayFee = bladePayFee && (await getConfig("smartContract")).toLowerCase() === "true";
-            const contractFunctionParameters = await getContractFunctionBytecode(functionName, paramsEncoded);
-
-            let transaction: Transaction;
-            if (bladePayFee) {
-                const options = {
-                    dAppCode: this.dAppCode,
-                    visitorId: this.visitorId,
-                    contractFunctionParameters,
-                    contractId,
-                    functionName,
-                    gas,
-                };
-
-                const { transactionBytes } = await signContractCallTx(this.network, options);
-                transaction = Transaction.fromBytes(Buffer.from(transactionBytes, "base64"));
-            } else {
-                transaction = new ContractExecuteTransaction()
-                    .setContractId(contractId)
-                    .setGas(gas)
-                    .setFunction(functionName)
-                    .setFunctionParameters(contractFunctionParameters);
-            }
-
-            return transaction
-                .freezeWithSigner(this.signer)
-                .then((tx) => tx.signWithSigner(this.signer))
-                .then((tx) => tx.executeWithSigner(this.signer))
-                .then((result) => result.getReceiptWithSigner(this.signer))
-                .then((data) => {
-                    return this.sendMessageToNative(completionKey, formatReceipt(data));
-                })
-                .catch((error) => {
-                    return this.sendMessageToNative(completionKey, null, error);
-                });
-        } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            const result = await this.contractServiceContext.contractCallFunction(contractId, functionName, paramsEncoded, gas, bladePayFee);
+            return this.sendMessageToNative(completionKey, result);
+        } catch (error) {
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -521,182 +476,37 @@ export class BladeSDK {
      * @param contractId - contract id (0.0.xxxxx)
      * @param functionName - name of the contract function to call
      * @param paramsEncoded - function argument. Can be generated with {@link ParametersBuilder} object
-     * @param accountId - operator account id (0.0.xxxxx)
-     * @param accountPrivateKey - operator's hex-encoded private key with DER-header, ECDSA or Ed25519
      * @param gas - gas limit for the transaction
      * @param bladePayFee - if true, fee will be paid by Blade (note: msg.sender inside the contract will be Blade Payer account)
      * @param resultTypes - array of result types. Currently supported only plain data types
      * @param completionKey - optional field bridge between mobile webViews and native apps
-     * @returns {ContractCallQueryRecord[]}
+     * @returns {ContractCallQueryRecordsData}
      */
     async contractCallQueryFunction(
         contractId: string,
         functionName: string,
         paramsEncoded: string | ParametersBuilder,
-        accountId: string,
-        accountPrivateKey: string,
         gas: number = 100000,
         bladePayFee: boolean = false,
         resultTypes: string[],
-        completionKey?: string
-    ): Promise<ContractCallQueryRecord[]> {
+        completionKey?: string): Promise<ContractCallQueryRecordsData> {
         try {
-            if (accountId && accountPrivateKey) {
-                await this.setUser(AccountProvider.Hedera, accountId, accountPrivateKey);
-            }
-            const contractFunctionParameters = await getContractFunctionBytecode(functionName, paramsEncoded);
-            let response: ContractFunctionResult;
-            try {
-                if (bladePayFee) {
-                    const options = {
-                        dAppCode: this.dAppCode,
-                        visitorId: this.visitorId,
-                        contractFunctionParameters,
-                        contractId,
-                        functionName,
-                        gas,
-                    };
-                    const { contractFunctionResult, rawResult } = await apiCallContractQuery(this.network, options);
-
-                    response = new ContractFunctionResult({
-                        _createResult: false,
-                        contractId: contractFunctionResult?.contractId,
-                        errorMessage: "",
-                        bloom: Uint8Array.from([]),
-                        gasUsed: contractFunctionResult?.gasUsed,
-                        logs: [],
-                        createdContractIds: [],
-                        evmAddress: null,
-                        bytes: Buffer.from(rawResult, "base64"),
-                        gas: contractFunctionResult?.gasUsed,
-                        amount: contractFunctionResult?.gasUsed,
-                        functionParameters: Uint8Array.from([]),
-                        senderAccountId: null,
-                        stateChanges: [],
-                        contractNonces: [],
-                    });
-                } else {
-                    response = await new ContractCallQuery()
-                        .setContractId(contractId)
-                        .setGas(gas)
-                        .setFunction(functionName)
-                        .setFunctionParameters(contractFunctionParameters)
-                        .executeWithSigner(this.signer);
-                }
-
-                const values = parseContractQueryResponse(response, resultTypes);
-                return this.sendMessageToNative(completionKey, {
-                    values,
-                    gasUsed: parseInt(response.gasUsed.toString(), 10),
-                });
-            } catch (error: any) {
-                return this.sendMessageToNative(completionKey, null, error);
-            }
-        } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            const result = await this.contractServiceContext.contractCallQueryFunction(contractId, functionName, paramsEncoded, gas, bladePayFee, resultTypes);
+            return this.sendMessageToNative(completionKey, result);
+        } catch (error) {
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
-    /**
-     * Send token to specific account.
-     * @param tokenId token id to send (0.0.xxxxx)
-     * @param accountId sender account id (0.0.xxxxx)
-     * @param accountPrivateKey sender's hex-encoded private key with DER-header (302e020100300506032b657004220420...). ECDSA or Ed25519
-     * @param receiverID receiver account id (0.0.xxxxx)
-     * @param amountOrSerial amount of fungible tokens to send (with token-decimals correction) on NFT serial number
-     * @param memo transaction memo
-     * @param freeTransfer if true, Blade will pay fee transaction. Only for single dApp configured fungible-token. In that case tokenId not used
-     * @param completionKey optional field bridge between mobile webViews and native apps
-     * @returns Promise<TransactionReceiptData>
-     */
-    async transferTokens(
-        tokenId: string,
-        accountId: string,
-        accountPrivateKey: string,
-        receiverID: string,
-        amountOrSerial: string,
-        memo: string,
-        freeTransfer: boolean = false,
-        completionKey?: string
-    ): Promise<TransactionReceiptData> {
-        try {
-            if (accountId && accountPrivateKey) {
-                await this.setUser(AccountProvider.Hedera, accountId, accountPrivateKey);
-            }
-            accountId = this.getUser().accountId;
-
-            const meta = await requestTokenInfo(this.network, tokenId);
-            let isNFT = false;
-            if (meta.type === "NON_FUNGIBLE_UNIQUE") {
-                isNFT = true;
-                freeTransfer = false;
-            }
-            freeTransfer = freeTransfer && (await getConfig("freeTransfer")).toLowerCase() === "true";
-
-            const correctedAmount = parseFloat(amountOrSerial) * 10 ** parseInt(meta.decimals, 10);
-
-            if (freeTransfer) {
-                const options = {
-                    dAppCode: this.dAppCode,
-                    visitorId: this.visitorId,
-                    receiverAccountId: receiverID,
-                    senderAccountId: accountId,
-                    amount: correctedAmount,
-                    decimals: null,
-                    memo,
-                    // no tokenId, backend pick first token from list for currend dApp
-                };
-
-                const { transactionBytes } = await transferTokens(this.network, options);
-                const buffer = Buffer.from(transactionBytes, "base64");
-                const transaction = Transaction.fromBytes(buffer);
-
-                return transaction
-                    .freezeWithSigner(this.signer)
-                    .then((tx) => tx.signWithSigner(this.signer))
-                    .then((tx) => tx.executeWithSigner(this.signer))
-                    .then((result) => result.getReceiptWithSigner(this.signer))
-                    .then((data) => {
-                        return this.sendMessageToNative(completionKey, formatReceipt(data));
-                    })
-                    .catch((error) => {
-                        return this.sendMessageToNative(completionKey, null, error);
-                    });
-            } else {
-                const tokenTransferTx = new TransferTransaction().setTransactionMemo(memo);
-
-                if (isNFT) {
-                    tokenTransferTx.addNftTransfer(tokenId, parseInt(amountOrSerial, 10), accountId, receiverID);
-                } else {
-                    tokenTransferTx
-                        .addTokenTransfer(tokenId, receiverID, correctedAmount)
-                        .addTokenTransfer(tokenId, accountId, -1 * correctedAmount);
-                }
-                return tokenTransferTx
-                    .freezeWithSigner(this.signer)
-                    .then((tx) => tx.signWithSigner(this.signer))
-                    .then((tx) => tx.executeWithSigner(this.signer))
-                    .then((result) => result.getReceiptWithSigner(this.signer))
-                    .then((data) => {
-                        return this.sendMessageToNative(completionKey, formatReceipt(data));
-                    })
-                    .catch((error) => {
-                        return this.sendMessageToNative(completionKey, null, error);
-                    });
-            }
-        } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
-        }
-    }
-
-    /**
+    /*
+     /**
      * Sign scheduled transaction
      * @param scheduleId scheduled transaction id (0.0.xxxxx)
      * @param accountId account id (0.0.xxxxx)
      * @param accountPrivateKey optional field if you need specify account key (hex encoded privateKey with DER-prefix)
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {SignMessageData}
-     */
+     * /
     async signScheduleId(
         scheduleId: string,
         accountId: string,
@@ -724,6 +534,7 @@ export class BladeSDK {
             return this.sendMessageToNative(completionKey, null, error);
         }
     }
+     */
 
     /**
      * Create Hedera account (ECDSA). Only for configured dApps. Depending on dApp config Blade create account, associate tokens, etc.
@@ -736,70 +547,10 @@ export class BladeSDK {
      */
     async createAccount(privateKey?: string, deviceId?: string, completionKey?: string): Promise<CreateAccountData> {
         try {
-            let seedPhrase = "";
-            let key: PrivateKey;
-
-            if (privateKey) {
-                key = PrivateKey.fromString(privateKey);
-            } else {
-                const mnemonic = await Mnemonic.generate12();
-                key = await mnemonic.toStandardECDSAsecp256k1PrivateKey();
-                seedPhrase = mnemonic.toString();
-            }
-
-            const options = {
-                visitorId: this.visitorId,
-                dAppCode: this.dAppCode,
-                deviceId,
-                publicKey: key.publicKey.toStringDer(),
-            };
-
-            const { id, transactionBytes, updateAccountTransactionBytes, associationPresetTokenStatus, transactionId } =
-                await createAccount(this.network, options);
-
-            const client = this.getClient();
-            await executeUpdateAccountTransactions(client, key, updateAccountTransactionBytes, transactionBytes);
-
-            if (associationPresetTokenStatus === "FAILED") {
-                // if token association failed on backend, fetch /tokens and execute transactionBytes
-                try {
-                    const tokenTransaction = await getTokenAssociateTransactionForAccount(null, id);
-                    if (!tokenTransaction.transactionBytes) {
-                        throw new Error("Token association failed");
-                    }
-                    const buffer = Buffer.from(tokenTransaction.transactionBytes, "base64");
-                    const transaction = await Transaction.fromBytes(buffer).sign(key);
-                    await transaction.execute(client);
-                } catch (error: any) {
-                    // ignore this error, continue
-                }
-            }
-
-            if (updateAccountTransactionBytes) {
-                await confirmAccountUpdate({
-                    accountId: id,
-                    network: this.network,
-                    visitorId: this.visitorId,
-                    dAppCode: this.dAppCode,
-                }).catch(() => {
-                    // ignore this error, continue
-                });
-            }
-
-            const evmAddress = ethers.utils.computeAddress(`0x${key.publicKey.toStringRaw()}`);
-
-            const result = {
-                transactionId,
-                status: transactionId ? "PENDING" : "SUCCESS",
-                seedPhrase: seedPhrase.toString(),
-                publicKey: key.publicKey.toStringDer(),
-                privateKey: key.toStringDer(),
-                accountId: id || null,
-                evmAddress: evmAddress.toLowerCase(),
-            };
+            const result = await this.accountServiceContext.createAccount(privateKey, deviceId);
             return this.sendMessageToNative(completionKey, result);
-        } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+        } catch (error) {
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -812,67 +563,12 @@ export class BladeSDK {
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {CreateAccountData}
      */
-    async getPendingAccount(
-        transactionId: string,
-        mnemonic: string,
-        completionKey?: string
-    ): Promise<CreateAccountData> {
+    async getPendingAccount(transactionId: string, mnemonic: string, completionKey?: string): Promise<CreateAccountData> {
         try {
-            const seedPhrase = await Mnemonic.fromString(mnemonic);
-            const privateKey = await seedPhrase.toEcdsaPrivateKey();
-            const publicKey = privateKey.publicKey.toStringDer();
-            let evmAddress = ethers.utils.computeAddress(`0x${privateKey.publicKey.toStringRaw()}`);
-
-            const result = {
-                transactionId: transactionId || null,
-                status: AccountStatus.PENDING,
-                seedPhrase: seedPhrase.toString(),
-                publicKey,
-                privateKey: privateKey.toStringDer(),
-                accountId: null,
-                evmAddress: evmAddress.toLowerCase(),
-                queueNumber: 0,
-            };
-
-            const params = {
-                visitorId: this.visitorId,
-                network: this.network.toLowerCase(),
-                dAppCode: this.dAppCode,
-            };
-            const { status, queueNumber } = await checkAccountCreationStatus(transactionId, this.network, params);
-            if (status === AccountStatus.SUCCESS) {
-                const { id, transactionBytes, updateAccountTransactionBytes, originalPublicKey } =
-                    await getPendingAccountData(transactionId, this.network, params);
-
-                await executeUpdateAccountTransactions(
-                    this.getClient(),
-                    privateKey,
-                    updateAccountTransactionBytes,
-                    transactionBytes
-                );
-
-                await confirmAccountUpdate({
-                    accountId: id,
-                    network: this.network,
-                    visitorId: this.visitorId,
-                    dAppCode: this.dAppCode,
-                });
-
-                evmAddress = ethers.utils.computeAddress(
-                    `0x${originalPublicKey ? originalPublicKey.slice(-66) : privateKey.publicKey.toStringRaw()}`
-                );
-
-                result.transactionId = null;
-                result.status = status;
-                result.accountId = id;
-                result.evmAddress = evmAddress.toLowerCase();
-            } else {
-                result.queueNumber = queueNumber;
-            }
-
+            const result = await this.accountServiceContext.getPendingAccount(transactionId, mnemonic);
             return this.sendMessageToNative(completionKey, result);
-        } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+        } catch (error) {
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -881,36 +577,15 @@ export class BladeSDK {
      * @param deleteAccountId account id of account to delete (0.0.xxxxx)
      * @param deletePrivateKey account private key (DER encoded hex string)
      * @param transferAccountId if any funds left on account, they will be transferred to this account (0.0.xxxxx)
-     * @param operatorAccountId operator account id (0.0.xxxxx). Used for fee
-     * @param operatorPrivateKey operator's account private key (DER encoded hex string)
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {TransactionReceiptData}
      */
-    async deleteAccount(
-        deleteAccountId: string,
-        deletePrivateKey: string,
-        transferAccountId: string,
-        operatorAccountId: string,
-        operatorPrivateKey: string,
-        completionKey?: string
-    ): Promise<TransactionReceiptData> {
+    async deleteAccount(deleteAccountId: string, deletePrivateKey: string, transferAccountId: string, completionKey?: string): Promise<TransactionReceiptData> {
         try {
-            const client = this.getClient();
-            const deleteAccountKey = PrivateKey.fromString(deletePrivateKey);
-            const operatorAccountKey = PrivateKey.fromString(operatorPrivateKey);
-            client.setOperator(operatorAccountId, operatorAccountKey);
-
-            const transaction = new AccountDeleteTransaction()
-                .setAccountId(deleteAccountId)
-                .setTransferAccountId(transferAccountId)
-                .freezeWith(client);
-            const signTx = await transaction.sign(deleteAccountKey);
-            const txResponse = await signTx.execute(client);
-            const txReceipt = await txResponse.getReceipt(client);
-
-            return this.sendMessageToNative(completionKey, formatReceipt(txReceipt));
-        } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            const result = await this.accountServiceContext.deleteAccount(deleteAccountId, deletePrivateKey, transferAccountId);
+            return this.sendMessageToNative(completionKey, result);
+        } catch (error) {
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -925,27 +600,12 @@ export class BladeSDK {
     async getAccountInfo(accountId: string, completionKey?: string): Promise<AccountInfoData> {
         try {
             if (!accountId) {
-                accountId = this.getUser().accountId;
+                accountId = this.userAccountId;
             }
-            const account = await getAccountInfo(this.network, accountId);
-
-            const publicKey =
-                account.key._type === CryptoKeyType.ECDSA_SECP256K1
-                    ? PublicKey.fromStringECDSA(account.key.key)
-                    : PublicKey.fromStringED25519(account.key.key);
-            return this.sendMessageToNative(completionKey, {
-                accountId,
-                publicKey: publicKey.toStringDer(),
-                evmAddress: account.evm_address,
-                stakingInfo: {
-                    pendingReward: account.pending_reward,
-                    stakedNodeId: account.staked_node_id,
-                    stakePeriodStart: account.stake_period_start,
-                },
-                calculatedEvmAddress: ethers.utils.computeAddress(`0x${publicKey.toStringRaw()}`).toLowerCase(),
-            } as AccountInfoData);
-        } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            const result = await this.accountServiceContext.getAccountInfo(accountId);
+            return this.sendMessageToNative(completionKey, result);
+        } catch (error) {
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -954,55 +614,27 @@ export class BladeSDK {
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {nodes: NodeList[]}
      */
-    async getNodeList(completionKey?: string): Promise<{ nodes: NodeInfo[] }> {
+    async getNodeList(completionKey?: string): Promise<{nodes: NodeInfo[]}> {
         try {
-            const nodeList = await getNodeList(this.network);
-            return this.sendMessageToNative(completionKey, { nodes: nodeList });
-        } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            const result = await this.accountServiceContext.getNodeList();
+            return this.sendMessageToNative(completionKey, result);
+        } catch (error) {
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
     /**
      * Stake/unstake account
-     * @param accountId Hedera account id (0.0.xxxxx)
-     * @param accountPrivateKey account private key (DER encoded hex string)
      * @param nodeId node id to stake to. If negative or null, account will be unstaked
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {TransactionReceiptData}
      */
-    async stakeToNode(
-        accountId: string,
-        accountPrivateKey: string,
-        nodeId: number,
-        completionKey?: string
-    ): Promise<TransactionReceiptData> {
+    async stakeToNode(nodeId: number, completionKey?: string): Promise<TransactionReceiptData> {
         try {
-            if (accountId && accountPrivateKey) {
-                await this.setUser(AccountProvider.Hedera, accountId, accountPrivateKey);
-            }
-            accountId = this.getUser().accountId;
-
-            const transaction = new AccountUpdateTransaction().setAccountId(accountId);
-
-            if (nodeId < 0 || nodeId === null) {
-                transaction.clearStakedNodeId();
-            } else {
-                transaction.setStakedNodeId(nodeId);
-            }
-            return transaction
-                .freezeWithSigner(this.signer)
-                .then((tx) => tx.signWithSigner(this.signer))
-                .then((tx) => tx.executeWithSigner(this.signer))
-                .then((result) => result.getReceiptWithSigner(this.signer))
-                .then((data) => {
-                    return this.sendMessageToNative(completionKey, formatReceipt(data));
-                })
-                .catch((error) => {
-                    return this.sendMessageToNative(completionKey, null, error);
-                });
-        } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            const result = await this.accountServiceContext.stakeToNode(this.userAccountId, nodeId);
+            return this.sendMessageToNative(completionKey, result);
+        } catch (error) {
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -1012,30 +644,19 @@ export class BladeSDK {
      * Returned keys with DER header.
      * EvmAddress computed from Public key.
      * @param mnemonicRaw BIP39 mnemonic
-     * @param lookupNames if true, get accountIds from mirror node by public key
      * @param completionKey optional field bridge between mobile webViews and native apps
-     * @returns {PrivateKeyData}
+     * @returns {AccountPrivateData}
      */
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    async getKeysFromMnemonic(
-        mnemonicRaw: string,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        lookupNames: boolean = true,
-        completionKey?: string
-    ): Promise<PrivateKeyData> {
+    async getKeysFromMnemonic(mnemonicRaw: string, completionKey?: string): Promise<AccountPrivateData> {
         try {
-            const accounts = await getAccountsFromMnemonic(mnemonicRaw, this.network);
-            return this.sendMessageToNative(completionKey, {
-                privateKey: accounts[0].privateKey,
-                publicKey: accounts[0].publicKey,
-                accounts: accounts.map((acc) => acc.address),
-                evmAddress: accounts[0].evmAddress,
-            });
-        } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            const result = await this.accountServiceContext.getKeysFromMnemonic(mnemonicRaw);
+            return this.sendMessageToNative(completionKey, result);
+        } catch (error) {
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
+    // TODO implement searchAccounts
     /**
      * Get accounts list and keys from private key or mnemonic
      * Returned keys with DER header.
@@ -1043,7 +664,6 @@ export class BladeSDK {
      * @param keyOrMnemonic BIP39 mnemonic, private key with DER header
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {AccountPrivateData}
-     */
     async searchAccounts(keyOrMnemonic: string, completionKey?: string): Promise<AccountPrivateData> {
         try {
             const accounts: AccountPrivateRecord[] = [];
@@ -1060,7 +680,9 @@ export class BladeSDK {
             return this.sendMessageToNative(completionKey, null, error);
         }
     }
+    */
 
+    // TODO implement dropTokens
     /**
      * Bladelink drop to account
      * @param accountId Hedera account id (0.0.xxxxx)
@@ -1068,7 +690,6 @@ export class BladeSDK {
      * @param secretNonce configured for dApp. Should be kept in secret
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {TokenDropData}
-     */
     async dropTokens(
         accountId: string,
         accountPrivateKey: string,
@@ -1095,70 +716,42 @@ export class BladeSDK {
             return this.sendMessageToNative(completionKey, null, error);
         }
     }
+    */
 
     /**
      * Sign base64-encoded message with private key. Returns hex-encoded signature.
-     * @param messageString base64-encoded message to sign
-     * @param privateKey hex-encoded private key with DER header
+     * @param encodedMessage encoded message to sign
+     * @param encoding one of the supported encodings (hex/base64/utf8)
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {SignMessageData}
      */
-    sign(messageString: string, privateKey: string, completionKey?: string): Promise<SignMessageData> {
+    async sign(encodedMessage: string, encoding: SupportedEncoding, completionKey?: string): Promise<SignMessageData> {
         try {
-            const key = PrivateKey.fromString(privateKey);
-            const signed = key.sign(Buffer.from(messageString, "base64"));
-
-            return this.sendMessageToNative(completionKey, {
-                signedMessage: Buffer.from(signed).toString("hex"),
-            });
-        } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            const result = await this.signServiceContext.sign(encodedMessage, encoding);
+            return this.sendMessageToNative(completionKey, result);
+        } catch (error) {
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
     /**
      * Verify message signature by public key
-     * @param messageString base64-encoded message (same as provided to `sign()` method)
+     * @param encodedMessage encoded message (same as provided to `sign()` method)
+     * @param encoding one of the supported encodings (hex/base64/utf8)
      * @param signature hex-encoded signature (result from `sign()` method)
-     * @param publicKey hex-encoded public key with DER header
+     * @param addressOrPublicKey EVM-address, publicKey, or Hedera address (0x11f8D856FF2aF6700CCda4999845B2ed4502d8fB, 0x0385a2fa81f8acbc47fcfbae4aeee6608c2d50ac2756ed88262d102f2a0a07f5b8, 0.0.1512, or empty for current account)
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {SignVerifyMessageData}
      */
-    signVerify(
-        messageString: string,
-        signature: string,
-        publicKey: string,
-        completionKey?: string
-    ): Promise<SignVerifyMessageData> {
+    async verify(encodedMessage: string, encoding: SupportedEncoding, signature: string, addressOrPublicKey: string, completionKey?: string): Promise<SignVerifyMessageData> {
         try {
-            const valid = PublicKey.fromString(publicKey).verify(
-                Buffer.from(messageString, "base64"),
-                Buffer.from(signature, "hex")
-            );
-            return this.sendMessageToNative(completionKey, { valid });
-        } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
-        }
-    }
-
-    /**
-     * Sign base64-encoded message with private key using ethers lib. Returns hex-encoded signature.
-     * @param messageString base64-encoded message to sign
-     * @param privateKey hex-encoded private key with DER header
-     * @param completionKey optional field bridge between mobile webViews and native apps
-     * @returns {SignMessageData}
-     */
-    ethersSign(messageString: string, privateKey: string, completionKey?: string): Promise<SignMessageData> {
-        try {
-            const key = PrivateKey.fromString(privateKey);
-            const wallet = new ethers.Wallet(key.toStringRaw());
-            return wallet.signMessage(Buffer.from(messageString, "base64")).then((signedMessage) => {
-                return this.sendMessageToNative(completionKey, {
-                    signedMessage,
-                });
-            });
-        } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            if (!addressOrPublicKey) {
+                addressOrPublicKey = this.getUser().publicKey;
+            }
+            const result = await this.signServiceContext.verify(encodedMessage, encoding, signature, addressOrPublicKey);
+            return this.sendMessageToNative(completionKey, result);
+        } catch (error) {
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -1168,12 +761,11 @@ export class BladeSDK {
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {SplitSignatureData}
      */
-    splitSignature(signature: string, completionKey?: string): Promise<SplitSignatureData> {
+    async splitSignature(signature: string, completionKey?: string): Promise<SplitSignatureData> {
         try {
-            const { v, r, s } = ethers.utils.splitSignature(signature);
-            return this.sendMessageToNative(completionKey, { v, r, s });
-        } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            return this.sendMessageToNative(completionKey, await this.signServiceContext.splitSignature(signature));
+        } catch (error) {
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -1184,24 +776,12 @@ export class BladeSDK {
      * @param completionKey - optional field bridge between mobile webViews and native apps
      * @returns {SplitSignatureData}
      */
-    async getParamsSignature(
-        paramsEncoded: string | ParametersBuilder,
-        privateKey: string,
-        completionKey?: string
-    ): Promise<SplitSignatureData> {
+    async getParamsSignature(paramsEncoded: string | ParametersBuilder, privateKey: string, completionKey?: string): Promise<SplitSignatureData> {
         try {
-            const { types, values } = await parseContractFunctionParams(paramsEncoded);
-            const hash = ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(types, values));
-            const messageHashBytes = ethers.utils.arrayify(hash);
-
-            const key = PrivateKey.fromString(privateKey);
-            const wallet = new ethers.Wallet(key.toStringRaw());
-            const signed = await wallet.signMessage(messageHashBytes);
-
-            const { v, r, s } = ethers.utils.splitSignature(signed);
-            return this.sendMessageToNative(completionKey, { v, r, s });
-        } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            const result = await this.signServiceContext.getParamsSignature(paramsEncoded, privateKey);
+            return this.sendMessageToNative(completionKey, result);
+        } catch (error) {
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -1210,34 +790,22 @@ export class BladeSDK {
      * Transaction requested from mirror node. Every transaction requested for child transactions. Result are flattened.
      * If transaction type is not provided, all transactions will be returned.
      * If transaction type is CRYPTOTRANSFERTOKEN records will additionally contain plainData field with decoded data.
-     * @param accountId account id to get transactions for (0.0.xxxxx)
+     * @param accountAddress account id to get transactions for (0.0.xxxxx)
      * @param transactionType one of enum MirrorNodeTransactionType or "CRYPTOTRANSFERTOKEN"
      * @param nextPage link to next page of transactions from previous request
      * @param transactionsLimit number of transactions to return. Speed of request depends on this value if transactionType is set.
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {TransactionsHistoryData}
      */
-    async getTransactions(
-        accountId: string,
-        transactionType: string = "",
-        nextPage: string,
-        transactionsLimit: string = "10",
-        completionKey?: string
-    ): Promise<TransactionsHistoryData> {
+    async getTransactions(accountAddress: string, transactionType: string = "", nextPage: string, transactionsLimit: string = "10", completionKey?: string): Promise<TransactionsHistoryData> {
         try {
-            if (!accountId) {
-                accountId = this.getUser().accountId;
+            if (!accountAddress) {
+                accountAddress = this.userAccountId;
             }
-            const transactionData = await getTransactionsFrom(
-                this.network,
-                accountId,
-                transactionType,
-                nextPage,
-                transactionsLimit
-            );
-            return this.sendMessageToNative(completionKey, transactionData);
-        } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            const result = await this.accountServiceContext.getTransactions(accountAddress, transactionType, nextPage, transactionsLimit);
+            return this.sendMessageToNative(completionKey, result);
+        } catch (error) {
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -1249,72 +817,12 @@ export class BladeSDK {
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {IntegrationUrlData}
      */
-    async getC14url(
-        asset: string,
-        account: string,
-        amount: string,
-        completionKey?: string
-    ): Promise<IntegrationUrlData> {
+    async getC14url(asset: string, account: string, amount: string, completionKey?: string): Promise<IntegrationUrlData> {
         try {
-            let clientId;
-            if (this.dAppCode.includes("karate")) {
-                clientId = "17af1a19-2729-4ecc-8683-324a52eca6fc";
-            } else {
-                const { token } = await getC14token({
-                    network: this.network,
-                    visitorId: this.visitorId,
-                    dAppCode: this.dAppCode,
-                });
-                clientId = token;
-            }
-
-            const url = new URL("https://pay.c14.money/");
-            const purchaseParams: C14WidgetConfig = {
-                clientId,
-            };
-
-            switch (asset.toUpperCase()) {
-                case "USDC":
-                    {
-                        purchaseParams.targetAssetId = "b0694345-1eb4-4bc4-b340-f389a58ee4f3";
-                        purchaseParams.targetAssetIdLock = true;
-                    }
-                    break;
-                case "HBAR":
-                    {
-                        purchaseParams.targetAssetId = "d9b45743-e712-4088-8a31-65ee6f371022";
-                        purchaseParams.targetAssetIdLock = true;
-                    }
-                    break;
-                case "KARATE":
-                    {
-                        purchaseParams.targetAssetId = "057d6b35-1af5-4827-bee2-c12842faa49e";
-                        purchaseParams.targetAssetIdLock = true;
-                    }
-                    break;
-                default:
-                    {
-                        // check if asset is an uuid
-                        if (asset.split("-").length === 5) {
-                            purchaseParams.targetAssetId = asset;
-                            purchaseParams.targetAssetIdLock = true;
-                        }
-                    }
-                    break;
-            }
-            if (amount) {
-                purchaseParams.sourceAmount = amount;
-                purchaseParams.quoteAmountLock = true;
-            }
-            if (account) {
-                purchaseParams.targetAddress = account;
-                purchaseParams.targetAddressLock = true;
-            }
-
-            url.search = new URLSearchParams(purchaseParams as Record<keyof C14WidgetConfig, any>).toString();
-            return this.sendMessageToNative(completionKey, { url: url.toString() });
-        } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            const result = await this.tradeServiceContext.getC14url(asset, account, amount);
+            return this.sendMessageToNative(completionKey, result);
+        } catch (error) {
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -1333,65 +841,17 @@ export class BladeSDK {
         targetCode: string,
         strategy: CryptoFlowServiceStrategy,
         completionKey?: string
-    ): Promise<SwapQuotesData> {
+    ):Promise<SwapQuotesData> {
         try {
-            const useTestnet = this.network === Network.Testnet;
-            const chainId = parseInt(
-                KnownChainIds[useTestnet ? KnownChain.HEDERA_TESTNET : KnownChain.HEDERA_MAINNET],
-                10
-            );
-            const params: ICryptoFlowQuoteParams = {
-                sourceCode,
-                sourceAmount,
-                targetCode,
-                useTestnet,
-                walletAddress: HbarTokenId
-            };
-
-            switch (strategy.toLowerCase()) {
-                case CryptoFlowServiceStrategy.BUY.toLowerCase(): {
-                    params.targetChainId = chainId;
-                    break;
-                }
-                case CryptoFlowServiceStrategy.SELL.toLowerCase(): {
-                    params.sourceChainId = chainId;
-                    const assets = (await getCryptoFlowData(
-                        this.network,
-                        this.visitorId,
-                        CryptoFlowRoutes.ASSETS,
-                        params,
-                        strategy
-                    )) as ICryptoFlowAssets;
-
-                    if (assets?.limits?.rates && assets.limits.rates.length > 0) {
-                        (params as ICryptoFlowQuoteParams).targetAmount = assets.limits.rates[0] * sourceAmount;
-                    }
-                    break;
-                }
-                case CryptoFlowServiceStrategy.SWAP.toLowerCase(): {
-                    params.sourceChainId = chainId;
-                    params.targetChainId = chainId;
-                    break;
-                }
-            }
-
-            const quotes = await getCryptoFlowData(
-                this.network,
-                this.visitorId,
-                CryptoFlowRoutes.QUOTES,
-                params,
-                strategy
-            );
-            return this.sendMessageToNative(completionKey, { quotes });
-        } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            const result = await this.tradeServiceContext.exchangeGetQuotes(sourceCode, sourceAmount, targetCode, strategy);
+            return this.sendMessageToNative(completionKey, result);
+        } catch (error) {
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
     /**
      * Swap tokens
-     * @param accountId account id
-     * @param accountPrivateKey account private key
      * @param sourceCode name (HBAR, KARATE, other token code)
      * @param sourceAmount amount to swap
      * @param targetCode name (HBAR, KARATE, other token code)
@@ -1401,89 +861,18 @@ export class BladeSDK {
      * @returns {success: boolean}
      */
     async swapTokens(
-        accountId: string,
-        accountPrivateKey: string,
         sourceCode: string,
         sourceAmount: number,
         targetCode: string,
         slippage: number,
         serviceId: string,
         completionKey?: string
-    ): Promise<{ success: boolean }> {
+    ): Promise<{success: boolean}> {
         try {
-            if (accountId && accountPrivateKey) {
-                await this.setUser(AccountProvider.Hedera, accountId, accountPrivateKey);
-            }
-            accountId = this.getUser().accountId;
-
-            const useTestnet = this.network === Network.Testnet;
-            const chainId = +KnownChainIds[useTestnet ? KnownChain.HEDERA_TESTNET : KnownChain.HEDERA_MAINNET];
-            const quotes = (await getCryptoFlowData(
-                this.network,
-                this.visitorId,
-                CryptoFlowRoutes.QUOTES,
-                {
-                    sourceCode,
-                    sourceChainId: chainId,
-                    sourceAmount,
-                    targetCode,
-                    targetChainId: chainId,
-                    useTestnet,
-                },
-                CryptoFlowServiceStrategy.SWAP
-            )) as ICryptoFlowQuote[];
-            const selectedQuote = quotes.find((quote) => quote.service.id === serviceId);
-            if (!selectedQuote) {
-                throw new Error("Quote not found");
-            }
-
-            const stringifiedSlippage = slippage.toString();
-            const txData: ICryptoFlowTransaction = (await getCryptoFlowData(
-                this.network,
-                this.visitorId,
-                CryptoFlowRoutes.TRANSACTION,
-                {
-                    serviceId,
-                    sourceCode,
-                    sourceChainId: chainId,
-                    sourceAddress: selectedQuote.source.asset.address,
-                    sourceAmount,
-                    targetCode,
-                    targetChainId: chainId,
-                    targetAddress: selectedQuote.target.asset.address,
-                    walletAddress: accountId,
-                    slippage: stringifiedSlippage,
-                    useTestnet,
-                }
-            )) as ICryptoFlowTransaction;
-
-            if (await CryptoFlowService.validateMessage(txData)) {
-                await CryptoFlowService.executeAllowanceApprove(
-                    selectedQuote,
-                    accountId,
-                    this.network,
-                    this.signer,
-                    true
-                );
-                try {
-                    await CryptoFlowService.executeHederaSwapTx(txData.calldata, this.signer);
-                } catch (e) {
-                    await CryptoFlowService.executeAllowanceApprove(
-                        selectedQuote,
-                        accountId,
-                        this.network,
-                        this.signer,
-                        false
-                    );
-                    throw e;
-                }
-                await CryptoFlowService.executeHederaBladeFeeTx(selectedQuote, accountId, this.network, this.signer);
-            } else {
-                throw new Error("Invalid signature of txData");
-            }
-            return this.sendMessageToNative(completionKey, { success: true });
-        } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            const result = await this.tradeServiceContext.swapTokens(this.userAccountId, sourceCode, sourceAmount, targetCode, slippage, serviceId);
+            return this.sendMessageToNative(completionKey, result);
+        } catch (error) {
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -1510,78 +899,26 @@ export class BladeSDK {
         completionKey?: string
     ): Promise<IntegrationUrlData> {
         try {
-            if (!accountId) {
-                accountId = this.getUser().accountId;
-            }
-            const useTestnet = this.network === Network.Testnet;
-            const chainId = KnownChainIds[useTestnet ? KnownChain.HEDERA_TESTNET : KnownChain.HEDERA_MAINNET];
-            const stringifiedSlippage = slippage.toString();
-            const params: ICryptoFlowAssetsParams | ICryptoFlowQuoteParams | ICryptoFlowTransactionParams = {
-                sourceCode,
-                sourceAmount,
-                targetCode,
-                useTestnet,
-                walletAddress: accountId,
-                slippage: stringifiedSlippage,
-            };
-
-            switch (strategy.toLowerCase()) {
-                case CryptoFlowServiceStrategy.BUY.toLowerCase(): {
-                    params.targetChainId = +chainId;
-                    break;
-                }
-                case CryptoFlowServiceStrategy.SELL.toLowerCase(): {
-                    params.sourceChainId = +chainId;
-                    const assets = (await getCryptoFlowData(
-                        this.network,
-                        this.visitorId,
-                        CryptoFlowRoutes.ASSETS,
-                        params,
-                        strategy
-                    )) as ICryptoFlowAssets;
-
-                    if (assets?.limits?.rates && assets.limits.rates.length > 0) {
-                        params.targetAmount = assets.limits.rates[0] * sourceAmount;
-                    }
-                    break;
-                }
-            }
-
-            const quotes = (await getCryptoFlowData(
-                this.network,
-                this.visitorId,
-                CryptoFlowRoutes.QUOTES,
-                params,
-                strategy
-            )) as ICryptoFlowQuote[];
-            const selectedQuote = quotes.find((quote) => quote.service.id === serviceId);
-            if (!selectedQuote) {
-                throw new Error("Quote not found");
-            }
-
-            return this.sendMessageToNative(completionKey, { url: selectedQuote.widgetUrl });
-        } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            const result = await this.tradeServiceContext.getTradeUrl(strategy, accountId, sourceCode, sourceAmount, targetCode, slippage, serviceId);
+            return this.sendMessageToNative(completionKey, result);
+        } catch (error) {
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
     /**
      * Create token (NFT or Fungible Token)
-     * @param treasuryAccountId treasury account id
-     * @param supplyPrivateKey supply account private key
-     * @param tokenName token name (string up to 100 bytes)
-     * @param tokenSymbol token symbol (string up to 100 bytes)
-     * @param isNft set token type NFT
-     * @param keys token keys
-     * @param decimals token decimals (0 for nft)
-     * @param initialSupply token initial supply (0 for nft)
-     * @param maxSupply token max supply
-     * @param completionKey optional field bridge between mobile webViews and native apps
+     * @param tokenName: token name (string up to 100 bytes)
+     * @param tokenSymbol: token symbol (string up to 100 bytes)
+     * @param isNft: set token type NFT
+     * @param keys: token keys
+     * @param decimals: token decimals (0 for nft)
+     * @param initialSupply: token initial supply (0 for nft)
+     * @param maxSupply: token max supply
+     * @param completionKey: optional field bridge between mobile webViews and native apps
      * @returns {tokenId: string}
      */
     async createToken(
-        treasuryAccountId: string,
-        supplyPrivateKey: string,
         tokenName: string,
         tokenSymbol: string,
         isNft: boolean,
@@ -1590,256 +927,70 @@ export class BladeSDK {
         initialSupply: number,
         maxSupply: number = 250,
         completionKey?: string
-    ): Promise<{ tokenId: string }> {
+    ): Promise<{tokenId: string}> {
         try {
-            if (treasuryAccountId && supplyPrivateKey) {
-                await this.setUser(AccountProvider.Hedera, treasuryAccountId, supplyPrivateKey);
-            }
-            treasuryAccountId = this.getUser().accountId;
-            const supplyPublicKey = PublicKey.fromString(this.getUser().publicKey);
-
-            let adminKey: PrivateKey | null = null;
-
-            const tokenType = isNft ? TokenType.NonFungibleUnique : TokenType.FungibleCommon;
-            if (isNft) {
-                decimals = 0;
-                initialSupply = 0;
-            }
-
-            if (typeof keys === "string") {
-                keys = JSON.parse(keys) as KeyRecord[];
-            }
-
-            let nftCreate = new TokenCreateTransaction()
-                .setTokenName(tokenName)
-                .setTokenSymbol(tokenSymbol)
-                .setTokenType(tokenType)
-                .setDecimals(decimals)
-                .setInitialSupply(initialSupply)
-                .setTreasuryAccountId(treasuryAccountId)
-                .setSupplyType(TokenSupplyType.Finite)
-                .setMaxSupply(maxSupply)
-                .setSupplyKey(supplyPublicKey);
-            for (const key of keys) {
-                const privateKey = PrivateKey.fromString(key.privateKey);
-
-                switch (key.type) {
-                    case KeyType.admin:
-                        nftCreate.setAdminKey(privateKey);
-                        adminKey = privateKey;
-                        break;
-                    case KeyType.kyc:
-                        nftCreate.setKycKey(privateKey);
-                        break;
-                    case KeyType.freeze:
-                        nftCreate.setFreezeKey(privateKey);
-                        break;
-                    case KeyType.wipe:
-                        nftCreate.setWipeKey(privateKey);
-                        break;
-                    case KeyType.pause:
-                        nftCreate.setPauseKey(privateKey);
-                        break;
-                    case KeyType.feeSchedule:
-                        nftCreate.setFeeScheduleKey(privateKey);
-                        break;
-                    default:
-                        throw new Error("Unknown key type");
-                }
-            }
-            nftCreate = await nftCreate.freezeWithSigner(this.signer);
-            let nftCreateTxSign;
-
-            if (adminKey) {
-                nftCreateTxSign = await nftCreate.sign(adminKey);
-            } else {
-                nftCreateTxSign = await nftCreate.signWithSigner(this.signer);
-            }
-
-            const nftCreateSubmit = await nftCreateTxSign.executeWithSigner(this.signer);
-            const nftCreateRx = await nftCreateSubmit.getReceiptWithSigner(this.signer);
-
-            const tokenId = nftCreateRx.tokenId?.toString();
-            return this.sendMessageToNative(completionKey, { tokenId }, null);
-        } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            const result = await this.tokenServiceContext.createToken(tokenName, tokenSymbol, isNft, this.userAccountId, this.userPublicKey, keys, decimals, initialSupply, maxSupply);
+            return this.sendMessageToNative(completionKey, result, null);
+        } catch (error) {
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
     /**
-     * Associate token to account. Association fee will be covered by Blade, if tokenId configured in dApp
+     * Associate token to account
      *
-     * @param tokenId token id to associate. Empty to associate all tokens configured in dApp
-     * @param accountId account id to associate token
-     * @param accountPrivateKey account private key
-     * @param completionKey optional field bridge between mobile webViews and native apps
+     * @param tokenId: token id
+     * @param completionKey: optional field bridge between mobile webViews and native apps
      */
     async associateToken(
         tokenId: string,
-        accountId: string,
-        accountPrivateKey: string,
         completionKey?: string
     ): Promise<TransactionReceiptData> {
         try {
-            if (accountId && accountPrivateKey) {
-                await this.setUser(AccountProvider.Hedera, accountId, accountPrivateKey);
-            }
-            accountId = this.getUser().accountId;
-
-            let transaction: Transaction;
-            const freeAssociationTokens = (await getConfig("tokens"))[this.network.toLowerCase()]?.association || [];
-            if (freeAssociationTokens.includes(tokenId) || !tokenId) {
-                const result = await getTokenAssociateTransactionForAccount(tokenId, accountId);
-                if (!result.transactionBytes) {
-                    throw new Error("Failed to get transaction bytes for free association. Token already associated?");
-                }
-                const buffer = Buffer.from(result.transactionBytes, "base64");
-                transaction = Transaction.fromBytes(buffer);
-            } else {
-                transaction = await new TokenAssociateTransaction()
-                    .setAccountId(accountId)
-                    .setTokenIds([tokenId])
-                    .freezeWithSigner(this.signer);
-            }
-            return transaction
-                .signWithSigner(this.signer)
-                .then((tx) => tx.executeWithSigner(this.signer))
-                .then((result) => result.getReceiptWithSigner(this.signer))
-                .then((txReceipt) => {
-                    if (txReceipt.status !== Status.Success) {
-                        throw new Error(`Association failed`);
-                    }
-                    return this.sendMessageToNative(completionKey, formatReceipt(txReceipt));
-                })
-                .catch((error) => {
-                    return this.sendMessageToNative(completionKey, null, error);
-                });
-        } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            const result = await this.tokenServiceContext.associateToken(tokenId, this.userAccountId!);
+            return this.sendMessageToNative(completionKey, result);
+        } catch (error) {
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
     /**
      * Mint one NFT
      *
-     * @param tokenId token id to mint NFT
-     * @param accountId token supply account id
-     * @param accountPrivateKey token supply private key
-     * @param file image to mint (File or base64 DataUrl image, eg.: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAA...)
-     * @param metadata NFT metadata (JSON object)
-     * @param storageConfig {NFTStorageConfig} IPFS provider config
-     * @param completionKey optional field bridge between mobile webViews and native apps
+     * @param tokenId: token id to mint NFT
+     * @param file: image to mint (File or base64 DataUrl image, eg.: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAA...)
+     * @param metadata: NFT metadata (JSON object)
+     * @param storageConfig: {NFTStorageConfig} IPFS provider config
+     * @param completionKey: optional field bridge between mobile webViews and native apps
      */
     async nftMint(
         tokenId: string,
-        accountId: string,
-        accountPrivateKey: string,
         file: File | string,
-        metadata: object,
+        metadata: {},
         storageConfig: NFTStorageConfig,
         completionKey?: string
     ): Promise<TransactionReceiptData> {
         try {
-            if (typeof file === "string") {
-                file = dataURLtoFile(file, "filename");
-            }
-            if (typeof metadata === "string") {
-                metadata = JSON.parse(metadata);
-            }
-
-            const groupSize = 1;
-            const amount = 1;
-
-            if (accountId && accountPrivateKey) {
-                await this.setUser(AccountProvider.Hedera, accountId, accountPrivateKey);
-            }
-
-            let storageClient: NFTStorage;
-            if (storageConfig.provider === NFTStorageProvider.nftStorage) {
-                // TODO implement through interfaces
-                storageClient = new NFTStorage({ token: storageConfig.apiKey });
-            } else {
-                throw new Error("Unknown nft storage provider");
-            }
-
-            const fileName = file.name;
-            const dirCID = await storageClient.storeDirectory([file]);
-
-            metadata = {
-                name: fileName,
-                type: file.type,
-                creator: "Blade Labs",
-                ...metadata,
-                image: `ipfs://${dirCID}/${encodeURIComponent(fileName)}`,
-            };
-            const metadataCID = await storageClient.storeBlob(
-                new File([JSON.stringify(metadata)], "metadata.json", { type: "application/json" })
-            );
-
-            const CIDs = [metadataCID];
-            const mdArray = new Array(amount).fill(0).map((el, index) => Buffer.from(CIDs[index % CIDs.length]));
-            const mdGroup = mdArray.splice(0, groupSize);
-
-            return new TokenMintTransaction()
-                .setTokenId(tokenId)
-                .setMetadata(mdGroup)
-                .setMaxTransactionFee(Hbar.from(2 * groupSize, HbarUnit.Hbar))
-                .freezeWithSigner(this.signer)
-                .then((tx) => tx.signWithSigner(this.signer))
-                .then((tx) => tx.executeWithSigner(this.signer))
-                .then((result) => result.getReceiptWithSigner(this.signer))
-                .then((txReceipt) => {
-                    if (txReceipt.status !== Status.Success) {
-                        throw new Error(`Mint failed`);
-                    }
-                    return this.sendMessageToNative(completionKey, formatReceipt(txReceipt));
-                })
-                .catch((error) => {
-                    return this.sendMessageToNative(completionKey, null, error);
-                });
-        } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            const result = await this.tokenServiceContext.nftMint(tokenId, file, metadata, storageConfig);
+            return this.sendMessageToNative(completionKey, result);
+        } catch (error) {
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
-    async getTokenInfo(tokenId: string, serial: string = "", completionKey?: string): Promise<TokenInfoData> {
-        try {
-            const token = await requestTokenInfo(this.network, tokenId);
-            let nft = null;
-            let metadata = null;
-            if (token.type === TokenType.NonFungibleUnique.toString() && serial) {
-                nft = await getNftInfo(this.network, tokenId, serial);
-                metadata = await getNftMetadataFromIpfs(Buffer.from(nft.metadata, "base64").toString());
-            }
-            return this.sendMessageToNative(completionKey, {
-                token,
-                nft,
-                metadata,
-            });
-        } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+    private async initMagic(chainId: KnownChainIds) {
+        const options: MagicSDKAdditionalConfiguration = {};
+        if (ChainMap[chainId].serviceStrategy === ChainServiceStrategy.Hedera) {
+            options.extensions = [new HederaExtension({
+                network: this.network.toLowerCase()
+            })];
+        } else if (ChainMap[chainId].serviceStrategy === ChainServiceStrategy.Ethereum) {
+            options.network = StringHelpers.networkToEthereum(this.network);
         }
+        this.magic = new Magic(await this.configService.getConfig(`magicLinkPublicKey`), options);
     }
 
-    private async initMagic() {
-        await this.fetchBladeConfig();
-        // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
-        this.magic = new Magic(this.config?.magicLinkPublicKey!, {
-            extensions: [
-                new HederaExtension({
-                    network: this.network.toLowerCase(),
-                }),
-            ],
-        });
-    }
-
-    private async fetchBladeConfig() {
-        if (!this.config) {
-            this.config = await getBladeConfig();
-        }
-    }
-
-    private getUser(): { signer: Signer; accountId: string; privateKey: string; publicKey: string } {
+    private getUser(): {signer: Signer | ethers.Signer, accountId: string, privateKey: string, publicKey: string} {
         if (!this.signer) {
             throw new Error("No user, please call setUser() first");
         }
@@ -1847,22 +998,33 @@ export class BladeSDK {
             signer: this.signer,
             accountId: this.userAccountId,
             privateKey: this.userPrivateKey,
-            publicKey: this.userPublicKey,
-        };
+            publicKey: this.userPublicKey
+        }
     }
 
-    private getClient() {
-        return this.network === Network.Testnet ? Client.forTestnet() : Client.forMainnet();
+    private getInfoData(): InfoData {
+        return {
+            apiKey: this.apiKey,
+            dAppCode: this.dAppCode,
+            network: this.network,
+            chainId: this.chainId,
+            visitorId: this.visitorId,
+            sdkEnvironment: this.sdkEnvironment,
+            sdkVersion: this.sdkVersion,
+            nonce: Math.round(Math.random() * 1000000000),
+            user: {
+                accountId: this.userAccountId,
+                accountProvider: this.accountProvider,
+                userPrivateKey: this.userPrivateKey,
+                userPublicKey: this.userPublicKey
+            }
+        };
     }
 
     /**
      * Message that sends response back to native handler
      */
-    private sendMessageToNative(
-        completionKey: string | undefined,
-        data: unknown,
-        error: Partial<CustomError> | null = null
-    ): any {
+    private sendMessageToNative<T>(completionKey: string | undefined, data: T, error: Partial<CustomError>|any|null = null): T {
         if (!this.webView || !completionKey) {
             if (error) {
                 throw error;
@@ -1871,27 +1033,22 @@ export class BladeSDK {
         }
 
         // web-view bridge response
-        const responseObject: BridgeResponse = {
+        const responseObject: BridgeResponse<T> = {
             completionKey: completionKey || "",
-            data,
+            data
         };
         if (error) {
             responseObject.error = {
                 name: error?.name || "Error",
-                reason: error.reason || error.message || JSON.stringify(error),
+                reason: error.reason || error.message || JSON.stringify(error)
             };
         }
 
-        // IOS or Android
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-expect-error
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        // @ts-ignore  // IOS or Android
         const bladeMessageHandler = window?.webkit?.messageHandlers?.bladeMessageHandler || window?.bladeMessageHandler;
         if (bladeMessageHandler) {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
             bladeMessageHandler.postMessage(JSON.stringify(responseObject));
         }
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
         return JSON.parse(JSON.stringify(responseObject));
     }
 }

@@ -1,4 +1,4 @@
-import { TransactionReceipt } from "@hashgraph/sdk";
+import { Signer, TransactionReceipt, TransactionResponse} from "@hashgraph/sdk";
 import { TransactionData, TransactionReceiptData } from "../models/Common";
 import { MirrorNodeTransactionType } from "../models/TransactionType";
 
@@ -14,7 +14,7 @@ export const filterAndFormatTransactions = (
                     if (tx.type !== MirrorNodeTransactionType.CRYPTOTRANSFER) {
                         return false;
                     }
-                    const tokenTransfers = tx.transfers.filter((transfer) => transfer.token_id);
+                    const tokenTransfers = tx.transfers.filter((transfer) => transfer.tokenAddress);
                     if (tokenTransfers.length === 0) {
                         return false;
                     }
@@ -37,7 +37,7 @@ export const filterAndFormatTransactions = (
 
                     tx.plainData = {
                         type: transactionType,
-                        token_id: tokenTransfers[0].token_id,
+                        token_id: tokenTransfers[0].tokenAddress,
                         senders: senderAccounts,
                         receivers: receiverAccounts,
                         amount,
@@ -56,13 +56,18 @@ export const filterAndFormatTransactions = (
     return transactions;
 };
 
-export const formatReceipt = (txReceipt: TransactionReceipt): TransactionReceiptData => {
+export const formatReceipt = (txReceipt: TransactionReceipt, transactionHash: string): TransactionReceiptData => {
     return {
         status: txReceipt.status?.toString(),
-        // eslint-disable-next-line @typescript-eslint/no-base-to-string
-        contractId: txReceipt.contractId?.toString(),
+        contractAddress: txReceipt.contractId?.toString(),
         topicSequenceNumber: txReceipt.topicSequenceNumber?.toString(),
         totalSupply: txReceipt.totalSupply?.toString(),
         serials: txReceipt.serials?.map((serial) => serial.toString()),
+        transactionHash
     };
 };
+
+export const getReceipt = async (txResult: TransactionResponse, signer: Signer) => {
+    const receipt = await txResult.getReceiptWithSigner(signer);
+    return formatReceipt(receipt, txResult.transactionId.toString());
+}

@@ -1,6 +1,6 @@
-import { MirrorNodeTransactionType } from "./TransactionType";
-import { Network } from "./Networks";
-import { ICryptoFlowQuote } from "./CryptoFlow";
+import {MirrorNodeTransactionType} from "./TransactionType";
+import {ICryptoFlowQuote} from "./CryptoFlow";
+import {CryptoKeyType, KnownChainIds} from "./Chain";
 import { NftInfo, NftMetadata, TokenInfo } from "./MirrorNode";
 
 export enum SdkEnvironment {
@@ -10,34 +10,8 @@ export enum SdkEnvironment {
 }
 
 export enum AccountProvider {
-    Hedera = "Hedera",
+    PrivateKey = "PrivateKey",
     Magic = "Magic",
-}
-
-export enum KnownChain {
-    ETHEREUM_MAINNET,
-    ETHEREUM_SEPOLIA,
-    HEDERA_MAINNET,
-    HEDERA_TESTNET,
-}
-
-export const KnownChainIds = {
-    [KnownChain.ETHEREUM_MAINNET]: "1",
-    [KnownChain.ETHEREUM_SEPOLIA]: "11155111",
-    [KnownChain.HEDERA_MAINNET]: "295",
-    [KnownChain.HEDERA_TESTNET]: "296",
-};
-
-export const KnownChainNames = {
-    [KnownChainIds[KnownChain.ETHEREUM_MAINNET]]: "Ethereum Mainnet",
-    [KnownChainIds[KnownChain.ETHEREUM_SEPOLIA]]: "Ethereum Sepolia",
-    [KnownChainIds[KnownChain.HEDERA_MAINNET]]: "Hedera Mainnet",
-    [KnownChainIds[KnownChain.HEDERA_TESTNET]]: "Hedera Testnet",
-};
-
-export enum CryptoKeyType {
-    ECDSA_SECP256K1 = "ECDSA_SECP256K1",
-    ED25519 = "ED25519",
 }
 
 export enum KeyType {
@@ -51,6 +25,12 @@ export enum KeyType {
 
 export enum NFTStorageProvider {
     nftStorage = "nftStorage",
+}
+
+export enum SupportedEncoding {
+    base64 = "base64",
+    hex = "hex",
+    utf8 = "utf8",
 }
 
 export interface BladeConfig {
@@ -117,11 +97,6 @@ export interface DAppConfig {
     [key: string]: unknown; // Index signature
 }
 
-export interface IMirrorNodeServiceNetworkConfigs {
-    mainnet: IMirrorNodeServiceConfig[];
-    testnet: IMirrorNodeServiceConfig[];
-}
-
 export interface IMirrorNodeServiceConfig {
     name: string;
     url: string;
@@ -140,6 +115,18 @@ export type ApiAccount = {
     transactionId?: string | null;
 };
 
+export interface IMirrorNodeServiceNetworkConfigs {
+    "mainnet": IMirrorNodeServiceConfig[];
+    "testnet": IMirrorNodeServiceConfig[];
+}
+
+export interface IMirrorNodeServiceConfig {
+    name: string;
+    url: string;
+    priority: number;
+    apikey?: string;
+}
+
 export interface KeyRecord {
     privateKey: string;
     type: KeyType;
@@ -150,9 +137,9 @@ export interface NFTStorageConfig {
     apiKey: string;
 }
 
-export interface BridgeResponse {
+export interface BridgeResponse<T> {
     completionKey: string;
-    data: any;
+    data: T;
     error?: any;
 }
 
@@ -160,20 +147,35 @@ export interface InfoData {
     apiKey: string;
     dAppCode: string;
     network: string;
+    chainId: KnownChainIds;
     visitorId: string;
     sdkEnvironment: SdkEnvironment;
     sdkVersion: string;
     nonce: number;
+    user: UserInfoData;
+}
+
+export interface UserInfoData {
+    accountId: string;
+    accountProvider: AccountProvider | null;
+    userPrivateKey: string;
+    userPublicKey: string;
 }
 
 export interface BalanceData {
-    hbars: number;
-    tokens: [
-        {
-            tokenId: string;
-            balance: number;
-        }
-    ];
+    balance: string;
+    rawBalance: string;
+    decimals: number;
+    tokens: TokenBalanceData[];
+}
+
+export interface TokenBalanceData {
+    balance: string;
+    decimals: number;
+    name: string;
+    symbol: string;
+    address: string;
+    rawBalance: string;
 }
 
 export interface ContractCallQueryRecord {
@@ -181,13 +183,18 @@ export interface ContractCallQueryRecord {
     value: string | number | boolean;
 }
 
+export interface ContractCallQueryRecordsData {
+    values: ContractCallQueryRecord[],
+    gasUsed: number
+}
+
 export interface CreateAccountData {
     seedPhrase: string;
     publicKey: string;
     privateKey: string;
-    accountId?: string;
+    accountId: string | null;
     evmAddress: string;
-    transactionId?: string;
+    transactionId: string | null;
     status: string;
     queueNumber?: number;
 }
@@ -217,13 +224,6 @@ export interface AccountPrivateRecord {
     keyType: CryptoKeyType;
 }
 
-export interface PrivateKeyData {
-    privateKey: string;
-    publicKey: string;
-    accounts: [string];
-    evmAddress: string;
-}
-
 export interface SignMessageData {
     signedMessage: string;
 }
@@ -240,7 +240,7 @@ export interface SplitSignatureData {
 
 export interface TransactionsHistoryData {
     transactions: TransactionData[];
-    nextPage?: string;
+    nextPage: string | null;
 }
 
 export interface TransactionData {
@@ -248,7 +248,7 @@ export interface TransactionData {
     type: MirrorNodeTransactionType;
     time: Date;
     transfers: TransferData[];
-    nftTransfers?: [];
+    nftTransfers: NftTransferData[];
     memo?: string;
     fee?: number;
     showDetailed?: boolean;
@@ -263,7 +263,15 @@ export interface IntegrationUrlData {
 export interface TransferData {
     amount: number;
     account: string;
-    token_id?: string;
+    tokenAddress?: string
+    asset: string
+}
+
+export interface NftTransferData {
+    receiverAddress: string,
+    senderAddress: string,
+    serial: string,
+    tokenAddress: string;
 }
 
 export enum AccountStatus {
@@ -289,13 +297,6 @@ export interface C14WidgetConfig {
 export interface ContractFunctionParameter {
     type: string;
     value: string[];
-}
-
-export interface ConfirmUpdateAccountData {
-    network: Network;
-    accountId: string;
-    dAppCode: string;
-    visitorId: string;
 }
 
 export interface SwapQuotesData {
@@ -354,11 +355,17 @@ export interface CoinInfoData {
 }
 
 export interface TransactionReceiptData {
-    status: string;
-    contractId?: string;
-    topicSequenceNumber?: string;
-    totalSupply?: string;
-    serials: string[];
+    status: string,
+    contractAddress?: string,
+    topicSequenceNumber?: string,
+    totalSupply?: string,
+    serials: string[],
+    transactionHash: string,
+}
+
+export interface TransactionResponseData {
+    transactionHash: string
+    transactionId: string
 }
 
 export interface TokenDropData {

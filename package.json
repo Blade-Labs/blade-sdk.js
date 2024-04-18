@@ -61,17 +61,21 @@
     "@fingerprintjs/fingerprintjs-pro": "^3.8.6",
     "@hashgraph/sdk": "2.40.0",
     "@magic-ext/hedera": "^1.0.3",
+    "alchemy-sdk": "^3.1.2",
     "@types/shelljs": "^0.8.15",
     "buffer": "6.0.3",
     "ethers": "^5.7.2",
+    "inversify": "^6.0.2",
     "magic-sdk": "^21.5.0",
-    "nft.storage": "^7.1.1"
+    "nft.storage": "^7.1.1",
+    "reflect-metadata": "^0.2.1"
   },
   "devDependencies": {
     "@babel/preset-typescript": "^7.18.6",
     "@eslint/js": "8.56",
     "@jest/types": "^29.3.1",
-    "@types/jest": "^29.2.3",
+    "@types/jest": "^29.5.11",
+    "@types/mocha": "^10.0.6",
     "@types/node-fetch": "^2.6.2",
     "core-js": "^3.35.0",
     "cross-env": "^7.0.3",

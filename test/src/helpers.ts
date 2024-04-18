@@ -1,7 +1,5 @@
 import { Client, Hbar, PrivateKey, TokenAssociateTransaction, TokenCreateTransaction } from "@hashgraph/sdk";
-import { GET } from "../../src/services/ApiService";
-import { Network } from "../../src/models/Networks";
-import { completionKey } from "./index.test";
+export const completionKey = "completionKey1";
 
 export const privateKeyFromString = (privateKey: string): PrivateKey => {
     // TODO TRY different keys in different format (ecdsa, ed25, .raw, .der)
@@ -58,15 +56,7 @@ export const associateToken = async (tokenId: string, accountId: string, private
         console.log(err);
         return null;
     });
-};
-
-export const getTokenInfo = async (tokenId: string) => {
-    return GET(Network.Testnet, `/tokens/${tokenId}`).catch((err) => {
-        // tslint:disable-next-line:no-console
-        console.log(err);
-        return null;
-    });
-};
+}
 
 export function sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));

@@ -1,5 +1,8 @@
 import { BladeSDK } from "./BladeSDK";
 import { ParametersBuilder } from "./ParametersBuilder";
+import {getContainer} from "./container";
+
+const bladeContainer = getContainer(true);
 
 interface CustomWindow extends Window {
     bladeSdk: BladeSDK;
@@ -8,9 +11,11 @@ interface CustomWindow extends Window {
 
 declare const window: CustomWindow;
 
-if (window) window.bladeSdk = new BladeSDK(true);
+if (window) window.bladeSdk = bladeContainer.get<BladeSDK>(BladeSDK);
 if (window) window.ParametersBuilder = ParametersBuilder;
 
-export { BladeSDK };
-export { ParametersBuilder };
-export { AccountProvider } from "./models/Common";
+export { ParametersBuilder } from "./ParametersBuilder";
+export { SdkEnvironment } from "./models/Common";
+export { KnownChainIds } from "./models/Chain";
+export { BladeSDK } from "./BladeSDK";
+export { bladeContainer }
