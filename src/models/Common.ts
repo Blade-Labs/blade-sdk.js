@@ -127,17 +127,6 @@ export interface IMirrorNodeServiceConfig {
     apikey?: string;
 }
 
-export type ApiAccount = {
-    id: string,
-    publicKey: string,
-    network: "MAINNET" | "TESTNET",
-    transactionBytes?: string,
-    maxAutoTokenAssociation?: number,
-    associationPresetTokenStatus?: "NEEDLESS"|"PENDING"|"FAILED"|"SUCCESSFUL",
-    updateAccountTransactionBytes?: string,
-    transactionId?: string | null
-}
-
 export interface KeyRecord {
     privateKey: string;
     type: KeyType;
@@ -220,19 +209,6 @@ export interface AccountInfoData {
         stakePeriodStart: string | null;
     };
     calculatedEvmAddress?: string;
-}
-
-export interface AccountPrivateData {
-    accounts: AccountPrivateRecord[];
-}
-
-export interface AccountPrivateRecord {
-    privateKey: string;
-    publicKey: string;
-    evmAddress: string;
-    address: string;
-    path: string;
-    keyType: CryptoKeyType;
 }
 
 export interface AccountPrivateData {

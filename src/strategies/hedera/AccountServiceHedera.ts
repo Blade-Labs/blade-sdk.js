@@ -23,7 +23,7 @@ import {
 import {ChainMap, CryptoKeyType, KnownChainIds} from "../../models/Chain";
 import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
-import {NodeInfo} from "../../models/MirrorNode";
+import {AccountInfo, NodeInfo} from "../../models/MirrorNode";
 import {ethers} from "ethers";
 import {executeUpdateAccountTransactions} from "../../helpers/AccountHelpers";
 import {getReceipt} from "../../helpers/TransactionHelpers";
@@ -209,22 +209,22 @@ export default class AccountServiceHedera implements IAccountService {
         // derive to ED25519 Legacy - find account
         // return all records with account found. If no account show ECDSA Standard keys
 
-        const prepareAccountRecord = async(privateKey: PrivateKey, keyType: CryptoKeyType, force: boolean = false) => {
-            const accountIds: string[] = await this.apiService.getAccountsFromPublicKey(privateKey.publicKey);
+        const prepareAccountRecord = async(privateKey: PrivateKey, keyType: CryptoKeyType, force: boolean = false): Promise<AccountPrivateRecord[]> => {
+            const accounts: Partial<AccountInfo>[] = await this.apiService.getAccountsFromPublicKey(privateKey.publicKey);
 
-            if (!accountIds.length && force) {
-                accountIds.push("")
+            if (!accounts.length && force) {
+                accounts.push({})
             }
 
-            return accountIds.map(accountId => {
+            return accounts.map(record => {
                 const evmAddress = keyType === CryptoKeyType.ECDSA_SECP256K1
                     ? ethers.utils.computeAddress(`0x${privateKey.publicKey.toStringRaw()}`).toLowerCase()
-                    : "";
+                    : record?.evm_address || "";
                 return {
                     privateKey: privateKey.toStringDer(),
                     publicKey: privateKey.publicKey.toStringDer(),
                     evmAddress,
-                    address: accountId,
+                    address: record?.account || "",
                     path: ChainMap[this.chainId].defaultPath,
                     keyType
                 }

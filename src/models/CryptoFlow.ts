@@ -45,7 +45,7 @@ export interface ICryptoFlowQuoteParams {
     targetChainId?: number;
     targetAmount?: number;
 
-    slippage?: string;
+    slippage?: number;
     countryCode?: string;
     walletAddress: string;
 

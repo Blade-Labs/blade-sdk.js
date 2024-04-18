@@ -134,10 +134,10 @@ export default class TradeServiceHedera implements ITradeService {
             CryptoFlowRoutes.QUOTES,
             {
                 sourceCode,
-                sourceChainId: this.chainId,
+                sourceChainId: +this.chainId,
                 sourceAmount,
                 targetCode,
-                targetChainId: this.chainId,
+                targetChainId: +this.chainId,
                 useTestnet,
             },
             CryptoFlowServiceStrategy.SWAP
@@ -152,11 +152,11 @@ export default class TradeServiceHedera implements ITradeService {
             {
                 serviceId,
                 sourceCode,
-                sourceChainId: this.chainId,
+                sourceChainId: +this.chainId,
                 sourceAddress: selectedQuote.source.asset.address,
                 sourceAmount,
                 targetCode,
-                targetChainId: this.chainId,
+                targetChainId: +this.chainId,
                 targetAddress: selectedQuote.target.asset.address,
                 walletAddress: accountAddress,
                 slippage,

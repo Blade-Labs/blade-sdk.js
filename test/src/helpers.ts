@@ -58,14 +58,6 @@ export const associateToken = async (tokenId: string, accountId: string, private
     });
 }
 
-export const getTokenInfo = async (tokenId: string) => {
-    return GET(Network.Testnet, `/tokens/${tokenId}`).catch((err) => {
-        // tslint:disable-next-line:no-console
-        console.log(err);
-        return null;
-    });
-};
-
 export function sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }

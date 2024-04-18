@@ -42,7 +42,6 @@ import {
     ICryptoFlowTransaction,
     ICryptoFlowTransactionParams,
 } from "../models/CryptoFlow";
-import { getConfig } from "./ConfigService";
 
 @injectable()
 export default class ApiService {
@@ -521,20 +520,20 @@ export default class ApiService {
         };
 
     return fetch(url, options)
-        .then(statusCheck)
+        .then(this.statusCheck)
         .then((x) => x.json());
 };
 
-export const dropTokens = async (
+async dropTokens(
     network: Network,
     params: { accountId: string; signedNonce: string; dAppCode: string; visitorId: string }
-) => {
-    const url = `${getApiUrl()}/tokens/drop`;
+) {
+    const url = `${this.getApiUrl()}/tokens/drop`;
     const headers: any = {
         "X-NETWORK": network.toUpperCase(),
         "X-VISITOR-ID": params.visitorId,
         "X-DAPP-CODE": params.dAppCode,
-        "X-SDK-TVTE-API": await getTvteHeader(),
+        "X-SDK-TVTE-API": await this.getTvteHeader(),
         "Content-Type": "application/json",
     };
 
@@ -717,7 +716,7 @@ export const dropTokens = async (
     }
 
     async getNftInfo(network: Network, tokenId: string, serial: string): Promise<NftInfo> {
-        return GET(network, `/tokens/${tokenId}/nfts/${serial}`);
+        return this.GET(network, `/tokens/${tokenId}/nfts/${serial}`);
     }
 
     async getNftMetadataFromIpfs(cid: string): Promise<NftMetadata> {
