@@ -1,4 +1,4 @@
-import {Network} from "../models/Networks";
+import { Network } from "../models/Networks";
 import {KnownChainIds} from "../models/Chain";
 import { EthNetworkConfiguration } from "magic-sdk";
 
@@ -38,4 +38,3 @@ export default class StringHelpers {
         return `m/${path.join("'/")}`;
     }
 }
-

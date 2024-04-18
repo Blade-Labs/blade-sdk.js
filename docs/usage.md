@@ -21,6 +21,7 @@ description: More details on how to use Blade-SDK.js
 * [getNodeList](usage.md#getnodelist)
 * [stakeToNode](usage.md#staketonode)
 * [getKeysFromMnemonic](usage.md#getkeysfrommnemonic)
+* [searchAccounts](usage.md#searchaccounts)
 * [transferHbars](usage.md#transferhbars)
 * [transferTokens](usage.md#transfertokens)
 * [getTransactions](usage.md#gettransactions)
@@ -156,7 +157,7 @@ Get list of all available coins on CoinGecko.
 
 ### getCoinPrice
 
-▸ **getCoinPrice**(`search`, `completionKey?`): `Promise<CoinInfoData>`
+▸ **getCoinPrice**(`search`, `currency`, `completionKey?`): `Promise<CoinInfoData>`
 
 Get coin price and coin info from CoinGecko. Search can be coin id or address in one of the coin platforms.
 
@@ -165,6 +166,7 @@ Get coin price and coin info from CoinGecko. Search can be coin id or address in
 | Name             | Type     | Description                                                                                                 |
 |------------------| -------- |-------------------------------------------------------------------------------------------------------------|
 | `search`         | `string` | CoinGecko coinId, or address in one of the coin platforms or `hbar` (default, alias for `hedera-hashgraph`) |
+| `currency`       | `string` | Define currency for price field. Default: USD                                                               |
 | `completionKey?` | `string` | optional field bridge between mobile webViews and native apps                                               |
 
 #### Returns
@@ -173,18 +175,40 @@ Get coin price and coin info from CoinGecko. Search can be coin id or address in
 
 ***
 
-### createAccount
+### signScheduleId
 
-▸ **createAccount**(`completionKey?`): `Promise<CreateAccountData>`
+▸ **signScheduleId**(`scheduleId`, `accountId`, `accountPrivateKey`, `completionKey?`): `Promise<TransactionReceiptData>`
 
-Create Hedera account (ECDSA). Only for configured dApps. Depending on dApp config Blade create account, associate tokens, etc. In case of not using pre-created accounts pool and network high load, this method can return transactionId and no accountId. In that case account creation added to queue, and you should wait some time and call `getPendingAccount()` method.
+Sign scheduled transaction
 
 #### Parameters
 
-| Name             | Type     | Description                                                   |
-|------------------| -------- |---------------------------------------------------------------|
-| `deviceId?`      | `string` | optional header for backend check                             |
-| `completionKey?` | `string` | optional field bridge between mobile webViews and native apps |
+| Name                | Type     | Description                                                                             |
+|---------------------| -------- |-----------------------------------------------------------------------------------------|
+| `scheduleId`        | `string` | scheduled transaction id (0.0.xxxxx)                                                    |
+| `accountId`         | `string` | account id (0.0.xxxxx)                                                                  |
+| `accountPrivateKey` | `string` | optional field if you need specify account key (hex encoded privateKey with DER-prefix) |
+| `completionKey?`    | `string` | optional field bridge between mobile webViews and native apps                           |
+
+#### Returns
+
+`Promise<TransactionReceiptData>`
+
+***
+
+### createAccount
+
+▸ **createAccount**(`privateKey?`, `deviceId?`, `completionKey?`): `Promise<CreateAccountData>`
+
+Create Hedera account (ECDSA) or with provided key. Only for configured dApps. Depending on dApp config Blade create account, associate tokens, etc. In case of not using pre-created accounts pool and network high load, this method can return transactionId and no accountId. In that case account creation added to queue, and you should wait some time and call `getPendingAccount()` method.
+
+#### Parameters
+
+| Name             | Type     | Description                                                                             |
+|------------------| -------- |-----------------------------------------------------------------------------------------|
+| `privateKey?`    | `string` | optional field if you need specify account key (hex encoded privateKey with DER-prefix) |
+| `deviceId?`      | `string` | optional field for headers for backend check                                            |
+| `completionKey?` | `string` | optional field bridge between mobile webViews and native apps                           |
 
 #### Returns
 
@@ -270,7 +294,7 @@ Stake/unstake account
 
 ***
 
-### getKeysFromMnemonic
+### getKeysFromMnemonic (deprecated)
 
 ▸ **getKeysFromMnemonic**(`mnemonicRaw`, `lookupNames`, `completionKey?`): `Promise<PrivateKeyData>`
 
@@ -287,6 +311,46 @@ Get ECDSA private key from mnemonic. Also try to find accountIds based on public
 #### Returns
 
 `Promise<PrivateKeyData>`
+
+***
+
+### searchAccounts
+
+▸ **searchAccounts**(`keyOrMnemonic`, `completionKey?`): `Promise<AccountPrivateData>`
+
+Get accounts list and keys from private key or mnemonic. Returned keys with DER header.
+
+#### Parameters
+
+| Name             | Type      | Description                                                   |
+|------------------| --------- | ------------------------------------------------------------- |
+| `keyOrMnemonic`  | `string`  | BIP39 mnemonic, private key with DER header                                              |
+| `completionKey?` | `string`  | optional field bridge between mobile webViews and native apps |
+
+#### Returns
+
+`Promise<AccountPrivateData>`
+
+***
+
+### dropTokens
+
+▸ **dropTokens**(`accountId`, `accountPrivateKey`, `secretNonce`, `completionKey?`): `Promise<TokenDropData>`
+
+Bladelink drop to account
+
+#### Parameters
+
+| Name                | Type     | Description                                                   |
+|---------------------|----------|---------------------------------------------------------------|
+| `accountId`         | `string` | Hedera account id (0.0.xxxxx)                                 |
+| `accountPrivateKey` | `string` | account private key (DER encoded hex string)                  |
+| `secretNonce`       | `string` | configured for dApp. Should be kept in secret                 |
+| `completionKey?`    | `string` | optional field bridge between mobile webViews and native apps |
+
+#### Returns
+
+`Promise<TokenDropData>`
 
 ***
 

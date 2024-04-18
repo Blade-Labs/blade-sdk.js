@@ -296,7 +296,9 @@ export interface CoinData { // partial
 
 export interface CoinInfoData {
     coin: CoinData,
-    priceUsd: number
+    priceUsd: number,
+    price: number | null,
+    currency: string
 }
 
 export enum KeyType {
@@ -328,5 +330,15 @@ export interface TransactionReceiptData {
     topicSequenceNumber?: string,
     totalSupply?: string,
     serials: string[],
+}
+
+export interface TokenDropData {
+    status: string,
+    statusCode: number,
+    timestamp: string,
+    executionStatus: string,
+    requestId: string,
+    accountId: string,
+    redirectUrl: string
 }
 ```

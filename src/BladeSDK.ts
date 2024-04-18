@@ -22,6 +22,7 @@ import {
     CoinListData,
     ContractCallQueryRecordsData,
     CreateAccountData,
+    CryptoKeyType,
     InfoData,
     IntegrationUrlData,
     KeyRecord,
@@ -32,6 +33,8 @@ import {
     SplitSignatureData,
     SupportedEncoding,
     SwapQuotesData,
+    TokenDropData,
+    TokenInfoData,
     TransactionReceiptData,
     TransactionResponseData,
     TransactionsHistoryData,
@@ -138,8 +141,16 @@ export class BladeSDK {
         this.apiService.initApiService(apiKey, dAppCode, sdkEnvironment, sdkVersion, this.chainId, visitorId);
         if (!this.visitorId) {
             try {
-                const [decryptedVisitorId, timestamp] = (await decrypt(localStorage.getItem("BladeSDK.visitorId") || "", this.apiKey)).split("@");
-                this.visitorId = decryptedVisitorId;
+                const [decryptedVisitorId, timestamp, env] = (
+                    await decrypt(localStorage.getItem("BladeSDK.visitorId") || "", this.apiKey)
+                ).split("@");
+                if (
+                    this.sdkEnvironment === (env as SdkEnvironment) &&
+                    Date.now() - parseInt(timestamp, 10) < 3600_000 * 24 * 30
+                ) {
+                    // if visitorId was saved less than 30 days ago and in the same environment
+                    this.visitorId = decryptedVisitorId;
+                }
             } catch (e) {
                 // console.log("failed to decrypt visitor id", e);
             }
@@ -147,16 +158,19 @@ export class BladeSDK {
         if (!this.visitorId) {
             try {
                 const fpConfig = {
-                    apiKey: "key",
+                    apiKey: "key", // the valid key is passed on the backend side, and ".get()" does not require the key as well
                     scriptUrlPattern: `${this.apiService.getApiUrl(true)}/fpjs/<version>/<loaderVersion>`,
                     endpoint: [
                         await this.configService.getConfig(`fingerprintSubdomain`),
                         FingerprintJS.defaultEndpoint
                     ]
                 };
-                const fpPromise = await FingerprintJS.load(fpConfig)
+                const fpPromise = await FingerprintJS.load(fpConfig);
                 this.visitorId = (await fpPromise.get()).visitorId;
-                localStorage.setItem("BladeSDK.visitorId", await encrypt(`${this.visitorId}@${Date.now()}`, this.apiKey));
+                localStorage.setItem(
+                    "BladeSDK.visitorId",
+                    await encrypt(`${this.visitorId}@${Date.now()}@${this.sdkEnvironment}`, this.apiKey)
+                );
             } catch (error) {
                 // tslint:disable-next-line:no-console
                 console.log("failed to get visitor id", error);
@@ -228,8 +242,8 @@ export class BladeSDK {
                         userInfo = await this.magic?.user.getInfo()
                     }
 
-                    if (!await this.magic?.user.isLoggedIn()) {
-                        throw new Error('Not logged in Magic. Please call magicLogin() first');
+                    if (!(await this.magic?.user.isLoggedIn())) {
+                        throw new Error("Not logged in Magic. Please call magicLogin() first");
                     }
 
                     this.userAccountId = userInfo.publicAddress;
@@ -261,12 +275,11 @@ export class BladeSDK {
                 userPrivateKey: this.userPrivateKey,
                 userPublicKey: this.userPublicKey
             });
-
-        } catch (error) {
+        } catch (error: any) {
             this.userAccountId = "";
             this.userPrivateKey = "";
             this.userPublicKey = "";
-            this.signer = null;
+            this.signer = null!;
             this.magic = null;
             throw this.sendMessageToNative(completionKey, null, error);
         }
@@ -274,10 +287,10 @@ export class BladeSDK {
 
     async resetUser(completionKey?: string): Promise<{ success: boolean }> {
         try {
-            this.userPublicKey = '';
-            this.userPrivateKey = '';
-            this.userAccountId = '';
-            this.signer = null;
+            this.userPublicKey = "";
+            this.userPrivateKey = "";
+            this.userAccountId = "";
+            this.signer = null!;
             if (this.accountProvider === AccountProvider.Magic) {
                 if (!this.magic) {
                     await this.initMagic(this.chainId);
@@ -287,9 +300,8 @@ export class BladeSDK {
             this.accountProvider = null;
 
             return this.sendMessageToNative(completionKey, {
-                success: true
+                success: true,
             });
-
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
         }
@@ -395,10 +407,14 @@ export class BladeSDK {
         }
     }
 
-    async getCoinPrice(search: string = "hbar", completionKey?: string): Promise<CoinInfoData> {
+    async getCoinPrice(
+        search: string = "hbar",
+        currency: string = "usd",
+        completionKey?: string
+    ): Promise<CoinInfoData> {
         try {
             if (search === HbarTokenId || search.toLowerCase() === "hbar") {
-                search = "hedera-hashgraph"
+                search = "hedera-hashgraph";
             }
 
             const params = {
@@ -421,8 +437,10 @@ export class BladeSDK {
             }
 
             const result: CoinInfoData = {
+                coin: coinInfo,
                 priceUsd: coinInfo.market_data.current_price.usd,
-                coin: coinInfo
+                price: coinInfo.market_data.current_price[currency.toLowerCase()] || null,
+                currency: currency.toLowerCase(),
             };
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
@@ -483,6 +501,43 @@ export class BladeSDK {
         }
     }
 
+    /*
+     /**
+     * Sign scheduled transaction
+     * @param scheduleId scheduled transaction id (0.0.xxxxx)
+     * @param accountId account id (0.0.xxxxx)
+     * @param accountPrivateKey optional field if you need specify account key (hex encoded privateKey with DER-prefix)
+     * @param completionKey optional field bridge between mobile webViews and native apps
+     * @returns {SignMessageData}
+     * /
+    async signScheduleId(
+        scheduleId: string,
+        accountId: string,
+        accountPrivateKey: string,
+        completionKey?: string
+    ): Promise<SignMessageData> {
+        try {
+            if (accountId && accountPrivateKey) {
+                await this.setUser(AccountProvider.Hedera, accountId, accountPrivateKey);
+            }
+
+            return await new ScheduleSignTransaction()
+                .setScheduleId(scheduleId)
+                .freezeWithSigner(this.signer)
+                .then((tx) => tx.signWithSigner(this.signer))
+                .then((tx) => tx.executeWithSigner(this.signer))
+                .then((result) => result.getReceiptWithSigner(this.signer))
+                .then((data) => {
+                    return this.sendMessageToNative(completionKey, formatReceipt(data));
+                })
+                .catch((error) => {
+                    return this.sendMessageToNative(completionKey, null, error);
+                });
+        } catch (error: any) {
+            return this.sendMessageToNative(completionKey, null, error);
+        }
+    }
+     */
 
     /**
      * Create Hedera account (ECDSA). Only for configured dApps. Depending on dApp config Blade create account, associate tokens, etc.
@@ -587,6 +642,7 @@ export class BladeSDK {
     }
 
     /**
+     * @deprecated Will be removed in version 0.7, switch to `searchAccounts` method
      * Get ECDSA private key from mnemonic. Also try to find accountIds based on public key if lookupNames is true.
      * Returned keys with DER header.
      * EvmAddress computed from Public key.
@@ -602,6 +658,68 @@ export class BladeSDK {
             throw this.sendMessageToNative(completionKey, null, error);
         }
     }
+
+    // TODO implement searchAccounts
+    /**
+     * Get accounts list and keys from private key or mnemonic
+     * Returned keys with DER header.
+     * EvmAddress computed from ECDSA Public key.
+     * @param keyOrMnemonic BIP39 mnemonic, private key with DER header
+     * @param completionKey optional field bridge between mobile webViews and native apps
+     * @returns {AccountPrivateData}
+    async searchAccounts(keyOrMnemonic: string, completionKey?: string): Promise<AccountPrivateData> {
+        try {
+            const accounts: AccountPrivateRecord[] = [];
+            if (keyOrMnemonic.trim().split(" ").length > 1) {
+                // mnemonic
+                accounts.push(...(await getAccountsFromMnemonic(keyOrMnemonic, this.network)));
+            } else {
+                accounts.push(...(await getAccountsFromPrivateKey(keyOrMnemonic, this.network)));
+            }
+            return this.sendMessageToNative(completionKey, {
+                accounts,
+            });
+        } catch (error: any) {
+            return this.sendMessageToNative(completionKey, null, error);
+        }
+    }
+    */
+
+    // TODO implement dropTokens
+    /**
+     * Bladelink drop to account
+     * @param accountId Hedera account id (0.0.xxxxx)
+     * @param accountPrivateKey account private key (DER encoded hex string)
+     * @param secretNonce configured for dApp. Should be kept in secret
+     * @param completionKey optional field bridge between mobile webViews and native apps
+     * @returns {TokenDropData}
+    async dropTokens(
+        accountId: string,
+        accountPrivateKey: string,
+        secretNonce: string,
+        completionKey?: string
+    ): Promise<TokenDropData> {
+        try {
+            if (accountId && accountPrivateKey) {
+                await this.setUser(AccountProvider.Hedera, accountId, accountPrivateKey);
+            }
+            accountId = this.getUser().accountId;
+
+            const signatures = await this.signer.sign([Buffer.from(secretNonce)]);
+            return this.sendMessageToNative(
+                completionKey,
+                await dropTokens(this.network, {
+                    visitorId: this.visitorId,
+                    dAppCode: this.dAppCode,
+                    accountId,
+                    signedNonce: Buffer.from(signatures[0].signature).toString("base64"),
+                })
+            );
+        } catch (error: any) {
+            return this.sendMessageToNative(completionKey, null, error);
+        }
+    }
+    */
 
     /**
      * Sign base64-encoded message with private key. Returns hex-encoded signature.

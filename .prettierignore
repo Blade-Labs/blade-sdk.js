@@ -1,0 +1,17 @@
+# Ignore artifacts:
+build
+coverage
+dist
+.idea
+.vscode
+**/*.json
+node_modules
+config
+# .github/workflows/node.js.yml
+*.md
+*.yml
+*.html
+
+# TODO: fix and un-ignore
+test/src/index.test.ts
+test/src/__mocks__

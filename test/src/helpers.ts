@@ -1,23 +1,22 @@
-import {Client, Hbar, PrivateKey, TokenAssociateTransaction, TokenCreateTransaction} from "@hashgraph/sdk";
+import { Client, Hbar, PrivateKey, TokenAssociateTransaction, TokenCreateTransaction } from "@hashgraph/sdk";
 export const completionKey = "completionKey1";
 
 export const privateKeyFromString = (privateKey: string): PrivateKey => {
-  // TODO TRY different keys in different format (ecdsa, ed25, .raw, .der)
+    // TODO TRY different keys in different format (ecdsa, ed25, .raw, .der)
     try {
         return PrivateKey.fromStringECDSA(privateKey);
     } catch (e) {
         return PrivateKey.fromStringED25519(privateKey);
     }
-}
+};
 
 export const createToken = async (accountId: string, privateKey: string, tokenName: string): Promise<string> => {
     const client = Client.forTestnet();
     client.setOperator(accountId, privateKey);
     const key = PrivateKey.fromString(privateKey);
 
-
     // Create the transaction and freeze for manual signing
-    const transaction = await new TokenCreateTransaction()
+    const transaction = new TokenCreateTransaction()
         .setTokenName(tokenName)
         .setTokenSymbol("JTT")
         .setTreasuryAccountId(accountId)
@@ -27,7 +26,7 @@ export const createToken = async (accountId: string, privateKey: string, tokenNa
         .freezeWith(client);
 
     // Sign the transaction with the token adminKey and the token treasury account private key
-    const signTx =  await (await transaction.sign(key)).sign(key);
+    const signTx = await (await transaction.sign(key)).sign(key);
 
     // Sign the transaction with the client operator private key and submit to a Hedera network
     const txResponse = await signTx.execute(client);
@@ -36,9 +35,8 @@ export const createToken = async (accountId: string, privateKey: string, tokenNa
     const receipt = await txResponse.getReceipt(client);
 
     // Get the token ID from the receipt
-    return  receipt.tokenId?.toString() || "";
-}
-
+    return receipt.tokenId?.toString() || "";
+};
 
 export const associateToken = async (tokenId: string, accountId: string, privateKey: string) => {
     const client = Client.forTestnet();
@@ -46,22 +44,30 @@ export const associateToken = async (tokenId: string, accountId: string, private
     client.setOperator(accountId, key);
 
     // Associate a token to an account and freeze the unsigned transaction for signing
-    const transaction = await new TokenAssociateTransaction()
+    const transaction = new TokenAssociateTransaction()
         .setAccountId(accountId)
         .setTokenIds([tokenId])
         .freezeWith(client);
 
     const signTx = await transaction.sign(key);
 
-    return await signTx.execute(client).catch(err => {
+    return await signTx.execute(client).catch((err) => {
         // tslint:disable-next-line:no-console
         console.log(err);
         return null;
     });
 }
 
+export const getTokenInfo = async (tokenId: string) => {
+    return GET(Network.Testnet, `/tokens/${tokenId}`).catch((err) => {
+        // tslint:disable-next-line:no-console
+        console.log(err);
+        return null;
+    });
+};
+
 export function sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 // utils
@@ -70,7 +76,7 @@ export function checkResult(result: any, success = true) {
     expect(result).toEqual(
         expect.objectContaining({
             completionKey,
-        }),
+        })
     );
     if (success) {
         expect(result).toHaveProperty("data");

@@ -1,16 +1,11 @@
 import { injectable, inject } from 'inversify';
 import 'reflect-metadata';
-import {
-    FeeManualOptions,
-    FeeType,
-    ICryptoFlowQuote,
-    ICryptoFlowTransaction
-} from "../models/CryptoFlow";
-import {Buffer} from "buffer";
+import { FeeManualOptions, FeeType, ICryptoFlowQuote, ICryptoFlowTransaction } from "../models/CryptoFlow";
+import { Buffer } from "buffer";
 import BigNumber from "bignumber.js";
-import {AccountAllowanceApproveTransaction,  Signer, Status, Transaction} from "@hashgraph/sdk";
-import {Network} from "../models/Networks";
-import FeeService, {HbarTokenId} from "./FeeService";
+import { AccountAllowanceApproveTransaction, Signer, Status, Transaction } from "@hashgraph/sdk";
+import { Network } from "../models/Networks";
+import FeeService, {HbarTokenId } from "./FeeService";
 import ConfigService from "./ConfigService";
 import {flatArray} from "../helpers/ArrayHelpers";
 import {ChainMap, KnownChainIds} from "../models/Chain";
@@ -35,16 +30,16 @@ export default class CryptoFlowService {
             const swapContract = JSON.parse(await this.configService.getConfig("swapContract"));
             const amount = approve
                 ? Math.ceil(
-                    Math.pow(10, sourceToken!.decimals!) * (
-                        selectedQuote.source.amountExpected! * 1.2 // with a little buffer
-                    )
+                    Math.pow(10, sourceToken.decimals!) * (
+                        selectedQuote.source.amountExpected * 1.2) // with a little buffer
+
                 )
                 : 0;
 
             const tx = new AccountAllowanceApproveTransaction()
                 .setMaxTransactionFee(100)
                 .approveTokenAllowance(
-                    sourceToken.address as string,
+                    sourceToken.address ,
                     activeAccount,
                     swapContract[network],
                     amount
@@ -58,7 +53,7 @@ export default class CryptoFlowService {
                 throw new Error("Allowance giving failed");
             }
         }
-    }
+    };
 
     async executeHederaSwapTx(txHex: string, signer: Signer) {
         const buffer: Buffer = Buffer.from(txHex, "hex");
@@ -72,13 +67,15 @@ export default class CryptoFlowService {
         if (receipt?.status !== Status.Success) {
             throw new Error("Swap transaction failed");
         }
-    }
+    };
 
-    async executeHederaBladeFeeTx(selectedQuote: ICryptoFlowQuote, activeAccount: string, chainId: KnownChainIds, signer: Signer) {
+    async executeHederaBladeFeeTx(selectedQuote: ICryptoFlowQuote, activeAccount: string, chainId: KnownChainIds,
+    signer: Signer
+) {
         const feeOptions: FeeManualOptions = {
             type: FeeType.Swap,
             amount: BigNumber(selectedQuote.source.amountExpected),
-            amountTokenId: selectedQuote.source.asset.address as string
+            amountTokenId: selectedQuote.source.asset.address ,
         };
         let transaction = await this.feeService.createFeeTransaction(
             chainId,
@@ -96,7 +93,7 @@ export default class CryptoFlowService {
         if (receiptFee?.status !== Status.Success) {
             throw new Error("Fee transfer execution failed");
         }
-    }
+    };
 
     async validateMessage(tx: ICryptoFlowTransaction) {
         try {

@@ -1,7 +1,7 @@
 import { injectable, inject } from 'inversify';
 import 'reflect-metadata';
 import ApiService from "./ApiService";
-import {BladeConfig, DAppConfig} from "../models/Common";
+import { BladeConfig, DAppConfig } from "../models/Common";
 
 @injectable()
 export default class ConfigService {
@@ -10,7 +10,7 @@ export default class ConfigService {
         exchangeServiceSignerPubKey: undefined,
         swapContract: undefined,
         swapWrapHbar: undefined,
-        saucerswapApi: undefined
+        saucerswapApi: undefined,
     };
     private dAppConfig?: DAppConfig;
 
@@ -24,7 +24,8 @@ export default class ConfigService {
             return this.config[key];
         }
 
-        if (!this.dAppConfig?.fees) { // check if dAppConfig is empty
+        if (!this.dAppConfig?.fees) {
+        // check if dAppConfig is empty
             this.dAppConfig = await this.apiService.getDappConfig();
         }
         if (this.dAppConfig[key] !== undefined) {

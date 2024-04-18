@@ -1,7 +1,4 @@
-import HederaProvider from './provider'
-import {Wallet} from '@hashgraph/sdk';
+import HederaProvider from "./provider";
+import { Wallet } from "@hashgraph/sdk";
 
-export {
-    HederaProvider,
-    Wallet as HederaSigner
-}
+export { HederaProvider, Wallet as HederaSigner };

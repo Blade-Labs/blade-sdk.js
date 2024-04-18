@@ -1,4 +1,3 @@
-
 export const flatArray = (array: any[]): any[] => {
     const result: any[] = [];
 
@@ -12,5 +11,4 @@ export const flatArray = (array: any[]): any[] => {
         }
     }
     return result;
-}
-
+};

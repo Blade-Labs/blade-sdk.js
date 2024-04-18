@@ -1,12 +1,9 @@
-import type {Config} from '@jest/types';
+import type { Config } from "@jest/types";
 // Sync object
 const config: Config.InitialOptions = {
     verbose: true,
     transform: {
-        '^.+\\.tsx?$': [
-            'ts-jest',
-            {tsconfig: './tsconfig.json'}
-        ],
+        "^.+\\.tsx?$": ["ts-jest", { tsconfig: "./tsconfig.json" }],
     },
     moduleNameMapper: {
         '^alchemy-sdk$': '<rootDir>node_modules/alchemy-sdk/dist/cjs/index.js',
@@ -17,8 +14,8 @@ const config: Config.InitialOptions = {
     maxConcurrency: 1,
     maxWorkers: 1,
     globals: {
-        Uint8Array: Uint8Array,
-        ArrayBuffer: ArrayBuffer
-    }
+        Uint8Array,
+        ArrayBuffer,
+    },
 };
 export default config;

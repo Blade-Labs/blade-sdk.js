@@ -1,11 +1,12 @@
 import {MirrorNodeTransactionType} from "./TransactionType";
 import {ICryptoFlowQuote} from "./CryptoFlow";
 import {CryptoKeyType, KnownChainIds} from "./Chain";
+import { NftInfo, NftMetadata, TokenInfo } from "./MirrorNode";
 
 export enum SdkEnvironment {
     Prod = "Prod",
     CI = "CI",
-    Test = "Test"
+    Test = "Test",
 }
 
 export enum AccountProvider {
@@ -23,7 +24,7 @@ export enum KeyType {
 }
 
 export enum NFTStorageProvider {
-    nftStorage = "nftStorage"
+    nftStorage = "nftStorage",
 }
 
 export enum SupportedEncoding {
@@ -33,71 +34,90 @@ export enum SupportedEncoding {
 }
 
 export interface BladeConfig {
-    fpApiKey?: string,
-    exchangeServiceSignerPubKey?: string,
-    swapContract?: string,
-    swapWrapHbar?: string,
-    saucerswapApi?: string,
-    magicLinkPublicKey?: string,
+    fpApiKey?: string;
+    exchangeServiceSignerPubKey?: string;
+    swapContract?: string;
+    swapWrapHbar?: string;
+    saucerswapApi?: string;
+    magicLinkPublicKey?: string;
+    hederaMirrorNodeConfig?: string;
     [key: string]: string | undefined; // Index signature
 }
 
 export interface FeeFeatureConfig {
-    collector: string, // "0.0.1753455"
-    min: number, // 0.44
-    amount: number, // 0
-    max: number, // 0.44,
-    limitsCurrency: string, // "usd"
+    collector: string; // "0.0.1753455"
+    min: number; // 0.44
+    amount: number; // 0
+    max: number; // 0.44,
+    limitsCurrency: string; // "usd"
 }
 
 export interface FeeConfig {
-    AccountCreate: FeeFeatureConfig,
-    TradeNFT: FeeFeatureConfig,
-    TransferHBAR: FeeFeatureConfig,
-    TransferToken: FeeFeatureConfig,
-    TransferNFT: FeeFeatureConfig,
-    ScheduledTransferHBAR: FeeFeatureConfig,
-    ScheduledTransferToken: FeeFeatureConfig,
-    StakingClaim: FeeFeatureConfig,
-    Swap: FeeFeatureConfig,
-    Default: FeeFeatureConfig
+    AccountCreate: FeeFeatureConfig;
+    TradeNFT: FeeFeatureConfig;
+    TransferHBAR: FeeFeatureConfig;
+    TransferToken: FeeFeatureConfig;
+    TransferNFT: FeeFeatureConfig;
+    ScheduledTransferHBAR: FeeFeatureConfig;
+    ScheduledTransferToken: FeeFeatureConfig;
+    StakingClaim: FeeFeatureConfig;
+    Swap: FeeFeatureConfig;
+    Default: FeeFeatureConfig;
 }
 
 export interface TokensConfig {
-    association: string[],
-    ftTransfer: string[],
-    nftTransfer: string[],
-    kycNeeded: string[]
+    association: string[];
+    ftTransfer: string[];
+    nftTransfer: string[];
+    kycNeeded: string[];
 }
 
 export interface DAppConfig {
-    autoAssociate: string, // boolean
-    displayName: string,
-    keyType: string, // "ECDSA" | "ED25519"
-    redirectUrl: string,
-    smartContract: string, // boolean
-    freeSchedules: string, // boolean
-    freeAssociate: string, // boolean
-    freeTransfer: string, // boolean
-    autoAssociatePresetTokens: string, // boolean
-    automaticTokenAssociations: string, // boolean
+    autoAssociate: string; // boolean
+    displayName: string;
+    keyType: string; // "ECDSA" | "ED25519"
+    redirectUrl: string;
+    smartContract: string; // boolean
+    freeSchedules: string; // boolean
+    freeAssociate: string; // boolean
+    freeTransfer: string; // boolean
+    autoAssociatePresetTokens: string; // boolean
+    automaticTokenAssociations: string; // boolean
     fees: {
-        mainnet: FeeConfig,
-        testnet: FeeConfig
-    },
+        mainnet: FeeConfig;
+        testnet: FeeConfig;
+    };
     tokens: {
-        mainnet: TokensConfig,
-        testnet: TokensConfig
-    },
-    redirectSameWindow: string, // boolean
-    closeAfterSuccess: string, // boolean
-    mirrorNode: IMirrorNodeServiceNetworkConfigs,
-    [key: string]: any | undefined; // Index signature
+        mainnet: TokensConfig;
+        testnet: TokensConfig;
+    };
+    redirectSameWindow: string; // boolean
+    closeAfterSuccess: string; // boolean
+    mirrorNode: IMirrorNodeServiceNetworkConfigs;
+    [key: string]: unknown; // Index signature
 }
 
+export interface IMirrorNodeServiceConfig {
+    name: string;
+    url: string;
+    priority: number;
+    apikey?: string;
+}
+
+export type ApiAccount = {
+    id: string;
+    publicKey: string;
+    network: "MAINNET" | "TESTNET";
+    transactionBytes?: string;
+    maxAutoTokenAssociation?: number;
+    associationPresetTokenStatus?: "NEEDLESS" | "PENDING" | "FAILED" | "SUCCESSFUL";
+    updateAccountTransactionBytes?: string;
+    transactionId?: string | null;
+};
+
 export interface IMirrorNodeServiceNetworkConfigs {
-    "mainnet": IMirrorNodeServiceConfig[],
-    "testnet": IMirrorNodeServiceConfig[]
+    "mainnet": IMirrorNodeServiceConfig[];
+    "testnet": IMirrorNodeServiceConfig[];
 }
 
 export interface IMirrorNodeServiceConfig {
@@ -119,59 +139,59 @@ export type ApiAccount = {
 }
 
 export interface KeyRecord {
-    privateKey: string,
-    type: KeyType
+    privateKey: string;
+    type: KeyType;
 }
 
 export interface NFTStorageConfig {
-    provider: NFTStorageProvider,
-    apiKey: string
+    provider: NFTStorageProvider;
+    apiKey: string;
 }
 
 export interface BridgeResponse<T> {
-    completionKey: string,
-    data: T,
-    error?: any
+    completionKey: string;
+    data: T;
+    error?: any;
 }
 
 export interface InfoData {
-    apiKey: string,
-    dAppCode: string,
-    network: string,
-    chainId: KnownChainIds,
-    visitorId: string,
-    sdkEnvironment: SdkEnvironment,
-    sdkVersion: string,
-    nonce: number,
-    user: UserInfoData
+    apiKey: string;
+    dAppCode: string;
+    network: string;
+    chainId: KnownChainIds;
+    visitorId: string;
+    sdkEnvironment: SdkEnvironment;
+    sdkVersion: string;
+    nonce: number;
+    user: UserInfoData;
 }
 
 export interface UserInfoData {
-    accountId: string,
-    accountProvider: AccountProvider | null,
-    userPrivateKey: string,
-    userPublicKey: string,
+    accountId: string;
+    accountProvider: AccountProvider | null;
+    userPrivateKey: string;
+    userPublicKey: string;
 }
 
 export interface BalanceData {
-    balance: string,
-    rawBalance: string,
-    decimals: number,
-    tokens: TokenBalanceData[]
+    balance: string;
+    rawBalance: string;
+    decimals: number;
+    tokens: TokenBalanceData[];
 }
 
 export interface TokenBalanceData {
-    balance: string,
-    decimals: number,
-    name: string,
-    symbol: string,
-    address: string,
-    rawBalance: string,
+    balance: string;
+    decimals: number;
+    name: string;
+    symbol: string;
+    address: string;
+    rawBalance: string;
 }
 
 export interface ContractCallQueryRecord {
-    type: string,
-    value: string | number | boolean
+    type: string;
+    value: string | number | boolean;
 }
 
 export interface ContractCallQueryRecordsData {
@@ -180,80 +200,93 @@ export interface ContractCallQueryRecordsData {
 }
 
 export interface CreateAccountData {
-    seedPhrase: string,
-    publicKey: string,
-    privateKey: string,
-    accountId: string | null,
-    evmAddress: string,
-    transactionId: string | null,
-    status: string,
-    queueNumber?: number
+    seedPhrase: string;
+    publicKey: string;
+    privateKey: string;
+    accountId: string | null;
+    evmAddress: string;
+    transactionId: string | null;
+    status: string;
+    queueNumber?: number;
 }
 
 export interface AccountInfoData {
-    accountId: string,
-    publicKey: string,
-    evmAddress: string,
+    accountId: string;
+    publicKey: string;
+    evmAddress: string;
     stakingInfo: {
-        pendingReward: number,
-        stakedNodeId: number | null,
-        stakePeriodStart: string | null,
-    },
-    calculatedEvmAddress?: string
+        pendingReward: number;
+        stakedNodeId: number | null;
+        stakePeriodStart: string | null;
+    };
+    calculatedEvmAddress?: string;
 }
 
 export interface AccountPrivateData {
-    accounts: AccountPrivateRecord[]
+    accounts: AccountPrivateRecord[];
 }
 
 export interface AccountPrivateRecord {
-    privateKey: string,
-    publicKey: string,
-    evmAddress: string,
-    address: string,
-    path: string,
-    keyType: CryptoKeyType
+    privateKey: string;
+    publicKey: string;
+    evmAddress: string;
+    address: string;
+    path: string;
+    keyType: CryptoKeyType;
+}
+
+export interface AccountPrivateData {
+    accounts: AccountPrivateRecord[];
+}
+
+export interface AccountPrivateRecord {
+    privateKey: string;
+    publicKey: string;
+    evmAddress: string;
+    address: string;
+    path: string;
+    keyType: CryptoKeyType;
 }
 
 export interface SignMessageData {
-    signedMessage: string
+    signedMessage: string;
 }
 
 export interface SignVerifyMessageData {
-    valid: boolean
+    valid: boolean;
 }
 
 export interface SplitSignatureData {
-    v: number,
-    r: string,
-    s: string
+    v: number;
+    r: string;
+    s: string;
 }
 
 export interface TransactionsHistoryData {
-    transactions: TransactionData[],
-    nextPage: string | null
+    transactions: TransactionData[];
+    nextPage: string | null;
 }
 
 export interface TransactionData {
-    transactionId: string,
-    type: MirrorNodeTransactionType,
-    time: Date,
-    transfers: TransferData[],
-    nftTransfers: NftTransferData[],
-    memo?: string,
-    fee?: number,
-    showDetailed?: boolean,
-    plainData?: any,
-    consensusTimestamp: string
+    transactionId: string;
+    type: MirrorNodeTransactionType;
+    time: Date;
+    transfers: TransferData[];
+    nftTransfers: NftTransferData[];
+    memo?: string;
+    fee?: number;
+    showDetailed?: boolean;
+    plainData?: any;
+    consensusTimestamp: string;
 }
 
 export interface IntegrationUrlData {
-    url: string
+    url: string;
 }
 
 export interface TransferData {
-    amount: number,
-    account: string,
+    amount: number;
+    account: string;
     tokenAddress?: string
     asset: string
 }
@@ -262,14 +295,14 @@ export interface NftTransferData {
     receiverAddress: string,
     senderAddress: string,
     serial: string,
-    tokenAddress: string
+    tokenAddress: string;
 }
 
 export enum AccountStatus {
     PENDING = "PENDING",
     SUCCESS = "SUCCESS",
     RETRY = "RETRY",
-    FAILED ="FAILED"
+    FAILED = "FAILED",
 }
 
 export interface C14WidgetConfig {
@@ -286,60 +319,63 @@ export interface C14WidgetConfig {
 }
 
 export interface ContractFunctionParameter {
-    type: string,
-    value: string[]
+    type: string;
+    value: string[];
 }
 
 export interface SwapQuotesData {
-    quotes: ICryptoFlowQuote[]
+    quotes: ICryptoFlowQuote[];
 }
 
 export interface CoinInfoRaw {
-    id: string,
-    symbol: string,
-    name: string,
-    platforms: {[key: string]: string}
+    id: string;
+    symbol: string;
+    name: string;
+    platforms: { [key: string]: string };
 }
 
 export interface CoinListData {
     coins: {
-        id: string,
-        symbol: string,
-        name: string,
+        id: string;
+        symbol: string;
+        name: string;
         platforms: {
-            name: string,
-            address: string
-        }[],
-    }[]
+            name: string;
+            address: string;
+        }[];
+    }[];
 }
 
-export interface CoinData { // partial
-    id: string,
-    symbol: string,
-    name: string,
-    web_slug: string,
+export interface CoinData {
+    // partial
+    id: string;
+    symbol: string;
+    name: string;
+    web_slug: string;
     description: {
-        en: string
-    },
+        en: string;
+    };
     image: {
-        thumb: string,
-        small: string,
-        large: string
-    },
+        thumb: string;
+        small: string;
+        large: string;
+    };
     platforms: {
-        name: string,
-        address: string
-    }[],
+        name: string;
+        address: string;
+    }[];
     market_data: {
         current_price: {
-            [key: string]: number
-        },
-    },
+            [key: string]: number;
+        };
+    };
 }
 
 export interface CoinInfoData {
-    coin: CoinData,
-    priceUsd: number
+    coin: CoinData;
+    priceUsd: number;
+    price: number | null;
+    currency: string;
 }
 
 export interface TransactionReceiptData {
@@ -354,4 +390,20 @@ export interface TransactionReceiptData {
 export interface TransactionResponseData {
     transactionHash: string
     transactionId: string
+}
+
+export interface TokenDropData {
+    status: string;
+    statusCode: number;
+    timestamp: string;
+    executionStatus: string;
+    requestId: string;
+    accountId: string;
+    redirectUrl: string;
+}
+
+export interface TokenInfoData {
+    token: TokenInfo;
+    nft: NftInfo | null;
+    metadata: NftMetadata | null;
 }

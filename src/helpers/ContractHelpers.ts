@@ -1,10 +1,13 @@
-import {AccountId, ContractFunctionResult} from "@hashgraph/sdk";
-import {ethers} from "ethers";
-import {Buffer} from "buffer";
-import {ParametersBuilder} from "../ParametersBuilder";
+import { AccountId, ContractFunctionResult } from "@hashgraph/sdk";
+import { ethers } from "ethers";
+import { Buffer } from "buffer";
+import { ParametersBuilder } from "../ParametersBuilder";
 import {ContractCallQueryRecord} from "../models/Common";
 
-export const getContractFunctionBytecode = async (functionName: string, params: string | ParametersBuilder): Promise<{
+export const getContractFunctionBytecode = async (
+    functionName: string,
+    params: string | ParametersBuilder
+): Promise<{
     functionSignature: string,
     bytecode: Buffer,
 }> => {
@@ -13,7 +16,7 @@ export const getContractFunctionBytecode = async (functionName: string, params: 
     // get func identifier
     const functionSignature = `${functionName}(${types.join(",")})`;
     const functionIdentifier = new ethers.utils.Interface([
-        ethers.utils.FunctionFragment.from(functionSignature)
+        ethers.utils.FunctionFragment.from(functionSignature),
     ]).getSighash(functionName);
 
     const abiCoder = new ethers.utils.AbiCoder();
@@ -25,8 +28,8 @@ export const getContractFunctionBytecode = async (functionName: string, params: 
             ethers.utils.arrayify(functionIdentifier),
             ethers.utils.arrayify(encodedParams)
         ])
-    };
-}
+    }
+};
 
 export const parseContractFunctionParams = async (paramsEncoded: string | ParametersBuilder) => {
     const types: string[] = [];
@@ -36,9 +39,7 @@ export const parseContractFunctionParams = async (paramsEncoded: string | Parame
         paramsEncoded = paramsEncoded.encode();
     }
 
-    const paramsData = JSON.parse(
-        Buffer.from(paramsEncoded, "base64").toString()
-    );
+    const paramsData = JSON.parse(Buffer.from(paramsEncoded, "base64").toString());
 
     for (let i = 0; i < paramsData.length; i++) {
         const param = paramsData[i];
@@ -79,22 +80,22 @@ export const parseContractFunctionParams = async (paramsEncoded: string | Parame
         } else if (param?.type === "tuple") {
             const result = await parseContractFunctionParams(param.value[0]);
 
-            types.push(`(${result.types})`);
+            // eslint-disable-next-line @typescript-eslint/restrict-template-expressionstypes.push(`(${result.types})`);
             values.push(result.values);
         } else if (param?.type === "tuple[]") {
             const result: any[] = [];
-            for (let i = 0; i < param.value.length; i++) {
-                result.push(await parseContractFunctionParams(param.value[i]));
+            for (const paramValue of param.value) {
+                result.push(await parseContractFunctionParams(paramValue));
             }
 
             // check if all types are the same (tuple structure must be the same in array)
             const tupleTypes = result[0].types.toString();
-            for (let i = 1; i < result.length; i++) {
-                if (result[i].types.toString() !== tupleTypes) {
+            for (const res of result) {
+                if (res.types.toString() !== tupleTypes) {
                     throw {
                         name: "BladeSDK.JS",
-                        reason: `Tuple structure in array must be the same`
-                    }
+                        reason: `Tuple structure in array must be the same`,
+                    };
                 }
             }
 
@@ -117,19 +118,18 @@ export const parseContractFunctionParams = async (paramsEncoded: string | Parame
             types.push(param.type);
             values.push(result);
         } else {
-            {
-                throw {
-                    name: "BladeSDK.JS",
-                    reason: `Type "${param?.type}" not implemented on JS`
-                }
-            }
+            throw {
+                name: "BladeSDK.JS",
+                reason: `Type "${param?.type}" not implemented on JS`,
+            };
+
         }
     }
 
-    return {types, values};
-}
+    return { types, values };
+};
 
-const valueToSolidity = async (value: string) => {
+const valueToSolidity = (value: string) => {
     // if input.length >=32 - return as EVM address
     // else convert input to solidity
 
@@ -148,21 +148,23 @@ export const parseContractQueryResponse = async (contractFunctionResult: Contrac
         type = type.toLowerCase();
 
         if (!availableTypes.includes(type)) {
-            throw {
+            const error = {
                 name: "BladeSDK.JS",
-                reason: `Type '${type}' unsupported. Available types: ${availableTypes.join(", ")}`
-            }
+                reason: `Type '${type}' unsupported. Available types: ${availableTypes.join(", ")}`,
+            };
+            throw error;
         }
 
         const method = `get${type.slice(0, 1).toUpperCase()}${type.slice(1)}`;
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
-        let value = contractFunctionResult[method](index).toString();
+        let value: any = contractFunctionResult[method](index).toString();
 
         if (type === "bytes32") {
-            value = Buffer.from(value).toString("hex")
+            value = Buffer.from(value).toString("hex");
         }
-        result.push({type, value});
+        result.push({ type, value });
     });
 
     return result;
-}
+};

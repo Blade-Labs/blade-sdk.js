@@ -1,8 +1,5 @@
-import {
-    AccountBalance, Client,
-    PrivateKey, Status, Transaction
-} from "@hashgraph/sdk";
-import {Buffer} from "buffer";
+import { Client, PrivateKey, Status, Transaction } from "@hashgraph/sdk";
+import { Buffer } from "buffer";
 
 export const executeUpdateAccountTransactions = async (
     client: Client,
@@ -22,7 +19,9 @@ export const executeUpdateAccountTransactions = async (
                 break;
             } else {
                 if (attemptsLeft === 0) {
-                    throw new Error("UpdateAccountTransaction failed");
+                    break;
+            } else {
+                if (attemptsLeft === 0) {throw new Error("UpdateAccountTransaction failed");
                 }
             }
         }
