@@ -10,6 +10,7 @@ import {
     Mnemonic,
     PrivateKey,
     PublicKey,
+    ScheduleCreateTransaction,
     ScheduleSignTransaction,
     Signer,
     Status,
@@ -28,6 +29,7 @@ import {
     checkAccountCreationStatus,
     confirmAccountUpdate,
     createAccount,
+    createScheduleRequest,
     dropTokens,
     getAccountBalance,
     getAccountInfo,
@@ -47,6 +49,7 @@ import {
     requestTokenInfo,
     setVisitorId,
     signContractCallTx,
+    signScheduleRequest,
     transferTokens,
 } from "./services/ApiService";
 import { getAccountsFromMnemonic, getAccountsFromPrivateKey } from "./services/AccountService";
@@ -86,6 +89,9 @@ import {
     NFTStorageConfig,
     NFTStorageProvider,
     PrivateKeyData,
+    ScheduleTransactionTransfer,
+    ScheduleTransactionType,
+    ScheduleTransferType,
     SdkEnvironment,
     SignMessageData,
     SignVerifyMessageData,
@@ -690,36 +696,138 @@ export class BladeSDK {
     }
 
     /**
-     * Sign scheduled transaction
-     * @param scheduleId scheduled transaction id (0.0.xxxxx)
+     * Create scheduled transaction
      * @param accountId account id (0.0.xxxxx)
      * @param accountPrivateKey optional field if you need specify account key (hex encoded privateKey with DER-prefix)
+     * @param type schedule transaction type (currently only TRANSFER supported)
+     * @param transfers array of transfers to schedule (HBAR, FT, NFT)
+     * @param freeSchedule if true, Blade will pay transaction fee (also dApp had to be configured for free schedules)
      * @param completionKey optional field bridge between mobile webViews and native apps
-     * @returns {SignMessageData}
      */
-    async signScheduleId(
-        scheduleId: string,
+    async createScheduleTransaction(
         accountId: string,
         accountPrivateKey: string,
+        type: ScheduleTransactionType,
+        transfers: ScheduleTransactionTransfer[],
+        freeSchedule: boolean = false,
         completionKey?: string
-    ): Promise<SignMessageData> {
+    ): Promise<{ scheduleId: string }> {
         try {
             if (accountId && accountPrivateKey) {
                 await this.setUser(AccountProvider.Hedera, accountId, accountPrivateKey);
             }
 
-            return await new ScheduleSignTransaction()
-                .setScheduleId(scheduleId)
-                .freezeWithSigner(this.signer)
-                .then((tx) => tx.signWithSigner(this.signer))
-                .then((tx) => tx.executeWithSigner(this.signer))
-                .then((result) => result.getReceiptWithSigner(this.signer))
-                .then((data) => {
-                    return this.sendMessageToNative(completionKey, formatReceipt(data));
-                })
-                .catch((error) => {
-                    return this.sendMessageToNative(completionKey, null, error);
-                });
+            freeSchedule = freeSchedule && (await getConfig("freeSchedules")).toLowerCase() === "true";
+            if (freeSchedule) {
+                const result = await createScheduleRequest(this.network, type, transfers);
+                return this.sendMessageToNative(completionKey, result);
+            } else {
+                switch (type) {
+                    case ScheduleTransactionType.TRANSFER: {
+                        const transactionToSchedule = new TransferTransaction();
+                        transfers.forEach((transfer) => {
+                            switch (transfer.type) {
+                                case ScheduleTransferType.HBAR:
+                                    if (!transfer.value) {
+                                        throw new Error("Value required for HBAR transfer");
+                                    }
+                                    const amount = Hbar.fromTinybars(transfer.value!);
+                                    transactionToSchedule
+                                        .addHbarTransfer(transfer.sender, amount.negated())
+                                        .addHbarTransfer(transfer.receiver, amount);
+                                    break;
+                                case ScheduleTransferType.FT:
+                                    if (!transfer.value || !transfer.tokenId) {
+                                        throw new Error("Token id and value required for FT transfer");
+                                    }
+                                    transactionToSchedule
+                                        .addTokenTransfer(transfer.tokenId!, transfer.sender, -transfer.value!)
+                                        .addTokenTransfer(transfer.tokenId!, transfer.receiver, transfer.value!);
+                                    break;
+                                case ScheduleTransferType.NFT:
+                                    if (!transfer.tokenId || !transfer.serial) {
+                                        throw new Error("Token id and serial required for NFT transfer");
+                                    }
+                                    transactionToSchedule
+                                        .addNftTransfer(transfer.tokenId!, transfer.serial!, transfer.sender, transfer.receiver);
+                                    break;
+                                default:
+                                    throw new Error(`Schedule transaction transfer type "${type}" not supported`);
+                            }
+                        });
+
+                        return new ScheduleCreateTransaction()
+                            .setScheduledTransaction(transactionToSchedule)
+                            .freezeWithSigner(this.signer)
+
+                            .then(tx => tx.executeWithSigner(this.signer))
+                            .then((result) => result.getReceiptWithSigner(this.signer))
+                            .then((data) => {
+                                return this.sendMessageToNative(completionKey, {
+                                    scheduleId: `${data.scheduleId}`,
+                                });
+                            });
+                    } break;
+                    default:
+                        throw new Error(`Schedule transaction type "${type}" not supported`);
+                }
+            }
+        } catch (error: any) {
+            return this.sendMessageToNative(completionKey, null, error);
+        }
+    }
+
+    /**
+     * Sign scheduled transaction
+     * @param scheduleId scheduled transaction id (0.0.xxxxx)
+     * @param accountId account id (0.0.xxxxx)
+     * @param accountPrivateKey optional field if you need specify account key (hex encoded privateKey with DER-prefix)
+     * @param receiverAccountId account id of receiver for additional validation in case of dApp freeSchedule transactions configured
+     * @param freeSchedule if true, Blade will pay transaction fee (also dApp had to be configured for free schedules)
+     * @param completionKey optional field bridge between mobile webViews and native apps
+     * @returns {TransactionReceiptData}
+     */
+    async signScheduleId(
+        scheduleId: string,
+        accountId: string,
+        accountPrivateKey: string,
+        receiverAccountId?: string,
+        freeSchedule: boolean = false,
+        completionKey?: string
+    ): Promise<TransactionReceiptData> {
+        try {
+            if (accountId && accountPrivateKey) {
+                await this.setUser(AccountProvider.Hedera, accountId, accountPrivateKey);
+            }
+
+            freeSchedule = freeSchedule && (await getConfig("freeSchedules")).toLowerCase() === "true";
+            if (freeSchedule) {
+                if (!receiverAccountId) {
+                    throw new Error("Receiver account id required for free schedule transaction");
+                }
+                const { scheduleSignTransactionBytes } = await signScheduleRequest(this.network, scheduleId, receiverAccountId);
+                const buffer = Buffer.from(scheduleSignTransactionBytes, "base64");
+                const receipt = await Transaction.fromBytes(buffer)
+                    .signWithSigner(this.signer)
+                    .then(signedTx => signedTx.executeWithSigner(this.signer))
+                    .then(result => result.getReceiptWithSigner(this.signer));
+                console.log("scheduleSignTransactionBytes receipt", receipt);
+                return this.sendMessageToNative(completionKey, formatReceipt(receipt));
+            } else {
+                return await new ScheduleSignTransaction()
+                    .setScheduleId(scheduleId)
+                    .freezeWithSigner(this.signer)
+                    .then((tx) => tx.signWithSigner(this.signer))
+                    .then((tx) => tx.executeWithSigner(this.signer))
+                    .then((result) => result.getReceiptWithSigner(this.signer))
+                    .then((data) => {
+                        return this.sendMessageToNative(completionKey, formatReceipt(data));
+                    })
+                    .catch((error) => {
+                        return this.sendMessageToNative(completionKey, null, error);
+                    })
+                ;
+            }
         } catch (error: any) {
             return this.sendMessageToNative(completionKey, null, error);
         }

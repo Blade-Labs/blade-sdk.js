@@ -19,6 +19,8 @@ import {
     ConfirmUpdateAccountData,
     DAppConfig,
     IMirrorNodeServiceNetworkConfigs,
+    ScheduleTransactionTransfer,
+    ScheduleTransactionType,
     SdkEnvironment,
     TransactionData,
 } from "../models/Common";
@@ -464,6 +466,49 @@ export const transferTokens = async (network: Network, params: any) => {
         .then(statusCheck)
         .then((x) => x.json());
 };
+
+export const createScheduleRequest = async (network: Network, type: ScheduleTransactionType, transfers: ScheduleTransactionTransfer[]): Promise<any> => {
+    const url = `${getApiUrl()}/tokens/schedules`;
+    const options = {
+        method: "POST",
+        headers: new Headers({
+            "X-NETWORK": network.toUpperCase(),
+            "X-VISITOR-ID": visitorId,
+            "X-DAPP-CODE": dAppCode,
+            "X-SDK-TVTE-API": await getTvteHeader(),
+            "Content-Type": "application/json",
+        }),
+        body: JSON.stringify({
+            transaction: {
+                type,
+                transfers,
+            }
+        }),
+    };
+
+    return fetch(url, options)
+        .then(statusCheck)
+        .then((x) => x.json());
+}
+
+export const signScheduleRequest = async (network: Network, scheduledTransactionId: string, receiverAccountId: string): Promise<{ scheduleSignTransactionBytes: string }> => {
+    const url = `${getApiUrl()}/tokens/schedules`;
+    const options = {
+        method: "PATCH",
+        headers: new Headers({
+            "X-NETWORK": network.toUpperCase(),
+            "X-VISITOR-ID": visitorId,
+            "X-DAPP-CODE": dAppCode,
+            "X-SDK-TVTE-API": await getTvteHeader(),
+            "Content-Type": "application/json",
+        }),
+        body: JSON.stringify({scheduledTransactionId, receiverAccountId}),
+    };
+
+    return fetch(url, options)
+        .then(statusCheck)
+        .then((x) => x.json());
+}
 
 export const signContractCallTx = async (network: Network, params: any) => {
     const url = `${getApiUrl()}/smart/contract/sign`;

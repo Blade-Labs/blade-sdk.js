@@ -376,3 +376,26 @@ export interface TokenInfoData {
     nft: NftInfo | null;
     metadata: NftMetadata | null;
 }
+
+export interface ScheduleTransactionTransfer {
+    type: ScheduleTransferType;
+    sender: string;
+    receiver: string;
+    value?: number;
+    tokenId?: string;
+    serial?: number;
+}
+
+export enum ScheduleTransactionType {
+    TRANSFER = "TRANSFER",
+    SUBMIT_MESSAGE = "SUBMIT_MESSAGE",
+    APPROVE_ALLOWANCE = "APPROVE_ALLOWANCE",
+    TOKEN_MINT = "TOKEN_MINT",
+    TOKEN_BURN = "TOKEN_BURN"
+}
+
+export enum ScheduleTransferType {
+    HBAR = "HBAR",
+    FT = "FT",
+    NFT = "NFT"
+}
