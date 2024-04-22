@@ -175,20 +175,69 @@ Get coin price and coin info from CoinGecko. Search can be coin id or address in
 
 ***
 
+### createScheduleTransaction
+
+▸ **createScheduleTransaction**(`accountId`, `accountPrivateKey`, `type`, `transfers`, `freeSchedule`, `completionKey?`): `Promise<TransactionReceiptData>`
+
+Create scheduled transaction
+
+#### Parameters
+
+| Name                | Type                            | Description                                                                                 |
+|---------------------|---------------------------------|---------------------------------------------------------------------------------------------|
+| `accountId`         | `string`                        | account id (0.0.xxxxx)                                                                      |
+| `accountPrivateKey` | `string`                        | optional field if you need specify account key (hex encoded privateKey with DER-prefix)     |
+| `type`              | `ScheduleTransactionType`       | schedule transaction type (currently only TRANSFER supported)                               |
+| `transfers`         | `ScheduleTransactionTransfer[]` | array of transfers to schedule (HBAR, FT, NFT)                                              |
+| `freeSchedule`      | `boolean`                       | if true, Blade will pay transaction fee (also dApp had to be configured for free schedules) |
+| `completionKey?`    | `string`                        | optional field bridge between mobile webViews and native apps                               |
+
+#### Example
+
+```javascript
+const {scheduleId} = await bladeSdk.createScheduleTransaction(
+    accountId,
+    privateKey,
+    "TRANSFER",
+    [{
+        type: "HBAR",
+        sender: accountId,
+        receiver: receiverId,
+        value: 1 * 10**8,
+    },
+    {
+        type: "NFT",
+        sender: accountId,
+        receiver: receiverId,
+        tokenId: "0.0.3982458",
+        serial: 4
+    }],
+    true
+);
+```
+
+#### Returns
+
+`Promise<{ scheduleId: string }>`
+
+***
+
 ### signScheduleId
 
-▸ **signScheduleId**(`scheduleId`, `accountId`, `accountPrivateKey`, `completionKey?`): `Promise<TransactionReceiptData>`
+▸ **signScheduleId**(`scheduleId`, `accountId`, `accountPrivateKey`, `receiverAccountId`, `freeSchedule`, `completionKey?`): `Promise<TransactionReceiptData>`
 
 Sign scheduled transaction
 
 #### Parameters
 
-| Name                | Type     | Description                                                                             |
-|---------------------| -------- |-----------------------------------------------------------------------------------------|
-| `scheduleId`        | `string` | scheduled transaction id (0.0.xxxxx)                                                    |
-| `accountId`         | `string` | account id (0.0.xxxxx)                                                                  |
-| `accountPrivateKey` | `string` | optional field if you need specify account key (hex encoded privateKey with DER-prefix) |
-| `completionKey?`    | `string` | optional field bridge between mobile webViews and native apps                           |
+| Name                 | Type      | Description                                                                                           |
+|----------------------|-----------|-------------------------------------------------------------------------------------------------------|
+| `scheduleId`         | `string`  | scheduled transaction id (0.0.xxxxx)                                                                  |
+| `accountId`          | `string`  | account id (0.0.xxxxx)                                                                                |
+| `accountPrivateKey`  | `string`  | optional field if you need specify account key (hex encoded privateKey with DER-prefix)               |
+| `receiverAccountId?` | `string`  | account id of receiver for additional validation in case of dApp freeSchedule transactions configured |
+| `freeSchedule`       | `boolean` | if true, Blade will pay transaction fee (also dApp had to be configured for free schedules)           |
+| `completionKey?`     | `string`  | optional field bridge between mobile webViews and native apps                                         |
 
 #### Returns
 

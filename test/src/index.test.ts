@@ -48,6 +48,7 @@ const accountId3 = process.env.ACCOUNT_ID3 || "";
 const privateKey4 = process.env.PRIVATE_KEY_ED25519 || "";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const accountId4 = process.env.ACCOUNT_ID_ED25519 || "";
+const tokenId0 = process.env.TOKEN_ID0 || "";
 
 
 beforeEach(async () => {
@@ -1078,6 +1079,47 @@ test('bladeSdk.createToken', async () => {
 
 
 }, 180_000);
+
+test('bladeSdk.schedule', async () => {
+    let result = await bladeSdk.createScheduleTransaction(
+        accountId2,
+        privateKey2,
+        "TRANSFER", [
+            {
+                type: "HBAR",
+                sender: accountId,
+                receiver: accountId2,
+                value: 0.05 * 10**8,
+            },
+            {
+                type: "FT",
+                sender: accountId,
+                receiver: accountId2,
+                tokenId: tokenId0,
+                value: 1
+            },
+            // {
+            //     type: "NFT",
+            //     sender: accounts[1].accountId,
+            //     receiver: accounts[2].accountId,
+            //     tokenId: "0.0.3982458",
+            //     serial: 4
+            // },
+        ],
+        false,
+        completionKey
+    );
+    checkResult(result);
+    expect(result.data).toHaveProperty("scheduleId");
+    const scheduleId = result.data.scheduleId;
+
+    result = await bladeSdk.signScheduleId(scheduleId, accountId, privateKey, accountId2, false, completionKey);
+    checkResult(result);
+
+
+
+
+}, 60_000);
 
 test('ParametersBuilder.defined', async () => {
     expect(new ParametersBuilder() != null).toEqual(true);
