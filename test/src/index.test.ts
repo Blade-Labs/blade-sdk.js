@@ -1089,7 +1089,7 @@ test('bladeSdk.schedule', async () => {
                 type: "HBAR",
                 sender: accountId,
                 receiver: accountId2,
-                value: 0.05 * 10**8,
+                value: 6000000,
             },
             {
                 type: "FT",

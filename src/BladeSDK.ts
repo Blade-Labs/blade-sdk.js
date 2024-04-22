@@ -728,7 +728,7 @@ export class BladeSDK {
                         transfers.forEach((transfer) => {
                             switch (transfer.type) {
                                 case ScheduleTransferType.HBAR:
-                                    if (transfer.value) {
+                                    if (!transfer.value) {
                                         throw new Error("Value required for HBAR transfer");
                                     }
                                     const amount = Hbar.fromTinybars(transfer.value!);
@@ -737,7 +737,7 @@ export class BladeSDK {
                                         .addHbarTransfer(transfer.receiver, amount);
                                     break;
                                 case ScheduleTransferType.FT:
-                                    if (!transfer.value && !transfer.tokenId) {
+                                    if (!transfer.value || !transfer.tokenId) {
                                         throw new Error("Token id and value required for FT transfer");
                                     }
                                     transactionToSchedule
@@ -745,7 +745,7 @@ export class BladeSDK {
                                         .addTokenTransfer(transfer.tokenId!, transfer.receiver, transfer.value!);
                                     break;
                                 case ScheduleTransferType.NFT:
-                                    if (!transfer.tokenId && !transfer.serial) {
+                                    if (!transfer.tokenId || !transfer.serial) {
                                         throw new Error("Token id and serial required for NFT transfer");
                                     }
                                     transactionToSchedule
@@ -764,7 +764,7 @@ export class BladeSDK {
                             .then((result) => result.getReceiptWithSigner(this.signer))
                             .then((data) => {
                                 return this.sendMessageToNative(completionKey, {
-                                    scheduleId: data.scheduleId,
+                                    scheduleId: `${data.scheduleId}`,
                                 });
                             });
                     } break;
