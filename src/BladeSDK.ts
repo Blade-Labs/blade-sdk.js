@@ -728,19 +728,28 @@ export class BladeSDK {
                         transfers.forEach((transfer) => {
                             switch (transfer.type) {
                                 case ScheduleTransferType.HBAR:
-                                    const amount = Hbar.fromTinybars(transfer.value);
+                                    if (transfer.value) {
+                                        throw new Error("Value required for HBAR transfer");
+                                    }
+                                    const amount = Hbar.fromTinybars(transfer.value!);
                                     transactionToSchedule
                                         .addHbarTransfer(transfer.sender, amount.negated())
                                         .addHbarTransfer(transfer.receiver, amount);
                                     break;
                                 case ScheduleTransferType.FT:
+                                    if (!transfer.value && !transfer.tokenId) {
+                                        throw new Error("Token id and value required for FT transfer");
+                                    }
                                     transactionToSchedule
-                                        .addTokenTransfer(transfer.tokenId, transfer.sender, -transfer.value)
-                                        .addTokenTransfer(transfer.tokenId, transfer.receiver, transfer.value);
+                                        .addTokenTransfer(transfer.tokenId!, transfer.sender, -transfer.value!)
+                                        .addTokenTransfer(transfer.tokenId!, transfer.receiver, transfer.value!);
                                     break;
                                 case ScheduleTransferType.NFT:
+                                    if (!transfer.tokenId && !transfer.serial) {
+                                        throw new Error("Token id and serial required for NFT transfer");
+                                    }
                                     transactionToSchedule
-                                        .addNftTransfer(transfer.tokenId, transfer.serial, transfer.sender, transfer.receiver);
+                                        .addNftTransfer(transfer.tokenId!, transfer.serial!, transfer.sender, transfer.receiver);
                                     break;
                                 default:
                                     throw new Error(`Schedule transaction transfer type "${type}" not supported`);
@@ -755,7 +764,7 @@ export class BladeSDK {
                             .then((result) => result.getReceiptWithSigner(this.signer))
                             .then((data) => {
                                 return this.sendMessageToNative(completionKey, {
-                                    scheduleId: data.scheduleId.toString(),
+                                    scheduleId: data.scheduleId,
                                 });
                             });
                     } break;
@@ -793,6 +802,9 @@ export class BladeSDK {
 
             freeSchedule = freeSchedule && (await getConfig("freeSchedules")).toLowerCase() === "true";
             if (freeSchedule) {
+                if (!receiverAccountId) {
+                    throw new Error("Receiver account id required for free schedule transaction");
+                }
                 const { scheduleSignTransactionBytes } = await signScheduleRequest(this.network, scheduleId, receiverAccountId);
                 const buffer = Buffer.from(scheduleSignTransactionBytes, "base64");
                 const receipt = await Transaction.fromBytes(buffer)
