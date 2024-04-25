@@ -109,7 +109,7 @@ describe('test COMMON functionality', () => {
     });
 
     test('bladeSdk-common.getCoinPrice', async () => {
-        let result = await bladeSdk.getCoinPrice("Hbar", completionKey);
+        let result = await bladeSdk.getCoinPrice("Hbar", "usd", completionKey);
         checkResult(result);
 
         expect(result.data).toHaveProperty("priceUsd");
@@ -119,11 +119,11 @@ describe('test COMMON functionality', () => {
         expect(coin.symbol).toEqual("hbar");
         expect(coin.market_data.current_price.usd).toEqual(result.data.priceUsd);
 
-        result = await bladeSdk.getCoinPrice("0.0.0", completionKey);
+        result = await bladeSdk.getCoinPrice("0.0.0", "uah", completionKey);
         checkResult(result);
         expect(result.data.coin.symbol).toEqual("hbar");
 
-        result = await bladeSdk.getCoinPrice("0x80008bcd713c38af90a9930288d446bc3bd2e684", completionKey);
+        result = await bladeSdk.getCoinPrice("0x80008bcd713c38af90a9930288d446bc3bd2e684", "php", completionKey);
         checkResult(result);
         expect(result.data.coin.symbol).toEqual("karate");
 
@@ -131,12 +131,12 @@ describe('test COMMON functionality', () => {
         // checkResult(result);
         // expect(result.data.coin.symbol).toEqual("karate");
 
-        result = await bladeSdk.getCoinPrice("karate-combat", completionKey);
+        result = await bladeSdk.getCoinPrice("karate-combat", "usd", completionKey);
         checkResult(result);
         expect(result.data.coin.symbol).toEqual("karate");
 
         try {
-            result = await bladeSdk.getCoinPrice("unknown token", completionKey);
+            result = await bladeSdk.getCoinPrice("unknown token", "usd", completionKey);
             expect("Code should not reach here").toEqual(result);
         } catch (result) {
             checkResult(result, false);
@@ -174,6 +174,7 @@ describe('test COMMON functionality', () => {
         }
     });
 
+    // TODO refactor
     test('bladeSdk-common.splitSignature', async () => {
         const message = "hello";
         const messageString = Buffer.from(message).toString("base64");

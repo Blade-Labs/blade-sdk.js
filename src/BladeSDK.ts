@@ -306,16 +306,16 @@ export class BladeSDK {
 
     /**
      * Get balance and token balances for specific account.
-     * @param accountId Hedera account id (0.0.xxxxx) or Ethereum address (0x...) or empty string to use current user account
+     * @param accountAddress Hedera account id (0.0.xxxxx) or Ethereum address (0x...) or empty string to use current user account
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {BalanceData} hbars: number, tokens: [{tokenId: string, balance: number}]
      */
-    async getBalance(accountId: string, completionKey?: string): Promise<BalanceData> {
+    async getBalance(accountAddress: string, completionKey?: string): Promise<BalanceData> {
         try {
-            if (!accountId) {
-                accountId = this.getUser().accountId;
+            if (!accountAddress) {
+                accountAddress = this.getUser().accountId;
             }
-            return this.sendMessageToNative(completionKey, await this.tokenServiceContext.getBalance(accountId));
+            return this.sendMessageToNative(completionKey, await this.tokenServiceContext.getBalance(accountAddress));
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
         }
@@ -323,17 +323,17 @@ export class BladeSDK {
 
     /**
      * Send HBAR/ETH to specific account.
-     * @param receiverId receiver account id (0.0.xxxxx)
+     * @param receiverAddress receiver account id (0.0.xxxxx)
      * @param amount of hbars to send (decimal number)
      * @param memo transaction memo
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns Promise<TransactionResponseData>
      */
-    async transferBalance(receiverId: string, amount: string, memo: string, completionKey?: string): Promise<TransactionResponseData> {
+    async transferBalance(receiverAddress: string, amount: string, memo: string, completionKey?: string): Promise<TransactionResponseData> {
         try {
             const result = await this.tokenServiceContext.transferBalance({
                 from: this.userAccountId,
-                to: receiverId,
+                to: receiverAddress,
                 amount,
                 memo,
             })
@@ -347,7 +347,7 @@ export class BladeSDK {
     /**
      * Send token to specific account.
      * @param tokenAddress token id to send (0.0.xxxxx or 0x123456789abcdef...)
-     * @param receiverId receiver account address (0.0.xxxxx or 0x123456789abcdef...)
+     * @param receiverAddress receiver account address (0.0.xxxxx or 0x123456789abcdef...)
      * @param amountOrSerial amount of fungible tokens to send (with token-decimals correction) on NFT serial number. (e.g. amount 0.01337 when token decimals 8 will send 1337000 units of token)
      * @param memo transaction memo
      * @param freeTransfer if true, Blade will pay fee transaction. Only for single dApp configured fungible-token. In that case tokenId not used
@@ -356,7 +356,7 @@ export class BladeSDK {
      */
     async transferTokens(
         tokenAddress: string,
-        receiverId: string,
+        receiverAddress: string,
         amountOrSerial: string,
         memo: string,
         freeTransfer: boolean = false,
@@ -366,7 +366,7 @@ export class BladeSDK {
             // TODO send NFT for Ethereum tokens
             const result = await this.tokenServiceContext.transferToken({
                 from: this.userAccountId,
-                to: receiverId,
+                to: receiverAddress,
                 amountOrSerial,
                 tokenAddress,
                 memo,
@@ -498,6 +498,12 @@ export class BladeSDK {
         }
     }
 
+
+    // TODO implement `createScheduleTransaction` method
+    // TODO implement `signScheduleId` method
+
+
+
     /*
      /**
      * Sign scheduled transaction
@@ -609,6 +615,8 @@ export class BladeSDK {
         }
     }
 
+
+    // TODO move to BladeSDK.utils.getNodeList
     /**
      * Get Node list
      * @param completionKey optional field bridge between mobile webViews and native apps
@@ -656,7 +664,7 @@ export class BladeSDK {
         }
     }
 
-    // TODO implement searchAccounts
+    // TODO implement `searchAccounts` method
     /**
      * Get accounts list and keys from private key or mnemonic
      * Returned keys with DER header.
@@ -682,7 +690,7 @@ export class BladeSDK {
     }
     */
 
-    // TODO implement dropTokens
+    // TODO implement `dropTokens` method
     /**
      * Bladelink drop to account
      * @param accountId Hedera account id (0.0.xxxxx)
@@ -755,6 +763,8 @@ export class BladeSDK {
         }
     }
 
+    // TODO check if method `ethersSign` is needed
+
     /**
      * Split signature to v-r-s format.
      * @param signature hex-encoded signature
@@ -809,6 +819,7 @@ export class BladeSDK {
         }
     }
 
+    // TODO migrate to `getTradeUrl` method
     /**
      * Get configured url for C14 integration (iframe or popup)
      * @param asset name (USDC or HBAR)
@@ -908,14 +919,14 @@ export class BladeSDK {
 
     /**
      * Create token (NFT or Fungible Token)
-     * @param tokenName: token name (string up to 100 bytes)
-     * @param tokenSymbol: token symbol (string up to 100 bytes)
-     * @param isNft: set token type NFT
-     * @param keys: token keys
-     * @param decimals: token decimals (0 for nft)
-     * @param initialSupply: token initial supply (0 for nft)
-     * @param maxSupply: token max supply
-     * @param completionKey: optional field bridge between mobile webViews and native apps
+     * @param tokenName token name (string up to 100 bytes)
+     * @param tokenSymbol token symbol (string up to 100 bytes)
+     * @param isNft set token type NFT
+     * @param keys token keys
+     * @param decimals token decimals (0 for nft)
+     * @param initialSupply token initial supply (0 for nft)
+     * @param maxSupply token max supply
+     * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {tokenId: string}
      */
     async createToken(
@@ -939,8 +950,8 @@ export class BladeSDK {
     /**
      * Associate token to account
      *
-     * @param tokenId: token id
-     * @param completionKey: optional field bridge between mobile webViews and native apps
+     * @param tokenId token id
+     * @param completionKey optional field bridge between mobile webViews and native apps
      */
     async associateToken(
         tokenId: string,
@@ -957,11 +968,11 @@ export class BladeSDK {
     /**
      * Mint one NFT
      *
-     * @param tokenId: token id to mint NFT
-     * @param file: image to mint (File or base64 DataUrl image, eg.: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAA...)
-     * @param metadata: NFT metadata (JSON object)
-     * @param storageConfig: {NFTStorageConfig} IPFS provider config
-     * @param completionKey: optional field bridge between mobile webViews and native apps
+     * @param tokenId token id to mint NFT
+     * @param file image to mint (File or base64 DataUrl image, eg.: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAA...)
+     * @param metadata NFT metadata (JSON object)
+     * @param storageConfig {NFTStorageConfig} IPFS provider config
+     * @param completionKey optional field bridge between mobile webViews and native apps
      */
     async nftMint(
         tokenId: string,
@@ -977,6 +988,8 @@ export class BladeSDK {
             throw this.sendMessageToNative(completionKey, null, error);
         }
     }
+
+    // TODO implement `getTokenInfo` method
 
     private async initMagic(chainId: KnownChainIds) {
         const options: MagicSDKAdditionalConfiguration = {};

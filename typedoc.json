@@ -1,0 +1,5 @@
+{
+  "plugin": ["typedoc-plugin-markdown"],
+  "out": "./docs_test",
+  "entryPoints": ["./src/index.ts"]
+}
