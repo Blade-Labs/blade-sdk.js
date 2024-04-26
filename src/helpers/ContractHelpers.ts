@@ -80,7 +80,7 @@ export const parseContractFunctionParams = async (paramsEncoded: string | Parame
         } else if (param?.type === "tuple") {
             const result = await parseContractFunctionParams(param.value[0]);
 
-            // eslint-disable-next-line @typescript-eslint/restrict-template-expressionstypes.push(`(${result.types})`);
+            types.push(`(${result.types})`);
             values.push(result.values);
         } else if (param?.type === "tuple[]") {
             const result: any[] = [];
