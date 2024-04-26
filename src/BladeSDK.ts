@@ -55,7 +55,6 @@ import AccountServiceContext from "./strategies/AccountServiceContext";
 import SignServiceContext from "./strategies/SignServiceContext";
 import ContractServiceContext from "./strategies/ContractServiceContext";
 import TradeServiceContext from "./strategies/TradeServiceContext";
-import { Alchemy, Network as AlchemyNetwork } from "alchemy-sdk";
 
 @injectable()
 export class BladeSDK {
@@ -75,8 +74,6 @@ export class BladeSDK {
     private userAccountId: string = "";
     private userPublicKey: string = "";
     private userPrivateKey: string = "";
-
-    private alchemy: Alchemy | null = null;
 
     /**
      * BladeSDK constructor.
