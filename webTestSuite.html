@@ -40,7 +40,7 @@
 
             const userProviders = [
                 {
-                    userProvider: "Hedera",
+                    userProvider: "PrivateKey",
                     accountIdOrEmail: accountId,
                     accountPrivateKey: privateKey
                 },
@@ -78,11 +78,11 @@
             }
 
             async function customSetUser(userProvider, accountIdOrEmail, accountPrivateKey, completionKey) {
-                if (userProvider === "Hedera") {
+                if (userProvider === "PrivateKey") {
                     await bladeSdk.setUser(userProvider, accountIdOrEmail, accountPrivateKey, completionKey);
                     return {
-                        accountId: "",
-                        privateKey: ""
+                        accountId: accountIdOrEmail,
+                        privateKey: accountPrivateKey
                     };
                 } else if (userProvider === "Magic") {
                     await bladeSdk.setUser(userProvider, accountIdOrEmail, undefined, completionKey);
@@ -218,11 +218,11 @@
 
             addTest("createAndMintNFT", async (completionKey) => {
                 for await (const { userProvider, accountIdOrEmail, accountPrivateKey } of userProviders) {
-                    log(await bladeSdk.init(apiKeyTestnet, "Testnet", dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
+                    log(await bladeSdk.init(apiKeyTestnet, "296", dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
                     const { accountId, privateKey } = await customSetUser(userProvider, accountIdOrEmail, accountPrivateKey, completionKey);
 
                     const id = Date.now();
-                    const tokenName = `SDK NFT test ${id}`;
+                    const tokenName = `TEEEST SDK NFT test ${id}`;
                     const tokenSymbol = `N++ ${id}`;
 
                     const keys = [
@@ -233,8 +233,6 @@
                     ];
 
                     const result = await bladeSdk.createToken(
-                        accountId, // treasuryAccountId
-                        privateKey, // supplyPrivateKey
                         tokenName,
                         tokenSymbol,
                         true, // isNft
@@ -249,11 +247,9 @@
                     log(
                         await bladeSdk.nftMint(
                             result.data.tokenId,
-                            accountId,
-                            privateKey,
                             "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAARUlEQVR42u3PMREAAAgEIO1fzU5vBlcPGtCVTD3QIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIXCyqyi6fIALs1AAAAAElFTkSuQmCC", // TODO upload file base64
                             {
-                                author: "Test_Author",
+                                author: "Test_Author_1",
                                 "attributes": [
                                     {
                                         "trait_type": "Base",
@@ -272,10 +268,10 @@
             });
             addTest("getTokenInfo", async (completionKey) => {
                 for await (const { userProvider, accountIdOrEmail, accountPrivateKey } of userProviders) {
-                    log(await bladeSdk.init(apiKeyTestnet, "Testnet", dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
+                    log(await bladeSdk.init(apiKeyTestnet, "296", dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
                     const { accountId, privateKey } = await customSetUser(userProvider, accountIdOrEmail, accountPrivateKey, completionKey);
 
-                    log(await bladeSdk.getTokenInfo('0.0.4228164', 1));
+                    log(await bladeSdk.getTokenInfo('0.0.4243757', 1));
                 }
             });
 

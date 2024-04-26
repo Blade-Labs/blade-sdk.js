@@ -95,7 +95,7 @@ export default class TokenServiceContext implements ITokenService {
         return this.strategy!.createToken(tokenName, tokenSymbol, isNft, treasuryAccountId, supplyPublicKey, keys, decimals, initialSupply, maxSupply);
     }
 
-    nftMint(tokenId: string, file: File | string, metadata: {}, storageConfig: NFTStorageConfig): Promise<TransactionReceiptData> {
+    nftMint(tokenId: string, file: File | string, metadata: object, storageConfig: NFTStorageConfig): Promise<TransactionReceiptData> {
         this.checkSigner();
         return this.strategy!.nftMint(tokenId, file, metadata, storageConfig);
     }

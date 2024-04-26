@@ -137,7 +137,7 @@ export default class TokenServiceHedera implements ITokenService {
     }
 
     async associateToken(tokenId: string, accountId: string): Promise<TransactionReceiptData> {
-        let transaction;
+        let transaction: Transaction;
         const network = ChainMap[this.chainId].isTestnet ? "testnet" : "mainnet";
         const freeAssociationTokens = (await this.configService.getConfig("tokens"))[network]?.association || [];
         if (freeAssociationTokens.includes(tokenId) || !tokenId) {
@@ -146,7 +146,7 @@ export default class TokenServiceHedera implements ITokenService {
                 throw new Error("Failed to get transaction bytes for free association. Token already associated?");
             }
             const buffer = Buffer.from(result.transactionBytes, "base64");
-            transaction = await Transaction.fromBytes(buffer);
+            transaction = Transaction.fromBytes(buffer);
         } else {
             transaction = await new TokenAssociateTransaction()
                 .setAccountId(accountId)
@@ -238,7 +238,7 @@ export default class TokenServiceHedera implements ITokenService {
         return {tokenId};
     }
 
-    async nftMint(tokenId: string, file: File | string, metadata: {}, storageConfig: NFTStorageConfig): Promise<TransactionReceiptData> {
+    async nftMint(tokenId: string, file: File | string, metadata: object, storageConfig: NFTStorageConfig): Promise<TransactionReceiptData> {
         if (typeof file === "string") {
             file = dataURLtoFile(file, "filename");
         }
@@ -249,7 +249,7 @@ export default class TokenServiceHedera implements ITokenService {
         const groupSize = 1;
         const amount = 1;
 
-        let storageClient;
+        let storageClient: NFTStorage;
         if (storageConfig.provider === NFTStorageProvider.nftStorage) {
             // TODO implement through interfaces
             storageClient = new NFTStorage({token: storageConfig.apiKey});
@@ -264,7 +264,7 @@ export default class TokenServiceHedera implements ITokenService {
             name: fileName,
             type: file.type,
             creator: 'Blade Labs',
-            ...metadata as {},
+            ...metadata,
             image: `ipfs://${dirCID}/${encodeURIComponent(fileName)}`,
         }
         const metadataCID = await storageClient.storeBlob(

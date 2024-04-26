@@ -8,14 +8,14 @@ export enum ChainServiceStrategy {
 
 export enum CryptoKeyType {
     ECDSA_SECP256K1 = "ECDSA_SECP256K1",
-    ED25519 = "ED25519"
+    ED25519 = "ED25519",
 }
 
 export enum KnownChainIds {
     ETHEREUM_MAINNET = "1",
     ETHEREUM_SEPOLIA = "11155111",
     HEDERA_MAINNET = "295",
-    HEDERA_TESTNET = "296"
+    HEDERA_TESTNET = "296",
 }
 
 export type ChainConfig = {
@@ -28,11 +28,11 @@ export type ChainConfig = {
     defaultCryptoKeyType: CryptoKeyType;
     options?: {
         allowMultipleAccounts?: boolean;
-    },
-    serviceStrategy: string;
-    supportsHardware: boolean,
+    };
+    serviceStrategy: ChainServiceStrategy;
+    supportsHardware: boolean;
     explorerUrl: string;
-}
+};
 
 export const ChainMap: Record<KnownChainIds, ChainConfig> = {
     [KnownChainIds.HEDERA_MAINNET]: {
@@ -46,9 +46,9 @@ export const ChainMap: Record<KnownChainIds, ChainConfig> = {
         serviceStrategy: ChainServiceStrategy.Hedera,
         supportsHardware: true,
         options: {
-            allowMultipleAccounts: true
+            allowMultipleAccounts: true,
         },
-        explorerUrl: "https://hashscan.io/mainnet/transaction/"
+        explorerUrl: "https://hashscan.io/mainnet/transaction/",
     },
     [KnownChainIds.HEDERA_TESTNET]: {
         name: "Hedera Testnet",
@@ -61,9 +61,9 @@ export const ChainMap: Record<KnownChainIds, ChainConfig> = {
         serviceStrategy: ChainServiceStrategy.Hedera,
         supportsHardware: true,
         options: {
-            allowMultipleAccounts: true
+            allowMultipleAccounts: true,
         },
-        explorerUrl: "https://hashscan.io/testnet/transaction/"
+        explorerUrl: "https://hashscan.io/testnet/transaction/",
     },
     [KnownChainIds.ETHEREUM_MAINNET]: {
         name: "Ethereum Mainnet",
@@ -75,7 +75,7 @@ export const ChainMap: Record<KnownChainIds, ChainConfig> = {
         defaultCryptoKeyType: CryptoKeyType.ECDSA_SECP256K1,
         serviceStrategy: ChainServiceStrategy.Ethereum,
         supportsHardware: true,
-        explorerUrl: "https://etherscan.io/tx/"
+        explorerUrl: "https://etherscan.io/tx/",
     },
     [KnownChainIds.ETHEREUM_SEPOLIA]: {
         name: "Ethereum Sepolia",
@@ -87,6 +87,6 @@ export const ChainMap: Record<KnownChainIds, ChainConfig> = {
         defaultCryptoKeyType: CryptoKeyType.ECDSA_SECP256K1,
         serviceStrategy: ChainServiceStrategy.Ethereum,
         supportsHardware: true,
-        explorerUrl: "https://sepolia.etherscan.io/tx/"
-    }
-}
+        explorerUrl: "https://sepolia.etherscan.io/tx/",
+    },
+};

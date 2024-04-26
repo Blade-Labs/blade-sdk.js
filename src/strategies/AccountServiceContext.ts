@@ -47,7 +47,7 @@ export default class AccountServiceContext implements IAccountService {
         this.chainId = chainId;
         this.signer = signer; // may be null if BladeSDK.setUser() not called. Useful for createAccount() for example
 
-        switch (ChainMap[this.chainId].serviceStrategy) {
+        switch (ChainMap[this.chainId].serviceStrategy as ChainServiceStrategy) {
             case ChainServiceStrategy.Hedera:
                 this.strategy = new AccountServiceHedera(chainId, signer as Signer | null, this.apiService, this.configService);
                 break;
