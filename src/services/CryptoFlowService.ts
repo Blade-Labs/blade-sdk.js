@@ -45,7 +45,8 @@ export const executeAllowanceApprove = async (
     activeAccount: string,
     network: Network,
     signer: Signer,
-    approve: boolean = true
+    approve: boolean,
+    allowanceToAddr?: string
 ): Promise<void> => {
     const sourceToken = selectedQuote.source.asset;
     if (!sourceToken.address) return;
@@ -62,7 +63,7 @@ export const executeAllowanceApprove = async (
 
         const tx = new AccountAllowanceApproveTransaction()
             .setMaxTransactionFee(100)
-            .approveTokenAllowance(sourceToken.address, activeAccount, swapContract[network], amount);
+            .approveTokenAllowance(sourceToken.address, activeAccount, allowanceToAddr || swapContract[network], amount);
         const freezedTx = await tx.freezeWithSigner(signer);
         const signedTx = await freezedTx.signWithSigner(signer);
         const txResponse = await signedTx.executeWithSigner(signer);

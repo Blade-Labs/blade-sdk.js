@@ -10,6 +10,7 @@ export interface ICryptoFlowTransaction {
     calldata: string; // base64 - actual transaction
     signature: string; // base64 - signature of transaction bytes
     trackUrl?: string; // url to redirect user to (status page)
+    allowanceTo?: string; // address to give allowance to, hedera case
 }
 
 export enum CryptoFlowRoutes {
@@ -50,6 +51,7 @@ export interface ICryptoFlowQuoteParams {
     walletAddress: string;
 
     useTestnet?: boolean;
+    redirectUrl?: string; // redirect user to this url after action
 }
 
 export interface ICryptoFlowTransactionParams {
@@ -124,6 +126,7 @@ export interface ICryptoFlowQuote {
     rate: number | null;
     widgetUrl?: string;
     paymentMethods?: string[];
+    path?: { tokenId: string, fee?: number }[];
 }
 
 export interface IAssetQuote {
