@@ -1091,7 +1091,7 @@ test('bladeSdk.schedule', async () => {
                 type: "HBAR",
                 sender: accountId,
                 receiver: accountId2,
-                value: 6000000,
+                value: parseInt(Math.random() * 6000000, 10),
             },
             {
                 type: "FT",
