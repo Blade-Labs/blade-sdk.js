@@ -1448,12 +1448,33 @@ export class BladeSDK {
                 KnownChainIds[useTestnet ? KnownChain.HEDERA_TESTNET : KnownChain.HEDERA_MAINNET],
                 10
             );
+
+            const assets = (await getCryptoFlowData(
+                this.network,
+                this.visitorId,
+                CryptoFlowRoutes.ASSETS,
+                {
+                    sourceCode,
+                    targetCode,
+                    useTestnet,
+                    targetChainId: chainId,
+                    sourceChainId: chainId,
+                },
+                strategy
+            )) as ICryptoFlowAssets;
+
+            const sourceAddress = assets.source.find((asset) => asset.code === sourceCode)?.address;
+            const targetAddress = assets.target.find((asset) => asset.code === targetCode)?.address;
+
             const params: ICryptoFlowQuoteParams = {
                 sourceCode,
                 sourceAmount,
                 targetCode,
                 useTestnet,
-                walletAddress: HbarTokenId
+                walletAddress: HbarTokenId,
+                slippage: "0.5",
+                sourceAddress,
+                targetAddress,
             };
 
             switch (strategy.toLowerCase()) {
@@ -1526,6 +1547,24 @@ export class BladeSDK {
 
             const useTestnet = this.network === Network.Testnet;
             const chainId = +KnownChainIds[useTestnet ? KnownChain.HEDERA_TESTNET : KnownChain.HEDERA_MAINNET];
+
+            const assets = (await getCryptoFlowData(
+                this.network,
+                this.visitorId,
+                CryptoFlowRoutes.ASSETS,
+                {
+                    sourceCode,
+                    targetCode,
+                    useTestnet,
+                    targetChainId: chainId,
+                    sourceChainId: chainId,
+                },
+                CryptoFlowServiceStrategy.SWAP
+            )) as ICryptoFlowAssets;
+
+            const sourceAddress = assets.source.find((asset) => asset.code === sourceCode)?.address;
+            const targetAddress = assets.target.find((asset) => asset.code === targetCode)?.address;
+
             const quotes = (await getCryptoFlowData(
                 this.network,
                 this.visitorId,
@@ -1537,6 +1576,8 @@ export class BladeSDK {
                     targetCode,
                     targetChainId: chainId,
                     useTestnet,
+                    sourceAddress,
+                    targetAddress
                 },
                 CryptoFlowServiceStrategy.SWAP
             )) as ICryptoFlowQuote[];
@@ -1571,7 +1612,8 @@ export class BladeSDK {
                     accountId,
                     this.network,
                     this.signer,
-                    true
+                    true,
+                    txData.allowanceTo
                 );
                 try {
                     await CryptoFlowService.executeHederaSwapTx(txData.calldata, this.signer);
@@ -1581,7 +1623,8 @@ export class BladeSDK {
                         accountId,
                         this.network,
                         this.signer,
-                        false
+                        false,
+                        txData.allowanceTo
                     );
                     throw e;
                 }
@@ -1604,6 +1647,7 @@ export class BladeSDK {
      * @param targetCode name (HBAR, KARATE, USDC, other token code)
      * @param slippage slippage in percents. Transaction will revert if the price changes unfavorably by more than this percentage.
      * @param serviceId service id to use for swap (saucerswap, onmeta, etc)
+     * @param redirectUrl url to redirect after final step
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {IntegrationUrlData}
      */
@@ -1615,6 +1659,7 @@ export class BladeSDK {
         targetCode: string,
         slippage: number,
         serviceId: string,
+        redirectUrl: string,
         completionKey?: string
     ): Promise<IntegrationUrlData> {
         try {
@@ -1654,6 +1699,8 @@ export class BladeSDK {
                     break;
                 }
             }
+
+            params.redirectUrl = redirectUrl;
 
             const quotes = (await getCryptoFlowData(
                 this.network,

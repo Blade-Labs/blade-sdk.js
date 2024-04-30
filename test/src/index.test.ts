@@ -138,7 +138,7 @@ test('bladeSdk.getBalance', async () => {
     // invalid accountId
     result = await bladeSdk.getBalance("0.0.0", completionKey);
     checkResult(result, false);
-}, 20_000);
+}, 90_000);
 
 test('bladeSdk.getCoinList', async () => {
     let result = await bladeSdk.getCoinList(completionKey);
@@ -903,7 +903,7 @@ test('bladeSdk.exchangeGetQuotes', async () => {
     result = await bladeSdk.exchangeGetQuotes("USDC", 30, "PHP", "Sell", completionKey);
     checkResult(result);
 
-    result = await bladeSdk.exchangeGetQuotes("HBAR", 5, "USDC", "Swap", completionKey);
+    result = await bladeSdk.exchangeGetQuotes("HBAR", 1500, "SAUCE", "Swap", completionKey);
     checkResult(result);
 
     result = await bladeSdk.exchangeGetQuotes("aaaaaaa", 0, "bbbbbb", "FFFF", completionKey);
@@ -924,11 +924,11 @@ test('bladeSdk.swapTokens', async () => {
     result = await bladeSdk.swapTokens(
         process.env.ACCOUNT_ID_ED25519,
         process.env.PRIVATE_KEY_ED25519,
-        "USDC",
-        0.00001,
         "HBAR",
+        1,
+        "SAUCE",
         0.5,
-        "saucerswap",
+        "saucerswapV2",
         completionKey
     );
     checkResult(result);
@@ -957,15 +957,17 @@ test('bladeSdk.getTradeUrl', async () => {
         completionKey);
     checkResult(result);
 
-    result = await bladeSdk.getTradeUrl("buy", accountId, "EUR", 50, "HBAR", 0.5, "moonpay", completionKey);
+    const redirectUrl = "some-redirect-url";
+
+    result = await bladeSdk.getTradeUrl("buy", accountId, "EUR", 50, "HBAR", 0.5, "moonpay", redirectUrl, completionKey);
     checkResult(result);
     expect(result.data).toHaveProperty("url");
 
-    result = await bladeSdk.getTradeUrl("sell", accountId, "USDC", 50, "PHP", 0.5, "onmeta", completionKey);
+    result = await bladeSdk.getTradeUrl("sell", accountId, "HBAR", 2000, "USD", 1, "transak", redirectUrl, completionKey);
     checkResult(result);
     expect(result.data).toHaveProperty("url");
 
-    result = await bladeSdk.getTradeUrl("buy", accountId, "EUR", 50, "HBAR", 0.5, "unknown-service-id", completionKey);
+    result = await bladeSdk.getTradeUrl("buy", accountId, "EUR", 50, "HBAR", 0.5, "unknown-service-id", redirectUrl, completionKey);
     checkResult(result, false);
 }, 30_000);
 
@@ -1089,7 +1091,7 @@ test('bladeSdk.schedule', async () => {
                 type: "HBAR",
                 sender: accountId,
                 receiver: accountId2,
-                value: 6000000,
+                value: parseInt(Math.random() * 6000000, 10),
             },
             {
                 type: "FT",

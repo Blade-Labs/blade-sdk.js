@@ -785,22 +785,23 @@ Swap tokens
 
 ### getTradeUrl
 
-▸ **getTradeUrl**(`strategy`, `accountId`, `sourceCode`, `sourceAmount`, `targetCode`, `slippage`, `serviceId`, `completionKey?`): `Promise<IntegrationUrlData>`
+▸ **getTradeUrl**(`strategy`, `accountId`, `sourceCode`, `sourceAmount`, `targetCode`, `slippage`, `serviceId`, `redirectUrl`, `completionKey?`): `Promise<IntegrationUrlData>`
 
 Get configured url to buy or sell tokens or fiat
 
 #### Parameters
 
-| Name                | Type     | Description                                                                                                        |
-|---------------------| -------- |--------------------------------------------------------------------------------------------------------------------|
-| `strategy`          | `string` | strategy (`buy` or `sell`)                                                                                         |
-| `accountId`         | `string` | account id (0.0.xxxxx)                                                                                             |
-| `sourceCode`        | `string` | source asset code (HBAR, KARATE, USDC, EUR, other token or fiat code)                                              |
-| `sourceAmount`      | `string` | source amount to buy/sell                                                                                          |
-| `targetCode`        | `string` | source asset code (HBAR, KARATE, USDC, EUR, other token or fiat code)                                              |
-| `slippage`          | `string` | slippage in percents (0.5). Transaction will revert if the price changes unfavorably by more than this percentage. |
-| `serviceId`         | `string` | service id to use for buy/sell (c14, etc)                                                                          |
-| `completionKey?`    | `string` | optional field bridge between mobile webViews and native apps                                                      |
+| Name             | Type     | Description                                                                                                        |
+|------------------| -------- |--------------------------------------------------------------------------------------------------------------------|
+| `strategy`       | `string` | strategy (`buy` or `sell`)                                                                                         |
+| `accountId`      | `string` | account id (0.0.xxxxx)                                                                                             |
+| `sourceCode`     | `string` | source asset code (HBAR, KARATE, USDC, EUR, other token or fiat code)                                              |
+| `sourceAmount`   | `string` | source amount to buy/sell                                                                                          |
+| `targetCode`     | `string` | source asset code (HBAR, KARATE, USDC, EUR, other token or fiat code)                                              |
+| `slippage`       | `string` | slippage in percents (0.5). Transaction will revert if the price changes unfavorably by more than this percentage. |
+| `serviceId`      | `string` | service id to use for buy/sell (c14, etc)                                                                          |
+| `redirectUrl`    | `string` | url to redirect after final step                                                                                   |
+| `completionKey?` | `string` | optional field bridge between mobile webViews and native apps                                                      |
 
 #### Returns
     

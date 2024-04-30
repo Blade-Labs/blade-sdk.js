@@ -610,7 +610,7 @@ export const getCryptoFlowData = async (
     params: ICryptoFlowAssetsParams | ICryptoFlowQuoteParams | ICryptoFlowTransactionParams,
     strategy?: CryptoFlowServiceStrategy
 ): Promise<ICryptoFlowAssets | ICryptoFlowQuote[] | ICryptoFlowTransaction> => {
-    const url = new URL(`${getApiUrl()}/exchange/v2/`);
+    const url = new URL(`${getApiUrl()}/exchange/v3/`);
     const searchParams = new URLSearchParams();
 
     for (const key in params) {
