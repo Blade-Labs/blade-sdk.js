@@ -12,7 +12,7 @@
     "prepack": "npm run build",
     "clean": "rimraf lib",
     "publish:web-view": "cross-env SDK_VERSION=$npm_package_version NODE_ENV=production node utils/fixConfig.js && npm run build:web-view && node utils/publish-sdk-bundle.js",
-    "test": "cross-env SDK_VERSION=$npm_package_version NODE_ENV=test node utils/fixConfig.js && jest --coverage --detectOpenHandles",
+    "test": "cross-env SDK_VERSION=$npm_package_version NODE_ENV=test node utils/fixConfig.js && jest --coverage",
     "deploy-test-contract": "solcjs --bin --abi test/contract/TestContract.sol -o ./test/contract && node test/contract/deploy.js",
     "lint": "eslint .",
     "lint:quiet": "eslint . --quiet",
