@@ -1,10 +1,10 @@
-import { injectable, inject } from 'inversify';
-import 'reflect-metadata';
+import { injectable, inject } from "inversify";
+import "reflect-metadata";
 
 import { Network } from "../models/Networks";
 import { AccountId, Hbar, ScheduleCreateTransaction, Transaction, TransferTransaction } from "@hashgraph/sdk";
 import { FeeManualOptions, FeeType } from "../models/CryptoFlow";
-import {ChainMap, KnownChainIds} from "../models/Chain";
+import { ChainMap, KnownChainIds } from "../models/Chain";
 import BigNumber from "bignumber.js";
 import ConfigService from "./ConfigService";
 import { FeeConfig } from "../models/Common";
@@ -45,12 +45,10 @@ type APIRateData = {
 export default class FeeService {
     private cryptoExchangeRates: Record<Network, Record<string, RateData>> = {
         [Network.Mainnet]: {},
-        [Network.Testnet]: {}
-    }
+        [Network.Testnet]: {},
+    };
 
-    constructor(
-        @inject('configService') private readonly configService: ConfigService,
-    ) {}
+    constructor(@inject("configService") private readonly configService: ConfigService) {}
 
     async createFeeTransaction(
         chainId: KnownChainIds,
@@ -60,7 +58,7 @@ export default class FeeService {
         const tx = new TransferTransaction();
         const txWithFee = await this.addBladeFee<TransferTransaction>(tx, chainId, payerAccount, manualOptions);
         return txWithFee.hbarTransfers.size > 0 ? txWithFee : null;
-    };
+    }
 
     async addBladeFee<T extends Transaction>(
         tx: T,
@@ -75,7 +73,9 @@ export default class FeeService {
 
             const network = ChainMap[chainId].isTestnet ? Network.Testnet : Network.Mainnet;
             const feature: FeeType = manualOptions.type; // || detectFeeType(tx);
-            const feesConfig = (await this.configService.getConfig("fees")) as { [key in Lowercase<Network>]: FeeConfig };
+            const feesConfig = (await this.configService.getConfig("fees")) as {
+                [key in Lowercase<Network>]: FeeConfig;
+            };
             const featureConfig = feesConfig[network.toLowerCase() as Lowercase<Network>][feature];
             const feeAmount = await this.calculateFeeAmount(tx, network, featureConfig, manualOptions);
             this.modifyTransactionWithFee(tx, payerAccount, featureConfig.collector, feeAmount);
@@ -84,7 +84,7 @@ export default class FeeService {
         } catch (e) {
             return tx;
         }
-    };
+    }
 
     private async calculateFeeAmount(
         tx: Transaction,
@@ -117,7 +117,7 @@ export default class FeeService {
         if (tx instanceof ScheduleCreateTransaction) {
             const schedule = tx;
             // @ts-expect-error need to access private variable
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             const scheduledTransaction = schedule._scheduledTransaction;
             if (scheduledTransaction instanceof TransferTransaction) {
                 scheduledTransaction.addHbarTransfer(collectorAccount, amount);
@@ -130,8 +130,16 @@ export default class FeeService {
     }
 
     private async applyLimits(amount: BigNumber, network: Network, config: FeatureFeeConfig): Promise<Hbar> {
-        const minInTinyHbars = await this.convertAmountToTinyBarsByCurrencyType(network, config.min, config.limitsCurrency);
-        const maxInTinyHbars = await this.convertAmountToTinyBarsByCurrencyType(network, config.max, config.limitsCurrency);
+        const minInTinyHbars = await this.convertAmountToTinyBarsByCurrencyType(
+            network,
+            config.min,
+            config.limitsCurrency
+        );
+        const maxInTinyHbars = await this.convertAmountToTinyBarsByCurrencyType(
+            network,
+            config.max,
+            config.limitsCurrency
+        );
         const limitedAmount = BigNumber.min(BigNumber.max(minInTinyHbars, amount), maxInTinyHbars);
 
         if (!limitedAmount.isFinite()) {
@@ -170,10 +178,12 @@ export default class FeeService {
         return BigNumber(amount).multipliedBy(rate).shiftedBy(decimalMultiplier);
     }
 
-
-
     private async getHBARRateByTokenId(network: Network, tokenId: string): Promise<BigNumber> {
-        if (!this.cryptoExchangeRates || !this.cryptoExchangeRates[network] || !this.cryptoExchangeRates[network][tokenId]) {
+        if (
+            !this.cryptoExchangeRates ||
+            !this.cryptoExchangeRates[network] ||
+            !this.cryptoExchangeRates[network][tokenId]
+        ) {
             await this.loadRatesPerNetwork(network);
         }
         return this.cryptoExchangeRates[network][tokenId]?.hbarPrice || BigNumber(0);
@@ -181,27 +191,32 @@ export default class FeeService {
 
     private async loadRatesPerNetwork(network: Network): Promise<void> {
         const apiRates = await this.fetchRates(network);
-        this.cryptoExchangeRates[network] = apiRates
-            .reduce((rates, rate) => {
-                rates[rate.id] = {
-                    hbarPrice: BigNumber(rate.price).shiftedBy(-rate.decimals),
-                    usdPrice: BigNumber(rate.priceUsd),
-                    decimals: rate.decimals,
-                };
-                return rates;
-            }, {} as Record<string, RateData>);
+        this.cryptoExchangeRates[network] = apiRates.reduce((rates, rate) => {
+            rates[rate.id] = {
+                hbarPrice: BigNumber(rate.price).shiftedBy(-rate.decimals),
+                usdPrice: BigNumber(rate.priceUsd),
+                decimals: rate.decimals,
+            };
+            return rates;
+        }, {} as Record<string, RateData>);
     }
 
     private async fetchRates(network: Network): Promise<APIRateData[]> {
-        const saucerswapApi: { [key in Network]: string } = JSON.parse(await this.configService.getConfig("saucerswapApi"));
+        const saucerswapApi: { [key in Network]: string } = JSON.parse(
+            await this.configService.getConfig("saucerswapApi")
+        );
         const url = `${saucerswapApi[network]}tokens`;
         return fetch(url)
-        .then((result) => result.json())
-        .catch(() => []) as Promise<APIRateData[]>;
+            .then((result) => result.json())
+            .catch(() => []) as Promise<APIRateData[]>;
     }
 
     private async getDecimalsForTokenId(network: Network, tokenId: string): Promise<number> {
-        if (!this.cryptoExchangeRates || !this.cryptoExchangeRates[network] || !this.cryptoExchangeRates[network][tokenId]) {
+        if (
+            !this.cryptoExchangeRates ||
+            !this.cryptoExchangeRates[network] ||
+            !this.cryptoExchangeRates[network][tokenId]
+        ) {
             await this.loadRatesPerNetwork(network);
         }
         return this.cryptoExchangeRates[network][tokenId]?.decimals || 0;
@@ -211,7 +226,11 @@ export default class FeeService {
         const wrapHbar = JSON.parse(await this.configService.getConfig("swapWrapHbar"));
         const tokenId = wrapHbar[network][0];
 
-        if (!this.cryptoExchangeRates || !this.cryptoExchangeRates[network] || !this.cryptoExchangeRates[network][tokenId]) {
+        if (
+            !this.cryptoExchangeRates ||
+            !this.cryptoExchangeRates[network] ||
+            !this.cryptoExchangeRates[network][tokenId]
+        ) {
             await this.loadRatesPerNetwork(network);
         }
 

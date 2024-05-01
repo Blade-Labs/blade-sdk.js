@@ -1,4 +1,4 @@
-import {checkResult, completionKey, sleep} from "./helpers";
+import { checkResult, completionKey, sleep } from "./helpers";
 import ApiService from "../../src/services/ApiService";
 import CryptoFlowService from "../../src/services/CryptoFlowService";
 import ConfigService from "../../src/services/ConfigService";
@@ -6,20 +6,18 @@ import FeeService from "../../src/services/FeeService";
 import config from "../../src/config";
 import dotenv from "dotenv";
 import fetch from "node-fetch";
-import {TextDecoder, TextEncoder} from 'util';
+import { TextDecoder, TextEncoder } from "util";
 import crypto from "crypto";
-import {
-    AccountProvider,
-} from "../../src/models/Common";
+import { AccountProvider } from "../../src/models/Common";
 import AccountServiceContext from "../../src/strategies/AccountServiceContext";
 import TokenServiceContext from "../../src/strategies/TokenServiceContext";
 import SignServiceContext from "../../src/strategies/SignServiceContext";
 import ContractServiceContext from "../../src/strategies/ContractServiceContext";
 import TradeServiceContext from "../../src/strategies/TradeServiceContext";
-import {KnownChainIds} from "../../src/models/Chain";
+import { KnownChainIds } from "../../src/models/Chain";
 import SignService from "../../src/services/SignService";
 
-const {BladeSDK, ParametersBuilder} = require("../../src/webView");
+const { BladeSDK, ParametersBuilder } = require("../../src/webView");
 
 Object.defineProperty(global.self, "crypto", {
     value: {
@@ -31,8 +29,7 @@ Object.assign(global, { TextDecoder, TextEncoder, fetch });
 
 dotenv.config();
 
-describe('testing methods related to ETHEREUM network', () => {
-
+describe("testing methods related to ETHEREUM network", () => {
     const apiService = new ApiService();
     const configService = new ConfigService(apiService);
     const feeService = new FeeService(configService);
@@ -72,12 +69,12 @@ describe('testing methods related to ETHEREUM network', () => {
             process.env.VISITOR_ID,
             process.env.SDK_ENV,
             sdkVersion,
-            completionKey);
+            completionKey
+        );
         checkResult(result);
     });
 
-
-    test('bladeSdk-ethereum.getBalance', async () => {
+    test("bladeSdk-ethereum.getBalance", async () => {
         let result;
 
         try {
@@ -231,7 +228,6 @@ describe('testing methods related to ETHEREUM network', () => {
     // }, 120_000);
     //
 
-
     // test('bladeSdk-ethereum.getAccountInfo', async () => {
     //     let result;
     //     const account = await bladeSdk.createAccount("device-id", completionKey);
@@ -265,8 +261,7 @@ describe('testing methods related to ETHEREUM network', () => {
     //     }
     // }, 60_000);
 
-
-    test('bladeSdk-ethereum.getKeysFromMnemonic', async () => {
+    test("bladeSdk-ethereum.getKeysFromMnemonic", async () => {
         let result;
 
         result = await bladeSdk.getKeysFromMnemonic(ethereumMnemonic, completionKey);
@@ -274,7 +269,7 @@ describe('testing methods related to ETHEREUM network', () => {
 
         expect(result.data).toHaveProperty("accounts");
         expect(Array.isArray(result.data.accounts)).toEqual(true);
-        expect(result.data.accounts.length).toEqual(10)
+        expect(result.data.accounts.length).toEqual(10);
         expect(result.data.accounts[0]).toHaveProperty("privateKey");
         expect(result.data.accounts[0]).toHaveProperty("publicKey");
         expect(result.data.accounts[0]).toHaveProperty("address");
@@ -482,7 +477,7 @@ describe('testing methods related to ETHEREUM network', () => {
     //     checkResult(result);
     // }, 180_000);
 
-    test('bladeSdk-ethereum.contractCallFunction + contractCallQueryFunction', async () => {
+    test("bladeSdk-ethereum.contractCallFunction + contractCallQueryFunction", async () => {
         let result;
         const contractAddress = process.env.ETHEREUM_CONTRACT_ADDRESS || "";
         expect(contractAddress).not.toEqual("");
@@ -491,7 +486,14 @@ describe('testing methods related to ETHEREUM network', () => {
         let params = new ParametersBuilder().addString(message);
 
         try {
-            result = await bladeSdk.contractCallFunction(contractAddress, "setMood", params, 1000000, false, completionKey);
+            result = await bladeSdk.contractCallFunction(
+                contractAddress,
+                "setMood",
+                params,
+                1000000,
+                false,
+                completionKey
+            );
             expect("Code should not reach here1").toEqual(result);
         } catch (result) {
             checkResult(result, false);
@@ -504,16 +506,22 @@ describe('testing methods related to ETHEREUM network', () => {
         result = await bladeSdk.contractCallFunction(contractAddress, "setMood", params, 1000000, false, completionKey);
         checkResult(result);
 
-
         expect(result.data).toHaveProperty("status");
         expect(result.data.status).toEqual("success");
         expect(result.data).toHaveProperty("contractAddress");
         expect(result.data).toHaveProperty("transactionHash");
 
-
         try {
             // wrong function signature (params with string record)
-            result = await bladeSdk.contractCallQueryFunction(contractAddress, "getMood", params, 1000000, false, ["string"], completionKey);
+            result = await bladeSdk.contractCallQueryFunction(
+                contractAddress,
+                "getMood",
+                params,
+                1000000,
+                false,
+                ["string"],
+                completionKey
+            );
             expect("Code should not reach here").toEqual(result);
         } catch (result) {
             checkResult(result, false);
@@ -521,7 +529,15 @@ describe('testing methods related to ETHEREUM network', () => {
 
         await sleep(10_000);
         params = new ParametersBuilder();
-        result = await bladeSdk.contractCallQueryFunction(contractAddress, "getMood", params, 1000000, false, ["string"], completionKey);
+        result = await bladeSdk.contractCallQueryFunction(
+            contractAddress,
+            "getMood",
+            params,
+            1000000,
+            false,
+            ["string"],
+            completionKey
+        );
         checkResult(result);
 
         expect(Array.isArray(result.data.values)).toEqual(true);
@@ -532,77 +548,76 @@ describe('testing methods related to ETHEREUM network', () => {
         expect(result.data.values[0].type).toEqual("string");
         expect(result.data.values[0].value).toEqual(message);
 
-
-    //     // pay fee on backend
-    //     message = `Hello test ${Math.random()}`;
-    //     params = new ParametersBuilder().addString(message);
-    //     result = await bladeSdk.contractCallFunction(contractId, "set_message", params, 1000000, true, completionKey);
-    //     checkResult(result);
-    //
-    //     contractCallQuery = new ContractCallQuery()
-    //         .setContractId(contractId)
-    //         .setGas(100000)
-    //         .setFunction("get_message")
-    //         .setQueryPayment(new Hbar(1));
-    //
-    //     await sleep(10_000);
-    //
-    //     contractCallQueryResult = await contractCallQuery.execute(client);
-    //     expect(contractCallQueryResult.getString(0)).toEqual(message);
-    //
-    //
-    //     message = `Sum test ${Math.random()}`;
-    //     const num1 = 37;
-    //     const num2 = 5;
-    //     params = new ParametersBuilder().addString(message).addTuple(new ParametersBuilder().addUInt64(BigNumber(num1)).addUInt64(BigNumber(num2)));
-    //     result = await bladeSdk.contractCallFunction(contractId, "set_numbers", params.encode(), 1000000, false, completionKey);
-    //     checkResult(result);
-    //
-    //     await sleep(10_000);
-    //
-    //     contractCallQuery = new ContractCallQuery()
-    //         .setContractId(contractId)
-    //         .setGas(100000)
-    //         .setFunction("get_sum")
-    //         .setQueryPayment(new Hbar(1));
-    //
-    //     contractCallQueryResult = await contractCallQuery.execute(client);
-    //     expect(contractCallQueryResult.getString(0)).toEqual(message);
-    //     expect(contractCallQueryResult.getUint64(1).toNumber()).toEqual(num1 + num2);
-    //
-    //
-    //     try {
-    //         // fail on wrong function params (CONTRACT_REVERT_EXECUTED)
-    //         params = new ParametersBuilder().addString(message).addAddress("0x65f17cac69fb3df1328a5c239761d32e8b346da0").addAddressArray([accountId, accountId2]).addTuple(new ParametersBuilder().addUInt64(BigNumber(num1)).addUInt64(BigNumber(num2)));
-    //         result = await bladeSdk.contractCallFunction(contractId, "set_numbers", params.encode(), 1000000, false, completionKey);
-    //         expect("Code should not reach here2").toEqual(result);
-    //     } catch (result) {
-    //         checkResult(result, false);
-    //         expect(result.error.reason.includes("CONTRACT_REVERT_EXECUTED")).toEqual(true);
-    //     }
-    //
-    //     try {
-    //         // fail on invalid json
-    //         const paramsEncoded = '[{"type":"string",""""""""]'
-    //         result = await bladeSdk.contractCallFunction(contractId, "set_numbers", paramsEncoded, 1000000, false, completionKey);
-    //         expect("Code should not reach here3").toEqual(result);
-    //     } catch (result) {
-    //         checkResult(result, false);
-    //         expect(result.error.reason.includes("Unexpected token")).toEqual(true);
-    //     }
-    //
-    //     try {
-    //         // fail on low gas
-    //         params = new ParametersBuilder().addString(message).addTuple(new ParametersBuilder().addUInt64(BigNumber(num1)).addUInt64(BigNumber(num2)));
-    //         result = await bladeSdk.contractCallFunction(contractId, "set_message", params, 1, false, completionKey);
-    //         expect("Code should not reach here4").toEqual(result);
-    //     } catch (result) {
-    //         checkResult(result, false);
-    //         expect(result.error.reason.includes("INSUFFICIENT_GAS")).toEqual(true);
-    //     }
+        //     // pay fee on backend
+        //     message = `Hello test ${Math.random()}`;
+        //     params = new ParametersBuilder().addString(message);
+        //     result = await bladeSdk.contractCallFunction(contractId, "set_message", params, 1000000, true, completionKey);
+        //     checkResult(result);
+        //
+        //     contractCallQuery = new ContractCallQuery()
+        //         .setContractId(contractId)
+        //         .setGas(100000)
+        //         .setFunction("get_message")
+        //         .setQueryPayment(new Hbar(1));
+        //
+        //     await sleep(10_000);
+        //
+        //     contractCallQueryResult = await contractCallQuery.execute(client);
+        //     expect(contractCallQueryResult.getString(0)).toEqual(message);
+        //
+        //
+        //     message = `Sum test ${Math.random()}`;
+        //     const num1 = 37;
+        //     const num2 = 5;
+        //     params = new ParametersBuilder().addString(message).addTuple(new ParametersBuilder().addUInt64(BigNumber(num1)).addUInt64(BigNumber(num2)));
+        //     result = await bladeSdk.contractCallFunction(contractId, "set_numbers", params.encode(), 1000000, false, completionKey);
+        //     checkResult(result);
+        //
+        //     await sleep(10_000);
+        //
+        //     contractCallQuery = new ContractCallQuery()
+        //         .setContractId(contractId)
+        //         .setGas(100000)
+        //         .setFunction("get_sum")
+        //         .setQueryPayment(new Hbar(1));
+        //
+        //     contractCallQueryResult = await contractCallQuery.execute(client);
+        //     expect(contractCallQueryResult.getString(0)).toEqual(message);
+        //     expect(contractCallQueryResult.getUint64(1).toNumber()).toEqual(num1 + num2);
+        //
+        //
+        //     try {
+        //         // fail on wrong function params (CONTRACT_REVERT_EXECUTED)
+        //         params = new ParametersBuilder().addString(message).addAddress("0x65f17cac69fb3df1328a5c239761d32e8b346da0").addAddressArray([accountId, accountId2]).addTuple(new ParametersBuilder().addUInt64(BigNumber(num1)).addUInt64(BigNumber(num2)));
+        //         result = await bladeSdk.contractCallFunction(contractId, "set_numbers", params.encode(), 1000000, false, completionKey);
+        //         expect("Code should not reach here2").toEqual(result);
+        //     } catch (result) {
+        //         checkResult(result, false);
+        //         expect(result.error.reason.includes("CONTRACT_REVERT_EXECUTED")).toEqual(true);
+        //     }
+        //
+        //     try {
+        //         // fail on invalid json
+        //         const paramsEncoded = '[{"type":"string",""""""""]'
+        //         result = await bladeSdk.contractCallFunction(contractId, "set_numbers", paramsEncoded, 1000000, false, completionKey);
+        //         expect("Code should not reach here3").toEqual(result);
+        //     } catch (result) {
+        //         checkResult(result, false);
+        //         expect(result.error.reason.includes("Unexpected token")).toEqual(true);
+        //     }
+        //
+        //     try {
+        //         // fail on low gas
+        //         params = new ParametersBuilder().addString(message).addTuple(new ParametersBuilder().addUInt64(BigNumber(num1)).addUInt64(BigNumber(num2)));
+        //         result = await bladeSdk.contractCallFunction(contractId, "set_message", params, 1, false, completionKey);
+        //         expect("Code should not reach here4").toEqual(result);
+        //     } catch (result) {
+        //         checkResult(result, false);
+        //         expect(result.error.reason.includes("INSUFFICIENT_GAS")).toEqual(true);
+        //     }
     }, 120_000);
 
-    test('bladeSdk-ethereum.sign + signVerify', async () => {
+    test("bladeSdk-ethereum.sign + signVerify", async () => {
         let result;
         const message = "hello";
         const messageString = Buffer.from(message).toString("base64");
@@ -614,7 +629,7 @@ describe('testing methods related to ETHEREUM network', () => {
         checkResult(result);
         expect(result.data).toHaveProperty("signedMessage");
 
-        const signedMessage = result.data.signedMessage
+        const signedMessage = result.data.signedMessage;
 
         result = await bladeSdk.sign(Buffer.from(message).toString("base64"), "base64", completionKey);
         checkResult(result);
@@ -628,20 +643,35 @@ describe('testing methods related to ETHEREUM network', () => {
         checkResult(validationResult);
         expect(validationResult.data.valid).toEqual(true);
 
-        validationResult = await bladeSdk.verify(message, "utf8", result.data.signedMessage, process.env.ETHEREUM_ADDRESS, completionKey);
+        validationResult = await bladeSdk.verify(
+            message,
+            "utf8",
+            result.data.signedMessage,
+            process.env.ETHEREUM_ADDRESS,
+            completionKey
+        );
         checkResult(validationResult);
         expect(validationResult.data.valid).toEqual(true);
 
-
-        validationResult = await bladeSdk.verify(message+"wrong data", "utf8", result.data.signedMessage, "", completionKey);
+        validationResult = await bladeSdk.verify(
+            message + "wrong data",
+            "utf8",
+            result.data.signedMessage,
+            "",
+            completionKey
+        );
         checkResult(validationResult);
         expect(validationResult.data.valid).toEqual(false);
 
         // wrong address
-        validationResult = await bladeSdk.verify(message, "utf8", result.data.signedMessage, process.env.ETHEREUM_ADDRESS2, completionKey);
+        validationResult = await bladeSdk.verify(
+            message,
+            "utf8",
+            result.data.signedMessage,
+            process.env.ETHEREUM_ADDRESS2,
+            completionKey
+        );
         checkResult(validationResult);
         expect(validationResult.data.valid).toEqual(false);
     });
-
 }); // describe
-

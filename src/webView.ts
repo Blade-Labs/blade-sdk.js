@@ -1,6 +1,6 @@
 import { BladeSDK } from "./BladeSDK";
 import { ParametersBuilder } from "./ParametersBuilder";
-import {getContainer} from "./container";
+import { getContainer } from "./container";
 
 const bladeContainer = getContainer(true);
 
@@ -18,4 +18,4 @@ export { ParametersBuilder } from "./ParametersBuilder";
 export { SdkEnvironment } from "./models/Common";
 export { KnownChainIds } from "./models/Chain";
 export { BladeSDK } from "./BladeSDK";
-export { bladeContainer }
+export { bladeContainer };

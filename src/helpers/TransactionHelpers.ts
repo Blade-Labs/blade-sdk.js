@@ -1,4 +1,4 @@
-import { Signer, TransactionReceipt, TransactionResponse} from "@hashgraph/sdk";
+import { Signer, TransactionReceipt, TransactionResponse } from "@hashgraph/sdk";
 import { TransactionData, TransactionReceiptData } from "../models/Common";
 import { MirrorNodeTransactionType } from "../models/TransactionType";
 
@@ -63,11 +63,11 @@ export const formatReceipt = (txReceipt: TransactionReceipt, transactionHash: st
         topicSequenceNumber: txReceipt.topicSequenceNumber?.toString(),
         totalSupply: txReceipt.totalSupply?.toString(),
         serials: txReceipt.serials?.map((serial) => serial.toString()),
-        transactionHash
+        transactionHash,
     };
 };
 
 export const getReceipt = async (txResult: TransactionResponse, signer: Signer) => {
     const receipt = await txResult.getReceiptWithSigner(signer);
     return formatReceipt(receipt, txResult.transactionId.toString());
-}
+};

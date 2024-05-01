@@ -1,11 +1,11 @@
-import {ethers} from "ethers"
+import { ethers } from "ethers";
 
 import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
-import {ITradeService} from "../TradeServiceContext";
-import {IntegrationUrlData, SwapQuotesData} from "../../models/Common";
-import {CryptoFlowServiceStrategy} from "../../models/CryptoFlow";
-import {KnownChainIds} from "../../models/Chain";
+import { ITradeService } from "../TradeServiceContext";
+import { IntegrationUrlData, SwapQuotesData } from "../../models/Common";
+import { CryptoFlowServiceStrategy } from "../../models/CryptoFlow";
+import { KnownChainIds } from "../../models/Chain";
 
 export default class TradeServiceEthereum implements ITradeService {
     private readonly chainId: KnownChainIds;
@@ -13,12 +13,7 @@ export default class TradeServiceEthereum implements ITradeService {
     private readonly apiService: ApiService;
     private readonly configService: ConfigService;
 
-    constructor(
-        chainId: KnownChainIds,
-        signer: ethers.Signer,
-        apiService: ApiService,
-        configService: ConfigService
-    ) {
+    constructor(chainId: KnownChainIds, signer: ethers.Signer, apiService: ApiService, configService: ConfigService) {
         this.chainId = chainId;
         this.signer = signer;
         this.apiService = apiService;
@@ -29,15 +24,35 @@ export default class TradeServiceEthereum implements ITradeService {
         throw new Error("Method not implemented.");
     }
 
-    async exchangeGetQuotes(sourceCode: string, sourceAmount: number, targetCode: string, strategy: CryptoFlowServiceStrategy):Promise<SwapQuotesData> {
+    async exchangeGetQuotes(
+        sourceCode: string,
+        sourceAmount: number,
+        targetCode: string,
+        strategy: CryptoFlowServiceStrategy
+    ): Promise<SwapQuotesData> {
         throw new Error("Method not implemented.");
     }
 
-    async swapTokens(accountAddress: string, sourceCode: string, sourceAmount: number, targetCode: string, slippage: number, serviceId: string): Promise<{success: boolean}> {
+    async swapTokens(
+        accountAddress: string,
+        sourceCode: string,
+        sourceAmount: number,
+        targetCode: string,
+        slippage: number,
+        serviceId: string
+    ): Promise<{ success: boolean }> {
         throw new Error("Method not implemented.");
     }
 
-    async getTradeUrl(strategy: CryptoFlowServiceStrategy, accountId: string, sourceCode: string, sourceAmount: number, targetCode: string, slippage: number, serviceId: string): Promise<IntegrationUrlData> {
+    async getTradeUrl(
+        strategy: CryptoFlowServiceStrategy,
+        accountId: string,
+        sourceCode: string,
+        sourceAmount: number,
+        targetCode: string,
+        slippage: number,
+        serviceId: string
+    ): Promise<IntegrationUrlData> {
         throw new Error("Method not implemented.");
     }
 }

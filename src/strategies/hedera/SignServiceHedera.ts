@@ -1,17 +1,8 @@
-import {
-    AccountId,
-    PublicKey,
-    Signer,
-    SignerSignature,
-} from "@hashgraph/sdk";
+import { AccountId, PublicKey, Signer, SignerSignature } from "@hashgraph/sdk";
 
-import {ISignService} from "../SignServiceContext";
-import {
-    SignMessageData,
-    SignVerifyMessageData,
-    SupportedEncoding
-} from "../../models/Common";
-import {KnownChainIds} from "../../models/Chain";
+import { ISignService } from "../SignServiceContext";
+import { SignMessageData, SignVerifyMessageData, SupportedEncoding } from "../../models/Common";
+import { KnownChainIds } from "../../models/Chain";
 import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
 
@@ -21,12 +12,7 @@ export default class SignServiceHedera implements ISignService {
     private readonly apiService: ApiService;
     private readonly configService: ConfigService;
 
-    constructor(
-        chainId: KnownChainIds,
-        signer: Signer,
-        apiService: ApiService,
-        configService: ConfigService,
-    ) {
+    constructor(chainId: KnownChainIds, signer: Signer, apiService: ApiService, configService: ConfigService) {
         this.chainId = chainId;
         this.signer = signer;
         this.apiService = apiService;
@@ -38,14 +24,19 @@ export default class SignServiceHedera implements ISignService {
         let signedMessage = "";
 
         const signatures: SignerSignature[] = await this.signer.sign([message]);
-        signedMessage = Buffer.from(signatures[0].signature).toString("hex")
+        signedMessage = Buffer.from(signatures[0].signature).toString("hex");
 
         return {
-            signedMessage
-        }
+            signedMessage,
+        };
     }
 
-    async verify(encodedMessage: string, encoding: SupportedEncoding, signature: string, addressOrPublicKey: string): Promise<SignVerifyMessageData> {
+    async verify(
+        encodedMessage: string,
+        encoding: SupportedEncoding,
+        signature: string,
+        addressOrPublicKey: string
+    ): Promise<SignVerifyMessageData> {
         let publicKey;
         // if address - get public key
         try {
@@ -60,12 +51,9 @@ export default class SignServiceHedera implements ISignService {
             publicKey = PublicKey.fromString(addressOrPublicKey);
         }
 
-        const valid = publicKey.verify(
-            Buffer.from(encodedMessage, encoding),
-            Buffer.from(signature, "hex")
-        );
+        const valid = publicKey.verify(Buffer.from(encodedMessage, encoding), Buffer.from(signature, "hex"));
         return {
-            valid
+            valid,
         };
     }
 }

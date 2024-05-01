@@ -56,7 +56,7 @@ export const associateToken = async (tokenId: string, accountId: string, private
         console.log(err);
         return null;
     });
-}
+};
 
 export function sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));

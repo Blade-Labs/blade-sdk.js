@@ -1,28 +1,33 @@
-import { injectable, inject } from 'inversify';
-import 'reflect-metadata';
+import { injectable, inject } from "inversify";
+import "reflect-metadata";
 import { FeeManualOptions, FeeType, ICryptoFlowQuote, ICryptoFlowTransaction } from "../models/CryptoFlow";
 import { Buffer } from "buffer";
 import BigNumber from "bignumber.js";
 import { AccountAllowanceApproveTransaction, Signer, Status, Transaction } from "@hashgraph/sdk";
 import { Network } from "../models/Networks";
-import FeeService, {HbarTokenId } from "./FeeService";
+import FeeService, { HbarTokenId } from "./FeeService";
 import ConfigService from "./ConfigService";
-import {flatArray} from "../helpers/ArrayHelpers";
-import {ChainMap, KnownChainIds} from "../models/Chain";
+import { flatArray } from "../helpers/ArrayHelpers";
+import { ChainMap, KnownChainIds } from "../models/Chain";
 
 @injectable()
 export default class CryptoFlowService {
     constructor(
-        @inject('configService') private readonly configService: ConfigService,
-        @inject('feeService') private readonly feeService: FeeService,
+        @inject("configService") private readonly configService: ConfigService,
+        @inject("feeService") private readonly feeService: FeeService
     ) {}
 
-    async executeAllowanceApprove(selectedQuote: ICryptoFlowQuote, activeAccount: string, chainId: KnownChainIds, signer: Signer, approve: boolean = true): Promise<void> {
+    async executeAllowanceApprove(
+        selectedQuote: ICryptoFlowQuote,
+        activeAccount: string,
+        chainId: KnownChainIds,
+        signer: Signer,
+        approve: boolean = true
+    ): Promise<void> {
         const network = ChainMap[chainId].isTestnet ? Network.Testnet : Network.Mainnet;
 
         const sourceToken = selectedQuote.source.asset;
-        if (!sourceToken.address)
-            return;
+        if (!sourceToken.address) return;
 
         const isTokenHbar = await this.isHbar(sourceToken.address);
 
@@ -30,20 +35,13 @@ export default class CryptoFlowService {
             const swapContract = JSON.parse(await this.configService.getConfig("swapContract"));
             const amount = approve
                 ? Math.ceil(
-                    Math.pow(10, sourceToken.decimals!) * (
-                        selectedQuote.source.amountExpected * 1.2) // with a little buffer
-
-                )
+                      Math.pow(10, sourceToken.decimals!) * (selectedQuote.source.amountExpected * 1.2) // with a little buffer
+                  )
                 : 0;
 
             const tx = new AccountAllowanceApproveTransaction()
                 .setMaxTransactionFee(100)
-                .approveTokenAllowance(
-                    sourceToken.address ,
-                    activeAccount,
-                    swapContract[network],
-                    amount
-                );
+                .approveTokenAllowance(sourceToken.address, activeAccount, swapContract[network], amount);
             const freezedTx = await tx.freezeWithSigner(signer);
             const signedTx = await freezedTx.signWithSigner(signer);
             const txResponse = await signedTx.executeWithSigner(signer);
@@ -53,13 +51,11 @@ export default class CryptoFlowService {
                 throw new Error("Allowance giving failed");
             }
         }
-    };
+    }
 
     async executeHederaSwapTx(txHex: string, signer: Signer) {
         const buffer: Buffer = Buffer.from(txHex, "hex");
-        const transaction = await Transaction
-            .fromBytes(buffer)
-            .freezeWithSigner(signer);
+        const transaction = await Transaction.fromBytes(buffer).freezeWithSigner(signer);
         const signedTx = await transaction.signWithSigner(signer);
         const txResponse = await signedTx.executeWithSigner(signer);
         const receipt = await txResponse.getReceiptWithSigner(signer);
@@ -67,21 +63,20 @@ export default class CryptoFlowService {
         if (receipt?.status !== Status.Success) {
             throw new Error("Swap transaction failed");
         }
-    };
+    }
 
-    async executeHederaBladeFeeTx(selectedQuote: ICryptoFlowQuote, activeAccount: string, chainId: KnownChainIds,
-    signer: Signer
-) {
+    async executeHederaBladeFeeTx(
+        selectedQuote: ICryptoFlowQuote,
+        activeAccount: string,
+        chainId: KnownChainIds,
+        signer: Signer
+    ) {
         const feeOptions: FeeManualOptions = {
             type: FeeType.Swap,
             amount: BigNumber(selectedQuote.source.amountExpected),
-            amountTokenId: selectedQuote.source.asset.address ,
+            amountTokenId: selectedQuote.source.asset.address,
         };
-        let transaction = await this.feeService.createFeeTransaction(
-            chainId,
-            activeAccount,
-            feeOptions
-        );
+        let transaction = await this.feeService.createFeeTransaction(chainId, activeAccount, feeOptions);
         if (!transaction) {
             return;
         }
@@ -93,7 +88,7 @@ export default class CryptoFlowService {
         if (receiptFee?.status !== Status.Success) {
             throw new Error("Fee transfer execution failed");
         }
-    };
+    }
 
     async validateMessage(tx: ICryptoFlowTransaction) {
         try {
@@ -107,7 +102,7 @@ export default class CryptoFlowService {
                 publicKeyJwk, // Parse the JWK from string format
                 {
                     name: "ECDSA",
-                    namedCurve: "P-256"
+                    namedCurve: "P-256",
                 },
                 true,
                 ["verify"]
@@ -117,7 +112,7 @@ export default class CryptoFlowService {
             return await global.crypto.subtle.verify(
                 {
                     name: "ECDSA",
-                    hash: "SHA-256"
+                    hash: "SHA-256",
                 },
                 importedPublicKey,
                 Buffer.from(tx.signature, "hex"), // The signature in ArrayBuffer format

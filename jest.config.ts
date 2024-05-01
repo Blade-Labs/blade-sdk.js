@@ -6,7 +6,7 @@ const config: Config.InitialOptions = {
         "^.+\\.tsx?$": ["ts-jest", { tsconfig: "./tsconfig.json" }],
     },
     moduleNameMapper: {
-        '^alchemy-sdk$': '<rootDir>node_modules/alchemy-sdk/dist/cjs/index.js',
+        "^alchemy-sdk$": "<rootDir>node_modules/alchemy-sdk/dist/cjs/index.js",
     },
     testEnvironment: "jsdom",
     setupFiles: ["core-js"],

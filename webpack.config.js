@@ -7,7 +7,7 @@ const dirname = path.dirname(filename);
 
 export default {
     entry: {
-        JSWrapper: "./src/webView.ts"
+        JSWrapper: "./src/webView.ts",
     },
     module: {
         rules: [
@@ -33,7 +33,7 @@ export default {
     },
     plugins: [
         new webpack.optimize.LimitChunkCountPlugin({
-            maxChunks: 1
-        })
-    ]
+            maxChunks: 1,
+        }),
+    ],
 };

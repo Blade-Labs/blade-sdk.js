@@ -1,6 +1,6 @@
-import {MirrorNodeTransactionType} from "./TransactionType";
-import {ICryptoFlowQuote} from "./CryptoFlow";
-import {CryptoKeyType, KnownChainIds} from "./Chain";
+import { MirrorNodeTransactionType } from "./TransactionType";
+import { ICryptoFlowQuote } from "./CryptoFlow";
+import { CryptoKeyType, KnownChainIds } from "./Chain";
 import { NftInfo, NftMetadata, TokenInfo } from "./MirrorNode";
 
 export enum SdkEnvironment {
@@ -116,8 +116,8 @@ export type ApiAccount = {
 };
 
 export interface IMirrorNodeServiceNetworkConfigs {
-    "mainnet": IMirrorNodeServiceConfig[];
-    "testnet": IMirrorNodeServiceConfig[];
+    mainnet: IMirrorNodeServiceConfig[];
+    testnet: IMirrorNodeServiceConfig[];
 }
 
 export interface IMirrorNodeServiceConfig {
@@ -184,8 +184,8 @@ export interface ContractCallQueryRecord {
 }
 
 export interface ContractCallQueryRecordsData {
-    values: ContractCallQueryRecord[],
-    gasUsed: number
+    values: ContractCallQueryRecord[];
+    gasUsed: number;
 }
 
 export interface CreateAccountData {
@@ -263,14 +263,14 @@ export interface IntegrationUrlData {
 export interface TransferData {
     amount: number;
     account: string;
-    tokenAddress?: string
-    asset: string
+    tokenAddress?: string;
+    asset: string;
 }
 
 export interface NftTransferData {
-    receiverAddress: string,
-    senderAddress: string,
-    serial: string,
+    receiverAddress: string;
+    senderAddress: string;
+    serial: string;
     tokenAddress: string;
 }
 
@@ -355,17 +355,17 @@ export interface CoinInfoData {
 }
 
 export interface TransactionReceiptData {
-    status: string,
-    contractAddress?: string,
-    topicSequenceNumber?: string,
-    totalSupply?: string,
-    serials: string[],
-    transactionHash: string,
+    status: string;
+    contractAddress?: string;
+    topicSequenceNumber?: string;
+    totalSupply?: string;
+    serials: string[];
+    transactionHash: string;
 }
 
 export interface TransactionResponseData {
-    transactionHash: string
-    transactionId: string
+    transactionHash: string;
+    transactionId: string;
 }
 
 export interface TokenDropData {
