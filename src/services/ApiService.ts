@@ -450,7 +450,17 @@ export default class ApiService {
         return this.tokenInfoCache[this.network][tokenId];
     };
 
-    async transferTokens(params: any) {
+    async transferTokens(
+        params: Partial<{
+            visitorId: string;
+            dAppCode: string;
+            receiverAccountId: string;
+            senderAccountId: string;
+            amount: number;
+            decimals: string;
+            memo: string;
+        }>
+    ): Promise<{ transactionBytes: string }> {
         const url = `${this.getApiUrl()}/tokens/transfers`;
 
         const options = {

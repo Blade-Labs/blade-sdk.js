@@ -3,6 +3,9 @@ import 'reflect-metadata';
 import ApiService from "./ApiService";
 import {BladeConfig, DAppConfig} from "../models/Common";
 
+type ConfigKey = keyof (BladeConfig | DAppConfig);
+type ConfigValueByKey<TKey extends ConfigKey> = (BladeConfig | DAppConfig)[TKey];
+
 @injectable()
 export default class ConfigService {
     private config: BladeConfig = {
@@ -25,9 +28,11 @@ export default class ConfigService {
 
     constructor(@inject('apiService') private readonly apiService: ApiService) {}
 
-    async getConfig(key: string): Promise<any> {
-        if (Object.keys(this.config).includes(key)) { // check if key exists in config or we need dAppConfig
-            if (!this.config.fpApiKey) { // check if config is empty
+    async getConfig<TKey extends ConfigKey>(key: TKey): Promise<ConfigValueByKey<TKey>> {
+        if (Object.keys(this.config).includes(key.toString())) {
+            // check if key exists in config or we need dAppConfig
+            if (!this.config.fpApiKey) {
+                // check if config is empty
                 this.config = {
                     ...this.config,
                     ...(await this.apiService.getBladeConfig())
