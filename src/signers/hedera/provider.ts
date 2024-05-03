@@ -12,13 +12,13 @@ import {
     TransactionReceipt,
     TransactionReceiptQuery,
     TransactionRecord,
-    TransactionResponse,
+    TransactionResponse
 } from "@hashgraph/sdk";
 
 export default class HederaProvider implements Provider {
     private readonly _client: Client;
 
-    constructor(props: { client: Client }) {
+    constructor(props: {client: Client}) {
         if (props != null && props.client != null) {
             this._client = props.client;
             return;
@@ -27,7 +27,7 @@ export default class HederaProvider implements Provider {
     }
 
     static fromClient(client: Client) {
-        return new HederaProvider({ client });
+        return new HederaProvider({client});
     }
 
     getLedgerId() {

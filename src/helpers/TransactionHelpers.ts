@@ -1,6 +1,6 @@
-import { Signer, TransactionReceipt, TransactionResponse} from "@hashgraph/sdk";
-import { TransactionData, TransactionReceiptData } from "../models/Common";
-import { MirrorNodeTransactionType } from "../models/TransactionType";
+import {Signer, TransactionReceipt, TransactionResponse} from "@hashgraph/sdk";
+import {TransactionData, TransactionReceiptData} from "../models/Common";
+import {MirrorNodeTransactionType} from "../models/TransactionType";
 
 export const filterAndFormatTransactions = (
     transactions: TransactionData[],
@@ -10,11 +10,11 @@ export const filterAndFormatTransactions = (
     switch (transactionType) {
         case "CRYPTOTRANSFERTOKEN":
             {
-                transactions = transactions.filter((tx) => {
+                transactions = transactions.filter(tx => {
                     if (tx.type !== MirrorNodeTransactionType.CRYPTOTRANSFER) {
                         return false;
                     }
-                    const tokenTransfers = tx.transfers.filter((transfer) => transfer.tokenAddress);
+                    const tokenTransfers = tx.transfers.filter(transfer => transfer.tokenAddress);
                     if (tokenTransfers.length === 0) {
                         return false;
                     }
@@ -23,7 +23,7 @@ export const filterAndFormatTransactions = (
                     const receiverAccounts: string[] = [];
                     let amount = 0;
 
-                    tokenTransfers.forEach((transfer) => {
+                    tokenTransfers.forEach(transfer => {
                         if (accountId === transfer.account) {
                             amount = transfer.amount;
                         }
@@ -40,7 +40,7 @@ export const filterAndFormatTransactions = (
                         token_id: tokenTransfers[0].tokenAddress,
                         senders: senderAccounts,
                         receivers: receiverAccounts,
-                        amount,
+                        amount
                     };
                     return true;
                 });
@@ -48,7 +48,7 @@ export const filterAndFormatTransactions = (
             break;
         default: {
             if (transactionType) {
-                transactions = transactions.filter((tx) => tx.type === (transactionType as MirrorNodeTransactionType));
+                transactions = transactions.filter(tx => tx.type === (transactionType as MirrorNodeTransactionType));
             }
         }
     }
@@ -62,7 +62,7 @@ export const formatReceipt = (txReceipt: TransactionReceipt, transactionHash: st
         contractAddress: txReceipt.contractId?.toString(),
         topicSequenceNumber: txReceipt.topicSequenceNumber?.toString(),
         totalSupply: txReceipt.totalSupply?.toString(),
-        serials: txReceipt.serials?.map((serial) => serial.toString()),
+        serials: txReceipt.serials?.map(serial => serial.toString()),
         transactionHash
     };
 };
@@ -70,4 +70,4 @@ export const formatReceipt = (txReceipt: TransactionReceipt, transactionHash: st
 export const getReceipt = async (txResult: TransactionResponse, signer: Signer) => {
     const receipt = await txResult.getReceiptWithSigner(signer);
     return formatReceipt(receipt, txResult.transactionId.toString());
-}
+};

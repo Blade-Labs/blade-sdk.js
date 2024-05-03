@@ -7,8 +7,10 @@ import ConfigService from "../../services/ConfigService";
 import {ITradeService} from "../TradeServiceContext";
 import {
     CryptoFlowRoutes,
-    CryptoFlowServiceStrategy, ICryptoFlowAssets,
-    ICryptoFlowAssetsParams, ICryptoFlowQuote,
+    CryptoFlowServiceStrategy,
+    ICryptoFlowAssets,
+    ICryptoFlowAssetsParams,
+    ICryptoFlowQuote,
     ICryptoFlowQuoteParams,
     ICryptoFlowTransaction,
     ICryptoFlowTransactionParams
@@ -27,7 +29,7 @@ export default class TradeServiceHedera implements ITradeService {
         signer: Signer,
         apiService: ApiService,
         configService: ConfigService,
-        cryptoFlowService: CryptoFlowService,
+        cryptoFlowService: CryptoFlowService
     ) {
         this.chainId = chainId;
         this.signer = signer;
@@ -52,25 +54,33 @@ export default class TradeServiceHedera implements ITradeService {
         };
 
         switch (asset.toUpperCase()) {
-            case "USDC": {
-                purchaseParams.targetAssetId = "b0694345-1eb4-4bc4-b340-f389a58ee4f3";
-                purchaseParams.targetAssetIdLock = true;
-            } break;
-            case "HBAR": {
-                purchaseParams.targetAssetId = "d9b45743-e712-4088-8a31-65ee6f371022";
-                purchaseParams.targetAssetIdLock = true;
-            } break;
-            case "KARATE": {
-                purchaseParams.targetAssetId = "057d6b35-1af5-4827-bee2-c12842faa49e";
-                purchaseParams.targetAssetIdLock = true;
-            } break;
-            default: {
-                // check if asset is an uuid
-                if (asset.split("-").length === 5) {
-                    purchaseParams.targetAssetId = asset;
+            case "USDC":
+                {
+                    purchaseParams.targetAssetId = "b0694345-1eb4-4bc4-b340-f389a58ee4f3";
                     purchaseParams.targetAssetIdLock = true;
                 }
-            } break;
+                break;
+            case "HBAR":
+                {
+                    purchaseParams.targetAssetId = "d9b45743-e712-4088-8a31-65ee6f371022";
+                    purchaseParams.targetAssetIdLock = true;
+                }
+                break;
+            case "KARATE":
+                {
+                    purchaseParams.targetAssetId = "057d6b35-1af5-4827-bee2-c12842faa49e";
+                    purchaseParams.targetAssetIdLock = true;
+                }
+                break;
+            default:
+                {
+                    // check if asset is an uuid
+                    if (asset.split("-").length === 5) {
+                        purchaseParams.targetAssetId = asset;
+                        purchaseParams.targetAssetIdLock = true;
+                    }
+                }
+                break;
         }
         if (amount) {
             purchaseParams.sourceAmount = amount;
@@ -85,14 +95,19 @@ export default class TradeServiceHedera implements ITradeService {
         return {url: url.toString()};
     }
 
-    async exchangeGetQuotes(sourceCode: string, sourceAmount: number, targetCode: string, strategy: CryptoFlowServiceStrategy):Promise<SwapQuotesData> {
+    async exchangeGetQuotes(
+        sourceCode: string,
+        sourceAmount: number,
+        targetCode: string,
+        strategy: CryptoFlowServiceStrategy
+    ): Promise<SwapQuotesData> {
         const useTestnet = ChainMap[this.chainId].isTestnet;
         const params: ICryptoFlowAssetsParams | ICryptoFlowQuoteParams | ICryptoFlowTransactionParams | any = {
             sourceCode,
             sourceAmount,
             targetCode,
-            useTestnet,
-        }
+            useTestnet
+        };
 
         switch (strategy.toLowerCase()) {
             case CryptoFlowServiceStrategy.BUY.toLowerCase(): {
@@ -101,11 +116,11 @@ export default class TradeServiceHedera implements ITradeService {
             }
             case CryptoFlowServiceStrategy.SELL.toLowerCase(): {
                 params.sourceChainId = this.chainId;
-                const assets = await this.apiService.getCryptoFlowData(
+                const assets = (await this.apiService.getCryptoFlowData(
                     CryptoFlowRoutes.ASSETS,
                     params,
                     strategy
-                ) as ICryptoFlowAssets;
+                )) as ICryptoFlowAssets;
 
                 if (assets?.limits?.rates && assets.limits.rates.length > 0) {
                     params.targetAmount = assets.limits.rates[0] * sourceAmount;
@@ -116,21 +131,27 @@ export default class TradeServiceHedera implements ITradeService {
                 params.sourceChainId = this.chainId;
                 params.targetChainId = this.chainId;
                 break;
-
             }
         }
 
-        const quotes = await this.apiService.getCryptoFlowData(
+        const quotes = (await this.apiService.getCryptoFlowData(
             CryptoFlowRoutes.QUOTES,
             params,
             strategy
-        ) as ICryptoFlowQuote[];
+        )) as ICryptoFlowQuote[];
         return {quotes};
     }
 
-    async swapTokens(accountAddress: string, sourceCode: string, sourceAmount: number, targetCode: string, slippage: number, serviceId: string): Promise<{success: boolean}> {
+    async swapTokens(
+        accountAddress: string,
+        sourceCode: string,
+        sourceAmount: number,
+        targetCode: string,
+        slippage: number,
+        serviceId: string
+    ): Promise<{success: boolean}> {
         const useTestnet = ChainMap[this.chainId].isTestnet;
-        const quotes = await this.apiService.getCryptoFlowData(
+        const quotes = (await this.apiService.getCryptoFlowData(
             CryptoFlowRoutes.QUOTES,
             {
                 sourceCode,
@@ -138,48 +159,70 @@ export default class TradeServiceHedera implements ITradeService {
                 sourceAmount,
                 targetCode,
                 targetChainId: +this.chainId,
-                useTestnet,
+                useTestnet
             },
             CryptoFlowServiceStrategy.SWAP
-        ) as ICryptoFlowQuote[];
-        const selectedQuote = quotes.find((quote) => quote.service.id === serviceId);
+        )) as ICryptoFlowQuote[];
+        const selectedQuote = quotes.find(quote => quote.service.id === serviceId);
         if (!selectedQuote) {
             throw new Error("Quote not found");
         }
 
-        const txData: ICryptoFlowTransaction = await this.apiService.getCryptoFlowData(
-            CryptoFlowRoutes.TRANSACTION,
-            {
-                serviceId,
-                sourceCode,
-                sourceChainId: +this.chainId,
-                sourceAddress: selectedQuote.source.asset.address,
-                sourceAmount,
-                targetCode,
-                targetChainId: +this.chainId,
-                targetAddress: selectedQuote.target.asset.address,
-                walletAddress: accountAddress,
-                slippage,
-                useTestnet
-            }
-        ) as ICryptoFlowTransaction;
+        const txData: ICryptoFlowTransaction = (await this.apiService.getCryptoFlowData(CryptoFlowRoutes.TRANSACTION, {
+            serviceId,
+            sourceCode,
+            sourceChainId: +this.chainId,
+            sourceAddress: selectedQuote.source.asset.address,
+            sourceAmount,
+            targetCode,
+            targetChainId: +this.chainId,
+            targetAddress: selectedQuote.target.asset.address,
+            walletAddress: accountAddress,
+            slippage,
+            useTestnet
+        })) as ICryptoFlowTransaction;
 
         if (await this.cryptoFlowService.validateMessage(txData)) {
-            await this.cryptoFlowService.executeAllowanceApprove(selectedQuote, accountAddress, this.chainId, this.signer!, true);
+            await this.cryptoFlowService.executeAllowanceApprove(
+                selectedQuote,
+                accountAddress,
+                this.chainId,
+                this.signer!,
+                true
+            );
             try {
                 await this.cryptoFlowService.executeHederaSwapTx(txData.calldata, this.signer!);
             } catch (e) {
-                await this.cryptoFlowService.executeAllowanceApprove(selectedQuote, accountAddress, this.chainId, this.signer!, false);
-                throw e
+                await this.cryptoFlowService.executeAllowanceApprove(
+                    selectedQuote,
+                    accountAddress,
+                    this.chainId,
+                    this.signer!,
+                    false
+                );
+                throw e;
             }
-            await this.cryptoFlowService.executeHederaBladeFeeTx(selectedQuote, accountAddress, this.chainId, this.signer!);
+            await this.cryptoFlowService.executeHederaBladeFeeTx(
+                selectedQuote,
+                accountAddress,
+                this.chainId,
+                this.signer!
+            );
         } else {
             throw new Error("Invalid signature of txData");
         }
         return {success: true};
     }
 
-    async getTradeUrl(strategy: CryptoFlowServiceStrategy, accountId: string, sourceCode: string, sourceAmount: number, targetCode: string, slippage: number, serviceId: string): Promise<IntegrationUrlData> {
+    async getTradeUrl(
+        strategy: CryptoFlowServiceStrategy,
+        accountId: string,
+        sourceCode: string,
+        sourceAmount: number,
+        targetCode: string,
+        slippage: number,
+        serviceId: string
+    ): Promise<IntegrationUrlData> {
         const useTestnet = ChainMap[this.chainId].isTestnet;
 
         const params: ICryptoFlowAssetsParams | ICryptoFlowQuoteParams | ICryptoFlowTransactionParams | any = {
@@ -189,7 +232,7 @@ export default class TradeServiceHedera implements ITradeService {
             useTestnet,
             walletAddress: accountId,
             slippage
-        }
+        };
 
         switch (strategy.toLowerCase()) {
             case CryptoFlowServiceStrategy.BUY.toLowerCase(): {
@@ -198,11 +241,11 @@ export default class TradeServiceHedera implements ITradeService {
             }
             case CryptoFlowServiceStrategy.SELL.toLowerCase(): {
                 params.sourceChainId = this.chainId;
-                const assets = await this.apiService.getCryptoFlowData(
+                const assets = (await this.apiService.getCryptoFlowData(
                     CryptoFlowRoutes.ASSETS,
                     params,
                     strategy
-                ) as ICryptoFlowAssets;
+                )) as ICryptoFlowAssets;
 
                 if (assets?.limits?.rates && assets.limits.rates.length > 0) {
                     params.targetAmount = assets.limits.rates[0] * sourceAmount;
@@ -211,12 +254,12 @@ export default class TradeServiceHedera implements ITradeService {
             }
         }
 
-        const quotes = await this.apiService.getCryptoFlowData(
+        const quotes = (await this.apiService.getCryptoFlowData(
             CryptoFlowRoutes.QUOTES,
             params,
             strategy
-        ) as ICryptoFlowQuote[];
-        const selectedQuote = quotes.find((quote) => quote.service.id === serviceId);
+        )) as ICryptoFlowQuote[];
+        const selectedQuote = quotes.find(quote => quote.service.id === serviceId);
         if (!selectedQuote) {
             throw new Error("Quote not found");
         }

@@ -9,7 +9,7 @@ import {
     TransactionReceipt,
     TransactionResponse,
     TransactionId,
-    AccountId,
+    AccountId
 } from "@hashgraph/sdk";
 
 export class MagicProvider implements Provider {

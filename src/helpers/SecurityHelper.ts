@@ -18,7 +18,7 @@ export const encrypt = async (data: string, token: string): Promise<string> => {
         "raw",
         rawKey,
         {
-            name: "AES-GCM",
+            name: "AES-GCM"
         },
         false,
         ["encrypt", "decrypt"]
@@ -29,7 +29,7 @@ export const encrypt = async (data: string, token: string): Promise<string> => {
     const cipher = await crypto.subtle.encrypt(
         {
             name: "AES-GCM",
-            iv,
+            iv
         },
         key,
         encoded
@@ -59,7 +59,7 @@ export const decrypt = async (cipherStr: string, token: string): Promise<string>
         "raw",
         rawKey,
         {
-            name: "AES-GCM",
+            name: "AES-GCM"
         },
         false,
         ["encrypt", "decrypt"]
@@ -74,7 +74,7 @@ export const decrypt = async (cipherStr: string, token: string): Promise<string>
     const deciphered = await window.crypto.subtle.decrypt(
         {
             name: "AES-GCM",
-            iv,
+            iv
         },
         key,
         buffer

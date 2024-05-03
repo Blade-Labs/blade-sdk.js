@@ -3,7 +3,7 @@
  RUN: node test/transferFixtures.js
  */
 
-import { PrivateKey, Client, TransferTransaction } from "@hashgraph/sdk";
+import {PrivateKey, Client, TransferTransaction} from "@hashgraph/sdk";
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 require("dotenv").config();
 
@@ -40,20 +40,20 @@ void (async () => {
     const accounts = [
         {
             id: process.env.ACCOUNT_ID,
-            key: process.env.PRIVATE_KEY,
+            key: process.env.PRIVATE_KEY
         },
         {
             id: process.env.ACCOUNT_ID1,
-            key: process.env.PRIVATE_KEY1,
+            key: process.env.PRIVATE_KEY1
         },
         {
             id: process.env.ACCOUNT_ID2,
-            key: process.env.PRIVATE_KEY2,
+            key: process.env.PRIVATE_KEY2
         },
         {
             id: process.env.ACCOUNT_ID3,
-            key: process.env.PRIVATE_KEY3,
-        },
+            key: process.env.PRIVATE_KEY3
+        }
     ];
 
     let client = Client.forTestnet();
