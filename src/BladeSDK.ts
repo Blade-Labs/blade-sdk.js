@@ -101,6 +101,7 @@ import {
     TokenInfoData,
     TransactionReceiptData,
     TransactionsHistoryData,
+    UserInfo,
 } from "./models/Common";
 import config from "./config";
 import { executeUpdateAccountTransactions } from "./helpers/AccountHelpers";
@@ -723,54 +724,60 @@ export class BladeSDK {
                 return this.sendMessageToNative(completionKey, result);
             } else {
                 switch (type) {
-                    case ScheduleTransactionType.TRANSFER: {
-                        const transactionToSchedule = new TransferTransaction();
-                        transfers.forEach((transfer) => {
-                            switch (transfer.type) {
-                                case ScheduleTransferType.HBAR:
-                                    if (!transfer.value) {
-                                        throw new Error("Value required for HBAR transfer");
-                                    }
-                                    const amount = Hbar.fromTinybars(transfer.value!);
-                                    transactionToSchedule
-                                        .addHbarTransfer(transfer.sender, amount.negated())
-                                        .addHbarTransfer(transfer.receiver, amount);
-                                    break;
-                                case ScheduleTransferType.FT:
-                                    if (!transfer.value || !transfer.tokenId) {
-                                        throw new Error("Token id and value required for FT transfer");
-                                    }
-                                    transactionToSchedule
-                                        .addTokenTransfer(transfer.tokenId!, transfer.sender, -transfer.value!)
-                                        .addTokenTransfer(transfer.tokenId!, transfer.receiver, transfer.value!);
-                                    break;
-                                case ScheduleTransferType.NFT:
-                                    if (!transfer.tokenId || !transfer.serial) {
-                                        throw new Error("Token id and serial required for NFT transfer");
-                                    }
-                                    transactionToSchedule
-                                        .addNftTransfer(transfer.tokenId!, transfer.serial!, transfer.sender, transfer.receiver);
-                                    break;
-                                default:
-                                    throw new Error(`Schedule transaction transfer type "${type}" not supported`);
-                            }
-                        });
-
-                        return new ScheduleCreateTransaction()
-                            .setScheduledTransaction(transactionToSchedule)
-                            .freezeWithSigner(this.signer)
-
-                            .then(tx => tx.executeWithSigner(this.signer))
-                            .then((result) => result.getReceiptWithSigner(this.signer))
-                            .then((data) => {
-                                return this.sendMessageToNative(completionKey, {
-                                    scheduleId: `${data.scheduleId}`,
-                                });
-                            })
-                            .catch((error) => {
-                                return this.sendMessageToNative(completionKey, null, error);
+                    case ScheduleTransactionType.TRANSFER:
+                        {
+                            const transactionToSchedule = new TransferTransaction();
+                            transfers.forEach((transfer) => {
+                                switch (transfer.type) {
+                                    case ScheduleTransferType.HBAR:
+                                        if (!transfer.value) {
+                                            throw new Error("Value required for HBAR transfer");
+                                        }
+                                        const amount = Hbar.fromTinybars(transfer.value!);
+                                        transactionToSchedule
+                                            .addHbarTransfer(transfer.sender, amount.negated())
+                                            .addHbarTransfer(transfer.receiver, amount);
+                                        break;
+                                    case ScheduleTransferType.FT:
+                                        if (!transfer.value || !transfer.tokenId) {
+                                            throw new Error("Token id and value required for FT transfer");
+                                        }
+                                        transactionToSchedule
+                                            .addTokenTransfer(transfer.tokenId!, transfer.sender, -transfer.value!)
+                                            .addTokenTransfer(transfer.tokenId!, transfer.receiver, transfer.value!);
+                                        break;
+                                    case ScheduleTransferType.NFT:
+                                        if (!transfer.tokenId || !transfer.serial) {
+                                            throw new Error("Token id and serial required for NFT transfer");
+                                        }
+                                        transactionToSchedule.addNftTransfer(
+                                            transfer.tokenId!,
+                                            transfer.serial!,
+                                            transfer.sender,
+                                            transfer.receiver
+                                        );
+                                        break;
+                                    default:
+                                        throw new Error(`Schedule transaction transfer type "${type}" not supported`);
+                                }
                             });
-                    } break;
+
+                            return new ScheduleCreateTransaction()
+                                .setScheduledTransaction(transactionToSchedule)
+                                .freezeWithSigner(this.signer)
+
+                                .then((tx) => tx.executeWithSigner(this.signer))
+                                .then((result) => result.getReceiptWithSigner(this.signer))
+                                .then((data) => {
+                                    return this.sendMessageToNative(completionKey, {
+                                        scheduleId: `${data.scheduleId}`,
+                                    });
+                                })
+                                .catch((error) => {
+                                    return this.sendMessageToNative(completionKey, null, error);
+                                });
+                        }
+                        break;
                     default:
                         throw new Error(`Schedule transaction type "${type}" not supported`);
                 }
@@ -808,12 +815,16 @@ export class BladeSDK {
                 if (!receiverAccountId) {
                     throw new Error("Receiver account id required for free schedule transaction");
                 }
-                const { scheduleSignTransactionBytes } = await signScheduleRequest(this.network, scheduleId, receiverAccountId);
+                const { scheduleSignTransactionBytes } = await signScheduleRequest(
+                    this.network,
+                    scheduleId,
+                    receiverAccountId
+                );
                 const buffer = Buffer.from(scheduleSignTransactionBytes, "base64");
                 const receipt = await Transaction.fromBytes(buffer)
                     .signWithSigner(this.signer)
-                    .then(signedTx => signedTx.executeWithSigner(this.signer))
-                    .then(result => result.getReceiptWithSigner(this.signer));
+                    .then((signedTx) => signedTx.executeWithSigner(this.signer))
+                    .then((result) => result.getReceiptWithSigner(this.signer));
                 console.log("scheduleSignTransactionBytes receipt", receipt);
                 return this.sendMessageToNative(completionKey, formatReceipt(receipt));
             } else {
@@ -828,8 +839,7 @@ export class BladeSDK {
                     })
                     .catch((error) => {
                         return this.sendMessageToNative(completionKey, null, error);
-                    })
-                ;
+                    });
             }
         } catch (error: any) {
             return this.sendMessageToNative(completionKey, null, error);
@@ -1579,7 +1589,7 @@ export class BladeSDK {
                     targetChainId: chainId,
                     useTestnet,
                     sourceAddress,
-                    targetAddress
+                    targetAddress,
                 },
                 CryptoFlowServiceStrategy.SWAP
             )) as ICryptoFlowQuote[];
@@ -1996,7 +2006,7 @@ export class BladeSDK {
         }
     }
 
-    private getUser(): { signer: Signer; accountId: string; privateKey: string; publicKey: string } {
+    private getUser(): UserInfo {
         if (!this.signer) {
             throw new Error("No user, please call setUser() first");
         }
