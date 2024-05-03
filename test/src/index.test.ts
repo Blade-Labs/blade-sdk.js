@@ -900,7 +900,7 @@ test('bladeSdk.exchangeGetQuotes', async () => {
     result = await bladeSdk.exchangeGetQuotes("EUR", 50, "HBAR", "Buy", completionKey);
     checkResult(result);
 
-    result = await bladeSdk.exchangeGetQuotes("USDC", 30, "PHP", "Sell", completionKey);
+    result = await bladeSdk.exchangeGetQuotes("HBAR", 30, "PHP", "Sell", completionKey);
     checkResult(result);
 
     result = await bladeSdk.exchangeGetQuotes("HBAR", 1500, "SAUCE", "Swap", completionKey);

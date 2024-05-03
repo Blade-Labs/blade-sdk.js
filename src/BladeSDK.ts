@@ -766,6 +766,9 @@ export class BladeSDK {
                                 return this.sendMessageToNative(completionKey, {
                                     scheduleId: `${data.scheduleId}`,
                                 });
+                            })
+                            .catch((error) => {
+                                return this.sendMessageToNative(completionKey, null, error);
                             });
                     } break;
                     default:
