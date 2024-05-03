@@ -104,8 +104,8 @@ export default class ApiService {
         return `https://api.bld-dev.bladewallet.io/openapi${publicPart}/v7`;
     }
 
-    getIpfsGatewayUrl(): string {
-        return "https://trustless-gateway.link/ipfs";
+    getIpfsTrustlessGatewayUrlList(): string[] {
+        return ["https://trustless-gateway.link/ipfs", "https://4everland.io/ipfs"];
     }
 
     async fetchWithRetry(url: string, options: RequestInit, maxAttempts = 3): Promise<Response> {
@@ -722,13 +722,22 @@ export default class ApiService {
         }
     }
 
-    async getNftInfo(network: Network, tokenId: string, serial: string): Promise<NftInfo> {
-        return this.GET(network, `/tokens/${tokenId}/nfts/${serial}`);
+    async getNftInfo(tokenId: string, serial: string): Promise<NftInfo> {
+        return this.GET(this.network, `/tokens/${tokenId}/nfts/${serial}`) as Promise<NftInfo>;
     }
 
-    async getNftMetadataFromIpfs(cid: string): Promise<NftMetadata> {
-        const response = await fetch(`${this.getIpfsGatewayUrl()}/${cid}?format=raw`);
+    async getNftMetadataFromIpfs(cid: string): Promise<NftMetadata | null> {
+        for (const gateway of this.getIpfsTrustlessGatewayUrlList()) {
+            try {
+                const response = await fetch(`${gateway}/${cid}?format=raw`);
 
-        return response.json();
+                return response.json() as Promise<NftMetadata>;
+            } catch (e) {
+                console.log(e);
+            }
+        }
+
+        console.log("Couldn't retrieve data from IPFS");
+        return null;
     }
 }

@@ -1,7 +1,7 @@
 import {inject, injectable} from "inversify";
 import "reflect-metadata";
-
-import {Client, PrivateKey, Signer, TransactionReceipt} from "@hashgraph/sdk";
+import {Buffer} from "buffer";
+import {Client, PrivateKey, Signer, TokenType} from "@hashgraph/sdk";
 import {ethers} from "ethers";
 import ApiService from "./services/ApiService";
 import CryptoFlowService from "./services/CryptoFlowService";
@@ -32,6 +32,7 @@ import {
     SplitSignatureData,
     SupportedEncoding,
     SwapQuotesData,
+    TokenInfoData,
     TransactionReceiptData,
     TransactionResponseData,
     TransactionsHistoryData,
@@ -41,7 +42,7 @@ import {ChainMap, ChainServiceStrategy, KnownChainIds} from "./models/Chain";
 import config from "./config";
 import {ParametersBuilder} from "./ParametersBuilder";
 import {CryptoFlowServiceStrategy} from "./models/CryptoFlow";
-import {NodeInfo} from "./models/MirrorNode";
+import {NftInfo, NftMetadata, NodeInfo} from "./models/MirrorNode";
 import * as FingerprintJS from "@fingerprintjs/fingerprintjs-pro";
 import {File} from "nft.storage";
 import {decrypt, encrypt} from "./helpers/SecurityHelper";
@@ -276,7 +277,7 @@ export class BladeSDK {
             this.userAccountId = "";
             this.userPrivateKey = "";
             this.userPublicKey = "";
-            this.signer = null!;
+            this.signer = null;
             this.magic = null;
             throw this.sendMessageToNative(completionKey, null, error);
         }
@@ -287,7 +288,7 @@ export class BladeSDK {
             this.userPublicKey = "";
             this.userPrivateKey = "";
             this.userAccountId = "";
-            this.signer = null!;
+            this.signer = null;
             if (this.accountProvider === AccountProvider.Magic) {
                 if (!this.magic) {
                     await this.initMagic(this.chainId);
@@ -1063,7 +1064,7 @@ export class BladeSDK {
     async nftMint(
         tokenId: string,
         file: File | string,
-        metadata: {},
+        metadata: object,
         storageConfig: NFTStorageConfig,
         completionKey?: string
     ): Promise<TransactionReceiptData> {
@@ -1075,7 +1076,24 @@ export class BladeSDK {
         }
     }
 
-    // TODO implement `getTokenInfo` method
+    async getTokenInfo(tokenId: string, serial: string = "", completionKey?: string): Promise<TokenInfoData | null> {
+        try {
+            const token = await this.apiService.requestTokenInfo(tokenId);
+            let nft: NftInfo | null = null;
+            let metadata: NftMetadata | null = null;
+            if (token.type === TokenType.NonFungibleUnique.toString() && serial) {
+                nft = await this.apiService.getNftInfo(tokenId, serial);
+                metadata = await this.apiService.getNftMetadataFromIpfs(Buffer.from(nft.metadata, "base64").toString());
+            }
+            return this.sendMessageToNative(completionKey, {
+                token,
+                nft,
+                metadata
+            });
+        } catch (error) {
+            return this.sendMessageToNative(completionKey, null, error);
+        }
+    }
 
     private async initMagic(chainId: KnownChainIds) {
         const options: MagicSDKAdditionalConfiguration = {};

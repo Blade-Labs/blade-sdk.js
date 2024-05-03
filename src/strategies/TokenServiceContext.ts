@@ -137,7 +137,7 @@ export default class TokenServiceContext implements ITokenService {
     nftMint(
         tokenId: string,
         file: File | string,
-        metadata: {},
+        metadata: object,
         storageConfig: NFTStorageConfig
     ): Promise<TransactionReceiptData> {
         this.checkSigner();

@@ -29,7 +29,7 @@ export type ChainConfig = {
     options?: {
         allowMultipleAccounts?: boolean;
     };
-    serviceStrategy: string;
+    serviceStrategy: ChainServiceStrategy;
     supportsHardware: boolean;
     explorerUrl: string;
 };
