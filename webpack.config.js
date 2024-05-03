@@ -1,5 +1,5 @@
 import path from "path";
-import { fileURLToPath } from "url";
+import {fileURLToPath} from "url";
 import webpack from "webpack";
 
 const filename = fileURLToPath(import.meta.url);
@@ -14,22 +14,22 @@ export default {
             {
                 test: /\.tsx?$/,
                 use: "ts-loader",
-                exclude: /node_modules/,
-            },
-        ],
+                exclude: /node_modules/
+            }
+        ]
     },
     output: {
         path: path.resolve(dirname, "dist"),
         filename: "[name].bundle.js",
         library: "[name]",
-        libraryTarget: "var",
+        libraryTarget: "var"
     },
     devtool: "source-map",
     resolve: {
-        extensions: [".tsx", ".ts", ".js"],
+        extensions: [".tsx", ".ts", ".js"]
     },
     optimization: {
-        splitChunks: false,
+        splitChunks: false
     },
     plugins: [
         new webpack.optimize.LimitChunkCountPlugin({

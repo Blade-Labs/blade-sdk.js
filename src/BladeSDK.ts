@@ -1,5 +1,5 @@
-import {inject, injectable} from 'inversify';
-import 'reflect-metadata';
+import {inject, injectable} from "inversify";
+import "reflect-metadata";
 
 import {Client, PrivateKey, Signer, TransactionReceipt} from "@hashgraph/sdk";
 import {ethers} from "ethers";
@@ -42,11 +42,11 @@ import config from "./config";
 import {ParametersBuilder} from "./ParametersBuilder";
 import {CryptoFlowServiceStrategy} from "./models/CryptoFlow";
 import {NodeInfo} from "./models/MirrorNode";
-import * as FingerprintJS from '@fingerprintjs/fingerprintjs-pro'
-import {File} from 'nft.storage';
+import * as FingerprintJS from "@fingerprintjs/fingerprintjs-pro";
+import {File} from "nft.storage";
 import {decrypt, encrypt} from "./helpers/SecurityHelper";
-import {Magic, MagicSDKAdditionalConfiguration} from 'magic-sdk';
-import {HederaExtension} from '@magic-ext/hedera';
+import {Magic, MagicSDKAdditionalConfiguration} from "magic-sdk";
+import {HederaExtension} from "@magic-ext/hedera";
 import {MagicSigner} from "./signers/magic/MagicSigner";
 import {HederaProvider, HederaSigner} from "./signers/hedera";
 import TokenServiceContext from "./strategies/TokenServiceContext";
@@ -87,15 +87,15 @@ export class BladeSDK {
      * @param isWebView - true if you are using this SDK in webview of native app. It changes the way of communication with native app.
      */
     constructor(
-        @inject('configService') private readonly configService: ConfigService,
-        @inject('apiService') private readonly apiService: ApiService,
-        @inject('accountServiceContext') private readonly accountServiceContext: AccountServiceContext,
-        @inject('tokenServiceContext') private readonly tokenServiceContext: TokenServiceContext,
-        @inject('signServiceContext') private readonly signServiceContext: SignServiceContext,
-        @inject('contractServiceContext') private readonly contractServiceContext: ContractServiceContext,
-        @inject('tradeServiceContext') private readonly tradeServiceContext: TradeServiceContext,
+        @inject("configService") private readonly configService: ConfigService,
+        @inject("apiService") private readonly apiService: ApiService,
+        @inject("accountServiceContext") private readonly accountServiceContext: AccountServiceContext,
+        @inject("tokenServiceContext") private readonly tokenServiceContext: TokenServiceContext,
+        @inject("signServiceContext") private readonly signServiceContext: SignServiceContext,
+        @inject("contractServiceContext") private readonly contractServiceContext: ContractServiceContext,
+        @inject("tradeServiceContext") private readonly tradeServiceContext: TradeServiceContext,
 
-        @inject('cryptoFlowService') private readonly cryptoFlowService: CryptoFlowService,
+        @inject("cryptoFlowService") private readonly cryptoFlowService: CryptoFlowService,
         @inject("isWebView") private readonly isWebView: boolean
     ) {
         this.webView = isWebView;
@@ -204,13 +204,13 @@ export class BladeSDK {
                         this.userAccountId = accountIdOrEmail;
                         this.userPrivateKey = privateKey!;
                         this.userPublicKey = key.publicKey.toStringDer();
-                        const provider = new HederaProvider({client})
+                        const provider = new HederaProvider({client});
                         this.signer = new HederaSigner(this.userAccountId, key, provider);
                     } else if (ChainMap[this.chainId].serviceStrategy === ChainServiceStrategy.Ethereum) {
                         const key = PrivateKey.fromStringECDSA(privateKey!);
                         this.userPrivateKey = `0x${key.toStringRaw()}`;
                         this.userPublicKey = `0x${key.publicKey.toStringRaw()}`;
-                        
+
                         this.userAccountId = ethers.utils.computeAddress(this.userPublicKey);
                         const alchemyRpc = await this.configService.getConfig(`alchemy${this.network}RPC`);
                         const alchemyApiKey = await this.configService.getConfig(`alchemy${this.network}APIKey`);
@@ -218,7 +218,7 @@ export class BladeSDK {
                         const provider = new ethers.providers.JsonRpcProvider(alchemyRpc + alchemyApiKey);
                         this.signer = new ethers.Wallet(this.userPrivateKey, provider);
                     } else {
-                        throw new Error('Unsupported chain');
+                        throw new Error("Unsupported chain");
                     }
                     break;
                 case AccountProvider.Magic:
@@ -228,15 +228,15 @@ export class BladeSDK {
                     }
 
                     if (await this.magic?.user.isLoggedIn()) {
-                        userInfo = await this.magic.user.getInfo()
+                        userInfo = await this.magic.user.getInfo();
                         if (userInfo.email !== accountIdOrEmail) {
-                            this.magic.user.logout()
-                            await this.magic.auth.loginWithMagicLink({ email: accountIdOrEmail, showUI: false })
-                            userInfo = await this.magic.user.getInfo()
+                            this.magic.user.logout();
+                            await this.magic.auth.loginWithMagicLink({email: accountIdOrEmail, showUI: false});
+                            userInfo = await this.magic.user.getInfo();
                         }
                     } else {
-                        await this.magic?.auth.loginWithMagicLink({ email: accountIdOrEmail, showUI: false })
-                        userInfo = await this.magic?.user.getInfo()
+                        await this.magic?.auth.loginWithMagicLink({email: accountIdOrEmail, showUI: false});
+                        userInfo = await this.magic?.user.getInfo();
                     }
 
                     if (!(await this.magic?.user.isLoggedIn())) {
@@ -245,7 +245,7 @@ export class BladeSDK {
 
                     this.userAccountId = userInfo.publicAddress;
                     if (ChainMap[this.chainId].serviceStrategy === ChainServiceStrategy.Hedera) {
-                        const { publicKeyDer } = await this.magic.hedera.getPublicKey();
+                        const {publicKeyDer} = await this.magic.hedera.getPublicKey();
                         this.userPublicKey = publicKeyDer;
                         const magicSign = (message: any) => this.magic.hedera.sign(message);
                         this.signer = new MagicSigner(this.userAccountId, this.network, publicKeyDer, magicSign);
@@ -282,7 +282,7 @@ export class BladeSDK {
         }
     }
 
-    async resetUser(completionKey?: string): Promise<{ success: boolean }> {
+    async resetUser(completionKey?: string): Promise<{success: boolean}> {
         try {
             this.userPublicKey = "";
             this.userPrivateKey = "";
@@ -297,7 +297,7 @@ export class BladeSDK {
             this.accountProvider = null;
 
             return this.sendMessageToNative(completionKey, {
-                success: true,
+                success: true
             });
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -329,14 +329,19 @@ export class BladeSDK {
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns Promise<TransactionResponseData>
      */
-    async transferBalance(receiverAddress: string, amount: string, memo: string, completionKey?: string): Promise<TransactionResponseData> {
+    async transferBalance(
+        receiverAddress: string,
+        amount: string,
+        memo: string,
+        completionKey?: string
+    ): Promise<TransactionResponseData> {
         try {
             const result = await this.tokenServiceContext.transferBalance({
                 from: this.userAccountId,
                 to: receiverAddress,
                 amount,
-                memo,
-            })
+                memo
+            });
 
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
@@ -371,7 +376,7 @@ export class BladeSDK {
                 tokenAddress,
                 memo,
                 freeTransfer
-            })
+            });
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -382,7 +387,7 @@ export class BladeSDK {
         try {
             const coinList: CoinInfoRaw[] = await this.apiService.getCoins({
                 dAppCode: this.dAppCode,
-                visitorId: this.visitorId,
+                visitorId: this.visitorId
             });
 
             const result: CoinListData = {
@@ -393,9 +398,9 @@ export class BladeSDK {
                             return {
                                 name,
                                 address: coin.platforms[name]
-                            }
+                            };
                         })
-                    }
+                    };
                 })
             };
             return this.sendMessageToNative(completionKey, result);
@@ -416,7 +421,7 @@ export class BladeSDK {
 
             const params = {
                 dAppCode: this.dAppCode,
-                visitorId: this.visitorId,
+                visitorId: this.visitorId
             };
 
             let coinInfo: CoinData | null = null;
@@ -437,7 +442,7 @@ export class BladeSDK {
                 coin: coinInfo,
                 priceUsd: coinInfo.market_data.current_price.usd,
                 price: coinInfo.market_data.current_price[currency.toLowerCase()] || null,
-                currency: currency.toLowerCase(),
+                currency: currency.toLowerCase()
             };
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
@@ -464,7 +469,13 @@ export class BladeSDK {
         completionKey?: string
     ): Promise<TransactionReceiptData> {
         try {
-            const result = await this.contractServiceContext.contractCallFunction(contractId, functionName, paramsEncoded, gas, bladePayFee);
+            const result = await this.contractServiceContext.contractCallFunction(
+                contractId,
+                functionName,
+                paramsEncoded,
+                gas,
+                bladePayFee
+            );
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -489,20 +500,25 @@ export class BladeSDK {
         gas: number = 100000,
         bladePayFee: boolean = false,
         resultTypes: string[],
-        completionKey?: string): Promise<ContractCallQueryRecordsData> {
+        completionKey?: string
+    ): Promise<ContractCallQueryRecordsData> {
         try {
-            const result = await this.contractServiceContext.contractCallQueryFunction(contractId, functionName, paramsEncoded, gas, bladePayFee, resultTypes);
+            const result = await this.contractServiceContext.contractCallQueryFunction(
+                contractId,
+                functionName,
+                paramsEncoded,
+                gas,
+                bladePayFee,
+                resultTypes
+            );
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
-
     // TODO implement `createScheduleTransaction` method
     // TODO implement `signScheduleId` method
-
-
 
     /*
      /**
@@ -569,7 +585,11 @@ export class BladeSDK {
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {CreateAccountData}
      */
-    async getPendingAccount(transactionId: string, mnemonic: string, completionKey?: string): Promise<CreateAccountData> {
+    async getPendingAccount(
+        transactionId: string,
+        mnemonic: string,
+        completionKey?: string
+    ): Promise<CreateAccountData> {
         try {
             const result = await this.accountServiceContext.getPendingAccount(transactionId, mnemonic);
             return this.sendMessageToNative(completionKey, result);
@@ -586,9 +606,18 @@ export class BladeSDK {
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {TransactionReceiptData}
      */
-    async deleteAccount(deleteAccountId: string, deletePrivateKey: string, transferAccountId: string, completionKey?: string): Promise<TransactionReceiptData> {
+    async deleteAccount(
+        deleteAccountId: string,
+        deletePrivateKey: string,
+        transferAccountId: string,
+        completionKey?: string
+    ): Promise<TransactionReceiptData> {
         try {
-            const result = await this.accountServiceContext.deleteAccount(deleteAccountId, deletePrivateKey, transferAccountId);
+            const result = await this.accountServiceContext.deleteAccount(
+                deleteAccountId,
+                deletePrivateKey,
+                transferAccountId
+            );
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -614,7 +643,6 @@ export class BladeSDK {
             throw this.sendMessageToNative(completionKey, null, error);
         }
     }
-
 
     // TODO move to BladeSDK.utils.getNodeList
     /**
@@ -751,12 +779,23 @@ export class BladeSDK {
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {SignVerifyMessageData}
      */
-    async verify(encodedMessage: string, encoding: SupportedEncoding, signature: string, addressOrPublicKey: string, completionKey?: string): Promise<SignVerifyMessageData> {
+    async verify(
+        encodedMessage: string,
+        encoding: SupportedEncoding,
+        signature: string,
+        addressOrPublicKey: string,
+        completionKey?: string
+    ): Promise<SignVerifyMessageData> {
         try {
             if (!addressOrPublicKey) {
                 addressOrPublicKey = this.getUser().publicKey;
             }
-            const result = await this.signServiceContext.verify(encodedMessage, encoding, signature, addressOrPublicKey);
+            const result = await this.signServiceContext.verify(
+                encodedMessage,
+                encoding,
+                signature,
+                addressOrPublicKey
+            );
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -786,7 +825,11 @@ export class BladeSDK {
      * @param completionKey - optional field bridge between mobile webViews and native apps
      * @returns {SplitSignatureData}
      */
-    async getParamsSignature(paramsEncoded: string | ParametersBuilder, privateKey: string, completionKey?: string): Promise<SplitSignatureData> {
+    async getParamsSignature(
+        paramsEncoded: string | ParametersBuilder,
+        privateKey: string,
+        completionKey?: string
+    ): Promise<SplitSignatureData> {
         try {
             const result = await this.signServiceContext.getParamsSignature(paramsEncoded, privateKey);
             return this.sendMessageToNative(completionKey, result);
@@ -807,12 +850,23 @@ export class BladeSDK {
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {TransactionsHistoryData}
      */
-    async getTransactions(accountAddress: string, transactionType: string = "", nextPage: string, transactionsLimit: string = "10", completionKey?: string): Promise<TransactionsHistoryData> {
+    async getTransactions(
+        accountAddress: string,
+        transactionType: string = "",
+        nextPage: string,
+        transactionsLimit: string = "10",
+        completionKey?: string
+    ): Promise<TransactionsHistoryData> {
         try {
             if (!accountAddress) {
                 accountAddress = this.userAccountId;
             }
-            const result = await this.accountServiceContext.getTransactions(accountAddress, transactionType, nextPage, transactionsLimit);
+            const result = await this.accountServiceContext.getTransactions(
+                accountAddress,
+                transactionType,
+                nextPage,
+                transactionsLimit
+            );
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -828,7 +882,12 @@ export class BladeSDK {
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {IntegrationUrlData}
      */
-    async getC14url(asset: string, account: string, amount: string, completionKey?: string): Promise<IntegrationUrlData> {
+    async getC14url(
+        asset: string,
+        account: string,
+        amount: string,
+        completionKey?: string
+    ): Promise<IntegrationUrlData> {
         try {
             const result = await this.tradeServiceContext.getC14url(asset, account, amount);
             return this.sendMessageToNative(completionKey, result);
@@ -852,9 +911,14 @@ export class BladeSDK {
         targetCode: string,
         strategy: CryptoFlowServiceStrategy,
         completionKey?: string
-    ):Promise<SwapQuotesData> {
+    ): Promise<SwapQuotesData> {
         try {
-            const result = await this.tradeServiceContext.exchangeGetQuotes(sourceCode, sourceAmount, targetCode, strategy);
+            const result = await this.tradeServiceContext.exchangeGetQuotes(
+                sourceCode,
+                sourceAmount,
+                targetCode,
+                strategy
+            );
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -880,7 +944,14 @@ export class BladeSDK {
         completionKey?: string
     ): Promise<{success: boolean}> {
         try {
-            const result = await this.tradeServiceContext.swapTokens(this.userAccountId, sourceCode, sourceAmount, targetCode, slippage, serviceId);
+            const result = await this.tradeServiceContext.swapTokens(
+                this.userAccountId,
+                sourceCode,
+                sourceAmount,
+                targetCode,
+                slippage,
+                serviceId
+            );
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -910,7 +981,15 @@ export class BladeSDK {
         completionKey?: string
     ): Promise<IntegrationUrlData> {
         try {
-            const result = await this.tradeServiceContext.getTradeUrl(strategy, accountId, sourceCode, sourceAmount, targetCode, slippage, serviceId);
+            const result = await this.tradeServiceContext.getTradeUrl(
+                strategy,
+                accountId,
+                sourceCode,
+                sourceAmount,
+                targetCode,
+                slippage,
+                serviceId
+            );
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -940,7 +1019,17 @@ export class BladeSDK {
         completionKey?: string
     ): Promise<{tokenId: string}> {
         try {
-            const result = await this.tokenServiceContext.createToken(tokenName, tokenSymbol, isNft, this.userAccountId, this.userPublicKey, keys, decimals, initialSupply, maxSupply);
+            const result = await this.tokenServiceContext.createToken(
+                tokenName,
+                tokenSymbol,
+                isNft,
+                this.userAccountId,
+                this.userPublicKey,
+                keys,
+                decimals,
+                initialSupply,
+                maxSupply
+            );
             return this.sendMessageToNative(completionKey, result, null);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -953,10 +1042,7 @@ export class BladeSDK {
      * @param tokenId token id
      * @param completionKey optional field bridge between mobile webViews and native apps
      */
-    async associateToken(
-        tokenId: string,
-        completionKey?: string
-    ): Promise<TransactionReceiptData> {
+    async associateToken(tokenId: string, completionKey?: string): Promise<TransactionReceiptData> {
         try {
             const result = await this.tokenServiceContext.associateToken(tokenId, this.userAccountId!);
             return this.sendMessageToNative(completionKey, result);
@@ -994,16 +1080,18 @@ export class BladeSDK {
     private async initMagic(chainId: KnownChainIds) {
         const options: MagicSDKAdditionalConfiguration = {};
         if (ChainMap[chainId].serviceStrategy === ChainServiceStrategy.Hedera) {
-            options.extensions = [new HederaExtension({
-                network: this.network.toLowerCase()
-            })];
+            options.extensions = [
+                new HederaExtension({
+                    network: this.network.toLowerCase()
+                })
+            ];
         } else if (ChainMap[chainId].serviceStrategy === ChainServiceStrategy.Ethereum) {
             options.network = StringHelpers.networkToEthereum(this.network);
         }
         this.magic = new Magic(await this.configService.getConfig(`magicLinkPublicKey`), options);
     }
 
-    private getUser(): {signer: Signer | ethers.Signer, accountId: string, privateKey: string, publicKey: string} {
+    private getUser(): {signer: Signer | ethers.Signer; accountId: string; privateKey: string; publicKey: string} {
         if (!this.signer) {
             throw new Error("No user, please call setUser() first");
         }
@@ -1012,7 +1100,7 @@ export class BladeSDK {
             accountId: this.userAccountId,
             privateKey: this.userPrivateKey,
             publicKey: this.userPublicKey
-        }
+        };
     }
 
     private getInfoData(): InfoData {
@@ -1037,7 +1125,11 @@ export class BladeSDK {
     /**
      * Message that sends response back to native handler
      */
-    private sendMessageToNative<T>(completionKey: string | undefined, data: T, error: Partial<CustomError>|any|null = null): T {
+    private sendMessageToNative<T>(
+        completionKey: string | undefined,
+        data: T,
+        error: Partial<CustomError> | any | null = null
+    ): T {
         if (!this.webView || !completionKey) {
             if (error) {
                 throw error;

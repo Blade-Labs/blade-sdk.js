@@ -1,4 +1,4 @@
-import { writeFile } from "fs";
+import {writeFile} from "fs";
 
 writeFile(
     "./src/config.ts",
@@ -6,9 +6,10 @@ writeFile(
 
 export default {
     sdkVersion: ${JSON.stringify("BladeSDK.js@" + process.env.SDK_VERSION)},
-    numberVersion: ${JSON.stringify(process.env.SDK_VERSION)},
-};`,
-    (err) => {
+    numberVersion: ${JSON.stringify(process.env.SDK_VERSION)}
+};
+`,
+    err => {
         if (err) throw err;
         // eslint-disable-next-line no-console
         console.log("Config updated");

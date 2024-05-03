@@ -6,14 +6,15 @@ import FeeService from "../../src/services/FeeService";
 import config from "../../src/config";
 import dotenv from "dotenv";
 import fetch from "node-fetch";
-import {TextDecoder, TextEncoder} from 'util';
+import {TextDecoder, TextEncoder} from "util";
 import crypto from "crypto";
 import {
     AccountProvider,
     BalanceData,
     BridgeResponse,
     KeyRecord,
-    KeyType, NFTStorageProvider,
+    KeyType,
+    NFTStorageProvider,
     TokenBalanceData
 } from "../../src/models/Common";
 import {Network} from "../../src/models/Networks";
@@ -25,7 +26,7 @@ import TradeServiceContext from "../../src/strategies/TradeServiceContext";
 import {KnownChainIds} from "../../src/models/Chain";
 import SignService from "../../src/services/SignService";
 import {ethers} from "ethers";
-import {AccountId, Client, ContractCallQuery, Hbar, Mnemonic, PrivateKey } from "@hashgraph/sdk";
+import {AccountId, Client, ContractCallQuery, Hbar, Mnemonic, PrivateKey} from "@hashgraph/sdk";
 import {isEqual} from "lodash";
 import BigNumber from "bignumber.js";
 import {TokenInfo} from "../../src/models/MirrorNode";
@@ -35,16 +36,15 @@ const {BladeSDK} = require("../../src/webView");
 
 Object.defineProperty(global.self, "crypto", {
     value: {
-        subtle: crypto.webcrypto.subtle,
-    },
+        subtle: crypto.webcrypto.subtle
+    }
 });
 
-Object.assign(global, { TextDecoder, TextEncoder, fetch });
+Object.assign(global, {TextDecoder, TextEncoder, fetch});
 
 dotenv.config();
 
-describe('testing methods related to HEDERA network', () => {
-
+describe("testing methods related to HEDERA network", () => {
     const apiService = new ApiService();
     const configService = new ConfigService(apiService);
     const feeService = new FeeService(configService);
@@ -91,12 +91,12 @@ describe('testing methods related to HEDERA network', () => {
             process.env.VISITOR_ID,
             process.env.SDK_ENV,
             sdkVersion,
-            completionKey);
+            completionKey
+        );
         checkResult(result);
     });
 
-
-    test('bladeSdk-hedera.getBalance', async () => {
+    test("bladeSdk-hedera.getBalance", async () => {
         let result;
 
         try {
@@ -140,7 +140,7 @@ describe('testing methods related to HEDERA network', () => {
         }
     }, 20_000);
 
-    test('bladeSdk-hedera.transferBalance', async () => {
+    test("bladeSdk-hedera.transferBalance", async () => {
         let result = await bladeSdk.getBalance(accountId, completionKey);
         checkResult(result);
         const hbars = result.data.balance;
@@ -176,12 +176,12 @@ describe('testing methods related to HEDERA network', () => {
         }
     }, 60_000);
 
-    test('bladeSdk-hedera.transferTokens', async () => {
+    test("bladeSdk-hedera.transferTokens", async () => {
         const tokenName = "JEST Token Test";
         let result = await bladeSdk.getBalance(accountId, completionKey);
         checkResult(result);
 
-        let tokenId: string|null = null;
+        let tokenId: string | null = null;
         // for (let i = 0; i < result.data.tokens.length; i++) {
         for (const token of result.data.tokens as TokenBalanceData[]) {
             const tokenInfo = await apiService.requestTokenInfo(token.address);
@@ -202,16 +202,23 @@ describe('testing methods related to HEDERA network', () => {
 
         let account1Balance: BridgeResponse<BalanceData> = await bladeSdk.getBalance(accountId, completionKey);
         checkResult(account1Balance);
-        const account1TokenBalance = (account1Balance.data.tokens.find(token => token.address === tokenId))?.balance || 0;
+        const account1TokenBalance = account1Balance.data.tokens.find(token => token.address === tokenId)?.balance || 0;
         let account2Balance: BridgeResponse<BalanceData> = await bladeSdk.getBalance(accountId2, completionKey);
         checkResult(account2Balance);
-        const account2TokenBalance = (account2Balance.data.tokens.find(token => token.address === tokenId))?.balance || 0;
+        const account2TokenBalance = account2Balance.data.tokens.find(token => token.address === tokenId)?.balance || 0;
 
         const amount = 1;
 
         // invalid tokenId
         try {
-            result = await bladeSdk.transferTokens("invalid token id", accountId2, amount.toString(), "transfer memo",false, completionKey);
+            result = await bladeSdk.transferTokens(
+                "invalid token id",
+                accountId2,
+                amount.toString(),
+                "transfer memo",
+                false,
+                completionKey
+            );
             expect("Code should not reach here").toEqual(result);
         } catch (result) {
             checkResult(result, false);
@@ -219,7 +226,14 @@ describe('testing methods related to HEDERA network', () => {
 
         // no user
         try {
-            result = await bladeSdk.transferTokens(tokenId.toString(), accountId2, amount.toString(), "transfer memo", false, completionKey);
+            result = await bladeSdk.transferTokens(
+                tokenId.toString(),
+                accountId2,
+                amount.toString(),
+                "transfer memo",
+                false,
+                completionKey
+            );
             expect("Code should not reach here").toEqual(result);
         } catch (result) {
             checkResult(result, false);
@@ -228,7 +242,14 @@ describe('testing methods related to HEDERA network', () => {
         result = await bladeSdk.setUser(AccountProvider.PrivateKey, accountId, privateKey, completionKey);
         checkResult(result);
 
-        result = await bladeSdk.transferTokens(tokenId.toString(), accountId2, amount.toString(), "transfer memo", true, completionKey);
+        result = await bladeSdk.transferTokens(
+            tokenId.toString(),
+            accountId2,
+            amount.toString(),
+            "transfer memo",
+            true,
+            completionKey
+        );
         checkResult(result);
         expect(result.data).toHaveProperty("transactionHash");
         expect(result.data).toHaveProperty("transactionId");
@@ -237,19 +258,28 @@ describe('testing methods related to HEDERA network', () => {
 
         account1Balance = await bladeSdk.getBalance(accountId, completionKey);
         checkResult(account1Balance);
-        const account1TokenBalanceNew = parseFloat((account1Balance.data.tokens.find(token => token.address === tokenId))?.balance) || 0;
+        const account1TokenBalanceNew =
+            parseFloat(account1Balance.data.tokens.find(token => token.address === tokenId)?.balance) || 0;
         account2Balance = await bladeSdk.getBalance(accountId2, completionKey);
         checkResult(account2Balance);
-        const account2TokenBalanceNew = parseFloat((account2Balance.data.tokens.find(token => token.address === tokenId))?.balance) || 0;
+        const account2TokenBalanceNew =
+            parseFloat(account2Balance.data.tokens.find(token => token.address === tokenId)?.balance) || 0;
 
         expect(account1TokenBalance).toEqual((account1TokenBalanceNew + amount).toString());
         expect(account2TokenBalance).toEqual((account2TokenBalanceNew - amount).toString());
 
-        result = await bladeSdk.transferTokens(tokenId.toString(), accountId2, amount.toString(), "transfer memo", true, completionKey);
+        result = await bladeSdk.transferTokens(
+            tokenId.toString(),
+            accountId2,
+            amount.toString(),
+            "transfer memo",
+            true,
+            completionKey
+        );
         checkResult(result);
     }, 120_000);
 
-    test('bladeSdk-hedera.createAccount', async () => {
+    test("bladeSdk-hedera.createAccount", async () => {
         let result;
 
         result = await bladeSdk.createAccount("device-id", completionKey);
@@ -268,7 +298,15 @@ describe('testing methods related to HEDERA network', () => {
 
         expect(result.data.evmAddress).toEqual(evmAddress.toLowerCase());
 
-        result = await bladeSdk.init("wrong api key", chainId, process.env.DAPP_CODE, process.env.VISITOR_ID, process.env.SDK_ENV, sdkVersion, completionKey);
+        result = await bladeSdk.init(
+            "wrong api key",
+            chainId,
+            process.env.DAPP_CODE,
+            process.env.VISITOR_ID,
+            process.env.SDK_ENV,
+            sdkVersion,
+            completionKey
+        );
         checkResult(result);
 
         // fail on wrong api key
@@ -280,7 +318,7 @@ describe('testing methods related to HEDERA network', () => {
         }
     }, 60_000);
 
-    test('bladeSdk-hedera.getAccountInfo', async () => {
+    test("bladeSdk-hedera.getAccountInfo", async () => {
         let result;
         const account = await bladeSdk.createAccount("device-id", completionKey);
         checkResult(account);
@@ -313,7 +351,7 @@ describe('testing methods related to HEDERA network', () => {
         }
     }, 60_000);
 
-    test('bladeSdk-hedera.deleteAccount', async () => {
+    test("bladeSdk-hedera.deleteAccount", async () => {
         let result;
 
         result = await bladeSdk.createAccount("device-id", completionKey);
@@ -347,7 +385,7 @@ describe('testing methods related to HEDERA network', () => {
         }
     }, 60_000);
 
-    test('bladeSdk-hedera.getKeysFromMnemonic', async () => {
+    test("bladeSdk-hedera.getKeysFromMnemonic", async () => {
         let result;
         result = await bladeSdk.createAccount("device-id", completionKey);
         checkResult(result);
@@ -358,7 +396,7 @@ describe('testing methods related to HEDERA network', () => {
             publicKey: result.data.publicKey,
             seedPhrase: result.data.seedPhrase,
             evmAddress: result.data.evmAddress
-        }
+        };
 
         result = await bladeSdk.getKeysFromMnemonic(accountSample.seedPhrase, completionKey);
         checkResult(result);
@@ -367,7 +405,7 @@ describe('testing methods related to HEDERA network', () => {
 
         expect(result.data).toHaveProperty("accounts");
         expect(Array.isArray(result.data.accounts)).toEqual(true);
-        expect(result.data.accounts.length).toBeGreaterThanOrEqual(1)
+        expect(result.data.accounts.length).toBeGreaterThanOrEqual(1);
         expect(result.data.accounts[0]).toHaveProperty("privateKey");
         expect(result.data.accounts[0]).toHaveProperty("publicKey");
         expect(result.data.accounts[0]).toHaveProperty("address");
@@ -386,12 +424,12 @@ describe('testing methods related to HEDERA network', () => {
 
         result = await bladeSdk.getKeysFromMnemonic((await Mnemonic.generate12()).toString(), completionKey);
         checkResult(result);
-        expect(result.data.accounts.length).toBeGreaterThanOrEqual(1)
+        expect(result.data.accounts.length).toBeGreaterThanOrEqual(1);
         expect(result.data.accounts[0].address).toEqual("");
     }, 60_000);
 
-    test('bladeSdk-hedera.getTransactions', async () => {
-        let result
+    test("bladeSdk-hedera.getTransactions", async () => {
+        let result;
 
         // make transaction
         try {
@@ -450,7 +488,7 @@ describe('testing methods related to HEDERA network', () => {
 
         // invalid accountId
         try {
-            result = await bladeSdk.getTransactions('0.dgsgsdgdsgdsgdsg', "", "", "5", completionKey);
+            result = await bladeSdk.getTransactions("0.dgsgsdgdsgdsgdsg", "", "", "5", completionKey);
             expect("Code should not reach here").toEqual(result);
         } catch (result) {
             checkResult(result, false);
@@ -459,13 +497,12 @@ describe('testing methods related to HEDERA network', () => {
         // invalid tx
         result = await apiService.getTransaction(Network.Testnet, "wrong tx id", accountId);
         expect(Array.isArray(result));
-        expect(result.length).toEqual(0)
+        expect(result.length).toEqual(0);
     }, 30_000);
 
-    test('bladeSdk-hedera.createToken + nftMint + associateToken + transferTokens', async () => {
+    test("bladeSdk-hedera.createToken + nftMint + associateToken + transferTokens", async () => {
         const treasuryAccountId = accountId;
         const treasuryPrivateKey = privateKey;
-
 
         const supplyKey = privateKey;
         const adminKey = privateKey;
@@ -491,7 +528,7 @@ describe('testing methods related to HEDERA network', () => {
             {type: KeyType.freeze, privateKey: freezeKey},
             {type: KeyType.wipe, privateKey: wipeKey},
             {type: KeyType.pause, privateKey: pauseKey},
-            {type: KeyType.feeSchedule, privateKey: feeScheduleKey},
+            {type: KeyType.feeSchedule, privateKey: feeScheduleKey}
         ];
 
         try {
@@ -510,7 +547,12 @@ describe('testing methods related to HEDERA network', () => {
             checkResult(result, false);
         }
 
-        result = await bladeSdk.setUser(AccountProvider.PrivateKey, treasuryAccountId, treasuryPrivateKey, completionKey);
+        result = await bladeSdk.setUser(
+            AccountProvider.PrivateKey,
+            treasuryAccountId,
+            treasuryPrivateKey,
+            completionKey
+        );
         checkResult(result);
 
         result = await bladeSdk.createToken(
@@ -544,21 +586,23 @@ describe('testing methods related to HEDERA network', () => {
         expect(tokenInfo.name).toEqual(tokenName);
         expect(tokenInfo.symbol).toEqual(tokenSymbol);
         expect(tokenInfo.treasury_account_id).toEqual(treasuryAccountId);
-        expect(tokenInfo.type).toEqual('NON_FUNGIBLE_UNIQUE');
+        expect(tokenInfo.type).toEqual("NON_FUNGIBLE_UNIQUE");
 
         // associate token with receiver account
         result = await bladeSdk.setUser(AccountProvider.PrivateKey, accountId2, privateKey2, completionKey);
         checkResult(result);
 
-        result = await bladeSdk.associateToken(
-            tokenId,
-            completionKey
-        );
+        result = await bladeSdk.associateToken(tokenId, completionKey);
         checkResult(result);
 
         await sleep(5_000);
 
-        result = await bladeSdk.setUser(AccountProvider.PrivateKey, treasuryAccountId, treasuryPrivateKey, completionKey);
+        result = await bladeSdk.setUser(
+            AccountProvider.PrivateKey,
+            treasuryAccountId,
+            treasuryPrivateKey,
+            completionKey
+        );
         checkResult(result);
 
         // MINT NFT
@@ -566,11 +610,11 @@ describe('testing methods related to HEDERA network', () => {
             tokenId,
             "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAARUlEQVR42u3PMREAAAgEIO1fzU5vBlcPGtCVTD3QIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIXCyqyi6fIALs1AAAAAElFTkSuQmCC", // TODO upload file base64
             {
-                author: "GaryDu",
+                author: "GaryDu"
             },
             {
                 provider: NFTStorageProvider.nftStorage,
-                apiKey: process.env.NFT_STORAGE_TOKEN,
+                apiKey: process.env.NFT_STORAGE_TOKEN
             },
             completionKey
         );
@@ -581,17 +625,23 @@ describe('testing methods related to HEDERA network', () => {
         // TRANSFER NFT
         await sleep(20_000);
 
-        result = await bladeSdk.transferTokens(tokenId, accountId2, serialNumber, "transfer NFT memo", false, completionKey);
+        result = await bladeSdk.transferTokens(
+            tokenId,
+            accountId2,
+            serialNumber,
+            "transfer NFT memo",
+            false,
+            completionKey
+        );
         checkResult(result);
     }, 180_000);
 
-    test('bladeSdk-hedera.contractCallFunction', async () => {
+    test("bladeSdk-hedera.contractCallFunction", async () => {
         let result;
         const contractId = process.env.CONTRACT_ID || "";
         expect(contractId).not.toEqual("");
         const client = Client.forTestnet();
         client.setOperator(accountId, privateKey);
-
 
         let message = `Hello test ${Math.random()}`;
         let params = new ParametersBuilder().addString(message);
@@ -600,7 +650,14 @@ describe('testing methods related to HEDERA network', () => {
         checkResult(result);
 
         try {
-            result = await bladeSdk.contractCallFunction(contractId, "set_message", params, 1000000, false, completionKey);
+            result = await bladeSdk.contractCallFunction(
+                contractId,
+                "set_message",
+                params,
+                1000000,
+                false,
+                completionKey
+            );
             expect("Code should not reach here1").toEqual(result);
         } catch (result) {
             checkResult(result, false);
@@ -613,7 +670,6 @@ describe('testing methods related to HEDERA network', () => {
         result = await bladeSdk.contractCallFunction(contractId, "set_message", params, 1000000, false, completionKey);
         checkResult(result);
 
-
         await sleep(10_000);
 
         let contractCallQuery = new ContractCallQuery()
@@ -624,7 +680,6 @@ describe('testing methods related to HEDERA network', () => {
 
         let contractCallQueryResult = await contractCallQuery.execute(client);
         expect(contractCallQueryResult.getString(0)).toEqual(message);
-
 
         // pay fee on backend
         message = `Hello test ${Math.random()}`;
@@ -643,12 +698,20 @@ describe('testing methods related to HEDERA network', () => {
         contractCallQueryResult = await contractCallQuery.execute(client);
         expect(contractCallQueryResult.getString(0)).toEqual(message);
 
-
         message = `Sum test ${Math.random()}`;
         const num1 = 37;
         const num2 = 5;
-        params = new ParametersBuilder().addString(message).addTuple(new ParametersBuilder().addUInt64(BigNumber(num1)).addUInt64(BigNumber(num2)));
-        result = await bladeSdk.contractCallFunction(contractId, "set_numbers", params.encode(), 1000000, false, completionKey);
+        params = new ParametersBuilder()
+            .addString(message)
+            .addTuple(new ParametersBuilder().addUInt64(BigNumber(num1)).addUInt64(BigNumber(num2)));
+        result = await bladeSdk.contractCallFunction(
+            contractId,
+            "set_numbers",
+            params.encode(),
+            1000000,
+            false,
+            completionKey
+        );
         checkResult(result);
 
         await sleep(10_000);
@@ -663,11 +726,21 @@ describe('testing methods related to HEDERA network', () => {
         expect(contractCallQueryResult.getString(0)).toEqual(message);
         expect(contractCallQueryResult.getUint64(1).toNumber()).toEqual(num1 + num2);
 
-
         try {
             // fail on wrong function params (CONTRACT_REVERT_EXECUTED)
-            params = new ParametersBuilder().addString(message).addAddress("0x65f17cac69fb3df1328a5c239761d32e8b346da0").addAddressArray([accountId, accountId2]).addTuple(new ParametersBuilder().addUInt64(BigNumber(num1)).addUInt64(BigNumber(num2)));
-            result = await bladeSdk.contractCallFunction(contractId, "set_numbers", params.encode(), 1000000, false, completionKey);
+            params = new ParametersBuilder()
+                .addString(message)
+                .addAddress("0x65f17cac69fb3df1328a5c239761d32e8b346da0")
+                .addAddressArray([accountId, accountId2])
+                .addTuple(new ParametersBuilder().addUInt64(BigNumber(num1)).addUInt64(BigNumber(num2)));
+            result = await bladeSdk.contractCallFunction(
+                contractId,
+                "set_numbers",
+                params.encode(),
+                1000000,
+                false,
+                completionKey
+            );
             expect("Code should not reach here2").toEqual(result);
         } catch (result) {
             checkResult(result, false);
@@ -676,8 +749,15 @@ describe('testing methods related to HEDERA network', () => {
 
         try {
             // fail on invalid json
-            const paramsEncoded = '[{"type":"string",""""""""]'
-            result = await bladeSdk.contractCallFunction(contractId, "set_numbers", paramsEncoded, 1000000, false, completionKey);
+            const paramsEncoded = '[{"type":"string",""""""""]';
+            result = await bladeSdk.contractCallFunction(
+                contractId,
+                "set_numbers",
+                paramsEncoded,
+                1000000,
+                false,
+                completionKey
+            );
             expect("Code should not reach here3").toEqual(result);
         } catch (result) {
             checkResult(result, false);
@@ -686,7 +766,9 @@ describe('testing methods related to HEDERA network', () => {
 
         try {
             // fail on low gas
-            params = new ParametersBuilder().addString(message).addTuple(new ParametersBuilder().addUInt64(BigNumber(num1)).addUInt64(BigNumber(num2)));
+            params = new ParametersBuilder()
+                .addString(message)
+                .addTuple(new ParametersBuilder().addUInt64(BigNumber(num1)).addUInt64(BigNumber(num2)));
             result = await bladeSdk.contractCallFunction(contractId, "set_message", params, 1, false, completionKey);
             expect("Code should not reach here4").toEqual(result);
         } catch (result) {
@@ -756,14 +838,13 @@ describe('testing methods related to HEDERA network', () => {
     //     checkResult(result, false);
     // }, 120_000);
 
-    test('bladeSdk-hedera.sign + signVerify', async () => {
+    test("bladeSdk-hedera.sign + signVerify", async () => {
         let result;
         const message = "hello";
         const messageString = Buffer.from(message).toString("base64");
 
         result = await bladeSdk.setUser(AccountProvider.PrivateKey, accountId, privateKey, completionKey);
         checkResult(result);
-
 
         result = await bladeSdk.sign(messageString, "base64", completionKey);
         checkResult(result);
@@ -778,36 +859,68 @@ describe('testing methods related to HEDERA network', () => {
         checkResult(result);
         expect(result.data.signedMessage).toEqual(signedMessage);
 
-        expect(result.data.signedMessage).toEqual(Buffer.from(PrivateKey.fromString(privateKey).sign(Buffer.from(message))).toString("hex"));
+        expect(result.data.signedMessage).toEqual(
+            Buffer.from(PrivateKey.fromString(privateKey).sign(Buffer.from(message))).toString("hex")
+        );
 
-        let validationResult = await bladeSdk.verify(messageString, "base64", result.data.signedMessage, "", completionKey);
+        let validationResult = await bladeSdk.verify(
+            messageString,
+            "base64",
+            result.data.signedMessage,
+            "",
+            completionKey
+        );
         checkResult(validationResult);
         expect(validationResult.data.valid).toEqual(true);
 
-        validationResult = await bladeSdk.verify(messageString, "base64", result.data.signedMessage, PrivateKey.fromString(privateKey).publicKey.toStringRaw(), completionKey);
+        validationResult = await bladeSdk.verify(
+            messageString,
+            "base64",
+            result.data.signedMessage,
+            PrivateKey.fromString(privateKey).publicKey.toStringRaw(),
+            completionKey
+        );
         checkResult(validationResult);
         expect(validationResult.data.valid).toEqual(true);
 
-        validationResult = await bladeSdk.verify(messageString, "base64", result.data.signedMessage, "0x029dc73991b0d9cdbb59b2cd0a97a0eaff6de801726cb39804ea9461df6be2dd30", completionKey);
+        validationResult = await bladeSdk.verify(
+            messageString,
+            "base64",
+            result.data.signedMessage,
+            "0x029dc73991b0d9cdbb59b2cd0a97a0eaff6de801726cb39804ea9461df6be2dd30",
+            completionKey
+        );
         checkResult(validationResult);
         expect(validationResult.data.valid).toEqual(true);
 
-        validationResult = await bladeSdk.verify(messageString, "base64", result.data.signedMessage, accountId, completionKey);
+        validationResult = await bladeSdk.verify(
+            messageString,
+            "base64",
+            result.data.signedMessage,
+            accountId,
+            completionKey
+        );
         checkResult(validationResult);
         expect(validationResult.data.valid).toEqual(true);
 
-        expect(PrivateKey.fromString(privateKey).publicKey.verify(
-            Buffer.from(message),
-            Buffer.from(result.data.signedMessage, "hex")
-        )).toEqual(true);
+        expect(
+            PrivateKey.fromString(privateKey).publicKey.verify(
+                Buffer.from(message),
+                Buffer.from(result.data.signedMessage, "hex")
+            )
+        ).toEqual(true);
 
         try {
-            result = await bladeSdk.verify(messageString, "base64", "invalid signature", "invalid publicKey", completionKey);
+            result = await bladeSdk.verify(
+                messageString,
+                "base64",
+                "invalid signature",
+                "invalid publicKey",
+                completionKey
+            );
             expect("Code should not reach here").toEqual(result);
         } catch (result) {
             checkResult(result, false);
         }
     });
-
 }); // describe
-

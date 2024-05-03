@@ -3,14 +3,11 @@ import {
     ContractExecuteTransaction,
     ContractFunctionResult,
     Signer,
-    Transaction,
+    Transaction
 } from "@hashgraph/sdk";
 import {Buffer} from "buffer";
 
-import {
-    ContractCallQueryRecordsData,
-    TransactionReceiptData,
-} from "../../models/Common";
+import {ContractCallQueryRecordsData, TransactionReceiptData} from "../../models/Common";
 import {KnownChainIds} from "../../models/Chain";
 import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
@@ -25,19 +22,20 @@ export default class ContractServiceHedera implements IContractService {
     private readonly apiService: ApiService;
     private readonly configService: ConfigService;
 
-    constructor(
-        chainId: KnownChainIds,
-        signer: Signer,
-        apiService: ApiService,
-        configService: ConfigService,
-    ) {
+    constructor(chainId: KnownChainIds, signer: Signer, apiService: ApiService, configService: ConfigService) {
         this.chainId = chainId;
         this.signer = signer;
         this.apiService = apiService;
         this.configService = configService;
     }
 
-    async contractCallFunction(contractAddress: string, functionName: string, paramsEncoded: string | ParametersBuilder, gas: number, bladePayFee: boolean): Promise<TransactionReceiptData> {
+    async contractCallFunction(
+        contractAddress: string,
+        functionName: string,
+        paramsEncoded: string | ParametersBuilder,
+        gas: number,
+        bladePayFee: boolean
+    ): Promise<TransactionReceiptData> {
         const {bytecode} = await getContractFunctionBytecode(functionName, paramsEncoded);
 
         let transaction: Transaction;
@@ -57,7 +55,7 @@ export default class ContractServiceHedera implements IContractService {
                 .setContractId(contractAddress)
                 .setGas(gas)
                 .setFunction(functionName)
-                .setFunctionParameters(bytecode)
+                .setFunctionParameters(bytecode);
         }
 
         return transaction
@@ -67,7 +65,14 @@ export default class ContractServiceHedera implements IContractService {
             .then(txResult => getReceipt(txResult, this.signer!));
     }
 
-    async contractCallQueryFunction(contractAddress: string, functionName: string, paramsEncoded: string | ParametersBuilder, gas: number, bladePayFee: boolean, resultTypes: string[]): Promise<ContractCallQueryRecordsData> {
+    async contractCallQueryFunction(
+        contractAddress: string,
+        functionName: string,
+        paramsEncoded: string | ParametersBuilder,
+        gas: number,
+        bladePayFee: boolean,
+        resultTypes: string[]
+    ): Promise<ContractCallQueryRecordsData> {
         const {bytecode} = await getContractFunctionBytecode(functionName, paramsEncoded);
         let response: ContractFunctionResult;
 

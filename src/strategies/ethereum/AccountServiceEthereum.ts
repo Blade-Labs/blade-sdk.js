@@ -36,7 +36,7 @@ export default class AccountServiceEthereum implements IAccountService {
         chainId: KnownChainIds,
         signer: ethers.Signer | null,
         apiService: ApiService,
-        configService: ConfigService,
+        configService: ConfigService
     ) {
         this.chainId = chainId;
         this.signer = signer;
@@ -52,7 +52,11 @@ export default class AccountServiceEthereum implements IAccountService {
         throw new Error("Method not supported for this chain");
     }
 
-    deleteAccount(deleteAccountId: string, deletePrivateKey: string, transferAccountId: string): Promise<TransactionReceiptData> {
+    deleteAccount(
+        deleteAccountId: string,
+        deletePrivateKey: string,
+        transferAccountId: string
+    ): Promise<TransactionReceiptData> {
         throw new Error("Method not supported for this chain");
     }
 
@@ -92,7 +96,12 @@ export default class AccountServiceEthereum implements IAccountService {
         };
     }
 
-    async getTransactions(accountAddress: string, transactionType: string, nextPage: string, transactionsLimit: string): Promise<TransactionsHistoryData> {
+    async getTransactions(
+        accountAddress: string,
+        transactionType: string,
+        nextPage: string,
+        transactionsLimit: string
+    ): Promise<TransactionsHistoryData> {
         await this.initAlchemy();
         const maxCount = Math.min(parseInt(transactionsLimit, 10), 1000);
         const params: AssetTransfersWithMetadataParams = {
@@ -103,35 +112,35 @@ export default class AccountServiceEthereum implements IAccountService {
                 AssetTransfersCategory.INTERNAL,
                 AssetTransfersCategory.ERC20,
                 AssetTransfersCategory.ERC721,
-                AssetTransfersCategory.ERC1155,
+                AssetTransfersCategory.ERC1155
                 // AssetTransfersCategory.SPECIALNFT
             ],
             maxCount,
-            ...(nextPage && {toBlock: nextPage}),
+            ...(nextPage && {toBlock: nextPage})
             // pageKey?: string;
-        }
+        };
 
         let dataToPool: AssetTransfersWithMetadataResponse | null = null;
         let dataFromPool: AssetTransfersWithMetadataResponse | null = null;
         const transfers: AssetTransfersWithMetadataResult[] = [];
 
         while (transfers.length < maxCount) {
-            if (!dataToPool || !dataToPool.transfers.length && dataToPool.pageKey) {
+            if (!dataToPool || (!dataToPool.transfers.length && dataToPool.pageKey)) {
                 // fetch next To
                 dataToPool = await this.alchemy!.core.getAssetTransfers({
                     ...params,
                     ...(dataToPool && dataToPool?.pageKey ? {pageKey: dataToPool.pageKey} : {}),
-                    toAddress: accountAddress,
+                    toAddress: accountAddress
                 });
             }
 
-            if (!dataFromPool || !dataFromPool.transfers.length && dataFromPool.pageKey) {
+            if (!dataFromPool || (!dataFromPool.transfers.length && dataFromPool.pageKey)) {
                 // fetch next From
                 dataFromPool = await this.alchemy!.core.getAssetTransfers({
                     ...params,
                     ...(dataFromPool && dataFromPool?.pageKey ? {pageKey: dataFromPool.pageKey} : {}),
-                    fromAddress: accountAddress,
-                })
+                    fromAddress: accountAddress
+                });
             }
 
             if (dataToPool.transfers.length && dataFromPool.transfers.length) {
@@ -145,8 +154,8 @@ export default class AccountServiceEthereum implements IAccountService {
             }
 
             if (
-                !dataToPool.transfers.length && !dataToPool.pageKey ||
-                !dataFromPool.transfers.length && !dataFromPool.pageKey
+                (!dataToPool.transfers.length && !dataToPool.pageKey) ||
+                (!dataFromPool.transfers.length && !dataFromPool.pageKey)
             ) {
                 // unshift to transfers from existing one by one
                 if (dataToPool.transfers.length) {
@@ -157,15 +166,18 @@ export default class AccountServiceEthereum implements IAccountService {
             }
 
             if (
-                !dataToPool.transfers.length && !dataToPool.pageKey &&
-                !dataFromPool.transfers.length && !dataFromPool.pageKey
-            ) break;
+                !dataToPool.transfers.length &&
+                !dataToPool.pageKey &&
+                !dataFromPool.transfers.length &&
+                !dataFromPool.pageKey
+            )
+                break;
         }
 
         if (transfers.length === maxCount) {
             nextPage = `0x${(parseInt(transfers[transfers.length - 1].blockNum, 16) - 1).toString(16)}`;
         } else {
-            nextPage = ""
+            nextPage = "";
         }
 
         return {
@@ -174,29 +186,41 @@ export default class AccountServiceEthereum implements IAccountService {
                     transactionId: transfer.hash,
                     type: MirrorNodeTransactionType.CRYPTOTRANSFER, // ?????
                     time: new Date(transfer.metadata.blockTimestamp),
-                    transfers: !transfer.tokenId ? [{
-                        amount: transfer.value || 0,
-                        account: transfer.to || "",
-                        ...(transfer.rawContract.address && {tokenAddress: transfer.rawContract.address}),
-                        asset: transfer.asset || ""
-                    }] : [],
-                    nftTransfers: transfer.tokenId ? [{
-                        tokenAddress: transfer.rawContract.address || "",
-                        serial: transfer.tokenId,
-                        senderAddress: transfer.from,
-                        receiverAddress: transfer.to || ""
-                    }] : [],
+                    transfers: !transfer.tokenId
+                        ? [
+                              {
+                                  amount: transfer.value || 0,
+                                  account: transfer.to || "",
+                                  ...(transfer.rawContract.address && {tokenAddress: transfer.rawContract.address}),
+                                  asset: transfer.asset || ""
+                              }
+                          ]
+                        : [],
+                    nftTransfers: transfer.tokenId
+                        ? [
+                              {
+                                  tokenAddress: transfer.rawContract.address || "",
+                                  serial: transfer.tokenId,
+                                  senderAddress: transfer.from,
+                                  receiverAddress: transfer.to || ""
+                              }
+                          ]
+                        : [],
                     consensusTimestamp: transfer.metadata.blockTimestamp
-                }
+                };
             }),
             nextPage
-        }
+        };
     }
 
     private async initAlchemy() {
         if (!this.alchemy) {
-            const alchemyNetwork = ChainMap[this.chainId].isTestnet ? AlchemyNetwork.ETH_SEPOLIA : AlchemyNetwork.ETH_MAINNET;
-            const apiKey = await this.configService.getConfig(`alchemy${ChainMap[this.chainId].isTestnet ? Network.Testnet : Network.Mainnet}APIKey`);
+            const alchemyNetwork = ChainMap[this.chainId].isTestnet
+                ? AlchemyNetwork.ETH_SEPOLIA
+                : AlchemyNetwork.ETH_MAINNET;
+            const apiKey = await this.configService.getConfig(
+                `alchemy${ChainMap[this.chainId].isTestnet ? Network.Testnet : Network.Mainnet}APIKey`
+            );
             this.alchemy = new Alchemy({apiKey, network: alchemyNetwork});
         }
     }

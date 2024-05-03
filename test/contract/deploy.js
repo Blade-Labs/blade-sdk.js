@@ -9,7 +9,7 @@ const {
     PrivateKey,
     Client,
     ContractCreateTransaction,
-    ContractFunctionParameters,
+    ContractFunctionParameters
 } = require("@hashgraph/sdk");
 const fs = require("fs");
 

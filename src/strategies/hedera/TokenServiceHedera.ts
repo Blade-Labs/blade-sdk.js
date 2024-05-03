@@ -1,7 +1,18 @@
 import {
     Signer,
     TransactionResponse as TransactionResponseHedera,
-    Hbar, HbarUnit, TransferTransaction, Transaction, TokenAssociateTransaction, Status, TokenCreateTransaction, TokenSupplyType, PrivateKey, TokenType, PublicKey, TokenMintTransaction
+    Hbar,
+    HbarUnit,
+    TransferTransaction,
+    Transaction,
+    TokenAssociateTransaction,
+    Status,
+    TokenCreateTransaction,
+    TokenSupplyType,
+    PrivateKey,
+    TokenType,
+    PublicKey,
+    TokenMintTransaction
 } from "@hashgraph/sdk";
 import {Buffer} from "buffer";
 
@@ -19,7 +30,7 @@ import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
 import {formatReceipt} from "../../helpers/TransactionHelpers";
 import {dataURLtoFile} from "../../helpers/FileHelper";
-import { NFTStorage } from "nft.storage";
+import {NFTStorage} from "nft.storage";
 import {ChainMap, KnownChainIds} from "../../models/Chain";
 
 export default class TokenServiceHedera implements ITokenService {
@@ -28,12 +39,7 @@ export default class TokenServiceHedera implements ITokenService {
     private readonly apiService: ApiService;
     private readonly configService: ConfigService;
 
-    constructor(
-        chainId: KnownChainIds,
-        signer: Signer | null,
-        apiService: ApiService,
-        configService: ConfigService,
-    ) {
+    constructor(chainId: KnownChainIds, signer: Signer | null, apiService: ApiService, configService: ConfigService) {
         this.chainId = chainId;
         this.signer = signer;
         this.apiService = apiService;
@@ -51,7 +57,7 @@ export default class TokenServiceHedera implements ITokenService {
             rawBalance: account.balance.balance.toString(),
             decimals: 8,
             tokens: tokenBalances
-        }
+        };
     }
 
     async transferBalance({from, to, amount, memo}: TransferInitData): Promise<TransactionResponseData> {
@@ -66,12 +72,19 @@ export default class TokenServiceHedera implements ITokenService {
             .then((response: TransactionResponseHedera) => {
                 return {
                     transactionId: response.transactionId.toString(),
-                    transactionHash: response.transactionHash.toString(),
-                }
+                    transactionHash: response.transactionHash.toString()
+                };
             });
     }
 
-    async transferToken({amountOrSerial, from, to, tokenAddress, memo, freeTransfer}: TransferTokenInitData): Promise<TransactionResponseData> {
+    async transferToken({
+        amountOrSerial,
+        from,
+        to,
+        tokenAddress,
+        memo,
+        freeTransfer
+    }: TransferTokenInitData): Promise<TransactionResponseData> {
         const meta = await this.apiService.requestTokenInfo(tokenAddress);
         let isNFT = false;
         if (meta.type === "NON_FUNGIBLE_UNIQUE") {
@@ -81,7 +94,7 @@ export default class TokenServiceHedera implements ITokenService {
             }
         }
         freeTransfer = freeTransfer && (await this.configService.getConfig("freeTransfer")).toLowerCase() === "true";
-        const correctedAmount = parseFloat(amountOrSerial) * (10 ** parseInt(meta.decimals, 10));
+        const correctedAmount = parseFloat(amountOrSerial) * 10 ** parseInt(meta.decimals, 10);
 
         if (freeTransfer) {
             const options = {
@@ -104,16 +117,14 @@ export default class TokenServiceHedera implements ITokenService {
                 .then(data => {
                     return {
                         transactionId: data.transactionId.toString(),
-                        transactionHash: data.transactionHash.toString(),
-                    }
+                        transactionHash: data.transactionHash.toString()
+                    };
                 });
         } else {
-            const tokenTransferTx = new TransferTransaction()
-                .setTransactionMemo(memo || "");
+            const tokenTransferTx = new TransferTransaction().setTransactionMemo(memo || "");
 
             if (isNFT) {
-                tokenTransferTx
-                    .addNftTransfer(tokenAddress, parseInt(amountOrSerial, 10), from, to);
+                tokenTransferTx.addNftTransfer(tokenAddress, parseInt(amountOrSerial, 10), from, to);
             } else {
                 tokenTransferTx
                     .addTokenTransfer(tokenAddress, to, correctedAmount)
@@ -130,8 +141,8 @@ export default class TokenServiceHedera implements ITokenService {
                 .then(data => {
                     return {
                         transactionId: data.transactionId.toString(),
-                        transactionHash: data.transactionHash.toString(),
-                    }
+                        transactionHash: data.transactionHash.toString()
+                    };
                 });
         }
     }
@@ -153,19 +164,27 @@ export default class TokenServiceHedera implements ITokenService {
                 .setTokenIds([tokenId])
                 .freezeWithSigner(this.signer!);
         }
-        const result = await transaction.signWithSigner(this.signer!)
-            .then(tx => tx.executeWithSigner(this.signer!));
+        const result = await transaction.signWithSigner(this.signer!).then(tx => tx.executeWithSigner(this.signer!));
 
-        return result.getReceiptWithSigner(this.signer!)
-            .then(txReceipt => {
-                if (txReceipt.status !== Status.Success) {
-                    throw new Error(`Association failed`)
-                }
-                return formatReceipt(txReceipt, result.transactionHash.toString());
-            });
+        return result.getReceiptWithSigner(this.signer!).then(txReceipt => {
+            if (txReceipt.status !== Status.Success) {
+                throw new Error(`Association failed`);
+            }
+            return formatReceipt(txReceipt, result.transactionHash.toString());
+        });
     }
 
-    async createToken(tokenName: string, tokenSymbol: string, isNft: boolean, treasuryAccountId: string, supplyPublicKey: string, keys: KeyRecord[] | string, decimals: number, initialSupply: number, maxSupply: number): Promise<{tokenId: string}> {
+    async createToken(
+        tokenName: string,
+        tokenSymbol: string,
+        isNft: boolean,
+        treasuryAccountId: string,
+        supplyPublicKey: string,
+        keys: KeyRecord[] | string,
+        decimals: number,
+        initialSupply: number,
+        maxSupply: number
+    ): Promise<{tokenId: string}> {
         const supplyKey = PublicKey.fromString(supplyPublicKey);
 
         let adminKey: PrivateKey | null = null;
@@ -189,9 +208,7 @@ export default class TokenServiceHedera implements ITokenService {
             .setTreasuryAccountId(treasuryAccountId)
             .setSupplyType(TokenSupplyType.Finite)
             .setMaxSupply(maxSupply)
-            .setSupplyKey(supplyKey)
-        ;
-
+            .setSupplyKey(supplyKey);
         for (const key of keys) {
             const privateKey = PrivateKey.fromString(key.privateKey);
 
@@ -225,7 +242,7 @@ export default class TokenServiceHedera implements ITokenService {
         if (adminKey) {
             nftCreateTxSign = await nftCreate.sign(adminKey);
         } else {
-            nftCreateTxSign = await nftCreate.signWithSigner(this.signer!)
+            nftCreateTxSign = await nftCreate.signWithSigner(this.signer!);
         }
 
         const nftCreateSubmit = await nftCreateTxSign.executeWithSigner(this.signer!);
@@ -238,7 +255,12 @@ export default class TokenServiceHedera implements ITokenService {
         return {tokenId};
     }
 
-    async nftMint(tokenId: string, file: File | string, metadata: {}, storageConfig: NFTStorageConfig): Promise<TransactionReceiptData> {
+    async nftMint(
+        tokenId: string,
+        file: File | string,
+        metadata: {},
+        storageConfig: NFTStorageConfig
+    ): Promise<TransactionReceiptData> {
         if (typeof file === "string") {
             file = dataURLtoFile(file, "filename");
         }
@@ -263,18 +285,16 @@ export default class TokenServiceHedera implements ITokenService {
         metadata = {
             name: fileName,
             type: file.type,
-            creator: 'Blade Labs',
-            ...metadata as {},
-            image: `ipfs://${dirCID}/${encodeURIComponent(fileName)}`,
-        }
+            creator: "Blade Labs",
+            ...(metadata as {}),
+            image: `ipfs://${dirCID}/${encodeURIComponent(fileName)}`
+        };
         const metadataCID = await storageClient.storeBlob(
-            new File([JSON.stringify(metadata)], 'metadata.json', {type: 'application/json'}),
-        )
+            new File([JSON.stringify(metadata)], "metadata.json", {type: "application/json"})
+        );
 
         const CIDs = [metadataCID];
-        const mdArray = (new Array(amount)).fill(0).map(
-            (el, index) => Buffer.from(CIDs[index % CIDs.length]),
-        );
+        const mdArray = new Array(amount).fill(0).map((el, index) => Buffer.from(CIDs[index % CIDs.length]));
         const mdGroup = mdArray.splice(0, groupSize);
 
         const txResult = await new TokenMintTransaction()
@@ -285,12 +305,11 @@ export default class TokenServiceHedera implements ITokenService {
             .then(tx => tx.signWithSigner(this.signer!))
             .then(tx => tx.executeWithSigner(this.signer!));
 
-        return txResult.getReceiptWithSigner(this.signer!)
-            .then(txReceipt => {
-                if (txReceipt.status !== Status.Success) {
-                    throw new Error(`Mint failed`)
-                }
-                return formatReceipt(txReceipt, txResult.transactionHash.toString());
-            });
+        return txResult.getReceiptWithSigner(this.signer!).then(txReceipt => {
+            if (txReceipt.status !== Status.Success) {
+                throw new Error(`Mint failed`);
+            }
+            return formatReceipt(txReceipt, txResult.transactionHash.toString());
+        });
     }
 }
