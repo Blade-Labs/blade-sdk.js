@@ -1127,7 +1127,6 @@ export class BladeSDK {
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {PrivateKeyData}
      */
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     async getKeysFromMnemonic(
         mnemonicRaw: string,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
