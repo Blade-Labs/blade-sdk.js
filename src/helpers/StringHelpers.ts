@@ -1,10 +1,10 @@
-import { Network } from "../models/Networks";
+import {Network} from "../models/Networks";
 import {KnownChainIds} from "../models/Chain";
-import { EthNetworkConfiguration } from "magic-sdk";
+import {EthNetworkConfiguration} from "magic-sdk";
 
 export default class StringHelpers {
     static stringToNetwork(str: string): Network {
-        const network = str[0].toUpperCase() + str.slice(1).toLowerCase() as Network;
+        const network = (str[0].toUpperCase() + str.slice(1).toLowerCase()) as Network;
         if (!Network[network]) {
             throw new Error(`Invalid network: ${str}`);
         }
@@ -27,8 +27,8 @@ export default class StringHelpers {
     }
 
     static isHexPrefixed(str: string): boolean {
-        if (typeof str !== 'string') {
-            throw new Error(`[isHexPrefixed] input must be type "string", received type ${typeof str}`)
+        if (typeof str !== "string") {
+            throw new Error(`[isHexPrefixed] input must be type "string", received type ${typeof str}`);
         }
 
         return str.slice(0, 2) === "0x";

@@ -1,9 +1,9 @@
-import { HEDERA_PATH } from "@hashgraph/sdk";
+import {HEDERA_PATH} from "@hashgraph/sdk";
 import StringHelpers from "../helpers/StringHelpers";
 
 export enum ChainServiceStrategy {
     Hedera = "hedera",
-    Ethereum = "ethereum",
+    Ethereum = "ethereum"
 }
 
 export enum CryptoKeyType {
@@ -32,7 +32,7 @@ export type ChainConfig = {
     serviceStrategy: ChainServiceStrategy;
     supportsHardware: boolean,
     explorerUrl: string;
-}
+};
 
 export const ChainMap: Record<KnownChainIds, ChainConfig> = {
     [KnownChainIds.HEDERA_MAINNET]: {
@@ -89,4 +89,4 @@ export const ChainMap: Record<KnownChainIds, ChainConfig> = {
         supportsHardware: true,
         explorerUrl: "https://sepolia.etherscan.io/tx/"
     }
-}
+};

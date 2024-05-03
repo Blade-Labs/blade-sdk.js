@@ -9,7 +9,7 @@ import config from "../../src/config";
 import dotenv from "dotenv";
 import fetch from "node-fetch";
 import {ethers} from "ethers";
-import {TextDecoder, TextEncoder} from 'util';
+import {TextDecoder, TextEncoder} from "util";
 import crypto from "crypto";
 import {AccountProvider} from "../../src/models/Common";
 import AccountServiceContext from "../../src/strategies/AccountServiceContext";
@@ -23,16 +23,15 @@ const {BladeSDK, ParametersBuilder} = require("../../src/webView");
 
 Object.defineProperty(global.self, "crypto", {
     value: {
-        subtle: crypto.webcrypto.subtle,
-    },
+        subtle: crypto.webcrypto.subtle
+    }
 });
 
-Object.assign(global, { TextDecoder, TextEncoder, fetch });
+Object.assign(global, {TextDecoder, TextEncoder, fetch});
 
 dotenv.config();
 
-describe('test COMMON functionality', () => {
-
+describe("test COMMON functionality", () => {
     const apiService = new ApiService();
     const configService = new ConfigService(apiService);
     const feeService = new FeeService(configService);
@@ -72,12 +71,12 @@ describe('test COMMON functionality', () => {
             process.env.VISITOR_ID,
             process.env.SDK_ENV,
             sdkVersion,
-            completionKey);
+            completionKey
+        );
         checkResult(result);
     });
 
-
-    test('bladeSdk-common.getCoinList', async () => {
+    test("bladeSdk-common.getCoinList", async () => {
         let result = await bladeSdk.getCoinList(completionKey);
         checkResult(result);
 
@@ -97,7 +96,8 @@ describe('test COMMON functionality', () => {
             "bad visitor id",
             process.env.SDK_ENV,
             sdkVersion,
-            completionKey);
+            completionKey
+        );
         checkResult(result);
 
         try {
@@ -108,7 +108,7 @@ describe('test COMMON functionality', () => {
         }
     });
 
-    test('bladeSdk-common.getCoinPrice', async () => {
+    test("bladeSdk-common.getCoinPrice", async () => {
         let result = await bladeSdk.getCoinPrice("Hbar", "usd", completionKey);
         checkResult(result);
 
@@ -144,7 +144,7 @@ describe('test COMMON functionality', () => {
     }, 10_000);
 
     // TODO refactor
-    test('bladeSdk-common.ethersSign', async () => {
+    test("bladeSdk-common.ethersSign", async () => {
         const message = "hello";
         const messageString = Buffer.from(message).toString("base64");
         const wallet = new ethers.Wallet(PrivateKey.fromString(privateKey).toStringRaw());
@@ -175,7 +175,7 @@ describe('test COMMON functionality', () => {
     });
 
     // TODO refactor
-    test('bladeSdk-common.splitSignature', async () => {
+    test("bladeSdk-common.splitSignature", async () => {
         const message = "hello";
         const messageString = Buffer.from(message).toString("base64");
 
@@ -201,12 +201,12 @@ describe('test COMMON functionality', () => {
         }
     });
 
-    test('bladeSdk-common.getParamsSignature', async () => {
+    test("bladeSdk-common.getParamsSignature", async () => {
         const params = new ParametersBuilder()
             .addAddress(accountId)
             .addUInt64Array([300000, 300000])
             .addUInt64Array([6])
-            .addUInt64Array([2])
+            .addUInt64Array([2]);
 
         let result = await bladeSdk.getParamsSignature(params, privateKey, completionKey);
         checkResult(result);
@@ -228,7 +228,7 @@ describe('test COMMON functionality', () => {
         }
     });
 
-    test('bladeSdk-common.getC14url', async () => {
+    test("bladeSdk-common.getC14url", async () => {
         let result;
         result = await bladeSdk.getC14url("hbar", "0.0.123456", "123", completionKey);
         checkResult(result);
@@ -273,7 +273,8 @@ describe('test COMMON functionality', () => {
             process.env.VISITOR_ID,
             "Prod",
             sdkVersion,
-            completionKey);
+            completionKey
+        );
 
         try {
             result = await bladeSdk.getC14url("1b487a96-a14a-47d1-a1e0-09c18d409671", "0.0.13421", "10", completionKey);
@@ -283,7 +284,7 @@ describe('test COMMON functionality', () => {
         }
     });
 
-    test('bladeSdk-common.exchangeGetQuotes', async () => {
+    test("bladeSdk-common.exchangeGetQuotes", async () => {
         let result = await bladeSdk.init(
             process.env.API_KEY_MAINNET,
             KnownChainIds.HEDERA_MAINNET,
@@ -291,7 +292,8 @@ describe('test COMMON functionality', () => {
             process.env.VISITOR_ID,
             process.env.SDK_ENV,
             sdkVersion,
-            completionKey);
+            completionKey
+        );
         checkResult(result);
 
         result = await bladeSdk.exchangeGetQuotes("EUR", 50, "HBAR", "Buy", completionKey);
@@ -311,7 +313,7 @@ describe('test COMMON functionality', () => {
         }
     }, 50_000);
 
-    test('bladeSdk-common.swapTokens', async () => {
+    test("bladeSdk-common.swapTokens", async () => {
         let result;
 
         try {
@@ -321,7 +323,12 @@ describe('test COMMON functionality', () => {
             checkResult(result, false);
         }
 
-        result = await bladeSdk.setUser(AccountProvider.PrivateKey, accountId4ED25519, privateKeyED25519, completionKey);
+        result = await bladeSdk.setUser(
+            AccountProvider.PrivateKey,
+            accountId4ED25519,
+            privateKeyED25519,
+            completionKey
+        );
         checkResult(result);
 
         // TODO check why this is failing (TOKEN_NOT_ASSOCIATED_TO_ACCOUNT)
@@ -329,21 +336,14 @@ describe('test COMMON functionality', () => {
         // checkResult(result);
 
         try {
-            result = await bladeSdk.swapTokens(
-                "USDC",
-                0.00001,
-                "HBAR",
-                0.5,
-                "unknown-service-id",
-                completionKey
-            );
+            result = await bladeSdk.swapTokens("USDC", 0.00001, "HBAR", 0.5, "unknown-service-id", completionKey);
             expect("Code should not reach here").toEqual(result);
         } catch (result) {
             checkResult(result, false);
         }
     }, 60_000);
 
-    test('bladeSdk-common.getTradeUrl', async () => {
+    test("bladeSdk-common.getTradeUrl", async () => {
         let result = await bladeSdk.init(
             process.env.API_KEY_MAINNET,
             chainId,
@@ -351,7 +351,8 @@ describe('test COMMON functionality', () => {
             process.env.VISITOR_ID,
             process.env.SDK_ENV,
             sdkVersion,
-            completionKey);
+            completionKey
+        );
         checkResult(result);
 
         // TODO check what is wrong with the following tests
@@ -364,11 +365,19 @@ describe('test COMMON functionality', () => {
         // expect(result.data).toHaveProperty("url");
 
         try {
-            result = await bladeSdk.getTradeUrl("buy", accountId, "EUR", 50, "HBAR", 0.5, "unknown-service-id", completionKey);
+            result = await bladeSdk.getTradeUrl(
+                "buy",
+                accountId,
+                "EUR",
+                50,
+                "HBAR",
+                0.5,
+                "unknown-service-id",
+                completionKey
+            );
             expect("Code should not reach here").toEqual(result);
         } catch (result) {
             checkResult(result, false);
         }
     }, 30_000);
-
 }); // describe

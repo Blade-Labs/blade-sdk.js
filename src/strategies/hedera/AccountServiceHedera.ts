@@ -6,7 +6,7 @@ import {
     PrivateKey,
     PublicKey,
     Signer,
-    Transaction,
+    Transaction
 } from "@hashgraph/sdk";
 
 import {IAccountService} from "../AccountServiceContext";
@@ -34,12 +34,7 @@ export default class AccountServiceHedera implements IAccountService {
     private readonly apiService: ApiService;
     private readonly configService: ConfigService;
 
-    constructor(
-        chainId: KnownChainIds,
-        signer: Signer | null,
-        apiService: ApiService,
-        configService: ConfigService,
-    ) {
+    constructor(chainId: KnownChainIds, signer: Signer | null, apiService: ApiService, configService: ConfigService) {
         this.chainId = chainId;
         this.signer = signer;
         this.apiService = apiService;
@@ -50,20 +45,15 @@ export default class AccountServiceHedera implements IAccountService {
         let key: PrivateKey;
         let seedPhrase = "";
         if (privateKey) {
-            key = PrivateKey.fromString(privateKey)
+            key = PrivateKey.fromString(privateKey);
         } else {
             const mnemonic = await Mnemonic.generate12();
             seedPhrase = mnemonic.toString();
             key = await mnemonic.toStandardECDSAsecp256k1PrivateKey();
         }
 
-        const {
-            id,
-            transactionBytes,
-            updateAccountTransactionBytes,
-            associationPresetTokenStatus,
-            transactionId
-        } = await this.apiService.createAccount({deviceId, publicKey: key.publicKey.toStringDer()});
+        const {id, transactionBytes, updateAccountTransactionBytes, associationPresetTokenStatus, transactionId} =
+            await this.apiService.createAccount({deviceId, publicKey: key.publicKey.toStringDer()});
         const client = this.getClient();
         await executeUpdateAccountTransactions(client, key, updateAccountTransactionBytes, transactionBytes);
 
@@ -83,10 +73,9 @@ export default class AccountServiceHedera implements IAccountService {
         }
 
         if (updateAccountTransactionBytes) {
-            await this.apiService.confirmAccountUpdate(id)
-                .catch(() => {
-                    // ignore this error, continue
-                });
+            await this.apiService.confirmAccountUpdate(id).catch(() => {
+                // ignore this error, continue
+            });
         }
         const evmAddress = ethers.utils.computeAddress(`0x${key.publicKey.toStringRaw()}`);
         return {
@@ -97,7 +86,7 @@ export default class AccountServiceHedera implements IAccountService {
             privateKey: key.toStringDer(),
             accountId: id || null,
             evmAddress: evmAddress.toLowerCase()
-        }
+        };
     }
 
     // TODO check if this method is needed
@@ -120,16 +109,19 @@ export default class AccountServiceHedera implements IAccountService {
 
         const {status, queueNumber} = await this.apiService.checkAccountCreationStatus(transactionId);
         if (status === AccountStatus.SUCCESS) {
-            const {
-                id,
-                transactionBytes,
+            const {id, transactionBytes, updateAccountTransactionBytes, originalPublicKey} =
+                await this.apiService.getPendingAccountData(transactionId);
+            await executeUpdateAccountTransactions(
+                this.getClient(),
+                privateKey,
                 updateAccountTransactionBytes,
-                originalPublicKey
-            } = await this.apiService.getPendingAccountData(transactionId);
-            await executeUpdateAccountTransactions(this.getClient(), privateKey, updateAccountTransactionBytes, transactionBytes);
+                transactionBytes
+            );
 
             await this.apiService.confirmAccountUpdate(id);
-            evmAddress = ethers.utils.computeAddress(`0x${originalPublicKey ? originalPublicKey.slice(-66) : privateKey.publicKey.toStringRaw()}`);
+            evmAddress = ethers.utils.computeAddress(
+                `0x${originalPublicKey ? originalPublicKey.slice(-66) : privateKey.publicKey.toStringRaw()}`
+            );
             result.transactionId = null;
             result.status = status;
             result.accountId = id;
@@ -141,7 +133,11 @@ export default class AccountServiceHedera implements IAccountService {
     }
 
     // TODO check if this method is needed
-    async deleteAccount(deleteAccountId: string, deletePrivateKey: string, transferAccountId: string): Promise<TransactionReceiptData> {
+    async deleteAccount(
+        deleteAccountId: string,
+        deletePrivateKey: string,
+        transferAccountId: string
+    ): Promise<TransactionReceiptData> {
         // current user is operator. Account to be deleted is deleteAccountId
         const deleteAccountKey = PrivateKey.fromString(deletePrivateKey);
 
@@ -157,10 +153,14 @@ export default class AccountServiceHedera implements IAccountService {
 
     async getAccountInfo(accountId: string): Promise<AccountInfoData> {
         const account = await this.apiService.getAccountInfo(accountId);
-        const publicKey = account.key._type === CryptoKeyType.ECDSA_SECP256K1 ? PublicKey.fromStringECDSA(account.key.key) : PublicKey.fromStringED25519(account.key.key);
-        const calculatedEvmAddress = account.key._type === CryptoKeyType.ECDSA_SECP256K1
-            ? ethers.utils.computeAddress(`0x${publicKey.toStringRaw()}`).toLowerCase()
-            : "";
+        const publicKey =
+            account.key._type === CryptoKeyType.ECDSA_SECP256K1
+                ? PublicKey.fromStringECDSA(account.key.key)
+                : PublicKey.fromStringED25519(account.key.key);
+        const calculatedEvmAddress =
+            account.key._type === CryptoKeyType.ECDSA_SECP256K1
+                ? ethers.utils.computeAddress(`0x${publicKey.toStringRaw()}`).toLowerCase()
+                : "";
         return {
             accountId,
             publicKey: publicKey.toStringDer(),
@@ -168,7 +168,7 @@ export default class AccountServiceHedera implements IAccountService {
             stakingInfo: {
                 pendingReward: account.pending_reward,
                 stakedNodeId: account.staked_node_id,
-                stakePeriodStart: account.stake_period_start,
+                stakePeriodStart: account.stake_period_start
             },
             calculatedEvmAddress
         } as AccountInfoData;
@@ -180,8 +180,7 @@ export default class AccountServiceHedera implements IAccountService {
     }
 
     stakeToNode(accountId: string, nodeId: number): Promise<TransactionReceiptData> {
-        const transaction = new AccountUpdateTransaction()
-            .setAccountId(accountId);
+        const transaction = new AccountUpdateTransaction().setAccountId(accountId);
 
         if (nodeId < 0 || nodeId === null) {
             transaction.clearStakedNodeId();
@@ -196,11 +195,12 @@ export default class AccountServiceHedera implements IAccountService {
     }
 
     async getKeysFromMnemonic(mnemonicRaw: string): Promise<AccountPrivateData> {
-        const mnemonic = await Mnemonic.fromString(mnemonicRaw
-            .toLowerCase()
-            .split(" ")
-            .filter(word => word)
-            .join(" ")
+        const mnemonic = await Mnemonic.fromString(
+            mnemonicRaw
+                .toLowerCase()
+                .split(" ")
+                .filter(word => word)
+                .join(" ")
         );
 
         // derive to ECDSA Standard - find account
@@ -209,17 +209,24 @@ export default class AccountServiceHedera implements IAccountService {
         // derive to ED25519 Legacy - find account
         // return all records with account found. If no account show ECDSA Standard keys
 
-        const prepareAccountRecord = async(privateKey: PrivateKey, keyType: CryptoKeyType, force: boolean = false): Promise<AccountPrivateRecord[]> => {
-            const accounts: Partial<AccountInfo>[] = await this.apiService.getAccountsFromPublicKey(privateKey.publicKey);
+        const prepareAccountRecord = async (
+            privateKey: PrivateKey,
+            keyType: CryptoKeyType,
+            force: boolean = false
+        ): Promise<AccountPrivateRecord[]> => {
+            const accounts: Partial<AccountInfo>[] = await this.apiService.getAccountsFromPublicKey(
+                privateKey.publicKey
+            );
 
             if (!accounts.length && force) {
-                accounts.push({})
+                accounts.push({});
             }
 
             return accounts.map(record => {
-                const evmAddress = keyType === CryptoKeyType.ECDSA_SECP256K1
-                    ? ethers.utils.computeAddress(`0x${privateKey.publicKey.toStringRaw()}`).toLowerCase()
-                    : record?.evm_address || "";
+                const evmAddress =
+                    keyType === CryptoKeyType.ECDSA_SECP256K1
+                        ? ethers.utils.computeAddress(`0x${privateKey.publicKey.toStringRaw()}`).toLowerCase()
+                        : record?.evm_address || "";
                 return {
                     privateKey: privateKey.toStringDer(),
                     publicKey: privateKey.publicKey.toStringDer(),
@@ -227,9 +234,9 @@ export default class AccountServiceHedera implements IAccountService {
                     address: record?.account || "",
                     path: ChainMap[this.chainId].defaultPath,
                     keyType
-                }
-            })
-        }
+                };
+            });
+        };
 
         const records: AccountPrivateRecord[] = [];
         let key: PrivateKey;
@@ -243,27 +250,32 @@ export default class AccountServiceHedera implements IAccountService {
                     }
                 } else {
                     if (standard) {
-                        key = await mnemonic.toStandardEd25519PrivateKey()
+                        key = await mnemonic.toStandardEd25519PrivateKey();
                     } else {
                         key = await mnemonic.toEd25519PrivateKey();
                     }
                 }
-                records.push(...await prepareAccountRecord(key, keyType))
+                records.push(...(await prepareAccountRecord(key, keyType)));
             }
         }
 
         if (!records.length) {
             // if no accounts found derive to ECDSA Standard, and return record with empty address
             key = await mnemonic.toStandardECDSAsecp256k1PrivateKey();
-            records.push(...await prepareAccountRecord(key, CryptoKeyType.ECDSA_SECP256K1, true))
+            records.push(...(await prepareAccountRecord(key, CryptoKeyType.ECDSA_SECP256K1, true)));
         }
 
         return {
             accounts: records
-        }
+        };
     }
 
-    async getTransactions(accountAddress: string, transactionType: string, nextPage: string, transactionsLimit: string): Promise<TransactionsHistoryData> {
+    async getTransactions(
+        accountAddress: string,
+        transactionType: string,
+        nextPage: string,
+        transactionsLimit: string
+    ): Promise<TransactionsHistoryData> {
         return await this.apiService.getTransactionsFrom(accountAddress, transactionType, nextPage, transactionsLimit);
     }
 

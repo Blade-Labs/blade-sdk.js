@@ -9,6 +9,6 @@ export const dataURLtoFile = (dataURL: string, fileName: string): File => {
         uint8Array[i] = raw.charCodeAt(i);
     }
 
-    const blob = new Blob([uint8Array], { type: contentType });
-    return new File([blob], fileName, { type: blob.type });
+    const blob = new Blob([uint8Array], {type: contentType});
+    return new File([blob], fileName, {type: blob.type});
 };

@@ -1,9 +1,9 @@
-import { injectable, inject } from 'inversify';
-import 'reflect-metadata';
+import {injectable, inject} from "inversify";
+import "reflect-metadata";
 import ApiService from "./ApiService";
 import {BladeConfig, DAppConfig} from "../models/Common";
 
-type Config = BladeConfig & DAppConfig
+type Config = BladeConfig & DAppConfig;
 type ConfigKey = keyof Config;
 type ConfigValueByKey<TKey extends ConfigKey> = Config[TKey];
 
@@ -18,16 +18,16 @@ export default class ConfigService {
         magicLinkPublicKey: undefined,
 
         // TODO add alchemy keys in backend config
-        alchemyTestnetRPC: 'https://eth-sepolia.g.alchemy.com/v2/',
+        alchemyTestnetRPC: "https://eth-sepolia.g.alchemy.com/v2/",
         alchemyTestnetAPIKey: undefined,
         // TODO set correct apikey
-        alchemyMainnetRPC: 'https://eth-mainnet.g.alchemy.com/v2/',
+        alchemyMainnetRPC: "https://eth-mainnet.g.alchemy.com/v2/",
         alchemyMainnetAPIKey: undefined,
-        fingerprintSubdomain: 'https://identity.bladewallet.io'
+        fingerprintSubdomain: "https://identity.bladewallet.io"
     };
     private dAppConfig?: DAppConfig;
 
-    constructor(@inject('apiService') private readonly apiService: ApiService) {}
+    constructor(@inject("apiService") private readonly apiService: ApiService) {}
 
     async getConfig<TKey extends ConfigKey>(key: TKey): Promise<ConfigValueByKey<TKey>> {
         if (Object.keys(this.config).includes(key.toString())) {
@@ -37,18 +37,18 @@ export default class ConfigService {
                 this.config = {
                     ...this.config,
                     ...(await this.apiService.getBladeConfig())
-                }
-
+                };
             }
             return this.config[key];
         }
 
-        if (!this.dAppConfig?.fees) { // check if dAppConfig is empty
+        if (!this.dAppConfig?.fees) {
+            // check if dAppConfig is empty
             this.dAppConfig = await this.apiService.getDappConfig();
         }
         if (this.dAppConfig[key] !== undefined) {
             return this.dAppConfig[key] as Config[TKey];
         }
         throw new Error(`Unknown key "${key}" in configService`);
-    };
+    }
 }

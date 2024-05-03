@@ -2,7 +2,7 @@ import BigNumber from "bignumber.js";
 
 export enum ICryptoFlowNetworkType {
     ETHEREUM = "Ethereum",
-    HEDERA = "Hedera",
+    HEDERA = "Hedera"
 }
 
 export interface ICryptoFlowTransaction {
@@ -15,13 +15,13 @@ export interface ICryptoFlowTransaction {
 export enum CryptoFlowRoutes {
     ASSETS = "assets",
     QUOTES = "quotes",
-    TRANSACTION = "transaction",
+    TRANSACTION = "transaction"
 }
 
 export enum CryptoFlowServiceStrategy {
     BUY = "Buy",
     SELL = "Sell",
-    SWAP = "Swap",
+    SWAP = "Swap"
 }
 
 export interface ICryptoFlowAssetsParams {
@@ -148,5 +148,5 @@ export enum FeeType {
     StakingClaim = "StakingClaim",
     Swap = "Swap",
     AccountCreate = "AccountCreate",
-    Default = "Default",
+    Default = "Default"
 }

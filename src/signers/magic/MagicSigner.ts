@@ -9,10 +9,10 @@ import {
     Signer,
     LedgerId,
     Executable,
-    Transaction,
+    Transaction
 } from "@hashgraph/sdk";
-import { shuffle } from "@magic-ext/hedera";
-import { MagicProvider } from "./MagicProvider";
+import {shuffle} from "@magic-ext/hedera";
+import {MagicProvider} from "./MagicProvider";
 
 export class MagicSigner implements Signer {
     private readonly publicKey: PublicKey;
@@ -48,7 +48,7 @@ export class MagicSigner implements Signer {
         return this.provider == null ? null : this.provider.getLedgerId();
     }
 
-    getNetwork(): { [key: string]: string | AccountId } {
+    getNetwork(): {[key: string]: string | AccountId} {
         return this.provider == null ? {} : this.provider.getNetwork();
     }
 
@@ -64,7 +64,7 @@ export class MagicSigner implements Signer {
                 new SignerSignature({
                     publicKey: this.publicKey,
                     signature: await this.signer(message),
-                    accountId: this.accountId,
+                    accountId: this.accountId
                 })
             );
         }
@@ -105,7 +105,7 @@ export class MagicSigner implements Signer {
         const nodeAccountIds: string[] = (transaction.nodeAccountIds != null ? transaction.nodeAccountIds : []).map(
             (nodeAccountId: AccountId) => nodeAccountId.toString()
         );
-        const network = Object.values(this.provider.getNetwork()).map((nodeAccountId) => nodeAccountId.toString());
+        const network = Object.values(this.provider.getNetwork()).map(nodeAccountId => nodeAccountId.toString());
 
         if (!nodeAccountIds.reduce((previous, current) => previous && network.includes(current), true)) {
             throw new Error("Transaction already set node account IDs to values not within the current network");
@@ -129,7 +129,7 @@ export class MagicSigner implements Signer {
             return Promise.resolve(transaction);
         }
 
-        const nodeAccountIds = Object.values(this.provider.getNetwork()).map((id) =>
+        const nodeAccountIds = Object.values(this.provider.getNetwork()).map(id =>
             typeof id === "string" ? AccountId.fromString(id) : id
         );
         shuffle(nodeAccountIds);

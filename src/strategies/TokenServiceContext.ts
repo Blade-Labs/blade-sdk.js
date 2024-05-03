@@ -1,7 +1,7 @@
-import { injectable, inject } from 'inversify';
-import 'reflect-metadata';
+import {injectable, inject} from "inversify";
+import "reflect-metadata";
 
-import {Signer} from "@hashgraph/sdk"
+import {Signer} from "@hashgraph/sdk";
 import {
     BalanceData,
     KeyRecord,
@@ -13,7 +13,7 @@ import {
 import {ChainMap, ChainServiceStrategy, KnownChainIds} from "../models/Chain";
 import TokenServiceHedera from "./hedera/TokenServiceHedera";
 import TokenServiceEthereum from "./ethereum/TokenServiceEthereum";
-import { ethers } from "ethers";
+import {ethers} from "ethers";
 import ApiService from "../services/ApiService";
 import ConfigService from "../services/ConfigService";
 
@@ -22,8 +22,23 @@ export interface ITokenService {
     transferBalance(transferData: TransferInitData): Promise<TransactionResponseData>;
     transferToken(transferData: TransferTokenInitData): Promise<TransactionResponseData>;
     associateToken(tokenId: string, accountId: string): Promise<TransactionReceiptData>;
-    createToken(tokenName: string, tokenSymbol: string, isNft: boolean, treasuryAccountId: string, supplyPublicKey: string, keys: KeyRecord[] | string, decimals: number, initialSupply: number, maxSupply: number): Promise<{tokenId: string}>;
-    nftMint(tokenId: string, file: File | string, metadata: object, storageConfig: NFTStorageConfig): Promise<TransactionReceiptData>;
+    createToken(
+        tokenName: string,
+        tokenSymbol: string,
+        isNft: boolean,
+        treasuryAccountId: string,
+        supplyPublicKey: string,
+        keys: KeyRecord[] | string,
+        decimals: number,
+        initialSupply: number,
+        maxSupply: number
+    ): Promise<{tokenId: string}>;
+    nftMint(
+        tokenId: string,
+        file: File | string,
+        metadata: object,
+        storageConfig: NFTStorageConfig
+    ): Promise<TransactionReceiptData>;
     dropTokens(
         accountId: string,
         secretNonce: string,
@@ -33,30 +48,30 @@ export interface ITokenService {
 }
 
 export type TransferInitData = {
-    from: string,
-    to: string,
-    amount: string,
-    memo?: string
-}
+    from: string;
+    to: string;
+    amount: string;
+    memo?: string;
+};
 
 export type TransferTokenInitData = {
-    tokenAddress: string
-    from: string,
-    to: string,
-    amountOrSerial: string,
-    memo?: string,
-    freeTransfer: boolean
-}
+    tokenAddress: string;
+    from: string;
+    to: string;
+    amountOrSerial: string;
+    memo?: string;
+    freeTransfer: boolean;
+};
 
 @injectable()
 export default class TokenServiceContext implements ITokenService {
     private chainId: KnownChainIds | null = null;
-    private signer: Signer | ethers.Signer | null = null
+    private signer: Signer | ethers.Signer | null = null;
     private strategy: ITokenService | null = null;
 
     constructor(
-        @inject('apiService') private readonly apiService: ApiService,
-        @inject('configService') private readonly configService: ConfigService,
+        @inject("apiService") private readonly apiService: ApiService,
+        @inject("configService") private readonly configService: ConfigService
     ) {}
 
     init(chainId: KnownChainIds, signer: Signer | ethers.Signer | null) {
@@ -68,7 +83,12 @@ export default class TokenServiceContext implements ITokenService {
                 this.strategy = new TokenServiceHedera(chainId, signer as Signer, this.apiService, this.configService);
                 break;
             case ChainServiceStrategy.Ethereum:
-                this.strategy = new TokenServiceEthereum(chainId, signer as ethers.Signer, this.apiService, this.configService);
+                this.strategy = new TokenServiceEthereum(
+                    chainId,
+                    signer as ethers.Signer,
+                    this.apiService,
+                    this.configService
+                );
                 break;
             default:
                 throw new Error(`Unsupported chain id: ${this.chainId}`);
@@ -95,12 +115,37 @@ export default class TokenServiceContext implements ITokenService {
         return this.strategy!.associateToken(tokenId, accountId);
     }
 
-    createToken(tokenName: string, tokenSymbol: string, isNft: boolean, treasuryAccountId: string, supplyPublicKey: string, keys: KeyRecord[] | string, decimals: number, initialSupply: number, maxSupply: number): Promise<{tokenId: string}> {
+    createToken(
+        tokenName: string,
+        tokenSymbol: string,
+        isNft: boolean,
+        treasuryAccountId: string,
+        supplyPublicKey: string,
+        keys: KeyRecord[] | string,
+        decimals: number,
+        initialSupply: number,
+        maxSupply: number
+    ): Promise<{tokenId: string}> {
         this.checkSigner();
-        return this.strategy!.createToken(tokenName, tokenSymbol, isNft, treasuryAccountId, supplyPublicKey, keys, decimals, initialSupply, maxSupply);
+        return this.strategy!.createToken(
+            tokenName,
+            tokenSymbol,
+            isNft,
+            treasuryAccountId,
+            supplyPublicKey,
+            keys,
+            decimals,
+            initialSupply,
+            maxSupply
+        );
     }
 
-    nftMint(tokenId: string, file: File | string, metadata: object, storageConfig: NFTStorageConfig): Promise<TransactionReceiptData> {
+    nftMint(
+        tokenId: string,
+        file: File | string,
+        metadata: object,
+        storageConfig: NFTStorageConfig
+    ): Promise<TransactionReceiptData> {
         this.checkSigner();
         return this.strategy!.nftMint(tokenId, file, metadata, storageConfig);
     }
