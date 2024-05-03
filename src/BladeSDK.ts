@@ -32,6 +32,7 @@ import {
     SplitSignatureData,
     SupportedEncoding,
     SwapQuotesData,
+    TokenDropData,
     TransactionReceiptData,
     TransactionResponseData,
     TransactionsHistoryData,
@@ -698,33 +699,21 @@ export class BladeSDK {
      * @param secretNonce configured for dApp. Should be kept in secret
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {TokenDropData}
+     */
     async dropTokens(
         accountId: string,
         accountPrivateKey: string,
         secretNonce: string,
         completionKey?: string
     ): Promise<TokenDropData> {
-        try {
-            if (accountId && accountPrivateKey) {
-                await this.setUser(AccountProvider.Hedera, accountId, accountPrivateKey);
-            }
-            accountId = this.getUser().accountId;
 
-            const signatures = await this.signer.sign([Buffer.from(secretNonce)]);
-            return this.sendMessageToNative(
-                completionKey,
-                await dropTokens(this.network, {
-                    visitorId: this.visitorId,
-                    dAppCode: this.dAppCode,
-                    accountId,
-                    signedNonce: Buffer.from(signatures[0].signature).toString("base64"),
-                })
-            );
-        } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+        try {
+            const result = await this.tokenServiceContext.dropTokens(accountId, secretNonce, this.dAppCode, this.visitorId);
+            return this.sendMessageToNative(completionKey, result)
+        } catch (error) {
+            return this.sendMessageToNative(completionKey, null, error)
         }
     }
-    */
 
     /**
      * Sign base64-encoded message with private key. Returns hex-encoded signature.
@@ -1037,7 +1026,7 @@ export class BladeSDK {
     /**
      * Message that sends response back to native handler
      */
-    private sendMessageToNative<T>(completionKey: string | undefined, data: T, error: Partial<CustomError>|any|null = null): T {
+    private sendMessageToNative<T>(completionKey: string | undefined, data: T, error: Partial<CustomError> | null = null): T {
         if (!this.webView || !completionKey) {
             if (error) {
                 throw error;
@@ -1062,6 +1051,11 @@ export class BladeSDK {
         if (bladeMessageHandler) {
             bladeMessageHandler.postMessage(JSON.stringify(responseObject));
         }
-        return JSON.parse(JSON.stringify(responseObject));
+
+        if (error) {
+            throw error;
+        }
+
+        return data;
     }
 }
