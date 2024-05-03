@@ -13,6 +13,7 @@ import {
     KeyType,
     NFTStorageConfig,
     NFTStorageProvider,
+    TokenDropData,
     TransactionReceiptData,
     TransactionResponseData
 } from "../../models/Common";
@@ -22,6 +23,7 @@ import {formatReceipt} from "../../helpers/TransactionHelpers";
 import {dataURLtoFile} from "../../helpers/FileHelper";
 import { NFTStorage } from "nft.storage";
 import {ChainMap, KnownChainIds} from "../../models/Chain";
+import { Network } from "../../models/Networks";
 
 export default class TokenServiceHedera implements ITokenService {
     private readonly chainId: KnownChainIds;
@@ -294,5 +296,30 @@ export default class TokenServiceHedera implements ITokenService {
                 }
                 return formatReceipt(txReceipt, txResult.transactionHash.toString());
             });
+    }
+    /**
+     * Bladelink drop to account
+     * @param accountId Hedera account id (0.0.xxxxx)
+     * @param accountPrivateKey account private key (DER encoded hex string)
+     * @param secretNonce configured for dApp. Should be kept in secret
+     * @param completionKey optional field bridge between mobile webViews and native apps
+     * @returns {TokenDropData}
+     */
+    async dropTokens(
+        accountId: string,
+        secretNonce: string,
+        dAppCode: string,
+        visitorId: string
+    ): Promise<TokenDropData> {
+        const network = ChainMap[this.chainId].isTestnet ? Network.Testnet : Network.Mainnet;
+
+        const signatures = await this.signer.sign([Buffer.from(secretNonce)]);
+
+        return this.apiService.dropTokens(network, {
+            visitorId,
+            dAppCode,
+            accountId,
+            signedNonce: Buffer.from(signatures[0].signature).toString("base64"),
+        });
     }
 }

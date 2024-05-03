@@ -26,6 +26,7 @@ import {
     IMirrorNodeServiceNetworkConfigs,
     SdkEnvironment,
     TokenBalanceData,
+    TokenDropData,
     TransactionData,
 } from "../models/Common";
 import {ChainMap, KnownChainIds} from "../models/Chain";
@@ -537,9 +538,9 @@ export default class ApiService {
 async dropTokens(
     network: Network,
     params: { accountId: string; signedNonce: string; dAppCode: string; visitorId: string }
-) {
+): Promise<TokenDropData> {
     const url = `${this.getApiUrl()}/tokens/drop`;
-    const headers: any = {
+    const headers = {
         "X-NETWORK": network.toUpperCase(),
         "X-VISITOR-ID": params.visitorId,
         "X-DAPP-CODE": params.dAppCode,
@@ -558,7 +559,7 @@ async dropTokens(
 
         return fetch(url, options)
             .then(this.statusCheck)
-            .then((x) => x.json());
+            .then((x) => x.json() as Promise<TokenDropData>);
     };
 
     async getC14token() {

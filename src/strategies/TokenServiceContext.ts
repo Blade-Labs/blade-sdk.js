@@ -6,6 +6,7 @@ import {
     BalanceData,
     KeyRecord,
     NFTStorageConfig,
+    TokenDropData,
     TransactionReceiptData,
     TransactionResponseData
 } from "../models/Common";
@@ -15,7 +16,6 @@ import TokenServiceEthereum from "./ethereum/TokenServiceEthereum";
 import { ethers } from "ethers";
 import ApiService from "../services/ApiService";
 import ConfigService from "../services/ConfigService";
-import {Network} from "../models/Networks";
 
 export interface ITokenService {
     getBalance(address: string): Promise<BalanceData>;
@@ -23,7 +23,13 @@ export interface ITokenService {
     transferToken(transferData: TransferTokenInitData): Promise<TransactionResponseData>;
     associateToken(tokenId: string, accountId: string): Promise<TransactionReceiptData>;
     createToken(tokenName: string, tokenSymbol: string, isNft: boolean, treasuryAccountId: string, supplyPublicKey: string, keys: KeyRecord[] | string, decimals: number, initialSupply: number, maxSupply: number): Promise<{tokenId: string}>;
-    nftMint(tokenId: string, file: File | string, metadata: {}, storageConfig: NFTStorageConfig): Promise<TransactionReceiptData>;
+    nftMint(tokenId: string, file: File | string, metadata: object, storageConfig: NFTStorageConfig): Promise<TransactionReceiptData>;
+    dropTokens(
+        accountId: string,
+        secretNonce: string,
+        dAppCode: string,
+        visitorId: string
+    ): Promise<TokenDropData>
 }
 
 export type TransferInitData = {
@@ -52,7 +58,6 @@ export default class TokenServiceContext implements ITokenService {
         @inject('apiService') private readonly apiService: ApiService,
         @inject('configService') private readonly configService: ConfigService,
     ) {}
-
 
     init(chainId: KnownChainIds, signer: Signer | ethers.Signer | null) {
         this.chainId = chainId;
@@ -95,9 +100,21 @@ export default class TokenServiceContext implements ITokenService {
         return this.strategy!.createToken(tokenName, tokenSymbol, isNft, treasuryAccountId, supplyPublicKey, keys, decimals, initialSupply, maxSupply);
     }
 
-    nftMint(tokenId: string, file: File | string, metadata: {}, storageConfig: NFTStorageConfig): Promise<TransactionReceiptData> {
+    nftMint(tokenId: string, file: File | string, metadata: object, storageConfig: NFTStorageConfig): Promise<TransactionReceiptData> {
         this.checkSigner();
         return this.strategy!.nftMint(tokenId, file, metadata, storageConfig);
+    }
+
+    dropTokens(
+        accountId: string,
+        secretNonce: string,
+        dAppCode: string,
+        visitorId: string
+    ): Promise<TokenDropData> {
+        this.checkSigner();
+        this.checkInit();
+
+        return this.strategy.dropTokens(accountId, secretNonce, dAppCode, visitorId);
     }
 
     private checkInit() {
