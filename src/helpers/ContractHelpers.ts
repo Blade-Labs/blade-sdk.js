@@ -1,8 +1,8 @@
-import { AccountId, ContractFunctionResult } from "@hashgraph/sdk";
-import { ethers } from "ethers";
-import { Buffer } from "buffer";
-import { ParametersBuilder } from "../ParametersBuilder";
-import { ContractCallQueryRecord } from "../models/Common";
+import {AccountId, ContractFunctionResult} from "@hashgraph/sdk";
+import {ethers} from "ethers";
+import {Buffer} from "buffer";
+import {ParametersBuilder} from "../ParametersBuilder";
+import {ContractCallQueryRecord} from "../models/Common";
 
 export const getContractFunctionBytecode = async (
     functionName: string,
@@ -11,12 +11,12 @@ export const getContractFunctionBytecode = async (
     functionSignature: string;
     bytecode: Buffer;
 }> => {
-    const { types, values } = await parseContractFunctionParams(params);
+    const {types, values} = await parseContractFunctionParams(params);
 
     // get func identifier
     const functionSignature = `${functionName}(${types.join(",")})`;
     const functionIdentifier = new ethers.utils.Interface([
-        ethers.utils.FunctionFragment.from(functionSignature),
+        ethers.utils.FunctionFragment.from(functionSignature)
     ]).getSighash(functionName);
 
     const abiCoder = new ethers.utils.AbiCoder();
@@ -24,7 +24,7 @@ export const getContractFunctionBytecode = async (
 
     return {
         functionSignature,
-        bytecode: Buffer.concat([ethers.utils.arrayify(functionIdentifier), ethers.utils.arrayify(encodedParams)]),
+        bytecode: Buffer.concat([ethers.utils.arrayify(functionIdentifier), ethers.utils.arrayify(encodedParams)])
     };
 };
 
@@ -99,13 +99,13 @@ export const parseContractFunctionParams = async (paramsEncoded: string | Parame
                 if (res.types.toString() !== tupleTypes) {
                     throw {
                         name: "BladeSDK.JS",
-                        reason: `Tuple structure in array must be the same`,
+                        reason: `Tuple structure in array must be the same`
                     };
                 }
             }
 
             types.push(`(${result[0].types})[]`);
-            values.push(result.map(({ values }) => values));
+            values.push(result.map(({values}) => values));
         } else if (param?.type === "string") {
             types.push(param.type);
             values.push(param.value[0]);
@@ -125,12 +125,12 @@ export const parseContractFunctionParams = async (paramsEncoded: string | Parame
         } else {
             throw {
                 name: "BladeSDK.JS",
-                reason: `Type "${param?.type}" not implemented on JS`,
+                reason: `Type "${param?.type}" not implemented on JS`
             };
         }
     }
 
-    return { types, values };
+    return {types, values};
 };
 
 const valueToSolidity = (value: string) => {
@@ -211,7 +211,7 @@ export const parseContractQueryResponse = async (
         "int248",
         "uint248",
         "int256",
-        "uint256",
+        "uint256"
     ];
 
     resultTypes.forEach((type, index) => {
@@ -220,7 +220,7 @@ export const parseContractQueryResponse = async (
         if (!availableTypes.includes(type)) {
             const error = {
                 name: "BladeSDK.JS",
-                reason: `Type '${type}' unsupported. Available types: ${availableTypes.join(", ")}`,
+                reason: `Type '${type}' unsupported. Available types: ${availableTypes.join(", ")}`
             };
             throw error;
         }
@@ -233,7 +233,7 @@ export const parseContractQueryResponse = async (
         if (type === "bytes32") {
             value = Buffer.from(value).toString("hex");
         }
-        result.push({ type, value });
+        result.push({type, value});
     });
 
     return result;

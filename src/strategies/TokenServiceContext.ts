@@ -1,21 +1,21 @@
-import { injectable, inject } from "inversify";
+import {injectable, inject} from "inversify";
 import "reflect-metadata";
 
-import { Signer } from "@hashgraph/sdk";
+import {Signer} from "@hashgraph/sdk";
 import {
     BalanceData,
     KeyRecord,
     NFTStorageConfig,
     TransactionReceiptData,
-    TransactionResponseData,
+    TransactionResponseData
 } from "../models/Common";
-import { ChainMap, ChainServiceStrategy, KnownChainIds } from "../models/Chain";
+import {ChainMap, ChainServiceStrategy, KnownChainIds} from "../models/Chain";
 import TokenServiceHedera from "./hedera/TokenServiceHedera";
 import TokenServiceEthereum from "./ethereum/TokenServiceEthereum";
-import { ethers } from "ethers";
+import {ethers} from "ethers";
 import ApiService from "../services/ApiService";
 import ConfigService from "../services/ConfigService";
-import { Network } from "../models/Networks";
+import {Network} from "../models/Networks";
 
 export interface ITokenService {
     getBalance(address: string): Promise<BalanceData>;
@@ -32,7 +32,7 @@ export interface ITokenService {
         decimals: number,
         initialSupply: number,
         maxSupply: number
-    ): Promise<{ tokenId: string }>;
+    ): Promise<{tokenId: string}>;
     nftMint(
         tokenId: string,
         file: File | string,
@@ -119,7 +119,7 @@ export default class TokenServiceContext implements ITokenService {
         decimals: number,
         initialSupply: number,
         maxSupply: number
-    ): Promise<{ tokenId: string }> {
+    ): Promise<{tokenId: string}> {
         this.checkSigner();
         return this.strategy!.createToken(
             tokenName,

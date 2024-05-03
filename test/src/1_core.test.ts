@@ -1,35 +1,35 @@
-import { AccountId } from "@hashgraph/sdk";
-import { checkResult, completionKey } from "./helpers";
+import {AccountId} from "@hashgraph/sdk";
+import {checkResult, completionKey} from "./helpers";
 import ApiService from "../../src/services/ApiService";
 import CryptoFlowService from "../../src/services/CryptoFlowService";
 import ConfigService from "../../src/services/ConfigService";
 import FeeService from "../../src/services/FeeService";
-import { Network } from "../../src/models/Networks";
+import {Network} from "../../src/models/Networks";
 import config from "../../src/config";
 import dotenv from "dotenv";
 import fetch from "node-fetch";
-import { TextDecoder, TextEncoder } from "util";
+import {TextDecoder, TextEncoder} from "util";
 import crypto from "crypto";
-import { flatArray } from "../../src/helpers/ArrayHelpers";
-import { parseContractFunctionParams } from "../../src/helpers/ContractHelpers";
-import { decrypt, encrypt } from "../../src/helpers/SecurityHelper";
-import { AccountProvider, SdkEnvironment } from "../../src/models/Common";
+import {flatArray} from "../../src/helpers/ArrayHelpers";
+import {parseContractFunctionParams} from "../../src/helpers/ContractHelpers";
+import {decrypt, encrypt} from "../../src/helpers/SecurityHelper";
+import {AccountProvider, SdkEnvironment} from "../../src/models/Common";
 import AccountServiceContext from "../../src/strategies/AccountServiceContext";
 import TokenServiceContext from "../../src/strategies/TokenServiceContext";
 import SignServiceContext from "../../src/strategies/SignServiceContext";
 import ContractServiceContext from "../../src/strategies/ContractServiceContext";
 import TradeServiceContext from "../../src/strategies/TradeServiceContext";
-import { KnownChainIds } from "../../src/models/Chain";
+import {KnownChainIds} from "../../src/models/Chain";
 import SignService from "../../src/services/SignService";
-const { BladeSDK, ParametersBuilder } = require("../../src/webView");
+const {BladeSDK, ParametersBuilder} = require("../../src/webView");
 
 Object.defineProperty(global.self, "crypto", {
     value: {
-        subtle: crypto.webcrypto.subtle,
-    },
+        subtle: crypto.webcrypto.subtle
+    }
 });
 
-Object.assign(global, { TextDecoder, TextEncoder, fetch });
+Object.assign(global, {TextDecoder, TextEncoder, fetch});
 
 dotenv.config();
 
@@ -156,7 +156,7 @@ describe("testing sdk CORE functionality", () => {
             .addString("Hello, Backend")
             .addBytes32([
                 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10,
-                0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f,
+                0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f
             ])
             .addAddressArray(["0.0.48738539", AccountId.fromString("0.0.48738538"), "0.0.48738537"])
             .addAddress("0.0.48850466")

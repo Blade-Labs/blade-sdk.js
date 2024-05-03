@@ -1,10 +1,10 @@
-import { Signer } from "@hashgraph/sdk";
+import {Signer} from "@hashgraph/sdk";
 
-import { C14WidgetConfig, IntegrationUrlData, SwapQuotesData } from "../../models/Common";
-import { ChainMap, KnownChainIds } from "../../models/Chain";
+import {C14WidgetConfig, IntegrationUrlData, SwapQuotesData} from "../../models/Common";
+import {ChainMap, KnownChainIds} from "../../models/Chain";
 import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
-import { ITradeService } from "../TradeServiceContext";
+import {ITradeService} from "../TradeServiceContext";
 import {
     CryptoFlowRoutes,
     CryptoFlowServiceStrategy,
@@ -13,7 +13,7 @@ import {
     ICryptoFlowQuote,
     ICryptoFlowQuoteParams,
     ICryptoFlowTransaction,
-    ICryptoFlowTransactionParams,
+    ICryptoFlowTransactionParams
 } from "../../models/CryptoFlow";
 import CryptoFlowService from "../../services/CryptoFlowService";
 
@@ -44,13 +44,13 @@ export default class TradeServiceHedera implements ITradeService {
         if (this.apiService.getDappCode().includes("karate")) {
             clientId = "17af1a19-2729-4ecc-8683-324a52eca6fc";
         } else {
-            const { token } = await this.apiService.getC14token();
+            const {token} = await this.apiService.getC14token();
             clientId = token;
         }
 
         const url = new URL("https://pay.c14.money/");
         const purchaseParams: C14WidgetConfig = {
-            clientId,
+            clientId
         };
 
         switch (asset.toUpperCase()) {
@@ -92,7 +92,7 @@ export default class TradeServiceHedera implements ITradeService {
         }
 
         url.search = new URLSearchParams(purchaseParams as Record<keyof C14WidgetConfig, any>).toString();
-        return { url: url.toString() };
+        return {url: url.toString()};
     }
 
     async exchangeGetQuotes(
@@ -106,7 +106,7 @@ export default class TradeServiceHedera implements ITradeService {
             sourceCode,
             sourceAmount,
             targetCode,
-            useTestnet,
+            useTestnet
         };
 
         switch (strategy.toLowerCase()) {
@@ -139,7 +139,7 @@ export default class TradeServiceHedera implements ITradeService {
             params,
             strategy
         )) as ICryptoFlowQuote[];
-        return { quotes };
+        return {quotes};
     }
 
     async swapTokens(
@@ -149,7 +149,7 @@ export default class TradeServiceHedera implements ITradeService {
         targetCode: string,
         slippage: number,
         serviceId: string
-    ): Promise<{ success: boolean }> {
+    ): Promise<{success: boolean}> {
         const useTestnet = ChainMap[this.chainId].isTestnet;
         const quotes = (await this.apiService.getCryptoFlowData(
             CryptoFlowRoutes.QUOTES,
@@ -159,11 +159,11 @@ export default class TradeServiceHedera implements ITradeService {
                 sourceAmount,
                 targetCode,
                 targetChainId: +this.chainId,
-                useTestnet,
+                useTestnet
             },
             CryptoFlowServiceStrategy.SWAP
         )) as ICryptoFlowQuote[];
-        const selectedQuote = quotes.find((quote) => quote.service.id === serviceId);
+        const selectedQuote = quotes.find(quote => quote.service.id === serviceId);
         if (!selectedQuote) {
             throw new Error("Quote not found");
         }
@@ -179,7 +179,7 @@ export default class TradeServiceHedera implements ITradeService {
             targetAddress: selectedQuote.target.asset.address,
             walletAddress: accountAddress,
             slippage,
-            useTestnet,
+            useTestnet
         })) as ICryptoFlowTransaction;
 
         if (await this.cryptoFlowService.validateMessage(txData)) {
@@ -211,7 +211,7 @@ export default class TradeServiceHedera implements ITradeService {
         } else {
             throw new Error("Invalid signature of txData");
         }
-        return { success: true };
+        return {success: true};
     }
 
     async getTradeUrl(
@@ -231,7 +231,7 @@ export default class TradeServiceHedera implements ITradeService {
             targetCode,
             useTestnet,
             walletAddress: accountId,
-            slippage,
+            slippage
         };
 
         switch (strategy.toLowerCase()) {
@@ -259,11 +259,11 @@ export default class TradeServiceHedera implements ITradeService {
             params,
             strategy
         )) as ICryptoFlowQuote[];
-        const selectedQuote = quotes.find((quote) => quote.service.id === serviceId);
+        const selectedQuote = quotes.find(quote => quote.service.id === serviceId);
         if (!selectedQuote) {
             throw new Error("Quote not found");
         }
 
-        return { url: selectedQuote.widgetUrl || "" };
+        return {url: selectedQuote.widgetUrl || ""};
     }
 }

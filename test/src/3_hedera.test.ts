@@ -1,4 +1,4 @@
-import { associateToken, checkResult, createToken, sleep, completionKey } from "./helpers";
+import {associateToken, checkResult, createToken, sleep, completionKey} from "./helpers";
 import ApiService from "../../src/services/ApiService";
 import CryptoFlowService from "../../src/services/CryptoFlowService";
 import ConfigService from "../../src/services/ConfigService";
@@ -6,7 +6,7 @@ import FeeService from "../../src/services/FeeService";
 import config from "../../src/config";
 import dotenv from "dotenv";
 import fetch from "node-fetch";
-import { TextDecoder, TextEncoder } from "util";
+import {TextDecoder, TextEncoder} from "util";
 import crypto from "crypto";
 import {
     AccountProvider,
@@ -15,32 +15,32 @@ import {
     KeyRecord,
     KeyType,
     NFTStorageProvider,
-    TokenBalanceData,
+    TokenBalanceData
 } from "../../src/models/Common";
-import { Network } from "../../src/models/Networks";
+import {Network} from "../../src/models/Networks";
 import AccountServiceContext from "../../src/strategies/AccountServiceContext";
 import TokenServiceContext from "../../src/strategies/TokenServiceContext";
 import SignServiceContext from "../../src/strategies/SignServiceContext";
 import ContractServiceContext from "../../src/strategies/ContractServiceContext";
 import TradeServiceContext from "../../src/strategies/TradeServiceContext";
-import { KnownChainIds } from "../../src/models/Chain";
+import {KnownChainIds} from "../../src/models/Chain";
 import SignService from "../../src/services/SignService";
-import { ethers } from "ethers";
-import { AccountId, Client, ContractCallQuery, Hbar, Mnemonic, PrivateKey } from "@hashgraph/sdk";
-import { isEqual } from "lodash";
+import {ethers} from "ethers";
+import {AccountId, Client, ContractCallQuery, Hbar, Mnemonic, PrivateKey} from "@hashgraph/sdk";
+import {isEqual} from "lodash";
 import BigNumber from "bignumber.js";
-import { TokenInfo } from "../../src/models/MirrorNode";
-import { ParametersBuilder } from "../../src/ParametersBuilder";
+import {TokenInfo} from "../../src/models/MirrorNode";
+import {ParametersBuilder} from "../../src/ParametersBuilder";
 
-const { BladeSDK } = require("../../src/webView");
+const {BladeSDK} = require("../../src/webView");
 
 Object.defineProperty(global.self, "crypto", {
     value: {
-        subtle: crypto.webcrypto.subtle,
-    },
+        subtle: crypto.webcrypto.subtle
+    }
 });
 
-Object.assign(global, { TextDecoder, TextEncoder, fetch });
+Object.assign(global, {TextDecoder, TextEncoder, fetch});
 
 dotenv.config();
 
@@ -202,12 +202,10 @@ describe("testing methods related to HEDERA network", () => {
 
         let account1Balance: BridgeResponse<BalanceData> = await bladeSdk.getBalance(accountId, completionKey);
         checkResult(account1Balance);
-        const account1TokenBalance =
-            account1Balance.data.tokens.find((token) => token.address === tokenId)?.balance || 0;
+        const account1TokenBalance = account1Balance.data.tokens.find(token => token.address === tokenId)?.balance || 0;
         let account2Balance: BridgeResponse<BalanceData> = await bladeSdk.getBalance(accountId2, completionKey);
         checkResult(account2Balance);
-        const account2TokenBalance =
-            account2Balance.data.tokens.find((token) => token.address === tokenId)?.balance || 0;
+        const account2TokenBalance = account2Balance.data.tokens.find(token => token.address === tokenId)?.balance || 0;
 
         const amount = 1;
 
@@ -261,11 +259,11 @@ describe("testing methods related to HEDERA network", () => {
         account1Balance = await bladeSdk.getBalance(accountId, completionKey);
         checkResult(account1Balance);
         const account1TokenBalanceNew =
-            parseFloat(account1Balance.data.tokens.find((token) => token.address === tokenId)?.balance) || 0;
+            parseFloat(account1Balance.data.tokens.find(token => token.address === tokenId)?.balance) || 0;
         account2Balance = await bladeSdk.getBalance(accountId2, completionKey);
         checkResult(account2Balance);
         const account2TokenBalanceNew =
-            parseFloat(account2Balance.data.tokens.find((token) => token.address === tokenId)?.balance) || 0;
+            parseFloat(account2Balance.data.tokens.find(token => token.address === tokenId)?.balance) || 0;
 
         expect(account1TokenBalance).toEqual((account1TokenBalanceNew + amount).toString());
         expect(account2TokenBalance).toEqual((account2TokenBalanceNew - amount).toString());
@@ -397,7 +395,7 @@ describe("testing methods related to HEDERA network", () => {
             privateKey: result.data.privateKey,
             publicKey: result.data.publicKey,
             seedPhrase: result.data.seedPhrase,
-            evmAddress: result.data.evmAddress,
+            evmAddress: result.data.evmAddress
         };
 
         result = await bladeSdk.getKeysFromMnemonic(accountSample.seedPhrase, completionKey);
@@ -460,8 +458,8 @@ describe("testing methods related to HEDERA network", () => {
 
         const txIdEqual = (txId1: string, txId2: string) => {
             return isEqual(
-                txId1.split(".").map((num) => parseInt(num, 10)),
-                txId2.split(".").map((num) => parseInt(num, 10))
+                txId1.split(".").map(num => parseInt(num, 10)),
+                txId2.split(".").map(num => parseInt(num, 10))
             );
         };
 
@@ -525,12 +523,12 @@ describe("testing methods related to HEDERA network", () => {
         const tokenSymbol = `N++ ${tokenCount}`;
 
         const keys: KeyRecord[] = [
-            { type: KeyType.admin, privateKey: adminKey },
+            {type: KeyType.admin, privateKey: adminKey},
             // {type: KeyType.kyc, privateKey: kycKey},
-            { type: KeyType.freeze, privateKey: freezeKey },
-            { type: KeyType.wipe, privateKey: wipeKey },
-            { type: KeyType.pause, privateKey: pauseKey },
-            { type: KeyType.feeSchedule, privateKey: feeScheduleKey },
+            {type: KeyType.freeze, privateKey: freezeKey},
+            {type: KeyType.wipe, privateKey: wipeKey},
+            {type: KeyType.pause, privateKey: pauseKey},
+            {type: KeyType.feeSchedule, privateKey: feeScheduleKey}
         ];
 
         try {
@@ -612,11 +610,11 @@ describe("testing methods related to HEDERA network", () => {
             tokenId,
             "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAARUlEQVR42u3PMREAAAgEIO1fzU5vBlcPGtCVTD3QIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIXCyqyi6fIALs1AAAAAElFTkSuQmCC", // TODO upload file base64
             {
-                author: "GaryDu",
+                author: "GaryDu"
             },
             {
                 provider: NFTStorageProvider.nftStorage,
-                apiKey: process.env.NFT_STORAGE_TOKEN,
+                apiKey: process.env.NFT_STORAGE_TOKEN
             },
             completionKey
         );

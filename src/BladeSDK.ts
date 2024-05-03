@@ -1,15 +1,15 @@
-import { inject, injectable } from "inversify";
+import {inject, injectable} from "inversify";
 import "reflect-metadata";
 
-import { Client, PrivateKey, Signer, TransactionReceipt } from "@hashgraph/sdk";
-import { ethers } from "ethers";
+import {Client, PrivateKey, Signer, TransactionReceipt} from "@hashgraph/sdk";
+import {ethers} from "ethers";
 import ApiService from "./services/ApiService";
 import CryptoFlowService from "./services/CryptoFlowService";
-import { HbarTokenId } from "./services/FeeService";
+import {HbarTokenId} from "./services/FeeService";
 import ConfigService from "./services/ConfigService";
-import { Network } from "./models/Networks";
+import {Network} from "./models/Networks";
 import StringHelpers from "./helpers/StringHelpers";
-import { CustomError } from "./models/Errors";
+import {CustomError} from "./models/Errors";
 import {
     AccountInfoData,
     AccountPrivateData,
@@ -35,20 +35,20 @@ import {
     TransactionReceiptData,
     TransactionResponseData,
     TransactionsHistoryData,
-    UserInfoData,
+    UserInfoData
 } from "./models/Common";
-import { ChainMap, ChainServiceStrategy, KnownChainIds } from "./models/Chain";
+import {ChainMap, ChainServiceStrategy, KnownChainIds} from "./models/Chain";
 import config from "./config";
-import { ParametersBuilder } from "./ParametersBuilder";
-import { CryptoFlowServiceStrategy } from "./models/CryptoFlow";
-import { NodeInfo } from "./models/MirrorNode";
+import {ParametersBuilder} from "./ParametersBuilder";
+import {CryptoFlowServiceStrategy} from "./models/CryptoFlow";
+import {NodeInfo} from "./models/MirrorNode";
 import * as FingerprintJS from "@fingerprintjs/fingerprintjs-pro";
-import { File } from "nft.storage";
-import { decrypt, encrypt } from "./helpers/SecurityHelper";
-import { Magic, MagicSDKAdditionalConfiguration } from "magic-sdk";
-import { HederaExtension } from "@magic-ext/hedera";
-import { MagicSigner } from "./signers/magic/MagicSigner";
-import { HederaProvider, HederaSigner } from "./signers/hedera";
+import {File} from "nft.storage";
+import {decrypt, encrypt} from "./helpers/SecurityHelper";
+import {Magic, MagicSDKAdditionalConfiguration} from "magic-sdk";
+import {HederaExtension} from "@magic-ext/hedera";
+import {MagicSigner} from "./signers/magic/MagicSigner";
+import {HederaProvider, HederaSigner} from "./signers/hedera";
 import TokenServiceContext from "./strategies/TokenServiceContext";
 import AccountServiceContext from "./strategies/AccountServiceContext";
 import SignServiceContext from "./strategies/SignServiceContext";
@@ -159,8 +159,8 @@ export class BladeSDK {
                     scriptUrlPattern: `${this.apiService.getApiUrl(true)}/fpjs/<version>/<loaderVersion>`,
                     endpoint: [
                         await this.configService.getConfig(`fingerprintSubdomain`),
-                        FingerprintJS.defaultEndpoint,
-                    ],
+                        FingerprintJS.defaultEndpoint
+                    ]
                 };
                 const fpPromise = await FingerprintJS.load(fpConfig);
                 this.visitorId = (await fpPromise.get()).visitorId;
@@ -204,7 +204,7 @@ export class BladeSDK {
                         this.userAccountId = accountIdOrEmail;
                         this.userPrivateKey = privateKey!;
                         this.userPublicKey = key.publicKey.toStringDer();
-                        const provider = new HederaProvider({ client });
+                        const provider = new HederaProvider({client});
                         this.signer = new HederaSigner(this.userAccountId, key, provider);
                     } else if (ChainMap[this.chainId].serviceStrategy === ChainServiceStrategy.Ethereum) {
                         const key = PrivateKey.fromStringECDSA(privateKey!);
@@ -231,11 +231,11 @@ export class BladeSDK {
                         userInfo = await this.magic.user.getInfo();
                         if (userInfo.email !== accountIdOrEmail) {
                             this.magic.user.logout();
-                            await this.magic.auth.loginWithMagicLink({ email: accountIdOrEmail, showUI: false });
+                            await this.magic.auth.loginWithMagicLink({email: accountIdOrEmail, showUI: false});
                             userInfo = await this.magic.user.getInfo();
                         }
                     } else {
-                        await this.magic?.auth.loginWithMagicLink({ email: accountIdOrEmail, showUI: false });
+                        await this.magic?.auth.loginWithMagicLink({email: accountIdOrEmail, showUI: false});
                         userInfo = await this.magic?.user.getInfo();
                     }
 
@@ -245,7 +245,7 @@ export class BladeSDK {
 
                     this.userAccountId = userInfo.publicAddress;
                     if (ChainMap[this.chainId].serviceStrategy === ChainServiceStrategy.Hedera) {
-                        const { publicKeyDer } = await this.magic.hedera.getPublicKey();
+                        const {publicKeyDer} = await this.magic.hedera.getPublicKey();
                         this.userPublicKey = publicKeyDer;
                         const magicSign = (message: any) => this.magic.hedera.sign(message);
                         this.signer = new MagicSigner(this.userAccountId, this.network, publicKeyDer, magicSign);
@@ -270,7 +270,7 @@ export class BladeSDK {
                 accountId: this.userAccountId,
                 accountProvider: this.accountProvider,
                 userPrivateKey: this.userPrivateKey,
-                userPublicKey: this.userPublicKey,
+                userPublicKey: this.userPublicKey
             });
         } catch (error: any) {
             this.userAccountId = "";
@@ -282,7 +282,7 @@ export class BladeSDK {
         }
     }
 
-    async resetUser(completionKey?: string): Promise<{ success: boolean }> {
+    async resetUser(completionKey?: string): Promise<{success: boolean}> {
         try {
             this.userPublicKey = "";
             this.userPrivateKey = "";
@@ -297,7 +297,7 @@ export class BladeSDK {
             this.accountProvider = null;
 
             return this.sendMessageToNative(completionKey, {
-                success: true,
+                success: true
             });
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -340,7 +340,7 @@ export class BladeSDK {
                 from: this.userAccountId,
                 to: receiverAddress,
                 amount,
-                memo,
+                memo
             });
 
             return this.sendMessageToNative(completionKey, result);
@@ -375,7 +375,7 @@ export class BladeSDK {
                 amountOrSerial,
                 tokenAddress,
                 memo,
-                freeTransfer,
+                freeTransfer
             });
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
@@ -387,21 +387,21 @@ export class BladeSDK {
         try {
             const coinList: CoinInfoRaw[] = await this.apiService.getCoins({
                 dAppCode: this.dAppCode,
-                visitorId: this.visitorId,
+                visitorId: this.visitorId
             });
 
             const result: CoinListData = {
-                coins: coinList.map((coin) => {
+                coins: coinList.map(coin => {
                     return {
                         ...coin,
-                        platforms: Object.keys(coin.platforms).map((name) => {
+                        platforms: Object.keys(coin.platforms).map(name => {
                             return {
                                 name,
-                                address: coin.platforms[name],
+                                address: coin.platforms[name]
                             };
-                        }),
+                        })
                     };
-                }),
+                })
             };
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
@@ -421,7 +421,7 @@ export class BladeSDK {
 
             const params = {
                 dAppCode: this.dAppCode,
-                visitorId: this.visitorId,
+                visitorId: this.visitorId
             };
 
             let coinInfo: CoinData | null = null;
@@ -431,7 +431,7 @@ export class BladeSDK {
             } catch (error) {
                 // on fail try to get coin info from CoinGecko and match by address
                 const coinList: CoinInfoRaw[] = await this.apiService.getCoins(params);
-                const coin = coinList.find((item) => Object.values(item.platforms).includes(search));
+                const coin = coinList.find(item => Object.values(item.platforms).includes(search));
                 if (!coin) {
                     throw new Error(`Coin with address ${search} not found`);
                 }
@@ -442,7 +442,7 @@ export class BladeSDK {
                 coin: coinInfo,
                 priceUsd: coinInfo.market_data.current_price.usd,
                 price: coinInfo.market_data.current_price[currency.toLowerCase()] || null,
-                currency: currency.toLowerCase(),
+                currency: currency.toLowerCase()
             };
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
@@ -650,7 +650,7 @@ export class BladeSDK {
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {nodes: NodeList[]}
      */
-    async getNodeList(completionKey?: string): Promise<{ nodes: NodeInfo[] }> {
+    async getNodeList(completionKey?: string): Promise<{nodes: NodeInfo[]}> {
         try {
             const result = await this.accountServiceContext.getNodeList();
             return this.sendMessageToNative(completionKey, result);
@@ -942,7 +942,7 @@ export class BladeSDK {
         slippage: number,
         serviceId: string,
         completionKey?: string
-    ): Promise<{ success: boolean }> {
+    ): Promise<{success: boolean}> {
         try {
             const result = await this.tradeServiceContext.swapTokens(
                 this.userAccountId,
@@ -1017,7 +1017,7 @@ export class BladeSDK {
         initialSupply: number,
         maxSupply: number = 250,
         completionKey?: string
-    ): Promise<{ tokenId: string }> {
+    ): Promise<{tokenId: string}> {
         try {
             const result = await this.tokenServiceContext.createToken(
                 tokenName,
@@ -1082,8 +1082,8 @@ export class BladeSDK {
         if (ChainMap[chainId].serviceStrategy === ChainServiceStrategy.Hedera) {
             options.extensions = [
                 new HederaExtension({
-                    network: this.network.toLowerCase(),
-                }),
+                    network: this.network.toLowerCase()
+                })
             ];
         } else if (ChainMap[chainId].serviceStrategy === ChainServiceStrategy.Ethereum) {
             options.network = StringHelpers.networkToEthereum(this.network);
@@ -1091,7 +1091,7 @@ export class BladeSDK {
         this.magic = new Magic(await this.configService.getConfig(`magicLinkPublicKey`), options);
     }
 
-    private getUser(): { signer: Signer | ethers.Signer; accountId: string; privateKey: string; publicKey: string } {
+    private getUser(): {signer: Signer | ethers.Signer; accountId: string; privateKey: string; publicKey: string} {
         if (!this.signer) {
             throw new Error("No user, please call setUser() first");
         }
@@ -1099,7 +1099,7 @@ export class BladeSDK {
             signer: this.signer,
             accountId: this.userAccountId,
             privateKey: this.userPrivateKey,
-            publicKey: this.userPublicKey,
+            publicKey: this.userPublicKey
         };
     }
 
@@ -1117,8 +1117,8 @@ export class BladeSDK {
                 accountId: this.userAccountId,
                 accountProvider: this.accountProvider,
                 userPrivateKey: this.userPrivateKey,
-                userPublicKey: this.userPublicKey,
-            },
+                userPublicKey: this.userPublicKey
+            }
         };
     }
 
@@ -1140,12 +1140,12 @@ export class BladeSDK {
         // web-view bridge response
         const responseObject: BridgeResponse<T> = {
             completionKey: completionKey || "",
-            data,
+            data
         };
         if (error) {
             responseObject.error = {
                 name: error?.name || "Error",
-                reason: error.reason || error.message || JSON.stringify(error),
+                reason: error.reason || error.message || JSON.stringify(error)
             };
         }
 

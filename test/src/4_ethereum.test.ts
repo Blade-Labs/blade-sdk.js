@@ -1,4 +1,4 @@
-import { checkResult, completionKey, sleep } from "./helpers";
+import {checkResult, completionKey, sleep} from "./helpers";
 import ApiService from "../../src/services/ApiService";
 import CryptoFlowService from "../../src/services/CryptoFlowService";
 import ConfigService from "../../src/services/ConfigService";
@@ -6,26 +6,26 @@ import FeeService from "../../src/services/FeeService";
 import config from "../../src/config";
 import dotenv from "dotenv";
 import fetch from "node-fetch";
-import { TextDecoder, TextEncoder } from "util";
+import {TextDecoder, TextEncoder} from "util";
 import crypto from "crypto";
-import { AccountProvider } from "../../src/models/Common";
+import {AccountProvider} from "../../src/models/Common";
 import AccountServiceContext from "../../src/strategies/AccountServiceContext";
 import TokenServiceContext from "../../src/strategies/TokenServiceContext";
 import SignServiceContext from "../../src/strategies/SignServiceContext";
 import ContractServiceContext from "../../src/strategies/ContractServiceContext";
 import TradeServiceContext from "../../src/strategies/TradeServiceContext";
-import { KnownChainIds } from "../../src/models/Chain";
+import {KnownChainIds} from "../../src/models/Chain";
 import SignService from "../../src/services/SignService";
 
-const { BladeSDK, ParametersBuilder } = require("../../src/webView");
+const {BladeSDK, ParametersBuilder} = require("../../src/webView");
 
 Object.defineProperty(global.self, "crypto", {
     value: {
-        subtle: crypto.webcrypto.subtle,
-    },
+        subtle: crypto.webcrypto.subtle
+    }
 });
 
-Object.assign(global, { TextDecoder, TextEncoder, fetch });
+Object.assign(global, {TextDecoder, TextEncoder, fetch});
 
 dotenv.config();
 

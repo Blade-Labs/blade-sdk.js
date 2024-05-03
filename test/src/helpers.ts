@@ -1,4 +1,4 @@
-import { Client, Hbar, PrivateKey, TokenAssociateTransaction, TokenCreateTransaction } from "@hashgraph/sdk";
+import {Client, Hbar, PrivateKey, TokenAssociateTransaction, TokenCreateTransaction} from "@hashgraph/sdk";
 export const completionKey = "completionKey1";
 
 export const privateKeyFromString = (privateKey: string): PrivateKey => {
@@ -51,7 +51,7 @@ export const associateToken = async (tokenId: string, accountId: string, private
 
     const signTx = await transaction.sign(key);
 
-    return await signTx.execute(client).catch((err) => {
+    return await signTx.execute(client).catch(err => {
         // tslint:disable-next-line:no-console
         console.log(err);
         return null;
@@ -59,7 +59,7 @@ export const associateToken = async (tokenId: string, accountId: string, private
 };
 
 export function sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+    return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 // utils
@@ -67,7 +67,7 @@ export function checkResult(result: any, success = true) {
     // console.log(success, JSON.parse(JSON.stringify(result)));
     expect(result).toEqual(
         expect.objectContaining({
-            completionKey,
+            completionKey
         })
     );
     if (success) {

@@ -1,5 +1,5 @@
-import { CryptoKeyType } from "./Chain";
-import { MirrorNodeTransactionType } from "./TransactionType";
+import {CryptoKeyType} from "./Chain";
+import {MirrorNodeTransactionType} from "./TransactionType";
 
 export type AccountInfoMirrorResponse = APIPagination & {
     accounts: AccountInfo[];
@@ -130,7 +130,7 @@ export type NftMetadata = {
     type: string;
     creator: string;
     author: string;
-    properties: { [key: string]: unknown };
+    properties: {[key: string]: unknown};
     image: string;
 };
 

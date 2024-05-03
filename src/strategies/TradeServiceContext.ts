@@ -1,16 +1,16 @@
-import { injectable, inject } from "inversify";
+import {injectable, inject} from "inversify";
 import "reflect-metadata";
 
-import { Signer } from "@hashgraph/sdk";
-import { IntegrationUrlData, SwapQuotesData } from "../models/Common";
-import { ChainMap, ChainServiceStrategy, KnownChainIds } from "../models/Chain";
+import {Signer} from "@hashgraph/sdk";
+import {IntegrationUrlData, SwapQuotesData} from "../models/Common";
+import {ChainMap, ChainServiceStrategy, KnownChainIds} from "../models/Chain";
 import TradeServiceHedera from "./hedera/TradeServiceHedera";
 import TradeServiceEthereum from "./ethereum/TradeServiceEthereum";
-import { ethers } from "ethers";
+import {ethers} from "ethers";
 import ApiService from "../services/ApiService";
 import ConfigService from "../services/ConfigService";
-import { Network } from "../models/Networks";
-import { CryptoFlowServiceStrategy } from "../models/CryptoFlow";
+import {Network} from "../models/Networks";
+import {CryptoFlowServiceStrategy} from "../models/CryptoFlow";
 import CryptoFlowService from "../services/CryptoFlowService";
 
 export interface ITradeService {
@@ -28,7 +28,7 @@ export interface ITradeService {
         targetCode: string,
         slippage: number,
         serviceId: string
-    ): Promise<{ success: boolean }>;
+    ): Promise<{success: boolean}>;
     getTradeUrl(
         strategy: CryptoFlowServiceStrategy,
         accountId: string,
@@ -101,7 +101,7 @@ export default class TradeServiceContext implements ITradeService {
         targetCode: string,
         slippage: number,
         serviceId: string
-    ): Promise<{ success: boolean }> {
+    ): Promise<{success: boolean}> {
         this.checkSigner();
         return this.strategy!.swapTokens(accountAddress, sourceCode, sourceAmount, targetCode, slippage, serviceId);
     }

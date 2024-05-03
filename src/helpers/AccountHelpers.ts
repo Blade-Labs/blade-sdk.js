@@ -1,5 +1,5 @@
-import { Client, PrivateKey, Status, Transaction } from "@hashgraph/sdk";
-import { Buffer } from "buffer";
+import {Client, PrivateKey, Status, Transaction} from "@hashgraph/sdk";
+import {Buffer} from "buffer";
 
 export const executeUpdateAccountTransactions = async (
     client: Client,

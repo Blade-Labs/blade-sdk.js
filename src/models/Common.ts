@@ -1,17 +1,17 @@
-import { MirrorNodeTransactionType } from "./TransactionType";
-import { ICryptoFlowQuote } from "./CryptoFlow";
-import { CryptoKeyType, KnownChainIds } from "./Chain";
-import { NftInfo, NftMetadata, TokenInfo } from "./MirrorNode";
+import {MirrorNodeTransactionType} from "./TransactionType";
+import {ICryptoFlowQuote} from "./CryptoFlow";
+import {CryptoKeyType, KnownChainIds} from "./Chain";
+import {NftInfo, NftMetadata, TokenInfo} from "./MirrorNode";
 
 export enum SdkEnvironment {
     Prod = "Prod",
     CI = "CI",
-    Test = "Test",
+    Test = "Test"
 }
 
 export enum AccountProvider {
     PrivateKey = "PrivateKey",
-    Magic = "Magic",
+    Magic = "Magic"
 }
 
 export enum KeyType {
@@ -20,17 +20,17 @@ export enum KeyType {
     freeze = "freeze",
     wipe = "wipe",
     pause = "pause",
-    feeSchedule = "feeSchedule",
+    feeSchedule = "feeSchedule"
 }
 
 export enum NFTStorageProvider {
-    nftStorage = "nftStorage",
+    nftStorage = "nftStorage"
 }
 
 export enum SupportedEncoding {
     base64 = "base64",
     hex = "hex",
-    utf8 = "utf8",
+    utf8 = "utf8"
 }
 
 export interface BladeConfig {
@@ -278,7 +278,7 @@ export enum AccountStatus {
     PENDING = "PENDING",
     SUCCESS = "SUCCESS",
     RETRY = "RETRY",
-    FAILED = "FAILED",
+    FAILED = "FAILED"
 }
 
 export interface C14WidgetConfig {
@@ -307,7 +307,7 @@ export interface CoinInfoRaw {
     id: string;
     symbol: string;
     name: string;
-    platforms: { [key: string]: string };
+    platforms: {[key: string]: string};
 }
 
 export interface CoinListData {

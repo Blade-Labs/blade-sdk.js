@@ -1,5 +1,5 @@
-import { Container } from "inversify";
-import { BladeSDK } from "./BladeSDK";
+import {Container} from "inversify";
+import {BladeSDK} from "./BladeSDK";
 import ApiService from "./services/ApiService";
 import ConfigService from "./services/ConfigService";
 import CryptoFlowService from "./services/CryptoFlowService";

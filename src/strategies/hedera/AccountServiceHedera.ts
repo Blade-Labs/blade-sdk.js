@@ -6,10 +6,10 @@ import {
     PrivateKey,
     PublicKey,
     Signer,
-    Transaction,
+    Transaction
 } from "@hashgraph/sdk";
 
-import { IAccountService } from "../AccountServiceContext";
+import {IAccountService} from "../AccountServiceContext";
 
 import {
     AccountInfoData,
@@ -18,15 +18,15 @@ import {
     AccountStatus,
     CreateAccountData,
     TransactionReceiptData,
-    TransactionsHistoryData,
+    TransactionsHistoryData
 } from "../../models/Common";
-import { ChainMap, CryptoKeyType, KnownChainIds } from "../../models/Chain";
+import {ChainMap, CryptoKeyType, KnownChainIds} from "../../models/Chain";
 import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
-import { AccountInfo, NodeInfo } from "../../models/MirrorNode";
-import { ethers } from "ethers";
-import { executeUpdateAccountTransactions } from "../../helpers/AccountHelpers";
-import { getReceipt } from "../../helpers/TransactionHelpers";
+import {AccountInfo, NodeInfo} from "../../models/MirrorNode";
+import {ethers} from "ethers";
+import {executeUpdateAccountTransactions} from "../../helpers/AccountHelpers";
+import {getReceipt} from "../../helpers/TransactionHelpers";
 
 export default class AccountServiceHedera implements IAccountService {
     private readonly chainId: KnownChainIds;
@@ -52,8 +52,8 @@ export default class AccountServiceHedera implements IAccountService {
             key = await mnemonic.toStandardECDSAsecp256k1PrivateKey();
         }
 
-        const { id, transactionBytes, updateAccountTransactionBytes, associationPresetTokenStatus, transactionId } =
-            await this.apiService.createAccount({ deviceId, publicKey: key.publicKey.toStringDer() });
+        const {id, transactionBytes, updateAccountTransactionBytes, associationPresetTokenStatus, transactionId} =
+            await this.apiService.createAccount({deviceId, publicKey: key.publicKey.toStringDer()});
         const client = this.getClient();
         await executeUpdateAccountTransactions(client, key, updateAccountTransactionBytes, transactionBytes);
 
@@ -85,7 +85,7 @@ export default class AccountServiceHedera implements IAccountService {
             publicKey: key.publicKey.toStringDer(),
             privateKey: key.toStringDer(),
             accountId: id || null,
-            evmAddress: evmAddress.toLowerCase(),
+            evmAddress: evmAddress.toLowerCase()
         };
     }
 
@@ -104,12 +104,12 @@ export default class AccountServiceHedera implements IAccountService {
             privateKey: privateKey.toStringDer(),
             accountId: null,
             evmAddress: evmAddress.toLowerCase(),
-            queueNumber: 0,
+            queueNumber: 0
         };
 
-        const { status, queueNumber } = await this.apiService.checkAccountCreationStatus(transactionId);
+        const {status, queueNumber} = await this.apiService.checkAccountCreationStatus(transactionId);
         if (status === AccountStatus.SUCCESS) {
-            const { id, transactionBytes, updateAccountTransactionBytes, originalPublicKey } =
+            const {id, transactionBytes, updateAccountTransactionBytes, originalPublicKey} =
                 await this.apiService.getPendingAccountData(transactionId);
             await executeUpdateAccountTransactions(
                 this.getClient(),
@@ -145,10 +145,10 @@ export default class AccountServiceHedera implements IAccountService {
             .setAccountId(deleteAccountId)
             .setTransferAccountId(transferAccountId)
             .freezeWithSigner(this.signer!)
-            .then((tx) => tx.sign(deleteAccountKey))
-            .then((tx) => tx.signWithSigner(this.signer!))
-            .then((tx) => tx.executeWithSigner(this.signer!))
-            .then((txResult) => getReceipt(txResult, this.signer!));
+            .then(tx => tx.sign(deleteAccountKey))
+            .then(tx => tx.signWithSigner(this.signer!))
+            .then(tx => tx.executeWithSigner(this.signer!))
+            .then(txResult => getReceipt(txResult, this.signer!));
     }
 
     async getAccountInfo(accountId: string): Promise<AccountInfoData> {
@@ -168,15 +168,15 @@ export default class AccountServiceHedera implements IAccountService {
             stakingInfo: {
                 pendingReward: account.pending_reward,
                 stakedNodeId: account.staked_node_id,
-                stakePeriodStart: account.stake_period_start,
+                stakePeriodStart: account.stake_period_start
             },
-            calculatedEvmAddress,
+            calculatedEvmAddress
         } as AccountInfoData;
     }
 
-    async getNodeList(): Promise<{ nodes: NodeInfo[] }> {
+    async getNodeList(): Promise<{nodes: NodeInfo[]}> {
         const nodeList = await this.apiService.getNodeList();
-        return { nodes: nodeList };
+        return {nodes: nodeList};
     }
 
     stakeToNode(accountId: string, nodeId: number): Promise<TransactionReceiptData> {
@@ -189,9 +189,9 @@ export default class AccountServiceHedera implements IAccountService {
         }
         return transaction
             .freezeWithSigner(this.signer!)
-            .then((tx) => tx.signWithSigner(this.signer!))
-            .then((tx) => tx.executeWithSigner(this.signer!))
-            .then((txResult) => getReceipt(txResult, this.signer!));
+            .then(tx => tx.signWithSigner(this.signer!))
+            .then(tx => tx.executeWithSigner(this.signer!))
+            .then(txResult => getReceipt(txResult, this.signer!));
     }
 
     async getKeysFromMnemonic(mnemonicRaw: string): Promise<AccountPrivateData> {
@@ -199,7 +199,7 @@ export default class AccountServiceHedera implements IAccountService {
             mnemonicRaw
                 .toLowerCase()
                 .split(" ")
-                .filter((word) => word)
+                .filter(word => word)
                 .join(" ")
         );
 
@@ -222,7 +222,7 @@ export default class AccountServiceHedera implements IAccountService {
                 accounts.push({});
             }
 
-            return accounts.map((record) => {
+            return accounts.map(record => {
                 const evmAddress =
                     keyType === CryptoKeyType.ECDSA_SECP256K1
                         ? ethers.utils.computeAddress(`0x${privateKey.publicKey.toStringRaw()}`).toLowerCase()
@@ -233,7 +233,7 @@ export default class AccountServiceHedera implements IAccountService {
                     evmAddress,
                     address: record?.account || "",
                     path: ChainMap[this.chainId].defaultPath,
-                    keyType,
+                    keyType
                 };
             });
         };
@@ -266,7 +266,7 @@ export default class AccountServiceHedera implements IAccountService {
         }
 
         return {
-            accounts: records,
+            accounts: records
         };
     }
 

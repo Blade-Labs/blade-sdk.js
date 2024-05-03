@@ -1,4 +1,4 @@
-import { IAccountService } from "../AccountServiceContext";
+import {IAccountService} from "../AccountServiceContext";
 
 import {
     AccountInfoData,
@@ -6,14 +6,14 @@ import {
     AccountPrivateRecord,
     CreateAccountData,
     TransactionReceiptData,
-    TransactionsHistoryData,
+    TransactionsHistoryData
 } from "../../models/Common";
 import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
-import { NodeInfo } from "../../models/MirrorNode";
-import { ethers } from "ethers";
-import { ChainMap, CryptoKeyType, KnownChainIds } from "../../models/Chain";
-import { Network } from "../../models/Networks";
+import {NodeInfo} from "../../models/MirrorNode";
+import {ethers} from "ethers";
+import {ChainMap, CryptoKeyType, KnownChainIds} from "../../models/Chain";
+import {Network} from "../../models/Networks";
 import {
     Alchemy,
     AssetTransfersCategory,
@@ -21,9 +21,9 @@ import {
     AssetTransfersWithMetadataResponse,
     AssetTransfersWithMetadataResult,
     Network as AlchemyNetwork,
-    SortingOrder,
+    SortingOrder
 } from "alchemy-sdk";
-import { MirrorNodeTransactionType } from "../../models/TransactionType";
+import {MirrorNodeTransactionType} from "../../models/TransactionType";
 
 export default class AccountServiceEthereum implements IAccountService {
     private readonly chainId: KnownChainIds;
@@ -64,7 +64,7 @@ export default class AccountServiceEthereum implements IAccountService {
         throw new Error("Method not implemented.");
     }
 
-    getNodeList(): Promise<{ nodes: NodeInfo[] }> {
+    getNodeList(): Promise<{nodes: NodeInfo[]}> {
         throw new Error("Method not supported for this chain");
     }
 
@@ -88,11 +88,11 @@ export default class AccountServiceEthereum implements IAccountService {
                 evmAddress: wallet.address,
                 address: wallet.address,
                 path: wallet.path,
-                keyType: CryptoKeyType.ECDSA_SECP256K1,
+                keyType: CryptoKeyType.ECDSA_SECP256K1
             });
         }
         return {
-            accounts,
+            accounts
         };
     }
 
@@ -112,11 +112,11 @@ export default class AccountServiceEthereum implements IAccountService {
                 AssetTransfersCategory.INTERNAL,
                 AssetTransfersCategory.ERC20,
                 AssetTransfersCategory.ERC721,
-                AssetTransfersCategory.ERC1155,
+                AssetTransfersCategory.ERC1155
                 // AssetTransfersCategory.SPECIALNFT
             ],
             maxCount,
-            ...(nextPage && { toBlock: nextPage }),
+            ...(nextPage && {toBlock: nextPage})
             // pageKey?: string;
         };
 
@@ -129,8 +129,8 @@ export default class AccountServiceEthereum implements IAccountService {
                 // fetch next To
                 dataToPool = await this.alchemy!.core.getAssetTransfers({
                     ...params,
-                    ...(dataToPool && dataToPool?.pageKey ? { pageKey: dataToPool.pageKey } : {}),
-                    toAddress: accountAddress,
+                    ...(dataToPool && dataToPool?.pageKey ? {pageKey: dataToPool.pageKey} : {}),
+                    toAddress: accountAddress
                 });
             }
 
@@ -138,8 +138,8 @@ export default class AccountServiceEthereum implements IAccountService {
                 // fetch next From
                 dataFromPool = await this.alchemy!.core.getAssetTransfers({
                     ...params,
-                    ...(dataFromPool && dataFromPool?.pageKey ? { pageKey: dataFromPool.pageKey } : {}),
-                    fromAddress: accountAddress,
+                    ...(dataFromPool && dataFromPool?.pageKey ? {pageKey: dataFromPool.pageKey} : {}),
+                    fromAddress: accountAddress
                 });
             }
 
@@ -181,7 +181,7 @@ export default class AccountServiceEthereum implements IAccountService {
         }
 
         return {
-            transactions: transfers.map((transfer) => {
+            transactions: transfers.map(transfer => {
                 return {
                     transactionId: transfer.hash,
                     type: MirrorNodeTransactionType.CRYPTOTRANSFER, // ?????
@@ -191,9 +191,9 @@ export default class AccountServiceEthereum implements IAccountService {
                               {
                                   amount: transfer.value || 0,
                                   account: transfer.to || "",
-                                  ...(transfer.rawContract.address && { tokenAddress: transfer.rawContract.address }),
-                                  asset: transfer.asset || "",
-                              },
+                                  ...(transfer.rawContract.address && {tokenAddress: transfer.rawContract.address}),
+                                  asset: transfer.asset || ""
+                              }
                           ]
                         : [],
                     nftTransfers: transfer.tokenId
@@ -202,14 +202,14 @@ export default class AccountServiceEthereum implements IAccountService {
                                   tokenAddress: transfer.rawContract.address || "",
                                   serial: transfer.tokenId,
                                   senderAddress: transfer.from,
-                                  receiverAddress: transfer.to || "",
-                              },
+                                  receiverAddress: transfer.to || ""
+                              }
                           ]
                         : [],
-                    consensusTimestamp: transfer.metadata.blockTimestamp,
+                    consensusTimestamp: transfer.metadata.blockTimestamp
                 };
             }),
-            nextPage,
+            nextPage
         };
     }
 
@@ -221,7 +221,7 @@ export default class AccountServiceEthereum implements IAccountService {
             const apiKey = await this.configService.getConfig(
                 `alchemy${ChainMap[this.chainId].isTestnet ? Network.Testnet : Network.Mainnet}APIKey`
             );
-            this.alchemy = new Alchemy({ apiKey, network: alchemyNetwork });
+            this.alchemy = new Alchemy({apiKey, network: alchemyNetwork});
         }
     }
 }

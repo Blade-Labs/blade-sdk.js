@@ -1,15 +1,15 @@
-import { injectable, inject } from "inversify";
+import {injectable, inject} from "inversify";
 import "reflect-metadata";
 
-import { Signer } from "@hashgraph/sdk";
-import { SignMessageData, SignVerifyMessageData, SplitSignatureData, SupportedEncoding } from "../models/Common";
-import { ChainMap, ChainServiceStrategy, KnownChainIds } from "../models/Chain";
+import {Signer} from "@hashgraph/sdk";
+import {SignMessageData, SignVerifyMessageData, SplitSignatureData, SupportedEncoding} from "../models/Common";
+import {ChainMap, ChainServiceStrategy, KnownChainIds} from "../models/Chain";
 import SignServiceHedera from "./hedera/SignServiceHedera";
 import SignServiceEthereum from "./ethereum/SignServiceEthereum";
-import { ethers } from "ethers";
+import {ethers} from "ethers";
 import ApiService from "../services/ApiService";
 import ConfigService from "../services/ConfigService";
-import { ParametersBuilder } from "../ParametersBuilder";
+import {ParametersBuilder} from "../ParametersBuilder";
 import SignService from "../services/SignService";
 
 export interface ISignService {

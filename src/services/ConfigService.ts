@@ -1,7 +1,7 @@
-import { injectable, inject } from "inversify";
+import {injectable, inject} from "inversify";
 import "reflect-metadata";
 import ApiService from "./ApiService";
-import { BladeConfig, DAppConfig } from "../models/Common";
+import {BladeConfig, DAppConfig} from "../models/Common";
 
 @injectable()
 export default class ConfigService {
@@ -19,7 +19,7 @@ export default class ConfigService {
         // TODO set correct apikey
         alchemyMainnetRPC: "https://eth-mainnet.g.alchemy.com/v2/",
         alchemyMainnetAPIKey: undefined,
-        fingerprintSubdomain: "https://identity.bladewallet.io",
+        fingerprintSubdomain: "https://identity.bladewallet.io"
     };
     private dAppConfig?: DAppConfig;
 
@@ -32,7 +32,7 @@ export default class ConfigService {
                 // check if config is empty
                 this.config = {
                     ...this.config,
-                    ...(await this.apiService.getBladeConfig()),
+                    ...(await this.apiService.getBladeConfig())
                 };
             }
             return this.config[key];

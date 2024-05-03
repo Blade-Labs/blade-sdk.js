@@ -1,11 +1,11 @@
-import { ethers } from "ethers";
+import {ethers} from "ethers";
 
 import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
-import { ITradeService } from "../TradeServiceContext";
-import { IntegrationUrlData, SwapQuotesData } from "../../models/Common";
-import { CryptoFlowServiceStrategy } from "../../models/CryptoFlow";
-import { KnownChainIds } from "../../models/Chain";
+import {ITradeService} from "../TradeServiceContext";
+import {IntegrationUrlData, SwapQuotesData} from "../../models/Common";
+import {CryptoFlowServiceStrategy} from "../../models/CryptoFlow";
+import {KnownChainIds} from "../../models/Chain";
 
 export default class TradeServiceEthereum implements ITradeService {
     private readonly chainId: KnownChainIds;
@@ -40,7 +40,7 @@ export default class TradeServiceEthereum implements ITradeService {
         targetCode: string,
         slippage: number,
         serviceId: string
-    ): Promise<{ success: boolean }> {
+    ): Promise<{success: boolean}> {
         throw new Error("Method not implemented.");
     }
 

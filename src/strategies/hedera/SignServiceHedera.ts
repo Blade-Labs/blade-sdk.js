@@ -1,8 +1,8 @@
-import { AccountId, PublicKey, Signer, SignerSignature } from "@hashgraph/sdk";
+import {AccountId, PublicKey, Signer, SignerSignature} from "@hashgraph/sdk";
 
-import { ISignService } from "../SignServiceContext";
-import { SignMessageData, SignVerifyMessageData, SupportedEncoding } from "../../models/Common";
-import { KnownChainIds } from "../../models/Chain";
+import {ISignService} from "../SignServiceContext";
+import {SignMessageData, SignVerifyMessageData, SupportedEncoding} from "../../models/Common";
+import {KnownChainIds} from "../../models/Chain";
 import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
 
@@ -27,7 +27,7 @@ export default class SignServiceHedera implements ISignService {
         signedMessage = Buffer.from(signatures[0].signature).toString("hex");
 
         return {
-            signedMessage,
+            signedMessage
         };
     }
 
@@ -53,7 +53,7 @@ export default class SignServiceHedera implements ISignService {
 
         const valid = publicKey.verify(Buffer.from(encodedMessage, encoding), Buffer.from(signature, "hex"));
         return {
-            valid,
+            valid
         };
     }
 }

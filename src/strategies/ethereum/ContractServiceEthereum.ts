@@ -1,11 +1,11 @@
-import { ethers } from "ethers";
-import { ContractCallQueryRecordsData, TransactionReceiptData } from "../../models/Common";
-import { KnownChainIds } from "../../models/Chain";
+import {ethers} from "ethers";
+import {ContractCallQueryRecordsData, TransactionReceiptData} from "../../models/Common";
+import {KnownChainIds} from "../../models/Chain";
 import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
-import { IContractService } from "../ContractServiceContext";
-import { ParametersBuilder } from "../../ParametersBuilder";
-import { getContractFunctionBytecode } from "../../helpers/ContractHelpers";
+import {IContractService} from "../ContractServiceContext";
+import {ParametersBuilder} from "../../ParametersBuilder";
+import {getContractFunctionBytecode} from "../../helpers/ContractHelpers";
 
 export default class ContractServiceEthereum implements IContractService {
     private readonly chainId: KnownChainIds;
@@ -30,7 +30,7 @@ export default class ContractServiceEthereum implements IContractService {
         // TODO add gas usage
         // TODO implement bladePayFee
 
-        const { functionSignature, bytecode } = await getContractFunctionBytecode(functionName, params);
+        const {functionSignature, bytecode} = await getContractFunctionBytecode(functionName, params);
 
         const iface = new ethers.utils.Interface([ethers.utils.FunctionFragment.from(functionSignature)]);
 
@@ -44,7 +44,7 @@ export default class ContractServiceEthereum implements IContractService {
             status: receipt.status === 1 ? "success" : "failure",
             contractAddress,
             serials: [],
-            transactionHash: receipt.transactionHash,
+            transactionHash: receipt.transactionHash
         };
     }
 
@@ -56,10 +56,10 @@ export default class ContractServiceEthereum implements IContractService {
         bladePayFee: boolean,
         resultTypes: string[]
     ): Promise<ContractCallQueryRecordsData> {
-        const { functionSignature, bytecode } = await getContractFunctionBytecode(functionName, params);
+        const {functionSignature, bytecode} = await getContractFunctionBytecode(functionName, params);
 
         const iface = new ethers.utils.Interface([
-            ethers.utils.FunctionFragment.from(`${functionSignature} view returns (${resultTypes.join(",")})`),
+            ethers.utils.FunctionFragment.from(`${functionSignature} view returns (${resultTypes.join(",")})`)
         ]);
 
         const contract = new ethers.Contract(contractAddress, iface, this.signer);
@@ -75,10 +75,10 @@ export default class ContractServiceEthereum implements IContractService {
             values: result.map((value: any, index: number) => {
                 return {
                     type: resultTypes[index] || "",
-                    value: value.toString(),
+                    value: value.toString()
                 };
             }),
-            gasUsed: 0, // TODO add actual gas usage if possible
+            gasUsed: 0 // TODO add actual gas usage if possible
         };
     }
 }

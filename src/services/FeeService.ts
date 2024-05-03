@@ -1,13 +1,13 @@
-import { injectable, inject } from "inversify";
+import {injectable, inject} from "inversify";
 import "reflect-metadata";
 
-import { Network } from "../models/Networks";
-import { AccountId, Hbar, ScheduleCreateTransaction, Transaction, TransferTransaction } from "@hashgraph/sdk";
-import { FeeManualOptions, FeeType } from "../models/CryptoFlow";
-import { ChainMap, KnownChainIds } from "../models/Chain";
+import {Network} from "../models/Networks";
+import {AccountId, Hbar, ScheduleCreateTransaction, Transaction, TransferTransaction} from "@hashgraph/sdk";
+import {FeeManualOptions, FeeType} from "../models/CryptoFlow";
+import {ChainMap, KnownChainIds} from "../models/Chain";
 import BigNumber from "bignumber.js";
 import ConfigService from "./ConfigService";
-import { FeeConfig } from "../models/Common";
+import {FeeConfig} from "../models/Common";
 
 export const HbarTokenId = "0.0.0";
 
@@ -45,7 +45,7 @@ type APIRateData = {
 export default class FeeService {
     private cryptoExchangeRates: Record<Network, Record<string, RateData>> = {
         [Network.Mainnet]: {},
-        [Network.Testnet]: {},
+        [Network.Testnet]: {}
     };
 
     constructor(@inject("configService") private readonly configService: ConfigService) {}
@@ -195,19 +195,19 @@ export default class FeeService {
             rates[rate.id] = {
                 hbarPrice: BigNumber(rate.price).shiftedBy(-rate.decimals),
                 usdPrice: BigNumber(rate.priceUsd),
-                decimals: rate.decimals,
+                decimals: rate.decimals
             };
             return rates;
         }, {} as Record<string, RateData>);
     }
 
     private async fetchRates(network: Network): Promise<APIRateData[]> {
-        const saucerswapApi: { [key in Network]: string } = JSON.parse(
+        const saucerswapApi: {[key in Network]: string} = JSON.parse(
             await this.configService.getConfig("saucerswapApi")
         );
         const url = `${saucerswapApi[network]}tokens`;
         return fetch(url)
-            .then((result) => result.json())
+            .then(result => result.json())
             .catch(() => []) as Promise<APIRateData[]>;
     }
 

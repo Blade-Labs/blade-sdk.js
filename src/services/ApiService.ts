@@ -1,9 +1,9 @@
-import { injectable } from "inversify";
+import {injectable} from "inversify";
 import "reflect-metadata";
 
-import { Buffer } from "buffer";
-import { PublicKey } from "@hashgraph/sdk";
-import { Network } from "../models/Networks";
+import {Buffer} from "buffer";
+import {PublicKey} from "@hashgraph/sdk";
+import {Network} from "../models/Networks";
 import {
     AccountInfo,
     AccountInfoMirrorResponse,
@@ -15,7 +15,7 @@ import {
     TransactionDetails,
     TransactionDetailsResponse,
     NftInfo,
-    NftMetadata,
+    NftMetadata
 } from "../models/MirrorNode";
 import {
     ApiAccount,
@@ -26,12 +26,12 @@ import {
     IMirrorNodeServiceNetworkConfigs,
     SdkEnvironment,
     TokenBalanceData,
-    TransactionData,
+    TransactionData
 } from "../models/Common";
-import { ChainMap, KnownChainIds } from "../models/Chain";
-import { flatArray } from "../helpers/ArrayHelpers";
-import { filterAndFormatTransactions } from "../helpers/TransactionHelpers";
-import { encrypt } from "../helpers/SecurityHelper";
+import {ChainMap, KnownChainIds} from "../models/Chain";
+import {flatArray} from "../helpers/ArrayHelpers";
+import {filterAndFormatTransactions} from "../helpers/TransactionHelpers";
+import {encrypt} from "../helpers/SecurityHelper";
 import {
     CryptoFlowRoutes,
     CryptoFlowServiceStrategy,
@@ -40,7 +40,7 @@ import {
     ICryptoFlowQuote,
     ICryptoFlowQuoteParams,
     ICryptoFlowTransaction,
-    ICryptoFlowTransactionParams,
+    ICryptoFlowTransactionParams
 } from "../models/CryptoFlow";
 
 @injectable()
@@ -52,9 +52,9 @@ export default class ApiService {
     private environment: SdkEnvironment = SdkEnvironment.Prod;
     private network: Network = Network.Testnet;
     private chainId: KnownChainIds = KnownChainIds.HEDERA_TESTNET;
-    private tokenInfoCache: { [key in Network]: { [key: string]: TokenInfo } } = {
+    private tokenInfoCache: {[key in Network]: {[key: string]: TokenInfo}} = {
         [Network.Mainnet]: {},
-        [Network.Testnet]: {},
+        [Network.Testnet]: {}
     };
     private dAppConfigCached: DAppConfig | null = null;
 
@@ -117,7 +117,7 @@ export default class ApiService {
             const makeRequest = (fetchUrl: string, options: RequestInit) => {
                 attemptCounter += 1;
                 fetch(fetchUrl, options)
-                    .then(async (res) => {
+                    .then(async res => {
                         if (!res.ok) {
                             // Request timeout check
                             if ((res.status === 408 || res.status === 429) && attemptCounter < maxAttempts) {
@@ -130,12 +130,12 @@ export default class ApiService {
                                 try {
                                     reject({
                                         url: res.url,
-                                        ...JSON.parse(rawData),
+                                        ...JSON.parse(rawData)
                                     });
                                 } catch (e) {
                                     reject({
                                         url: res.url,
-                                        error: rawData,
+                                        error: rawData
                                     });
                                 }
                             }
@@ -143,10 +143,10 @@ export default class ApiService {
                             resolve(res);
                         }
                     })
-                    .catch((e) => {
+                    .catch(e => {
                         reject({
                             url: fetchUrl,
-                            error: e.message,
+                            error: e.message
                         });
                     });
             };
@@ -191,16 +191,16 @@ export default class ApiService {
                     {
                         name: "Mirror Nodes",
                         url: "https://testnet.mirrornode.hedera.com/api/v1",
-                        priority: 1,
-                    },
+                        priority: 1
+                    }
                 ],
                 mainnet: [
                     {
                         name: "Mirror Nodes",
                         url: "https://mainnet-public.mirrornode.hedera.com/api/v1",
-                        priority: 1,
-                    },
-                ],
+                        priority: 1
+                    }
+                ]
             };
         }
 
@@ -214,12 +214,12 @@ export default class ApiService {
                 if (service.apikey) {
                     options.headers = {
                         ...(options.headers || {}),
-                        "x-api-key": service.apikey,
+                        "x-api-key": service.apikey
                     };
                 }
                 return await this.fetchWithRetry(`${service.url}${route}`, options)
                     .then(this.statusCheck)
-                    .then((x) => x.json());
+                    .then(x => x.json());
             } catch (e) {
                 // console.log(`Mirror node service (${service.name}) failed to make request: ${service.url}${route}`);
             }
@@ -236,13 +236,13 @@ export default class ApiService {
                 // "X-VISITOR-ID": params.visitorId,
                 "X-DAPP-CODE": this.dAppCode,
                 "X-SDK-VERSION": this.sdkVersion,
-                "Content-Type": "application/json",
-            }),
+                "Content-Type": "application/json"
+            })
         };
 
         return fetch(url, options)
             .then(this.statusCheck)
-            .then((x) => x.json());
+            .then(x => x.json());
     }
 
     async getDappConfig(): Promise<DAppConfig> {
@@ -253,26 +253,26 @@ export default class ApiService {
                 "X-NETWORK": this.network.toUpperCase(),
                 "X-VISITOR-ID": this.visitorId,
                 "X-SDK-TVTE-API": await this.getTvteHeader(),
-                "Content-Type": "application/json",
-            }),
+                "Content-Type": "application/json"
+            })
         };
 
         return fetch(url, options)
             .then(this.statusCheck)
-            .then((x) => x.json())
-            .then((config) => {
+            .then(x => x.json())
+            .then(config => {
                 return config[this.dAppCode];
             });
     }
 
-    async createAccount(params: { deviceId: string; publicKey: string }) {
+    async createAccount(params: {deviceId: string; publicKey: string}) {
         const url = `${this.getApiUrl()}/accounts`;
         const headers: any = {
             "X-NETWORK": this.network.toUpperCase(),
             "X-VISITOR-ID": this.visitorId, // fingerprint (visitorId) (eg.: YoZoVL4XZspaCtLH4GoL)
             "X-DAPP-CODE": this.dAppCode,
             "X-SDK-TVTE-API": await this.getTvteHeader(),
-            "Content-Type": "application/json",
+            "Content-Type": "application/json"
         };
         if (params.deviceId) {
             headers["X-DID-API"] = params.deviceId;
@@ -282,13 +282,13 @@ export default class ApiService {
             method: "POST",
             headers: new Headers(headers),
             body: JSON.stringify({
-                publicKey: params.publicKey,
-            }),
+                publicKey: params.publicKey
+            })
         };
 
         return fetch(url, options)
             .then(this.statusCheck)
-            .then((x) => x.json());
+            .then(x => x.json());
     }
 
     async checkAccountCreationStatus(transactionId: string): Promise<any> {
@@ -300,13 +300,13 @@ export default class ApiService {
                 "X-VISITOR-ID": this.visitorId,
                 "X-DAPP-CODE": this.dAppCode,
                 "X-SDK-TVTE-API": await this.getTvteHeader(),
-                "Content-Type": "application/json",
-            }),
+                "Content-Type": "application/json"
+            })
         };
 
         return fetch(url, options)
             .then(this.statusCheck)
-            .then((x) => x.json());
+            .then(x => x.json());
     }
 
     async getPendingAccountData(transactionId: string) {
@@ -318,13 +318,13 @@ export default class ApiService {
                 "X-VISITOR-ID": this.visitorId,
                 "X-DAPP-CODE": this.dAppCode,
                 "X-SDK-TVTE-API": await this.getTvteHeader(),
-                "Content-Type": "application/json",
-            }),
+                "Content-Type": "application/json"
+            })
         };
 
         return fetch(url, options)
             .then(this.statusCheck)
-            .then((x) => x.json());
+            .then(x => x.json());
     }
 
     async confirmAccountUpdate(accountId: string): Promise<Response> {
@@ -336,11 +336,11 @@ export default class ApiService {
                 "X-VISITOR-ID": this.visitorId,
                 "X-DAPP-CODE": this.dAppCode,
                 "X-SDK-TVTE-API": await this.getTvteHeader(),
-                "Content-Type": "application/json",
+                "Content-Type": "application/json"
             }),
             body: JSON.stringify({
-                id: accountId,
-            }),
+                id: accountId
+            })
         };
 
         return fetch(url, options).then(this.statusCheck);
@@ -349,7 +349,7 @@ export default class ApiService {
     async getTokenAssociateTransactionForAccount(tokenId: string | null, accountId: string): Promise<ApiAccount> {
         const url = `${this.getApiUrl()}/tokens`;
         const body: any = {
-            id: accountId,
+            id: accountId
         };
         if (tokenId) {
             body.token = tokenId;
@@ -362,14 +362,14 @@ export default class ApiService {
                 "X-VISITOR-ID": this.visitorId,
                 "X-DAPP-CODE": this.dAppCode,
                 "X-SDK-TVTE-API": await this.getTvteHeader(),
-                "Content-Type": "application/json",
+                "Content-Type": "application/json"
             }),
-            body: JSON.stringify(body),
+            body: JSON.stringify(body)
         };
 
         return fetch(url, options)
             .then(this.statusCheck)
-            .then((x) => x.json());
+            .then(x => x.json());
     }
 
     async getCoins(params: any): Promise<CoinInfoRaw[]> {
@@ -381,13 +381,13 @@ export default class ApiService {
                 "X-VISITOR-ID": params.visitorId,
                 "X-DAPP-CODE": params.dAppCode,
                 "X-SDK-TVTE-API": await this.getTvteHeader(),
-                "Content-Type": "application/json",
-            }),
+                "Content-Type": "application/json"
+            })
         };
 
         return fetch(url, options)
             .then(this.statusCheck)
-            .then((x) => x.json());
+            .then(x => x.json());
     }
 
     async getCoinInfo(coinId: string, params: any): Promise<CoinData> {
@@ -399,20 +399,20 @@ export default class ApiService {
                 "X-VISITOR-ID": params.visitorId,
                 "X-DAPP-CODE": params.dAppCode,
                 "X-SDK-TVTE-API": await this.getTvteHeader(),
-                "Content-Type": "application/json",
-            }),
+                "Content-Type": "application/json"
+            })
         };
 
         return fetch(url, options)
             .then(this.statusCheck)
-            .then((x) => x.json())
-            .then((coinInfo) => {
+            .then(x => x.json())
+            .then(coinInfo => {
                 return {
                     ...coinInfo,
-                    platforms: Object.keys(coinInfo.platforms).map((name) => ({
+                    platforms: Object.keys(coinInfo.platforms).map(name => ({
                         name,
-                        address: coinInfo.platforms[name],
-                    })),
+                        address: coinInfo.platforms[name]
+                    }))
                 };
             });
     }
@@ -438,7 +438,7 @@ export default class ApiService {
                     rawBalance: token.balance.toString(),
                     decimals: parseInt(info.decimals, 10),
                     name: info.name,
-                    symbol: info.symbol,
+                    symbol: info.symbol
                 });
             }
         }
@@ -462,20 +462,20 @@ export default class ApiService {
                 "X-VISITOR-ID": params.visitorId || this.visitorId,
                 "X-DAPP-CODE": params.dAppCode || this.dAppCode,
                 "X-SDK-TVTE-API": await this.getTvteHeader(),
-                "Content-Type": "application/json",
+                "Content-Type": "application/json"
             }),
             body: JSON.stringify({
                 receiverAccountId: params.receiverAccountId,
                 senderAccountId: params.senderAccountId,
                 amount: params.amount,
                 decimals: params.decimals,
-                memo: params.memo,
-            }),
+                memo: params.memo
+            })
         };
 
         return fetch(url, options)
             .then(this.statusCheck)
-            .then((x) => x.json());
+            .then(x => x.json());
     }
 
     async signContractCallTx(params: any) {
@@ -487,19 +487,19 @@ export default class ApiService {
                 "X-VISITOR-ID": this.visitorId,
                 "X-DAPP-CODE": this.dAppCode,
                 "X-SDK-TVTE-API": await this.getTvteHeader(),
-                "Content-Type": "application/json",
+                "Content-Type": "application/json"
             }),
             body: JSON.stringify({
                 functionParametersHash: Buffer.from(params.contractFunctionParameters).toString("base64"),
                 contractId: params.contractAddress,
                 functionName: params.functionName,
-                gas: params.gas,
-            }),
+                gas: params.gas
+            })
         };
 
         return fetch(url, options)
             .then(this.statusCheck)
-            .then((x) => x.json());
+            .then(x => x.json());
     }
 
     async apiCallContractQuery(params: any) {
@@ -511,24 +511,24 @@ export default class ApiService {
                 "X-VISITOR-ID": this.visitorId,
                 "X-DAPP-CODE": this.dAppCode,
                 "X-SDK-TVTE-API": await this.getTvteHeader(),
-                "Content-Type": "application/json",
+                "Content-Type": "application/json"
             }),
             body: JSON.stringify({
                 functionParametersHash: Buffer.from(params.contractFunctionParameters).toString("base64"),
                 contractId: params.contractId,
                 functionName: params.functionName,
-                gas: params.gas,
-            }),
+                gas: params.gas
+            })
         };
 
         return fetch(url, options)
             .then(this.statusCheck)
-            .then((x) => x.json());
+            .then(x => x.json());
     }
 
     async dropTokens(
         network: Network,
-        params: { accountId: string; signedNonce: string; dAppCode: string; visitorId: string }
+        params: {accountId: string; signedNonce: string; dAppCode: string; visitorId: string}
     ) {
         const url = `${this.getApiUrl()}/tokens/drop`;
         const headers: any = {
@@ -536,7 +536,7 @@ export default class ApiService {
             "X-VISITOR-ID": params.visitorId,
             "X-DAPP-CODE": params.dAppCode,
             "X-SDK-TVTE-API": await this.getTvteHeader(),
-            "Content-Type": "application/json",
+            "Content-Type": "application/json"
         };
 
         const options = {
@@ -544,13 +544,13 @@ export default class ApiService {
             headers: new Headers(headers),
             body: JSON.stringify({
                 accountId: params.accountId,
-                signedNonce: params.signedNonce,
-            }),
+                signedNonce: params.signedNonce
+            })
         };
 
         return fetch(url, options)
             .then(this.statusCheck)
-            .then((x) => x.json());
+            .then(x => x.json());
     }
 
     async getC14token() {
@@ -562,13 +562,13 @@ export default class ApiService {
                 "X-VISITOR-ID": this.visitorId, // fingerprint (visitorId) (eg.: YoZoVL4XZspaCtLH4GoL)
                 "X-DAPP-CODE": this.dAppCode,
                 "X-SDK-TVTE-API": await this.getTvteHeader(),
-                "Content-Type": "application/json",
-            }),
+                "Content-Type": "application/json"
+            })
         };
 
         return fetch(url, options)
             .then(this.statusCheck)
-            .then((x) => x.json());
+            .then(x => x.json());
     }
 
     async getCryptoFlowData(
@@ -597,13 +597,13 @@ export default class ApiService {
                 "X-VISITOR-ID": this.visitorId,
                 // "X-DAPP-CODE": params.dAppCode,
                 // "X-SDK-TVTE-API": await getTvteHeader(),
-                "Content-Type": "application/json",
-            }),
+                "Content-Type": "application/json"
+            })
         };
 
         return fetch(url, options)
             .then(this.statusCheck)
-            .then((x) => x.json());
+            .then(x => x.json());
     }
 
     async getAccountsFromPublicKey(publicKey: PublicKey): Promise<Partial<AccountInfo>[]> {
@@ -636,7 +636,7 @@ export default class ApiService {
         transactionType: string = "",
         nextPage: string | null = null,
         transactionsLimit: string = "10"
-    ): Promise<{ nextPage: string | null; transactions: TransactionData[] }> {
+    ): Promise<{nextPage: string | null; transactions: TransactionData[]}> {
         const limit = parseInt(transactionsLimit, 10);
         let info: any;
         const result: TransactionData[] = [];
@@ -650,7 +650,7 @@ export default class ApiService {
             }
             nextPage = info.links.next ?? null;
 
-            const groupedTransactions: { [key: string]: TransactionData[] } = {};
+            const groupedTransactions: {[key: string]: TransactionData[]} = {};
 
             await Promise.all(
                 info.transactions.map(async (t: any) => {
@@ -683,7 +683,7 @@ export default class ApiService {
 
         return {
             nextPage,
-            transactions: result.slice(0, limit),
+            transactions: result.slice(0, limit)
         };
     }
 
@@ -695,12 +695,12 @@ export default class ApiService {
                     transactionId: tx.transaction_id,
                     type: tx.name,
                     time: new Date(parseFloat(tx.consensus_timestamp) * 1000),
-                    transfers: [...(tx.token_transfers || []), ...(tx.transfers || [])].map((transfer) => {
+                    transfers: [...(tx.token_transfers || []), ...(tx.transfers || [])].map(transfer => {
                         return {
                             amount: !transfer.token_id ? transfer.amount / 10 ** 8 : transfer.amount,
                             account: transfer.account,
-                            ...(transfer.token_id && { tokenAddress: transfer.token_id }),
-                            asset: "",
+                            ...(transfer.token_id && {tokenAddress: transfer.token_id}),
+                            asset: ""
                         };
                     }),
                     nftTransfers:
@@ -709,12 +709,12 @@ export default class ApiService {
                                 tokenAddress: nftTransfer.token_id,
                                 serial: nftTransfer.serial_number.toString(),
                                 senderAddress: nftTransfer.sender_account_id,
-                                receiverAddress: nftTransfer.receiver_account_id,
+                                receiverAddress: nftTransfer.receiver_account_id
                             };
                         }) || [],
                     memo: global.atob(tx.memo_base64),
                     fee: tx.charged_tx_fee,
-                    consensusTimestamp: tx.consensus_timestamp,
+                    consensusTimestamp: tx.consensus_timestamp
                 };
             });
         } catch (e) {

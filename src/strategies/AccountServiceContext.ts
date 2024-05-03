@@ -1,22 +1,22 @@
-import { injectable, inject } from "inversify";
+import {injectable, inject} from "inversify";
 import "reflect-metadata";
 
-import { Signer } from "@hashgraph/sdk";
+import {Signer} from "@hashgraph/sdk";
 
 import {
     AccountInfoData,
     AccountPrivateData,
     CreateAccountData,
     TransactionReceiptData,
-    TransactionsHistoryData,
+    TransactionsHistoryData
 } from "../models/Common";
-import { ChainMap, ChainServiceStrategy, KnownChainIds } from "../models/Chain";
+import {ChainMap, ChainServiceStrategy, KnownChainIds} from "../models/Chain";
 import AccountServiceHedera from "./hedera/AccountServiceHedera";
 import AccountServiceEthereum from "./ethereum/AccountServiceEthereum";
-import { ethers } from "ethers";
+import {ethers} from "ethers";
 import ApiService from "../services/ApiService";
 import ConfigService from "../services/ConfigService";
-import { NodeInfo } from "../models/MirrorNode";
+import {NodeInfo} from "../models/MirrorNode";
 
 export interface IAccountService {
     createAccount(privateKey?: string, deviceId?: string): Promise<CreateAccountData>;
@@ -27,7 +27,7 @@ export interface IAccountService {
         transferAccountId: string
     ): Promise<TransactionReceiptData>;
     getAccountInfo(accountId: string): Promise<AccountInfoData>;
-    getNodeList(): Promise<{ nodes: NodeInfo[] }>;
+    getNodeList(): Promise<{nodes: NodeInfo[]}>;
     stakeToNode(accountId: string, nodeId: number): Promise<TransactionReceiptData>;
     getKeysFromMnemonic(mnemonicRaw: string): Promise<AccountPrivateData>;
     getTransactions(
@@ -99,7 +99,7 @@ export default class AccountServiceContext implements IAccountService {
         return this.strategy!.getAccountInfo(accountId);
     }
 
-    getNodeList(): Promise<{ nodes: NodeInfo[] }> {
+    getNodeList(): Promise<{nodes: NodeInfo[]}> {
         this.checkInit();
         return this.strategy!.getNodeList();
     }

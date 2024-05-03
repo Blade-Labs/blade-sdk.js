@@ -1,14 +1,14 @@
-import { injectable, inject } from "inversify";
+import {injectable, inject} from "inversify";
 import "reflect-metadata";
-import { FeeManualOptions, FeeType, ICryptoFlowQuote, ICryptoFlowTransaction } from "../models/CryptoFlow";
-import { Buffer } from "buffer";
+import {FeeManualOptions, FeeType, ICryptoFlowQuote, ICryptoFlowTransaction} from "../models/CryptoFlow";
+import {Buffer} from "buffer";
 import BigNumber from "bignumber.js";
-import { AccountAllowanceApproveTransaction, Signer, Status, Transaction } from "@hashgraph/sdk";
-import { Network } from "../models/Networks";
-import FeeService, { HbarTokenId } from "./FeeService";
+import {AccountAllowanceApproveTransaction, Signer, Status, Transaction} from "@hashgraph/sdk";
+import {Network} from "../models/Networks";
+import FeeService, {HbarTokenId} from "./FeeService";
 import ConfigService from "./ConfigService";
-import { flatArray } from "../helpers/ArrayHelpers";
-import { ChainMap, KnownChainIds } from "../models/Chain";
+import {flatArray} from "../helpers/ArrayHelpers";
+import {ChainMap, KnownChainIds} from "../models/Chain";
 
 @injectable()
 export default class CryptoFlowService {
@@ -74,7 +74,7 @@ export default class CryptoFlowService {
         const feeOptions: FeeManualOptions = {
             type: FeeType.Swap,
             amount: BigNumber(selectedQuote.source.amountExpected),
-            amountTokenId: selectedQuote.source.asset.address,
+            amountTokenId: selectedQuote.source.asset.address
         };
         let transaction = await this.feeService.createFeeTransaction(chainId, activeAccount, feeOptions);
         if (!transaction) {
@@ -102,7 +102,7 @@ export default class CryptoFlowService {
                 publicKeyJwk, // Parse the JWK from string format
                 {
                     name: "ECDSA",
-                    namedCurve: "P-256",
+                    namedCurve: "P-256"
                 },
                 true,
                 ["verify"]
@@ -112,7 +112,7 @@ export default class CryptoFlowService {
             return await global.crypto.subtle.verify(
                 {
                     name: "ECDSA",
-                    hash: "SHA-256",
+                    hash: "SHA-256"
                 },
                 importedPublicKey,
                 Buffer.from(tx.signature, "hex"), // The signature in ArrayBuffer format

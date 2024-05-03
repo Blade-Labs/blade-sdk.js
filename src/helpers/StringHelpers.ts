@@ -1,6 +1,6 @@
-import { Network } from "../models/Networks";
-import { KnownChainIds } from "../models/Chain";
-import { EthNetworkConfiguration } from "magic-sdk";
+import {Network} from "../models/Networks";
+import {KnownChainIds} from "../models/Chain";
+import {EthNetworkConfiguration} from "magic-sdk";
 
 export default class StringHelpers {
     static stringToNetwork(str: string): Network {

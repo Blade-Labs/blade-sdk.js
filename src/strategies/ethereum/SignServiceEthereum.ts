@@ -1,7 +1,7 @@
-import { ethers } from "ethers";
-import { ISignService } from "../SignServiceContext";
-import { SignMessageData, SignVerifyMessageData, SupportedEncoding } from "../../models/Common";
-import { KnownChainIds } from "../../models/Chain";
+import {ethers} from "ethers";
+import {ISignService} from "../SignServiceContext";
+import {SignMessageData, SignVerifyMessageData, SupportedEncoding} from "../../models/Common";
+import {KnownChainIds} from "../../models/Chain";
 import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
 import StringHelpers from "../../helpers/StringHelpers";
@@ -24,7 +24,7 @@ export default class SignServiceEthereum implements ISignService {
         const signedMessage = await this.signer.signMessage(message);
 
         return {
-            signedMessage: StringHelpers.stripHexPrefix(signedMessage),
+            signedMessage: StringHelpers.stripHexPrefix(signedMessage)
         };
     }
 
@@ -55,7 +55,7 @@ export default class SignServiceEthereum implements ISignService {
         }
 
         return {
-            valid,
+            valid
         };
     }
 }

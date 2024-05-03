@@ -1,16 +1,16 @@
-import { injectable, inject } from "inversify";
+import {injectable, inject} from "inversify";
 import "reflect-metadata";
 
-import { Signer } from "@hashgraph/sdk";
-import { ContractCallQueryRecordsData, TransactionReceiptData } from "../models/Common";
-import { ChainMap, ChainServiceStrategy, KnownChainIds } from "../models/Chain";
+import {Signer} from "@hashgraph/sdk";
+import {ContractCallQueryRecordsData, TransactionReceiptData} from "../models/Common";
+import {ChainMap, ChainServiceStrategy, KnownChainIds} from "../models/Chain";
 import ContractServiceHedera from "./hedera/ContractServiceHedera";
 import ContractServiceEthereum from "./ethereum/ContractServiceEthereum";
-import { ethers } from "ethers";
+import {ethers} from "ethers";
 import ApiService from "../services/ApiService";
 import ConfigService from "../services/ConfigService";
-import { Network } from "../models/Networks";
-import { ParametersBuilder } from "../ParametersBuilder";
+import {Network} from "../models/Networks";
+import {ParametersBuilder} from "../ParametersBuilder";
 
 export interface IContractService {
     contractCallFunction(
