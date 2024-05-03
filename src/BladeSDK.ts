@@ -1052,10 +1052,8 @@ export class BladeSDK {
             bladeMessageHandler.postMessage(JSON.stringify(responseObject));
         }
 
-        if (error) {
-            throw error;
-        }
-
-        return data;
+        // TODO: change this to match method signature return type
+        // return "data: T", instead of wrapper "{data: T, error: Error}"
+        return JSON.parse(JSON.stringify(responseObject));
     }
 }
