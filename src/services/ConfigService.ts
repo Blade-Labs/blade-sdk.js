@@ -3,8 +3,9 @@ import 'reflect-metadata';
 import ApiService from "./ApiService";
 import {BladeConfig, DAppConfig} from "../models/Common";
 
-type ConfigKey = keyof (BladeConfig | DAppConfig);
-type ConfigValueByKey<TKey extends ConfigKey> = (BladeConfig | DAppConfig)[TKey];
+type Config = BladeConfig & DAppConfig
+type ConfigKey = keyof Config;
+type ConfigValueByKey<TKey extends ConfigKey> = Config[TKey];
 
 @injectable()
 export default class ConfigService {
@@ -46,7 +47,7 @@ export default class ConfigService {
             this.dAppConfig = await this.apiService.getDappConfig();
         }
         if (this.dAppConfig[key] !== undefined) {
-            return this.dAppConfig[key];
+            return this.dAppConfig[key] as Config[TKey];
         }
         throw new Error(`Unknown key "${key}" in configService`);
     };
