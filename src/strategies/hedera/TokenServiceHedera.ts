@@ -34,7 +34,7 @@ import {formatReceipt} from "../../helpers/TransactionHelpers";
 import {dataURLtoFile} from "../../helpers/FileHelper";
 import {NFTStorage} from "nft.storage";
 import {ChainMap, KnownChainIds} from "../../models/Chain";
-import { Network } from "../../models/Networks";
+import {Network} from "../../models/Networks";
 
 export default class TokenServiceHedera implements ITokenService {
     private readonly chainId: KnownChainIds;
@@ -338,7 +338,7 @@ export default class TokenServiceHedera implements ITokenService {
             visitorId,
             dAppCode,
             accountId,
-            signedNonce: Buffer.from(signatures[0].signature).toString("base64"),
+            signedNonce: Buffer.from(signatures[0].signature).toString("base64")
         });
     }
 }

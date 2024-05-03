@@ -27,7 +27,7 @@ import {
     SdkEnvironment,
     TokenBalanceData,
     TokenDropData,
-    TransactionData,
+    TransactionData
 } from "../models/Common";
 import {ChainMap, KnownChainIds} from "../models/Chain";
 import {flatArray} from "../helpers/ArrayHelpers";
@@ -463,7 +463,7 @@ export default class ApiService {
             decimals: string;
             memo: string;
         }>
-    ): Promise<{ transactionBytes: string }> {
+    ): Promise<{transactionBytes: string}> {
         const url = `${this.getApiUrl()}/tokens/transfers`;
 
         const options = {
@@ -532,37 +532,37 @@ export default class ApiService {
             })
         };
 
-    return fetch(url, options)
-        .then(this.statusCheck)
-        .then((x) => x.json());
-};
+        return fetch(url, options)
+            .then(this.statusCheck)
+            .then(x => x.json());
+    }
 
-async dropTokens(
-    network: Network,
-    params: { accountId: string; signedNonce: string; dAppCode: string; visitorId: string }
-): Promise<TokenDropData> {
-    const url = `${this.getApiUrl()}/tokens/drop`;
-    const headers = {
-        "X-NETWORK": network.toUpperCase(),
-        "X-VISITOR-ID": params.visitorId,
-        "X-DAPP-CODE": params.dAppCode,
-        "X-SDK-TVTE-API": await this.getTvteHeader(),
-        "Content-Type": "application/json",
-    };
+    async dropTokens(
+        network: Network,
+        params: {accountId: string; signedNonce: string; dAppCode: string; visitorId: string}
+    ): Promise<TokenDropData> {
+        const url = `${this.getApiUrl()}/tokens/drop`;
+        const headers = {
+            "X-NETWORK": network.toUpperCase(),
+            "X-VISITOR-ID": params.visitorId,
+            "X-DAPP-CODE": params.dAppCode,
+            "X-SDK-TVTE-API": await this.getTvteHeader(),
+            "Content-Type": "application/json"
+        };
 
-    const options = {
-        method: "POST",
-        headers: new Headers(headers),
-        body: JSON.stringify({
-            accountId: params.accountId,
-            signedNonce: params.signedNonce,
-        }),
-    };
+        const options = {
+            method: "POST",
+            headers: new Headers(headers),
+            body: JSON.stringify({
+                accountId: params.accountId,
+                signedNonce: params.signedNonce
+            })
+        };
 
         return fetch(url, options)
             .then(this.statusCheck)
-            .then((x) => x.json() as Promise<TokenDropData>);
-    };
+            .then(x => x.json() as Promise<TokenDropData>);
+    }
 
     async getC14token() {
         const url = `${this.getApiUrl()}/c14/data`;

@@ -28,9 +28,9 @@ export type ChainConfig = {
     defaultCryptoKeyType: CryptoKeyType;
     options?: {
         allowMultipleAccounts?: boolean;
-    },
+    };
     serviceStrategy: ChainServiceStrategy;
-    supportsHardware: boolean,
+    supportsHardware: boolean;
     explorerUrl: string;
 };
 

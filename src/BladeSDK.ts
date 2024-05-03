@@ -735,12 +735,16 @@ export class BladeSDK {
         secretNonce: string,
         completionKey?: string
     ): Promise<TokenDropData> {
-
         try {
-            const result = await this.tokenServiceContext.dropTokens(accountId, secretNonce, this.dAppCode, this.visitorId);
-            return this.sendMessageToNative(completionKey, result)
+            const result = await this.tokenServiceContext.dropTokens(
+                accountId,
+                secretNonce,
+                this.dAppCode,
+                this.visitorId
+            );
+            return this.sendMessageToNative(completionKey, result);
         } catch (error) {
-            return this.sendMessageToNative(completionKey, null, error)
+            return this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -1132,7 +1136,11 @@ export class BladeSDK {
     /**
      * Message that sends response back to native handler
      */
-    private sendMessageToNative<T>(completionKey: string | undefined, data: T, error: Partial<CustomError> | null = null): T {
+    private sendMessageToNative<T>(
+        completionKey: string | undefined,
+        data: T,
+        error: Partial<CustomError> | null = null
+    ): T {
         if (!this.webView || !completionKey) {
             if (error) {
                 throw error;
