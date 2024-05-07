@@ -153,8 +153,7 @@ export default class TokenServiceHedera implements ITokenService {
     async associateToken(tokenId: string, accountId: string): Promise<TransactionReceiptData> {
         let transaction: Transaction;
         const network = ChainMap[this.chainId].isTestnet ? "testnet" : "mainnet";
-        const freeAssociationTokens =
-            ((await this.configService.getConfig("tokens")) as DAppConfig["tokens"])[network]?.association || [];
+        const freeAssociationTokens = (await this.configService.getConfig("tokens"))[network]?.association || [];
         if (freeAssociationTokens.includes(tokenId) || !tokenId) {
             const res = await this.apiService.getTokenAssociateTransactionForAccount(tokenId, accountId);
             if (!res.transactionBytes) {
