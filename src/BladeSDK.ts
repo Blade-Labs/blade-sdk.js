@@ -201,7 +201,7 @@ export class BladeSDK {
             switch (accountProvider) {
                 case AccountProvider.PrivateKey:
                     if (ChainMap[this.chainId].serviceStrategy === ChainServiceStrategy.Hedera) {
-                        const key = PrivateKey.fromString(privateKey!);
+                        const key = PrivateKey.fromStringDer(privateKey!);
                         const client = ChainMap[this.chainId].isTestnet ? Client.forTestnet() : Client.forMainnet();
                         this.userAccountId = accountIdOrEmail;
                         this.userPrivateKey = privateKey!;
@@ -720,7 +720,6 @@ export class BladeSDK {
     }
     */
 
-    // TODO implement `dropTokens` method
     /**
      * Bladelink drop to account
      * @param accountId Hedera account id (0.0.xxxxx)
@@ -729,12 +728,7 @@ export class BladeSDK {
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {TokenDropData}
      */
-    async dropTokens(
-        accountId: string,
-        accountPrivateKey: string,
-        secretNonce: string,
-        completionKey?: string
-    ): Promise<TokenDropData> {
+    async dropTokens(accountId: string, secretNonce: string, completionKey?: string): Promise<TokenDropData> {
         try {
             const result = await this.tokenServiceContext.dropTokens(
                 accountId,
