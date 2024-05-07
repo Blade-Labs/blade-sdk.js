@@ -723,7 +723,6 @@ export class BladeSDK {
     /**
      * Bladelink drop to account
      * @param accountId Hedera account id (0.0.xxxxx)
-     * @param accountPrivateKey account private key (DER encoded hex string)
      * @param secretNonce configured for dApp. Should be kept in secret
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {TokenDropData}
