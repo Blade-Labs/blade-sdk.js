@@ -169,12 +169,10 @@ export interface InfoData {
 
 export interface BalanceData {
     hbars: number;
-    tokens: [
-        {
-            tokenId: string;
-            balance: number;
-        }
-    ];
+    tokens: {
+        tokenId: string;
+        balance: number;
+    }[];
 }
 
 export interface ContractCallQueryRecord {
@@ -182,13 +180,18 @@ export interface ContractCallQueryRecord {
     value: string | number | boolean;
 }
 
+export interface ContractCallQueryRecordsData {
+    values: ContractCallQueryRecord[];
+    gasUsed: number;
+}
+
 export interface CreateAccountData {
     seedPhrase: string;
     publicKey: string;
     privateKey: string;
-    accountId?: string;
+    accountId: string | null;
     evmAddress: string;
-    transactionId?: string;
+    transactionId?: string | null;
     status: string;
     queueNumber?: number;
 }
@@ -228,7 +231,7 @@ export interface AccountPrivateRecord {
 export interface PrivateKeyData {
     privateKey: string;
     publicKey: string;
-    accounts: [string];
+    accounts: string[];
     evmAddress: string;
 }
 
@@ -248,7 +251,7 @@ export interface SplitSignatureData {
 
 export interface TransactionsHistoryData {
     transactions: TransactionData[];
-    nextPage?: string;
+    nextPage: string | null;
 }
 
 export interface TransactionData {

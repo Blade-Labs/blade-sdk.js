@@ -77,7 +77,7 @@ import {
     CoinInfoData,
     CoinInfoRaw,
     CoinListData,
-    ContractCallQueryRecord,
+    ContractCallQueryRecordsData,
     CreateAccountData,
     CryptoKeyType,
     InfoData,
@@ -233,7 +233,7 @@ export class BladeSDK {
      * Returns information about initialized instance of BladeSDK.
      * @returns {InfoData}
      */
-    getInfo(completionKey?: string): Promise<InfoData> {
+    getInfo(completionKey?: string): InfoData {
         return this.sendMessageToNative(completionKey, {
             apiKey: this.apiKey,
             dAppCode: this.dAppCode,
@@ -328,7 +328,7 @@ export class BladeSDK {
             this.userPublicKey = "";
             this.signer = null!;
             this.magic = null;
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -350,7 +350,7 @@ export class BladeSDK {
                 success: true,
             });
         } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -367,7 +367,7 @@ export class BladeSDK {
             }
             return this.sendMessageToNative(completionKey, await getAccountBalance(accountId));
         } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -393,7 +393,7 @@ export class BladeSDK {
             };
             return this.sendMessageToNative(completionKey, result);
         } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -434,7 +434,7 @@ export class BladeSDK {
             };
             return this.sendMessageToNative(completionKey, result);
         } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -475,10 +475,10 @@ export class BladeSDK {
                     return this.sendMessageToNative(completionKey, formatReceipt(data));
                 })
                 .catch((error) => {
-                    return this.sendMessageToNative(completionKey, null, error);
+                    throw this.sendMessageToNative(completionKey, null, error);
                 });
         } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -541,10 +541,10 @@ export class BladeSDK {
                     return this.sendMessageToNative(completionKey, formatReceipt(data));
                 })
                 .catch((error) => {
-                    return this.sendMessageToNative(completionKey, null, error);
+                    throw this.sendMessageToNative(completionKey, null, error);
                 });
         } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -559,7 +559,7 @@ export class BladeSDK {
      * @param bladePayFee - if true, fee will be paid by Blade (note: msg.sender inside the contract will be Blade Payer account)
      * @param resultTypes - array of result types. Currently supported only plain data types
      * @param completionKey - optional field bridge between mobile webViews and native apps
-     * @returns {ContractCallQueryRecord[]}
+     * @returns {ContractCallQueryRecordsData}
      */
     async contractCallQueryFunction(
         contractId: string,
@@ -571,7 +571,7 @@ export class BladeSDK {
         bladePayFee: boolean = false,
         resultTypes: string[],
         completionKey?: string
-    ): Promise<ContractCallQueryRecord[]> {
+    ): Promise<ContractCallQueryRecordsData> {
         try {
             if (accountId && accountPrivateKey) {
                 await this.setUser(AccountProvider.Hedera, accountId, accountPrivateKey);
@@ -622,10 +622,10 @@ export class BladeSDK {
                     gasUsed: parseInt(response.gasUsed.toString(), 10),
                 });
             } catch (error: any) {
-                return this.sendMessageToNative(completionKey, null, error);
+                throw this.sendMessageToNative(completionKey, null, error);
             }
         } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -692,7 +692,7 @@ export class BladeSDK {
                         return this.sendMessageToNative(completionKey, formatReceipt(data));
                     })
                     .catch((error) => {
-                        return this.sendMessageToNative(completionKey, null, error);
+                        throw this.sendMessageToNative(completionKey, null, error);
                     });
             } else {
                 const tokenTransferTx = new TransferTransaction().setTransactionMemo(memo);
@@ -713,11 +713,11 @@ export class BladeSDK {
                         return this.sendMessageToNative(completionKey, formatReceipt(data));
                     })
                     .catch((error) => {
-                        return this.sendMessageToNative(completionKey, null, error);
+                        throw this.sendMessageToNative(completionKey, null, error);
                     });
             }
         } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -799,7 +799,7 @@ export class BladeSDK {
                                     });
                                 })
                                 .catch((error) => {
-                                    return this.sendMessageToNative(completionKey, null, error);
+                                    throw this.sendMessageToNative(completionKey, null, error);
                                 });
                         }
                         break;
@@ -808,7 +808,7 @@ export class BladeSDK {
                 }
             }
         } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -863,11 +863,11 @@ export class BladeSDK {
                         return this.sendMessageToNative(completionKey, formatReceipt(data));
                     })
                     .catch((error) => {
-                        return this.sendMessageToNative(completionKey, null, error);
+                        throw this.sendMessageToNative(completionKey, null, error);
                     });
             }
         } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -945,7 +945,7 @@ export class BladeSDK {
             };
             return this.sendMessageToNative(completionKey, result);
         } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -1018,7 +1018,7 @@ export class BladeSDK {
 
             return this.sendMessageToNative(completionKey, result);
         } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -1056,7 +1056,7 @@ export class BladeSDK {
 
             return this.sendMessageToNative(completionKey, formatReceipt(txReceipt));
         } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -1091,7 +1091,7 @@ export class BladeSDK {
                 calculatedEvmAddress: ethers.utils.computeAddress(`0x${publicKey.toStringRaw()}`).toLowerCase(),
             } as AccountInfoData);
         } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -1105,7 +1105,7 @@ export class BladeSDK {
             const nodeList = await getNodeList(this.network);
             return this.sendMessageToNative(completionKey, { nodes: nodeList });
         } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -1145,10 +1145,10 @@ export class BladeSDK {
                     return this.sendMessageToNative(completionKey, formatReceipt(data));
                 })
                 .catch((error) => {
-                    return this.sendMessageToNative(completionKey, null, error);
+                    throw this.sendMessageToNative(completionKey, null, error);
                 });
         } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -1177,7 +1177,7 @@ export class BladeSDK {
                 evmAddress: accounts[0].evmAddress,
             });
         } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -1202,7 +1202,7 @@ export class BladeSDK {
                 accounts,
             });
         } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -1237,7 +1237,7 @@ export class BladeSDK {
                 })
             );
         } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -1248,7 +1248,7 @@ export class BladeSDK {
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {SignMessageData}
      */
-    sign(messageString: string, privateKey: string, completionKey?: string): Promise<SignMessageData> {
+    sign(messageString: string, privateKey: string, completionKey?: string): SignMessageData {
         try {
             const key = PrivateKey.fromString(privateKey);
             const signed = key.sign(Buffer.from(messageString, "base64"));
@@ -1257,7 +1257,7 @@ export class BladeSDK {
                 signedMessage: Buffer.from(signed).toString("hex"),
             });
         } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -1274,7 +1274,7 @@ export class BladeSDK {
         signature: string,
         publicKey: string,
         completionKey?: string
-    ): Promise<SignVerifyMessageData> {
+    ): SignVerifyMessageData {
         try {
             const valid = PublicKey.fromString(publicKey).verify(
                 Buffer.from(messageString, "base64"),
@@ -1282,7 +1282,7 @@ export class BladeSDK {
             );
             return this.sendMessageToNative(completionKey, { valid });
         } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -1303,7 +1303,7 @@ export class BladeSDK {
                 });
             });
         } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -1313,12 +1313,12 @@ export class BladeSDK {
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {SplitSignatureData}
      */
-    splitSignature(signature: string, completionKey?: string): Promise<SplitSignatureData> {
+    splitSignature(signature: string, completionKey?: string): SplitSignatureData {
         try {
             const { v, r, s } = ethers.utils.splitSignature(signature);
             return this.sendMessageToNative(completionKey, { v, r, s });
         } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -1346,7 +1346,7 @@ export class BladeSDK {
             const { v, r, s } = ethers.utils.splitSignature(signed);
             return this.sendMessageToNative(completionKey, { v, r, s });
         } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -1382,7 +1382,7 @@ export class BladeSDK {
             );
             return this.sendMessageToNative(completionKey, transactionData);
         } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -1459,7 +1459,7 @@ export class BladeSDK {
             url.search = new URLSearchParams(purchaseParams as Record<keyof C14WidgetConfig, any>).toString();
             return this.sendMessageToNative(completionKey, { url: url.toString() });
         } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -1547,10 +1547,10 @@ export class BladeSDK {
                 CryptoFlowRoutes.QUOTES,
                 params,
                 strategy
-            );
+            ) as ICryptoFlowQuote[];
             return this.sendMessageToNative(completionKey, { quotes });
         } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -1671,7 +1671,7 @@ export class BladeSDK {
             }
             return this.sendMessageToNative(completionKey, { success: true });
         } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -1753,7 +1753,7 @@ export class BladeSDK {
 
             return this.sendMessageToNative(completionKey, { url: selectedQuote.widgetUrl });
         } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -1851,10 +1851,10 @@ export class BladeSDK {
             const nftCreateSubmit = await nftCreateTxSign.executeWithSigner(this.signer);
             const nftCreateRx = await nftCreateSubmit.getReceiptWithSigner(this.signer);
 
-            const tokenId = nftCreateRx.tokenId?.toString();
+            const tokenId = nftCreateRx.tokenId!.toString();
             return this.sendMessageToNative(completionKey, { tokenId }, null);
         } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -1904,10 +1904,10 @@ export class BladeSDK {
                     return this.sendMessageToNative(completionKey, formatReceipt(txReceipt));
                 })
                 .catch((error) => {
-                    return this.sendMessageToNative(completionKey, null, error);
+                    throw this.sendMessageToNative(completionKey, null, error);
                 });
         } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -1987,10 +1987,10 @@ export class BladeSDK {
                     return this.sendMessageToNative(completionKey, formatReceipt(txReceipt));
                 })
                 .catch((error) => {
-                    return this.sendMessageToNative(completionKey, null, error);
+                    throw this.sendMessageToNative(completionKey, null, error);
                 });
         } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -2009,7 +2009,7 @@ export class BladeSDK {
                 metadata,
             });
         } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -2053,8 +2053,8 @@ export class BladeSDK {
     private sendMessageToNative<T>(
         completionKey: string | undefined,
         data: T,
-        error: Partial<CustomError> | null = null
-    ): any {
+        error: Partial<CustomError> | any | null = null
+    ): T {
         if (!this.webView || !completionKey) {
             if (error) {
                 throw error;
@@ -2075,15 +2075,11 @@ export class BladeSDK {
         }
 
         // IOS or Android
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-expect-error
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        // @ts-expect-error eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
         const bladeMessageHandler = window?.webkit?.messageHandlers?.bladeMessageHandler || window?.bladeMessageHandler;
         if (bladeMessageHandler) {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
             bladeMessageHandler.postMessage(JSON.stringify(responseObject));
         }
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-        return JSON.parse(JSON.stringify(responseObject));
+        return JSON.parse(JSON.stringify(responseObject)) as T;
     }
 }

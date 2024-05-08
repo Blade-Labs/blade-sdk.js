@@ -135,9 +135,13 @@ test('bladeSdk.getBalance', async () => {
     expect(result.data).toHaveProperty("tokens");
     expect(Array.isArray(result.data.tokens)).toEqual(true);
 
-    // invalid accountId
-    result = await bladeSdk.getBalance("0.0.0", completionKey);
-    checkResult(result, false);
+    try {
+        // invalid accountId
+        await bladeSdk.getBalance("0.0.0", completionKey);
+        expect("Code should not reach here").toBeNull();
+    } catch (result) {
+        checkResult(result, false);
+    }
 }, 90_000);
 
 test('bladeSdk.getCoinList', async () => {
@@ -163,8 +167,12 @@ test('bladeSdk.getCoinList', async () => {
         completionKey);
     checkResult(result);
 
-    result = await bladeSdk.getCoinList(completionKey);
-    checkResult(result, false);
+    try {
+        await bladeSdk.getCoinList(completionKey);
+        expect("Code should not reach here").toBeNull();
+    } catch (result) {
+        checkResult(result, false);
+    }
 });
 
 test('bladeSdk.getCoinPrice', async () => {
@@ -197,8 +205,12 @@ test('bladeSdk.getCoinPrice', async () => {
     checkResult(result);
     expect(result.data.coin.symbol).toEqual("karate");
 
-    result = await bladeSdk.getCoinPrice("unknown token", "", completionKey);
-    checkResult(result, false);
+    try {
+        await bladeSdk.getCoinPrice("unknown token", "", completionKey);
+        expect("Code should not reach here").toBeNull();
+    } catch (result) {
+        checkResult(result, false);
+    }
 }, 10_000);
 
 test('bladeSdk.transferHbars', async () => {
@@ -226,14 +238,21 @@ test('bladeSdk.transferHbars', async () => {
     result = await bladeSdk.transferHbars("", "", accountId2, "1.5", "custom memo text", completionKey);
     checkResult(result);
 
-    // invalid signature
-    result = await bladeSdk.transferHbars(accountId2, privateKey, accountId, "1.5", "custom memo text", completionKey);
-    checkResult(result, false);
+    try {
+        // invalid signature
+        await bladeSdk.transferHbars(accountId2, privateKey, accountId, "1.5", "custom memo text", completionKey);
+        expect("Code should not reach here").toBeNull();
+    } catch (result) {
+        checkResult(result, false);
+    }
 
-    // parseFloat exception
-    result = await bladeSdk.transferHbars(accountId, privateKey, accountId, "jhghjhgjghj", "custom memo text", completionKey);
-    checkResult(result, false);
-
+    try {
+        // parseFloat exception
+        result = await bladeSdk.transferHbars(accountId, privateKey, accountId, "jhghjhgjghj", "custom memo text", completionKey);
+        expect("Code should not reach here").toBeNull();
+    } catch (result) {
+        checkResult(result, false);
+    }
 }, 60_000);
 
 test('bladeSdk.contractCallFunction', async () => {
@@ -301,24 +320,34 @@ test('bladeSdk.contractCallFunction', async () => {
     expect(contractCallQueryResult.getString(0)).toEqual(message);
     expect(contractCallQueryResult.getUint64(1).toNumber()).toEqual(num1 + num2);
 
+    try {
+        // fail on wrong function params (CONTRACT_REVERT_EXECUTED)
+        params = new ParametersBuilder().addString(message).addAddress("0x65f17cac69fb3df1328a5c239761d32e8b346da0").addAddressArray([accountId, accountId2]).addTuple(new ParametersBuilder().addUInt64(num1).addUInt64(num2));
+        result = await bladeSdk.contractCallFunction(contractId, "set_numbers", params.encode(), accountId, privateKey, 1000000, false, completionKey);
+        expect("Code should not reach here").toBeNull();
+    } catch (result) {
+        checkResult(result, false);
+        expect(result.error.reason.includes("CONTRACT_REVERT_EXECUTED")).toEqual(true);
+    }
 
-    // fail on wrong function params (CONTRACT_REVERT_EXECUTED)
+    try {
+        // fail on invalid json
+        const paramsEncoded = '[{"type":"string",""""""""]'
+        result = await bladeSdk.contractCallFunction(contractId, "set_numbers", paramsEncoded, accountId, privateKey, 1000000, false, completionKey);
+        expect("Code should not reach here").toBeNull();
+    } catch (result) {
+        checkResult(result, false);
+        expect(result.error.reason.includes("Unexpected token")).toEqual(true);
+    }
 
-    params = new ParametersBuilder().addString(message).addAddress("0x65f17cac69fb3df1328a5c239761d32e8b346da0").addAddressArray([accountId, accountId2]).addTuple(new ParametersBuilder().addUInt64(num1).addUInt64(num2));
-    result = await bladeSdk.contractCallFunction(contractId, "set_numbers", params.encode(), accountId, privateKey, 1000000, false, completionKey);
-    checkResult(result, false);
-    expect(result.error.reason.includes("CONTRACT_REVERT_EXECUTED")).toEqual(true);
-
-    // fail on invalid json
-    const paramsEncoded = '[{"type":"string",""""""""]'
-    result = await bladeSdk.contractCallFunction(contractId, "set_numbers", paramsEncoded, accountId, privateKey, 1000000, false, completionKey);
-    checkResult(result, false);
-    expect(result.error.reason.includes("Unexpected token")).toEqual(true);
-
-    // fail on low gas
-    params = new ParametersBuilder().addString(message).addTuple(new ParametersBuilder().addUInt64(num1).addUInt64(num2));
-    result = await bladeSdk.contractCallFunction(contractId, "set_message", params, accountId, privateKey, 1, false, completionKey);
-    checkResult(result, false);
+    try {
+        // fail on low gas
+        params = new ParametersBuilder().addString(message).addTuple(new ParametersBuilder().addUInt64(num1).addUInt64(num2));
+        result = await bladeSdk.contractCallFunction(contractId, "set_message", params, accountId, privateKey, 1, false, completionKey);
+        expect("Code should not reach here").toBeNull();
+    } catch (result) {
+        checkResult(result, false);
+    }
 }, 120_000);
 
 test('bladeSdk.contractCallQueryFunction', async () => {
@@ -372,14 +401,26 @@ test('bladeSdk.contractCallQueryFunction', async () => {
     expect(result.data.values[0].value).toEqual(message);
 
     params = new ParametersBuilder();
-    result = await bladeSdk.contractCallQueryFunction(contractId, "unknown function", params, accountId, privateKey, 100000, true, ["string"], completionKey);
-    checkResult(result, false);
+    try {
+        result = await bladeSdk.contractCallQueryFunction(contractId, "unknown function", params, accountId, privateKey, 100000, true, ["string"], completionKey);
+        expect("Code should not reach here").toBeNull();
+    } catch (result) {
+        checkResult(result, false);
+    }
 
-    result = await bladeSdk.contractCallQueryFunction(contractId, "get_message", params, "0.0.3", privateKey2, 100000, false, ["string"], completionKey);
-    checkResult(result, false);
+    try {
+        result = await bladeSdk.contractCallQueryFunction(contractId, "get_message", params, "0.0.3", privateKey2, 100000, false, ["string"], completionKey);
+        expect("Code should not reach here").toBeNull();
+    } catch (result) {
+        checkResult(result, false);
+    }
 
-    result = await bladeSdk.contractCallQueryFunction(contractId, "get_message", params, accountId, privateKey, 100000, false, ["bytes32", "unknown-type"], completionKey);
-    checkResult(result, false);
+    try {
+        result = await bladeSdk.contractCallQueryFunction(contractId, "get_message", params, accountId, privateKey, 100000, false, ["bytes32", "unknown-type"], completionKey);
+        expect("Code should not reach here").toBeNull();
+    } catch (result) {
+        checkResult(result, false);
+    }
 }, 120_000);
 
 test('bladeSdk.transferTokens', async () => {
@@ -417,13 +458,22 @@ test('bladeSdk.transferTokens', async () => {
     const account2TokenBalance = (account2Balance.data.tokens.find(token => token.tokenId === tokenId))?.balance || 0;
 
     const amount = 1;
-    // invalid signature
-    result = await bladeSdk.transferTokens(tokenId?.toString(), accountId2, privateKey, accountId2, amount.toString(), "transfer memo", false, completionKey);
-    checkResult(result, false);
 
-    // invalid tokenId
-    result = await bladeSdk.transferTokens("invalid token id", accountId2, privateKey, accountId2, amount.toString(), "transfer memo", false, completionKey);
-    checkResult(result, false);
+    try {
+        // invalid signature
+        result = await bladeSdk.transferTokens(tokenId?.toString(), accountId2, privateKey, accountId2, amount.toString(), "transfer memo", false, completionKey);
+        expect("Code should not reach here").toBeNull();
+    } catch (result) {
+        checkResult(result, false);
+    }
+
+    try {
+        // invalid tokenId
+        result = await bladeSdk.transferTokens("invalid token id", accountId2, privateKey, accountId2, amount.toString(), "transfer memo", false, completionKey);
+        expect("Code should not reach here").toBeNull();
+    } catch (result) {
+        checkResult(result, false);
+    }
 
     result = await bladeSdk.transferTokens(tokenId.toString(), accountId, privateKey, accountId2, amount.toString(), "transfer memo", false, completionKey);
     checkResult(result);
@@ -474,11 +524,15 @@ test('bladeSdk.createAccount', async () => {
 
     expect(result.data.evmAddress).toEqual(evmAddress.toLowerCase());
 
-    result = await bladeSdk.init("wrong api key", process.env.NETWORK, process.env.DAPP_CODE, process.env.VISITOR_ID, process.env.SDK_ENV, sdkVersion, completionKey);
-    checkResult(result);
+    try {
+        result = await bladeSdk.init("wrong api key", process.env.NETWORK, process.env.DAPP_CODE, process.env.VISITOR_ID, process.env.SDK_ENV, sdkVersion, completionKey);
+        checkResult(result);
 
-    result = await bladeSdk.createAccount("", "device-id", completionKey);
-    checkResult(result, false);
+        result = await bladeSdk.createAccount("", "device-id", completionKey);
+        expect("Code should not reach here").toBeNull();
+    } catch (result) {
+        checkResult(result, false);
+    }
 }, 60_000);
 
 test('bladeSdk.getAccountInfo', async () => {
@@ -497,15 +551,24 @@ test('bladeSdk.getAccountInfo', async () => {
     expect(accountInfo.data.evmAddress).toEqual(`0x${AccountId.fromString(newAccountId).toSolidityAddress()}`);
     expect(accountInfo.data.calculatedEvmAddress).toEqual(account.data.evmAddress);
 
-    accountInfo = await bladeSdk.getAccountInfo("////", completionKey);
-    checkResult(accountInfo, false);
+    try {
+        accountInfo = await bladeSdk.getAccountInfo("////", completionKey);
+        expect("Code should not reach here").toBeNull();
+    } catch (result) {
+        checkResult(result, false);
+    }
+
     result = await bladeSdk.setUser(AccountProvider.Hedera, accountId, privateKey, completionKey);
     checkResult(result);
     accountInfo = await bladeSdk.getAccountInfo("", completionKey);
     checkResult(accountInfo);
 
-    accountInfo = await bladeSdk.getAccountInfo("0.0.9999999999999999999999999", completionKey);
-    checkResult(accountInfo, false);
+    try {
+        accountInfo = await bladeSdk.getAccountInfo("0.0.9999999999999999999999999", completionKey);
+        expect("Code should not reach here").toBeNull();
+    } catch (result) {
+        checkResult(result, false);
+    }
 }, 60_000);
 
 test('bladeSdk.deleteAccount', async () => {
@@ -524,9 +587,13 @@ test('bladeSdk.deleteAccount', async () => {
     result = await GET(Network.Testnet, `/accounts/${newAccountId}`);
     expect(result.deleted).toEqual(true);
 
-    // invalid request (already deleted)
-    result = await bladeSdk.deleteAccount(newAccountId, newPrivateKey, accountId, accountId, privateKey, completionKey);
-    checkResult(result, false);
+    try {
+        // invalid request (already deleted)
+        result = await bladeSdk.deleteAccount(newAccountId, newPrivateKey, accountId, accountId, privateKey, completionKey);
+        expect("Code should not reach here").toBeNull();
+    } catch (result) {
+        checkResult(result, false);
+    }
 }, 60_000);
 
 test('bladeSdk.getKeysFromMnemonic', async () => {
@@ -566,8 +633,12 @@ test('bladeSdk.getKeysFromMnemonic', async () => {
     expect(result.data.accounts.length).toEqual(1);
     expect(result.data.accounts[0]).toEqual(accountSample.accountId);
 
-    result = await bladeSdk.getKeysFromMnemonic("invalid seed phrase", true, completionKey);
-    checkResult(result, false);
+    try {
+        result = await bladeSdk.getKeysFromMnemonic("invalid seed phrase", true, completionKey);
+        expect("Code should not reach here").toBeNull();
+    } catch (result) {
+        checkResult(result, false);
+    }
 
     result = await bladeSdk.getKeysFromMnemonic((await Mnemonic.generate12()).toString(), true, completionKey);
     checkResult(result);
@@ -609,11 +680,19 @@ test('bladeSdk.searchAccounts', async () => {
     expect(result.data.accounts[0].evmAddress).toEqual(accountSample.evmAddress);
     expect(result.data.accounts[0].keyType).toEqual(CryptoKeyType.ECDSA_SECP256K1);
 
-    result = await bladeSdk.searchAccounts("invalid seed phrase", completionKey);
-    checkResult(result, false);
+    try {
+        result = await bladeSdk.searchAccounts("invalid seed phrase", completionKey);
+        expect("Code should not reach here").toBeNull();
+    } catch (result) {
+        checkResult(result, false);
+    }
 
-    result = await bladeSdk.searchAccounts("0xinvalidPrivateKey", completionKey);
-    checkResult(result, false);
+    try {
+        result = await bladeSdk.searchAccounts("0xinvalidPrivateKey", completionKey);
+        expect("Code should not reach here").toBeNull();
+    } catch (result) {
+        checkResult(result, false);
+    }
 
     result = await bladeSdk.searchAccounts((await Mnemonic.generate12()).toString(), completionKey);
     checkResult(result);
@@ -645,8 +724,12 @@ test('bladeSdk.dropTokens', async () => {
     expect(result.data).toHaveProperty("accountId");
     expect(result.data).toHaveProperty("redirectUrl");
 
-    result = await bladeSdk.dropTokens(accountSample.accountId, accountSample.privateKey, process.env.NONCE, completionKey);
-    checkResult(result, false);
+    try {
+        result = await bladeSdk.dropTokens(accountSample.accountId, accountSample.privateKey, process.env.NONCE, completionKey);
+        expect("Code should not reach here").toBeNull();
+    } catch (result) {
+        checkResult(result, false);
+    }
 }, 60_000);
 
 test('bladeSdk.getTokenInfo', async () => {
@@ -671,15 +754,19 @@ test('bladeSdk.getTokenInfo', async () => {
     expect(result.data.nft).toEqual(null);
     expect(result.data.metadata).toEqual(null);
 
-    result = await bladeSdk.getTokenInfo("0.0.3982458", "555", completionKey);
-    checkResult(result, false);
+    try {
+        result = await bladeSdk.getTokenInfo("0.0.3982458", "555", completionKey);
+        expect("Code should not reach here").toBeNull();
+    } catch (result) {
+        checkResult(result, false);
+    }
 }, 60_000);
 
 test('bladeSdk.sign + signVerify', async () => {
     const message = "hello";
     const messageString = Buffer.from(message).toString("base64");
 
-    const result = await bladeSdk.sign(messageString, privateKey, completionKey);
+    let result = await bladeSdk.sign(messageString, privateKey, completionKey);
     checkResult(result);
 
     expect(result.data).toHaveProperty("signedMessage");
@@ -694,12 +781,20 @@ test('bladeSdk.sign + signVerify', async () => {
         Buffer.from(result.data.signedMessage, "hex")
     )).toEqual(true);
 
-    // invalid private key
-    let resultInvalid = await bladeSdk.sign(messageString, `privateKey`, completionKey);
-    checkResult(resultInvalid, false);
+    try {
+        // invalid private key
+        result = await bladeSdk.sign(messageString, `privateKey`, completionKey);
+        expect("Code should not reach here").toBeNull();
+    } catch (result) {
+        checkResult(result, false);
+    }
 
-    resultInvalid = bladeSdk.signVerify(messageString, "invalid signature", "invalid publicKey", completionKey);
-    checkResult(resultInvalid, false);
+    try {
+        result = bladeSdk.signVerify(messageString, "invalid signature", "invalid publicKey", completionKey);
+        expect("Code should not reach here").toBeNull();
+    } catch (result) {
+        checkResult(result, false);
+    }
 });
 
 test('bladeSdk.ethersSign', async () => {
@@ -716,12 +811,20 @@ test('bladeSdk.ethersSign', async () => {
     const signerAddress = ethers.utils.verifyMessage(message, result.data.signedMessage);
     expect(signerAddress).toEqual(ethers.utils.computeAddress(wallet.publicKey));
 
-    // invalid calls
-    result = await bladeSdk.ethersSign(messageString, "invalid privateKey", completionKey);
-    checkResult(result, false);
+    try {
+        // invalid calls
+        result = await bladeSdk.ethersSign(messageString, "invalid privateKey", completionKey);
+        expect("Code should not reach here").toBeNull();
+    } catch (result) {
+        checkResult(result, false);
+    }
 
-    result = await bladeSdk.ethersSign(123, privateKey, completionKey);
-    checkResult(result, false);
+    try {
+        result = await bladeSdk.ethersSign(123, privateKey, completionKey);
+        expect("Code should not reach here").toBeNull();
+    } catch (result) {
+        checkResult(result, false);
+    }
 });
 
 test('bladeSdk.splitSignature', async () => {
@@ -741,9 +844,13 @@ test('bladeSdk.splitSignature', async () => {
     const s: string = result.data.s;
     expect(signature).toEqual(ethers.utils.joinSignature({v, r, s}));
 
-    // invalid signature
-    result = await bladeSdk.splitSignature("invalid signature", completionKey);
-    checkResult(result, false);
+    try {
+        // invalid signature
+        result = await bladeSdk.splitSignature("invalid signature", completionKey);
+        expect("Code should not reach here").toBeNull();
+    } catch (result) {
+        checkResult(result, false);
+    }
 });
 
 test('bladeSdk.getParamsSignature', async () => {
@@ -764,9 +871,13 @@ test('bladeSdk.getParamsSignature', async () => {
     expect(result.data.r).toEqual("0x0c6e8f0487709cfc1ebbc41e47ce56aee5cf5bc933a4cd6cb2695b098dbe4ee4");
     expect(result.data.s).toEqual("0x22d0b6351670c37eb112ebd80123452237cb5c893767510a9356214189f6fe86");
 
-    // invalid paramsEncoded
-    result = await bladeSdk.getParamsSignature('[{{{{{{{{{{{"]', privateKey, completionKey);
-    checkResult(result, false);
+    try {
+        // invalid paramsEncoded
+        result = await bladeSdk.getParamsSignature('[{{{{{{{{{{{"]', privateKey, completionKey);
+        expect("Code should not reach here").toBeNull();
+    } catch (result) {
+        checkResult(result, false);
+    }
 });
 
 test('bladeSdk.getTransactions', async () => {
@@ -811,15 +922,18 @@ test('bladeSdk.getTransactions', async () => {
         expect(result.data.transactions[0].plainData).toHaveProperty("amount");
     }
 
-    // invalid accountId
-    result = await bladeSdk.getTransactions('0.dgsgsdgdsgdsgdsg', "", "", "5", completionKey);
-    checkResult(result, false);
+    try {
+        // invalid accountId
+        result = await bladeSdk.getTransactions('0.dgsgsdgdsgdsgdsg', "", "", "5", completionKey);
+        expect("Code should not reach here").toBeNull();
+    } catch (result) {
+        checkResult(result, false);
+    }
 
     // invalid tx
     result = await getTransaction(Network.Testnet, "wrong tx id", accountId);
     expect(Array.isArray(result));
     expect(result.length).toEqual(0)
-
 }, 30_000);
 
 test('bladeSdk.getC14url', async () => {
@@ -882,8 +996,12 @@ test('bladeSdk.getC14url', async () => {
         sdkVersion,
         completionKey);
 
+    try {
     result = await bladeSdk.getC14url("1b487a96-a14a-47d1-a1e0-09c18d409671", "0.0.13421", "10", completionKey);
-    checkResult(result, false);
+    expect("Code should not reach here").toBeNull();
+    } catch (result) {
+        checkResult(result, false);
+    }
 });
 
 test('bladeSdk.exchangeGetQuotes', async () => {
@@ -906,8 +1024,12 @@ test('bladeSdk.exchangeGetQuotes', async () => {
     result = await bladeSdk.exchangeGetQuotes("HBAR", 1500, "SAUCE", "Swap", completionKey);
     checkResult(result);
 
-    result = await bladeSdk.exchangeGetQuotes("aaaaaaa", 0, "bbbbbb", "FFFF", completionKey);
-    checkResult(result, false);
+    try {
+        result = await bladeSdk.exchangeGetQuotes("aaaaaaa", 0, "bbbbbb", "FFFF", completionKey);
+        expect("Code should not reach here").toBeNull();
+    } catch (result) {
+        checkResult(result, false);
+    }
 }, 50_000);
 
 test('bladeSdk.swapTokens', async () => {
@@ -933,17 +1055,21 @@ test('bladeSdk.swapTokens', async () => {
     );
     checkResult(result);
 
-    result = await bladeSdk.swapTokens(
-        process.env.ACCOUNT_ID_ED25519,
-        process.env.PRIVATE_KEY_ED25519,
-        "USDC",
-        0.00001,
-        "HBAR",
-        0.5,
-        "unknown-service-id",
-        completionKey
-    );
-    checkResult(result, false);
+    try {
+        result = await bladeSdk.swapTokens(
+            process.env.ACCOUNT_ID_ED25519,
+            process.env.PRIVATE_KEY_ED25519,
+            "USDC",
+            0.00001,
+            "HBAR",
+            0.5,
+            "unknown-service-id",
+            completionKey
+        );
+        expect("Code should not reach here").toBeNull();
+    } catch (result) {
+        checkResult(result, false);
+    }
 }, 60_000);
 
 test('bladeSdk.getTradeUrl', async () => {
@@ -967,8 +1093,12 @@ test('bladeSdk.getTradeUrl', async () => {
     checkResult(result);
     expect(result.data).toHaveProperty("url");
 
-    result = await bladeSdk.getTradeUrl("buy", accountId, "EUR", 50, "HBAR", 0.5, "unknown-service-id", redirectUrl, completionKey);
-    checkResult(result, false);
+    try {
+        result = await bladeSdk.getTradeUrl("buy", accountId, "EUR", 50, "HBAR", 0.5, "unknown-service-id", redirectUrl, completionKey);
+        expect("Code should not reach here").toBeNull();
+    } catch (result) {
+        checkResult(result, false);
+    }
 }, 30_000);
 
 // create token
@@ -1117,10 +1247,6 @@ test('bladeSdk.schedule', async () => {
 
     result = await bladeSdk.signScheduleId(scheduleId, accountId, privateKey, accountId2, false, completionKey);
     checkResult(result);
-
-
-
-
 }, 60_000);
 
 test('ParametersBuilder.defined', async () => {
@@ -1156,10 +1282,14 @@ test('ParametersBuilder.complicatedCheck', async () => {
     const paramsEncoded = params.encode();
     expect(paramsEncoded).toEqual(paramsEncodedExample);
 
-    let result = await bladeSdk.contractCallFunction(contractId, "set_message", paramsEncoded, accountId, privateKey, 100000, false, completionKey);
-    checkResult(result, false);
-    expect(result.error.reason.includes("CONTRACT_REVERT_EXECUTED")).toEqual(true);
-
+    let result;
+    try {
+        result = await bladeSdk.contractCallFunction(contractId, "set_message", paramsEncoded, accountId, privateKey, 100000, false, completionKey);
+        expect("Code should not reach here").toBeNull();
+    } catch (result) {
+        checkResult(result, false);
+        expect(result.error.reason.includes("CONTRACT_REVERT_EXECUTED")).toEqual(true);
+    }
 
     const message = `Sum test ${Math.random()}`;
     const num1 = 7;

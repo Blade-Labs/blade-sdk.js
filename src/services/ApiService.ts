@@ -13,6 +13,7 @@ import {
 } from "../models/MirrorNode";
 import {
     ApiAccount,
+    BalanceData,
     BladeConfig,
     CoinData,
     CoinInfoRaw,
@@ -362,8 +363,8 @@ export const getTokenAssociateTransactionForAccount = async (
         .then((x) => x.json());
 };
 
-export const getAccountBalance = async (accountId: string) => {
-    const account = await GET(network, `/accounts/${accountId}`);
+export const getAccountBalance = async (accountId: string): Promise<BalanceData> => {
+    const account = await getAccountInfo(network, accountId); // GET(network, `/accounts/${accountId}`);
     const tokens = await getAccountTokens(accountId);
     return {
         hbars: account.balance.balance / 10 ** 8,
@@ -417,7 +418,7 @@ export const getCoinInfo = async (coinId: string, params: any): Promise<CoinData
 };
 
 const getAccountTokens = async (accountId: string) => {
-    const result = [];
+    const result: {tokenId: string; balance: number}[] = [];
     let nextPage = `/accounts/${accountId}/tokens`;
     while (nextPage != null) {
         const response = await GET(network, nextPage);
