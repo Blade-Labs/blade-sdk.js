@@ -158,17 +158,19 @@ export class BladeSDK {
      * @param apiKey Unique key for API provided by Blade team.
      * @param network "Mainnet" or "Testnet" of Hedera network
      * @param dAppCode your dAppCode - request specific one by contacting us
-     * @param visitorId client unique id. If not provided, SDK will try to get it using fingerprintjs-pro library
-     * @param sdkEnvironment environment to choose BladeAPI server (Prod, CI)
-     * @param sdkVersion used for header X-SDK-VERSION
+     * @param visitorId optional field to set client unique id. SDK will try to get it using fingerprintjs-pro library by default.
+     * @param sdkEnvironment optional filed to set BladeAPI environment (Prod, CI). Prod used by default.
+     * @param sdkVersion optional field, used for header X-SDK-VERSION
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {InfoData} status: "success" or "error"
+     * @example
+     * const info = await bladeSdk.init("apiKey", "Mainnet", "dAppCode");
      */
     async init(
         apiKey: string,
         network: string,
         dAppCode: string,
-        visitorId: string,
+        visitorId: string = "",
         sdkEnvironment: SdkEnvironment = SdkEnvironment.Prod,
         sdkVersion: string = config.sdkVersion,
         completionKey?: string
@@ -232,6 +234,8 @@ export class BladeSDK {
     /**
      * Returns information about initialized instance of BladeSDK.
      * @returns {InfoData}
+     * @example
+     * const info = bladeSdk.getInfo();
      */
     getInfo(completionKey?: string): InfoData {
         return this.sendMessageToNative(completionKey, {
@@ -263,9 +267,9 @@ export class BladeSDK {
      *
      * @example
      * // Set account for Hedera provider
-     * await setUser(AccountProvider.Hedera, "0.0.45467464", "302e020100300506032b6570042204204323472EA5374E80B07346243234DEADBEEF25235235...");
+     * const userInfo = await bladeSdk.setUser(AccountProvider.Hedera, "0.0.45467464", "302e020100300506032b6570042204204323472EA5374E80B07346243234DEADBEEF25235235...");
      * // Set account for Magic provider
-     * await setUser(AccountProvider.Magic, "your_email@domain.com", "");
+     * const userInfo = await bladeSdk.setUser(AccountProvider.Magic, "your_email@domain.com", "");
      */
     async setUser(
         accountProvider: AccountProvider,
@@ -335,6 +339,9 @@ export class BladeSDK {
     /**
      * Clears current user credentials.
      * @param completionKey optional field bridge between mobile webViews and native apps
+     * @returns {success: boolean}
+     * @example
+     * const result = await bladeSdk.resetUser();
      */
     async resetUser(completionKey?: string): Promise<{ success: boolean }> {
         try {
@@ -363,6 +370,8 @@ export class BladeSDK {
      * @param accountId Hedera account id (0.0.xxxxx)
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {BalanceData} hbars: number, tokens: [{tokenId: string, balance: number}]
+     * @example
+     * const balance = await bladeSdk.getBalance("0.0.45467464");
      */
     async getBalance(accountId: string, completionKey?: string): Promise<BalanceData> {
         try {
@@ -379,6 +388,8 @@ export class BladeSDK {
      * Get list of all available coins on CoinGecko.
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {CoinListData}
+     * @example
+     * const coinList = await bladeSdk.getCoinList();
      */
     async getCoinList(completionKey?: string): Promise<CoinListData> {
         try {
@@ -412,6 +423,8 @@ export class BladeSDK {
      * @param currency currency to get price in (usd, eur, etc.)
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {CoinInfoData}
+     * @example
+     * const coinInfo = await bladeSdk.getCoinPrice("hedera-hashgraph", "usd");
      */
     async getCoinPrice(
         search: string = "hbar",
@@ -463,6 +476,8 @@ export class BladeSDK {
      * @param memo transaction memo
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns Promise<TransactionReceiptData>
+     * @example
+     * const receipt = await bladeSdk.transferHbars("0.0.10001", "302e020100300506032b65700422042043234DEADBEEF255...", "0.0.10002", "1.0", "test memo");
      */
     async transferHbars(
         accountId: string,
@@ -506,9 +521,14 @@ export class BladeSDK {
      * @param accountId - operator account id (0.0.xxxxx)
      * @param accountPrivateKey - operator's hex-encoded private key with DER-header, ECDSA or Ed25519
      * @param gas - gas limit for the transaction
-     * @param bladePayFee - if true, fee will be paid by Blade (note: msg.sender inside the contract will be Blade Payer account)
+     * @param usePaymaster - if true, fee will be paid by Paymaster account (note: msg.sender inside the contract will be Paymaster account)
      * @param completionKey - optional field bridge between mobile webViews and native apps
      * @returns {TransactionReceiptData}
+     * @example
+     * const params = new ParametersBuilder().addString("Hello");
+     * const contractId = "0.0.123456";
+     * const gas = 100000;
+     * const receipt = await bladeSdk.contractCallFunction(contractId, "set_message", params, "0.0.10001", "302e020100300506032b65700422042043234DEADBEEF255...", gas, false);
      */
     async contractCallFunction(
         contractId: string,
@@ -517,18 +537,18 @@ export class BladeSDK {
         accountId: string,
         accountPrivateKey: string,
         gas: number = 100000,
-        bladePayFee: boolean = false,
+        usePaymaster: boolean = false,
         completionKey?: string
     ): Promise<TransactionReceiptData> {
         try {
             if (accountId && accountPrivateKey) {
                 await this.setUser(AccountProvider.Hedera, accountId, accountPrivateKey);
             }
-            bladePayFee = bladePayFee && (await getConfig("smartContract")).toLowerCase() === "true";
+            usePaymaster = usePaymaster && (await getConfig("smartContract")).toLowerCase() === "true";
             const contractFunctionParameters = await getContractFunctionBytecode(functionName, paramsEncoded);
 
             let transaction: Transaction;
-            if (bladePayFee) {
+            if (usePaymaster) {
                 const options = {
                     dAppCode: this.dAppCode,
                     visitorId: this.visitorId,
@@ -572,10 +592,15 @@ export class BladeSDK {
      * @param accountId - operator account id (0.0.xxxxx)
      * @param accountPrivateKey - operator's hex-encoded private key with DER-header, ECDSA or Ed25519
      * @param gas - gas limit for the transaction
-     * @param bladePayFee - if true, fee will be paid by Blade (note: msg.sender inside the contract will be Blade Payer account)
+     * @param usePaymaster - if true, fee will be paid by paymaster account (note: msg.sender inside the contract will be Paymaster account)
      * @param resultTypes - array of result types. Currently supported only plain data types
      * @param completionKey - optional field bridge between mobile webViews and native apps
      * @returns {ContractCallQueryRecordsData}
+     * @example
+     * const params = new ParametersBuilder();
+     * const contractId = "0.0.123456";
+     * const gas = 100000;
+     * const result = await bladeSdk.contractCallQueryFunction(contractId, "get_message", params, "0.0.10001", "302e020100300506032b65700422042043234DEADBEEF255...", gas, false, ["string"]);
      */
     async contractCallQueryFunction(
         contractId: string,
@@ -584,7 +609,7 @@ export class BladeSDK {
         accountId: string,
         accountPrivateKey: string,
         gas: number = 100000,
-        bladePayFee: boolean = false,
+        usePaymaster: boolean = false,
         resultTypes: string[],
         completionKey?: string
     ): Promise<ContractCallQueryRecordsData> {
@@ -595,7 +620,7 @@ export class BladeSDK {
             const contractFunctionParameters = await getContractFunctionBytecode(functionName, paramsEncoded);
             let response: ContractFunctionResult;
             try {
-                if (bladePayFee) {
+                if (usePaymaster) {
                     const options = {
                         dAppCode: this.dAppCode,
                         visitorId: this.visitorId,
@@ -653,9 +678,11 @@ export class BladeSDK {
      * @param receiverID receiver account id (0.0.xxxxx)
      * @param amountOrSerial amount of fungible tokens to send (with token-decimals correction) on NFT serial number
      * @param memo transaction memo
-     * @param freeTransfer if true, Blade will pay fee transaction. Only for single dApp configured fungible-token. In that case tokenId not used
+     * @param usePaymaster if true, Paymaster account will pay fee transaction. Only for single dApp configured fungible-token. In that case tokenId not used
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns Promise<TransactionReceiptData>
+     * @example
+     * const receipt = await bladeSdk.transferTokens("0.0.1337", "0.0.10001", "302e020100300506032b65700422042043234DEADBEEF255...", "0.0.10002", "1.0", "test memo", false);
      */
     async transferTokens(
         tokenId: string,
@@ -664,7 +691,7 @@ export class BladeSDK {
         receiverID: string,
         amountOrSerial: string,
         memo: string,
-        freeTransfer: boolean = false,
+        usePaymaster: boolean = false,
         completionKey?: string
     ): Promise<TransactionReceiptData> {
         try {
@@ -677,13 +704,13 @@ export class BladeSDK {
             let isNFT = false;
             if (meta.type === "NON_FUNGIBLE_UNIQUE") {
                 isNFT = true;
-                freeTransfer = false;
+                usePaymaster = false;
             }
-            freeTransfer = freeTransfer && (await getConfig("freeTransfer")).toLowerCase() === "true";
+            usePaymaster = usePaymaster && (await getConfig("freeTransfer")).toLowerCase() === "true";
 
             const correctedAmount = parseFloat(amountOrSerial) * 10 ** parseInt(meta.decimals, 10);
 
-            if (freeTransfer) {
+            if (usePaymaster) {
                 const options = {
                     dAppCode: this.dAppCode,
                     visitorId: this.visitorId,
@@ -743,15 +770,49 @@ export class BladeSDK {
      * @param accountPrivateKey optional field if you need specify account key (hex encoded privateKey with DER-prefix)
      * @param type schedule transaction type (currently only TRANSFER supported)
      * @param transfers array of transfers to schedule (HBAR, FT, NFT)
-     * @param freeSchedule if true, Blade will pay transaction fee (also dApp had to be configured for free schedules)
+     * @param usePaymaster if true, Paymaster account will pay transaction fee (also dApp had to be configured for free schedules)
      * @param completionKey optional field bridge between mobile webViews and native apps
+     * @returns {scheduleId: string}
+     * @example
+     * const receiverAccountId = "0.0.10001";
+     * const receiverAccountPrivateKey = "302e020100300506032b65700422042043234DEADBEEF255...";
+     * const senderAccountId = "0.0.10002";
+     * const tokenId = "0.0.1337";
+     * const nftId = "0.0.1234";
+     * const {scheduleId} = await bladeSdk.createScheduleTransaction(
+     *     receiverAccountId,
+     *     receiverAccountPrivateKey,
+     *     "TRANSFER", [
+     *         {
+     *             type: "HBAR",
+     *             sender: senderAccountId,
+     *             receiver: receiverAccountId,
+     *             value: 1 * 10**8,
+     *         },
+     *         {
+     *             type: "FT",
+     *             sender: senderAccountId,
+     *             receiver: receiverAccountId,
+     *             tokenId: tokenId,
+     *             value: 1
+     *         },
+     *         {
+     *             type: "NFT",
+     *             sender: senderAccountId,
+     *             receiver: receiverAccountId,
+     *             tokenId: nftId,
+     *             serial: 4
+     *         },
+     *     ],
+     *     false
+     * );
      */
     async createScheduleTransaction(
         accountId: string,
         accountPrivateKey: string,
         type: ScheduleTransactionType,
         transfers: ScheduleTransactionTransfer[],
-        freeSchedule: boolean = false,
+        usePaymaster: boolean = false,
         completionKey?: string
     ): Promise<{ scheduleId: string }> {
         try {
@@ -759,8 +820,8 @@ export class BladeSDK {
                 await this.setUser(AccountProvider.Hedera, accountId, accountPrivateKey);
             }
 
-            freeSchedule = freeSchedule && (await getConfig("freeSchedules")).toLowerCase() === "true";
-            if (freeSchedule) {
+            usePaymaster = usePaymaster && (await getConfig("freeSchedules")).toLowerCase() === "true";
+            if (usePaymaster) {
                 const result = await createScheduleRequest(this.network, type, transfers);
                 return this.sendMessageToNative(completionKey, result);
             } else {
@@ -834,16 +895,22 @@ export class BladeSDK {
      * @param accountId account id (0.0.xxxxx)
      * @param accountPrivateKey optional field if you need specify account key (hex encoded privateKey with DER-prefix)
      * @param receiverAccountId account id of receiver for additional validation in case of dApp freeSchedule transactions configured
-     * @param freeSchedule if true, Blade will pay transaction fee (also dApp had to be configured for free schedules)
+     * @param usePaymaster if true, Paymaster account will pay transaction fee (also dApp had to be configured for free schedules)
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {TransactionReceiptData}
+     * @example
+     * const scheduleId = "0.0.754583634";
+     * const senderAccountId = "0.0.10002";
+     * const senderAccountPrivateKey = "302e020100300506032b65700422042043234DEADBEEF255...";
+     * const receiverAccountId = "0.0.10001";
+     * const receipt = await bladeSdk.signScheduleId(scheduleId, senderAccountId, senderAccountPrivateKey, receiverAccountId, false);
      */
     async signScheduleId(
         scheduleId: string,
         accountId: string,
         accountPrivateKey: string,
         receiverAccountId?: string,
-        freeSchedule: boolean = false,
+        usePaymaster: boolean = false,
         completionKey?: string
     ): Promise<TransactionReceiptData> {
         try {
@@ -851,8 +918,8 @@ export class BladeSDK {
                 await this.setUser(AccountProvider.Hedera, accountId, accountPrivateKey);
             }
 
-            freeSchedule = freeSchedule && (await getConfig("freeSchedules")).toLowerCase() === "true";
-            if (freeSchedule) {
+            usePaymaster = usePaymaster && (await getConfig("freeSchedules")).toLowerCase() === "true";
+            if (usePaymaster) {
                 if (!receiverAccountId) {
                     throw new Error("Receiver account id required for free schedule transaction");
                 }
@@ -895,6 +962,8 @@ export class BladeSDK {
      * @param deviceId optional field for headers for backend check
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {CreateAccountData}
+     * @example
+     * const account = await bladeSdk.createAccount();
      */
     async createAccount(privateKey?: string, deviceId?: string, completionKey?: string): Promise<CreateAccountData> {
         try {
@@ -973,6 +1042,12 @@ export class BladeSDK {
      * @param mnemonic returned from `createAccount()` method
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {CreateAccountData}
+     * @example
+     * const account = await bladeSdk.createAccount();
+     * if (account.status === "PENDING") {
+     *   // wait some time and call getPendingAccount method
+     *   account = await bladeSdk.getPendingAccount(account.transactionId, account.seedPhrase);
+     * }
      */
     async getPendingAccount(
         transactionId: string,
@@ -1047,6 +1122,8 @@ export class BladeSDK {
      * @param operatorPrivateKey operator's account private key (DER encoded hex string)
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {TransactionReceiptData}
+     * @example
+     * const receipt = await bladeSdk.deleteAccount(accountToDelete.accountId, accountToDelete.privateKey, "0.0.10001", "0.0.10001", "302e020100300506032b65700422042043234DEADBEEF255...");
      */
     async deleteAccount(
         deleteAccountId: string,
@@ -1083,6 +1160,8 @@ export class BladeSDK {
      * @param accountId Hedera account id (0.0.xxxxx)
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {AccountInfoData}
+     * @example
+     * const accountInfo = await bladeSdk.getAccountInfo("0.0.10001");
      */
     async getAccountInfo(accountId: string, completionKey?: string): Promise<AccountInfoData> {
         try {
@@ -1115,6 +1194,8 @@ export class BladeSDK {
      * Get Node list
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {nodes: NodeList[]}
+     * @example
+     * const nodeList = await bladeSdk.getNodeList();
      */
     async getNodeList(completionKey?: string): Promise<{ nodes: NodeInfo[] }> {
         try {
@@ -1132,6 +1213,8 @@ export class BladeSDK {
      * @param nodeId node id to stake to. If negative or null, account will be unstaked
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {TransactionReceiptData}
+     * @example
+     * const receipt = await bladeSdk.stakeToNode("0.0.10001", "302e020100300506032b65700422042043234DEADBEEF255...", 3);
      */
     async stakeToNode(
         accountId: string,
@@ -1177,6 +1260,8 @@ export class BladeSDK {
      * @param lookupNames if true, get accountIds from mirror node by public key
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {PrivateKeyData}
+     * @example
+     * const result = await bladeSdk.getKeysFromMnemonic("purity slab doctor swamp tackle rebuild summer bean craft toddler blouse switch");
      */
     async getKeysFromMnemonic(
         mnemonicRaw: string,
@@ -1204,6 +1289,9 @@ export class BladeSDK {
      * @param keyOrMnemonic BIP39 mnemonic, private key with DER header
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {AccountPrivateData}
+     * @example
+     * const resultKey = await bladeSdk.searchAccounts("302e020100300506032b65700422042043234DEADBEEF255...");
+     * const resultSeed = await bladeSdk.searchAccounts("purity slab doctor swamp tackle rebuild summer bean craft toddler blouse switch");
      */
     async searchAccounts(keyOrMnemonic: string, completionKey?: string): Promise<AccountPrivateData> {
         try {
@@ -1229,6 +1317,8 @@ export class BladeSDK {
      * @param secretNonce configured for dApp. Should be kept in secret
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {TokenDropData}
+     * @example
+     * const drop = await bladeSdk.dropTokens("0.0.10001", "302e020100300506032b65700422042043234DEADBEEF255...", "secret-nonce");
      */
     async dropTokens(
         accountId: string,
@@ -1263,6 +1353,8 @@ export class BladeSDK {
      * @param privateKey hex-encoded private key with DER header
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {SignMessageData}
+     * @example
+     * const signed = await bladeSdk.sign(btoa("Hello"), "302e020100300506032b65700422042043234DEADBEEF255...");
      */
     sign(messageString: string, privateKey: string, completionKey?: string): SignMessageData {
         try {
@@ -1284,6 +1376,10 @@ export class BladeSDK {
      * @param publicKey hex-encoded public key with DER header
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {SignVerifyMessageData}
+     * @example
+     * const signature = "27cb9d51434cf1e76d7ac515b19442c619f641e6fccddbf4a3756b14466becb6992dc1d2a82268018147141fc8d66ff9ade43b7f78c176d070a66372d655f942";
+     * const publicKey = "302d300706052b8104000a032200029dc73991b0d9cdbb59b2cd0a97a0eaff6de...";
+     * const valid = await bladeSdk.signVerify(btoa("Hello"), signature, publicKey);
      */
     signVerify(
         messageString: string,
@@ -1308,6 +1404,8 @@ export class BladeSDK {
      * @param privateKey hex-encoded private key with DER header
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {SignMessageData}
+     * @example
+     * const signed = await bladeSdk.ethersSign(btoa("Hello"), "302e020100300506032b65700422042043234DEADBEEF255...");
      */
     ethersSign(messageString: string, privateKey: string, completionKey?: string): Promise<SignMessageData> {
         try {
@@ -1328,6 +1426,9 @@ export class BladeSDK {
      * @param signature hex-encoded signature
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {SplitSignatureData}
+     * @example
+     * const signature = "27cb9d51434cf1e76d7ac515b19442c619f641e6fccddbf4a3756b14466becb6992dc1d2a82268018147141fc8d66ff9ade43b7f78c176d070a66372d655f942";
+     * const {v, r, s} = await bladeSdk.splitSignature(signature);
      */
     splitSignature(signature: string, completionKey?: string): SplitSignatureData {
         try {
@@ -1344,6 +1445,9 @@ export class BladeSDK {
      * @param privateKey - signer private key (hex-encoded with DER header)
      * @param completionKey - optional field bridge between mobile webViews and native apps
      * @returns {SplitSignatureData}
+     * @example
+     * const params = new ParametersBuilder().addAddress(accountId).addString("Hello");
+     * const result = await bladeSdk.getParamsSignature(params, "302e020100300506032b65700422042043234DEADBEEF255...");
      */
     async getParamsSignature(
         paramsEncoded: string | ParametersBuilder,
@@ -1377,6 +1481,8 @@ export class BladeSDK {
      * @param transactionsLimit number of transactions to return. Speed of request depends on this value if transactionType is set.
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {TransactionsHistoryData}
+     * @example
+     * const transactions = await bladeSdk.getTransactions("0.0.10001");
      */
     async getTransactions(
         accountId: string,
@@ -1409,6 +1515,8 @@ export class BladeSDK {
      * @param amount preset amount. May be overwritten if out of range (min/max)
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {IntegrationUrlData}
+     * @example
+     * const {url} = await bladeSdk.getC14url("HBAR", "0.0.10001", "100");
      */
     async getC14url(
         asset: string,
@@ -1487,6 +1595,8 @@ export class BladeSDK {
      * @param strategy one of enum CryptoFlowServiceStrategy (Buy, Sell, Swap)
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {SwapQuotesData}
+     * @example
+     * const quotes = await bladeSdk.exchangeGetQuotes("EUR", 100, "HBAR", CryptoFlowServiceStrategy.BUY);
      */
     async exchangeGetQuotes(
         sourceCode: string,
@@ -1581,6 +1691,8 @@ export class BladeSDK {
      * @param serviceId service id to use for swap (saucerswap, etc)
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {success: boolean}
+     * @example
+     * const result = await bladeSdk.swapTokens("0.0.10001", "302e020100300506032b65700422042043234DEADBEEF255...", "HBAR", 1, "SAUCE", 0.5, "saucerswapV2");
      */
     async swapTokens(
         accountId: string,
@@ -1703,6 +1815,8 @@ export class BladeSDK {
      * @param redirectUrl url to redirect after final step
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {IntegrationUrlData}
+     * @example
+     * const {url} = await bladeSdk.getTradeUrl(CryptoFlowServiceStrategy.BUY, "0.0.10001", "EUR", 50, "HBAR", 0.5, "saucerswapV2", redirectUrl);
      */
     async getTradeUrl(
         strategy: CryptoFlowServiceStrategy,
@@ -1786,6 +1900,25 @@ export class BladeSDK {
      * @param maxSupply token max supply
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {tokenId: string}
+     * @example
+     * const keys: KeyRecord[] = [
+     *     {type: KeyType.admin, privateKey: adminKey},
+     *     {type: KeyType.wipe, privateKey: wipeKey},
+     *     {type: KeyType.pause, privateKey: pauseKey},
+     * ];
+     * const treasuryAccountId = "0.0.10001";
+     * const supplyKey = "302e020100300506032b65700422042043234DEADBEEF255...";
+     * const result = await bladeSdk.createToken(
+     *     treasuryAccountId, // treasuryAccountId
+     *     supplyKey, // supplyPrivateKey
+     *     tokenName,
+     *     tokenSymbol,
+     *     true, // isNft
+     *     keys,
+     *     0, // decimals
+     *     0, // initialSupply
+     *     250, // maxSupply
+     * );
      */
     async createToken(
         treasuryAccountId: string,
@@ -1881,6 +2014,9 @@ export class BladeSDK {
      * @param accountId account id to associate token
      * @param accountPrivateKey account private key
      * @param completionKey optional field bridge between mobile webViews and native apps
+     * @returns {TransactionReceiptData}
+     * @example
+     * const result = await bladeSdk.associateToken("0.0.1337", "0.0.10001", "302e020100300506032b65700422042043234DEADBEEF255...");
      */
     async associateToken(
         tokenId: string,
@@ -1937,6 +2073,23 @@ export class BladeSDK {
      * @param metadata NFT metadata (JSON object)
      * @param storageConfig {NFTStorageConfig} IPFS provider config
      * @param completionKey optional field bridge between mobile webViews and native apps
+     * @returns {TransactionReceiptData}
+     * @example
+     * const receipt = await bladeSdk.nftMint(
+     *     tokenId,
+     *     treasuryAccountId,
+     *     supplyKey,
+     *     "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAARUlEQVR42u3PMREAAAgEIO1fzU5vBlcPGtCVTD3QIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIXCyqyi6fIALs1AAAAAElFTkSuQmCC", // TODO upload file base64
+     *     {
+     *         author: "GaryDu",
+     *         other: "metadata",
+     *         some: "more properties"
+     *     },
+     *     {
+     *         provider: NFTStorageProvider.nftStorage,
+     *         apiKey: nftStorageApiKey,
+     *     }
+     * );
      */
     async nftMint(
         tokenId: string,
@@ -2016,6 +2169,8 @@ export class BladeSDK {
      * @param serial serial number for NFT
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {TokenInfoData}
+     * @example
+     * const tokenInfo = await bladeSdk.getTokenInfo("0.0.1234", "3");
      */
     async getTokenInfo(tokenId: string, serial: string = "", completionKey?: string): Promise<TokenInfoData> {
         try {
