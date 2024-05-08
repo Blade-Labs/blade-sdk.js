@@ -332,6 +332,10 @@ export class BladeSDK {
         }
     }
 
+    /**
+     * Clears current user credentials.
+     * @param completionKey optional field bridge between mobile webViews and native apps
+     */
     async resetUser(completionKey?: string): Promise<{ success: boolean }> {
         try {
             this.userPublicKey = "";
@@ -371,6 +375,11 @@ export class BladeSDK {
         }
     }
 
+    /**
+     * Get list of all available coins on CoinGecko.
+     * @param completionKey optional field bridge between mobile webViews and native apps
+     * @returns {CoinListData}
+     */
     async getCoinList(completionKey?: string): Promise<CoinListData> {
         try {
             const coinList: CoinInfoRaw[] = await getCoins({
@@ -397,6 +406,13 @@ export class BladeSDK {
         }
     }
 
+    /**
+     * Get coin price and coin info from CoinGecko. Search can be coin id or address in one of the coin platforms.
+     * @param search coin alias (get one using getCoinList method)
+     * @param currency currency to get price in (usd, eur, etc.)
+     * @param completionKey optional field bridge between mobile webViews and native apps
+     * @returns {CoinInfoData}
+     */
     async getCoinPrice(
         search: string = "hbar",
         currency: string = "usd",
@@ -492,7 +508,7 @@ export class BladeSDK {
      * @param gas - gas limit for the transaction
      * @param bladePayFee - if true, fee will be paid by Blade (note: msg.sender inside the contract will be Blade Payer account)
      * @param completionKey - optional field bridge between mobile webViews and native apps
-     * @returns {Partial<TransactionReceipt>}
+     * @returns {TransactionReceiptData}
      */
     async contractCallFunction(
         contractId: string,
@@ -1994,6 +2010,13 @@ export class BladeSDK {
         }
     }
 
+    /**
+     * Get token info. Fungible or NFT. Also get NFT metadata if serial provided
+     * @param tokenId token id
+     * @param serial serial number for NFT
+     * @param completionKey optional field bridge between mobile webViews and native apps
+     * @returns {TokenInfoData}
+     */
     async getTokenInfo(tokenId: string, serial: string = "", completionKey?: string): Promise<TokenInfoData> {
         try {
             const token = await requestTokenInfo(this.network, tokenId);
