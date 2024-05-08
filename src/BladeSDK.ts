@@ -102,6 +102,7 @@ import {
     TransactionReceiptData,
     TransactionsHistoryData,
     UserInfo,
+    UserInfoData,
 } from "./models/Common";
 import config from "./config";
 import { executeUpdateAccountTransactions } from "./helpers/AccountHelpers";
@@ -244,12 +245,34 @@ export class BladeSDK {
         });
     }
 
+    /**
+     * Set account for further operations.
+     * Currently supported two account providers: Hedera and Magic.
+     * Hedera: pass accountId and privateKey as hex-encoded strings with DER-prefix (302e020100300506032b657004220420...)
+     * Magic: pass email to accountIdOrEmail and empty string as privateKey. SDK will handle Magic authentication, and finish after user click on confirmation link in email.
+     * After successful authentication, SDK will store public and private keys in memory and use them for further operations.
+     * After that in each method call provide empty strings to accountId and accountPrivateKey. Otherwise, SDK will override current user with provided credentials as Hedera provider.
+     * In case of calling method with `accountId` and `accountPrivateKey` arguments, SDK will override current user with this credentials.
+     * It's optional method, you can pass accountId and accountPrivateKey in each method call. In further releases this method will be mandatory.
+     *
+     * @param accountProvider Account provider (Hedera or Magic)
+     * @param accountIdOrEmail Hedera account id (0.0.xxxxx) or Magic email
+     * @param privateKey private key with DER-prefix (302e020100300506032b657004220420...) or empty string for Magic provider
+     * @param completionKey optional field bridge between mobile webViews and native apps
+     * @returns {UserInfoData}
+     *
+     * @example
+     * // Set account for Hedera provider
+     * await setUser(AccountProvider.Hedera, "0.0.45467464", "302e020100300506032b6570042204204323472EA5374E80B07346243234DEADBEEF25235235...");
+     * // Set account for Magic provider
+     * await setUser(AccountProvider.Magic, "your_email@domain.com", "");
+     */
     async setUser(
         accountProvider: AccountProvider,
         accountIdOrEmail: string,
         privateKey?: string,
         completionKey?: string
-    ): Promise<{ accountId: string; accountProvider: AccountProvider }> {
+    ): Promise<UserInfoData> {
         try {
             switch (accountProvider) {
                 case AccountProvider.Hedera:
@@ -296,8 +319,10 @@ export class BladeSDK {
             return this.sendMessageToNative(completionKey, {
                 accountId: this.userAccountId,
                 accountProvider: this.accountProvider,
+                userPrivateKey: this.userPrivateKey,
+                userPublicKey: this.userPublicKey
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
             this.userAccountId = "";
             this.userPrivateKey = "";
             this.userPublicKey = "";
@@ -2025,9 +2050,9 @@ export class BladeSDK {
     /**
      * Message that sends response back to native handler
      */
-    private sendMessageToNative(
+    private sendMessageToNative<T>(
         completionKey: string | undefined,
-        data: unknown,
+        data: T,
         error: Partial<CustomError> | null = null
     ): any {
         if (!this.webView || !completionKey) {
@@ -2038,7 +2063,7 @@ export class BladeSDK {
         }
 
         // web-view bridge response
-        const responseObject: BridgeResponse = {
+        const responseObject: BridgeResponse<T> = {
             completionKey: completionKey || "",
             data,
         };

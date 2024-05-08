@@ -151,9 +151,9 @@ export interface NFTStorageConfig {
     apiKey: string;
 }
 
-export interface BridgeResponse {
+export interface BridgeResponse<T> {
     completionKey: string;
-    data: any;
+    data: T;
     error?: any;
 }
 
@@ -207,6 +207,13 @@ export interface AccountInfoData {
 
 export interface AccountPrivateData {
     accounts: AccountPrivateRecord[];
+}
+
+export interface UserInfoData {
+    accountId: string;
+    accountProvider: AccountProvider | null;
+    userPrivateKey: string;
+    userPublicKey: string;
 }
 
 export interface AccountPrivateRecord {
