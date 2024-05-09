@@ -1594,7 +1594,7 @@ export class BladeSDK {
     }
 
     /**
-     * Get swap quotes from different services
+     * Get quotes from different services for buy, sell or swap
      * @param sourceCode name (HBAR, KARATE, other token code)
      * @param sourceAmount amount to swap, buy or sell
      * @param targetCode name (HBAR, KARATE, USDC, other token code)
