@@ -1,7 +1,7 @@
 import { MirrorNodeTransactionType } from "./TransactionType";
 import { Network } from "./Networks";
 import { ICryptoFlowQuote } from "./CryptoFlow";
-import { NftInfo, NftMetadata, TokenInfo } from "./MirrorNode";
+import {NftInfo, NftMetadata, NodeInfo, TokenInfo} from "./MirrorNode";
 import { Signer } from "@hashgraph/sdk";
 
 export enum SdkEnvironment {
@@ -217,6 +217,22 @@ export interface UserInfoData {
     accountProvider: AccountProvider | null;
     userPrivateKey: string;
     userPublicKey: string;
+}
+
+export interface StatusResult {
+    success: boolean
+}
+
+export interface ScheduleResult {
+    scheduleId: string;
+}
+
+export interface NodeListData {
+    nodes: NodeInfo[];
+}
+
+export interface CreateTokenResult {
+    tokenId: string;
 }
 
 export interface AccountPrivateRecord {

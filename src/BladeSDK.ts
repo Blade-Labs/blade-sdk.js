@@ -79,6 +79,7 @@ import {
     CoinListData,
     ContractCallQueryRecordsData,
     CreateAccountData,
+    CreateTokenResult,
     CryptoKeyType,
     InfoData,
     IntegrationUrlData,
@@ -88,7 +89,9 @@ import {
     KnownChainIds,
     NFTStorageConfig,
     NFTStorageProvider,
+    NodeListData,
     PrivateKeyData,
+    ScheduleResult,
     ScheduleTransactionTransfer,
     ScheduleTransactionType,
     ScheduleTransferType,
@@ -96,6 +99,7 @@ import {
     SignMessageData,
     SignVerifyMessageData,
     SplitSignatureData,
+    StatusResult,
     SwapQuotesData,
     TokenDropData,
     TokenInfoData,
@@ -157,9 +161,9 @@ export class BladeSDK {
      * Inits instance of BladeSDK for correct work with Blade API and Hedera network.
      * @param apiKey Unique key for API provided by Blade team.
      * @param network "Mainnet" or "Testnet" of Hedera network
-     * @param dAppCode your dAppCode - request specific one by contacting us
+     * @param dAppCode your dAppCode - request specific one by contacting Bladelabs team
      * @param visitorId optional field to set client unique id. SDK will try to get it using fingerprintjs-pro library by default.
-     * @param sdkEnvironment optional filed to set BladeAPI environment (Prod, CI). Prod used by default.
+     * @param sdkEnvironment optional field to set BladeAPI environment (Prod, CI). Prod used by default.
      * @param sdkVersion optional field, used for header X-SDK-VERSION
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {InfoData} status: "success" or "error"
@@ -232,7 +236,9 @@ export class BladeSDK {
     }
 
     /**
-     * Returns information about initialized instance of BladeSDK.
+     * This method returns basic params of initialized instance of BladeSDK. This params may useful for support.
+     * Returned object likely will contain next fields: `apiKey`, `dAppCode`, `network`, `visitorId`, `sdkEnvironment`, `sdkVersion`, `nonce`
+     * In case of support please not provide full apiKey, limit yourself to the part of the code that includes a few characters at the beginning and at the end (eg. `AdR3....BFgd`)
      * @returns {InfoData}
      * @example
      * const info = bladeSdk.getInfo();
@@ -339,11 +345,11 @@ export class BladeSDK {
     /**
      * Clears current user credentials.
      * @param completionKey optional field bridge between mobile webViews and native apps
-     * @returns {success: boolean}
+     * @returns {StatusResult}
      * @example
      * const result = await bladeSdk.resetUser();
      */
-    async resetUser(completionKey?: string): Promise<{ success: boolean }> {
+    async resetUser(completionKey?: string): Promise<StatusResult> {
         try {
             this.userPublicKey = "";
             this.userPrivateKey = "";
@@ -472,10 +478,10 @@ export class BladeSDK {
      * @param accountId sender account id (0.0.xxxxx)
      * @param accountPrivateKey sender's hex-encoded private key with DER-header (302e020100300506032b657004220420...). ECDSA or Ed25519
      * @param receiverId receiver account id (0.0.xxxxx)
-     * @param amount of hbars to send (decimal number)
+     * @param amount amount of hbars to send (decimal number)
      * @param memo transaction memo
      * @param completionKey optional field bridge between mobile webViews and native apps
-     * @returns Promise<TransactionReceiptData>
+     * @returns {TransactionReceiptData}
      * @example
      * const receipt = await bladeSdk.transferHbars("0.0.10001", "302e020100300506032b65700422042043234DEADBEEF255...", "0.0.10002", "1.0", "test memo");
      */
@@ -514,15 +520,15 @@ export class BladeSDK {
     }
 
     /**
-     * Call contract function. Directly or via Blade Payer account (fee will be paid by Blade), depending on your dApp configuration.
-     * @param contractId - contract id (0.0.xxxxx)
-     * @param functionName - name of the contract function to call
-     * @param paramsEncoded - function argument. Can be generated with {@link ParametersBuilder} object
-     * @param accountId - operator account id (0.0.xxxxx)
-     * @param accountPrivateKey - operator's hex-encoded private key with DER-header, ECDSA or Ed25519
-     * @param gas - gas limit for the transaction
-     * @param usePaymaster - if true, fee will be paid by Paymaster account (note: msg.sender inside the contract will be Paymaster account)
-     * @param completionKey - optional field bridge between mobile webViews and native apps
+     * Call contract function. Directly or via BladeAPI using paymaster account (fee will be paid by Paymaster account), depending on your dApp configuration.
+     * @param contractId contract id (0.0.xxxxx)
+     * @param functionName name of the contract function to call
+     * @param paramsEncoded function argument. Can be generated with {@link ParametersBuilder} object
+     * @param accountId operator account id (0.0.xxxxx)
+     * @param accountPrivateKey operator's hex-encoded private key with DER-header, ECDSA or Ed25519
+     * @param gas gas limit for the transaction
+     * @param usePaymaster if true, fee will be paid by Paymaster account (note: msg.sender inside the contract will be Paymaster account)
+     * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {TransactionReceiptData}
      * @example
      * const params = new ParametersBuilder().addString("Hello");
@@ -585,14 +591,14 @@ export class BladeSDK {
     }
 
     /**
-     * Call query on contract function. Similar to {@link contractCallFunction} can be called directly or via Blade Payer account.
+     * Call query on contract function. Similar to {@link contractCallFunction} can be called directly or via BladeAPI using Paymaster account.
      * @param contractId - contract id (0.0.xxxxx)
      * @param functionName - name of the contract function to call
      * @param paramsEncoded - function argument. Can be generated with {@link ParametersBuilder} object
      * @param accountId - operator account id (0.0.xxxxx)
      * @param accountPrivateKey - operator's hex-encoded private key with DER-header, ECDSA or Ed25519
      * @param gas - gas limit for the transaction
-     * @param usePaymaster - if true, fee will be paid by paymaster account (note: msg.sender inside the contract will be Paymaster account)
+     * @param usePaymaster - if true, the fee will be paid by paymaster account (note: msg.sender inside the contract will be Paymaster account)
      * @param resultTypes - array of result types. Currently supported only plain data types
      * @param completionKey - optional field bridge between mobile webViews and native apps
      * @returns {ContractCallQueryRecordsData}
@@ -680,7 +686,7 @@ export class BladeSDK {
      * @param memo transaction memo
      * @param usePaymaster if true, Paymaster account will pay fee transaction. Only for single dApp configured fungible-token. In that case tokenId not used
      * @param completionKey optional field bridge between mobile webViews and native apps
-     * @returns Promise<TransactionReceiptData>
+     * @returns {TransactionReceiptData}
      * @example
      * const receipt = await bladeSdk.transferTokens("0.0.1337", "0.0.10001", "302e020100300506032b65700422042043234DEADBEEF255...", "0.0.10002", "1.0", "test memo", false);
      */
@@ -772,7 +778,7 @@ export class BladeSDK {
      * @param transfers array of transfers to schedule (HBAR, FT, NFT)
      * @param usePaymaster if true, Paymaster account will pay transaction fee (also dApp had to be configured for free schedules)
      * @param completionKey optional field bridge between mobile webViews and native apps
-     * @returns {scheduleId: string}
+     * @returns {ScheduleResult}
      * @example
      * const receiverAccountId = "0.0.10001";
      * const receiverAccountPrivateKey = "302e020100300506032b65700422042043234DEADBEEF255...";
@@ -814,7 +820,7 @@ export class BladeSDK {
         transfers: ScheduleTransactionTransfer[],
         usePaymaster: boolean = false,
         completionKey?: string
-    ): Promise<{ scheduleId: string }> {
+    ): Promise<ScheduleResult> {
         try {
             if (accountId && accountPrivateKey) {
                 await this.setUser(AccountProvider.Hedera, accountId, accountPrivateKey);
@@ -955,7 +961,7 @@ export class BladeSDK {
     }
 
     /**
-     * Create Hedera account (ECDSA). Only for configured dApps. Depending on dApp config Blade create account, associate tokens, etc.
+     * Create new Hedera account (ECDSA). Only for configured dApps. Depending on dApp config Blade create account, associate tokens, etc.
      * In case of not using pre-created accounts pool and network high load, this method can return transactionId and no accountId.
      * In that case account creation added to queue, and you should wait some time and call `getPendingAccount()` method.
      * @param privateKey optional field if you need specify account key (hex encoded privateKey with DER-prefix)
@@ -1114,7 +1120,7 @@ export class BladeSDK {
     }
 
     /**
-     * Delete Hedera account
+     * Delete Hedera account. This method requires account private key and operator private key. Operator is the one who paying fees
      * @param deleteAccountId account id of account to delete (0.0.xxxxx)
      * @param deletePrivateKey account private key (DER encoded hex string)
      * @param transferAccountId if any funds left on account, they will be transferred to this account (0.0.xxxxx)
@@ -1193,11 +1199,11 @@ export class BladeSDK {
     /**
      * Get Node list
      * @param completionKey optional field bridge between mobile webViews and native apps
-     * @returns {nodes: NodeList[]}
+     * @returns {NodeListData}
      * @example
      * const nodeList = await bladeSdk.getNodeList();
      */
-    async getNodeList(completionKey?: string): Promise<{ nodes: NodeInfo[] }> {
+    async getNodeList(completionKey?: string): Promise<NodeListData> {
         try {
             const nodeList = await getNodeList(this.network);
             return this.sendMessageToNative(completionKey, { nodes: nodeList });
@@ -1252,12 +1258,12 @@ export class BladeSDK {
     }
 
     /**
-     * @deprecated Will be removed in version 0.7, switch to `searchAccounts` method
-     * Get ECDSA private key from mnemonic. Also try to find accountIds based on public key if lookupNames is true.
-     * Returned keys with DER header.
-     * EvmAddress computed from Public key.
+     * @deprecated Will be removed in version 0.8, switch to `searchAccounts` method
+     * Get private key and accountId from mnemonic. Supported standard and legacy key derivation.
+     * If account not found, standard ECDSA key will be returned.
+     * Keys returned with DER header. EvmAddress computed from Public key.
      * @param mnemonicRaw BIP39 mnemonic
-     * @param lookupNames if true, get accountIds from mirror node by public key
+     * @param lookupNames not used anymore, account search is mandatory
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {PrivateKeyData}
      * @example
@@ -1284,8 +1290,8 @@ export class BladeSDK {
 
     /**
      * Get accounts list and keys from private key or mnemonic
-     * Returned keys with DER header.
-     * EvmAddress computed from ECDSA Public key.
+     * Supporting standard and legacy key derivation.
+     * Every key with account will be returned.
      * @param keyOrMnemonic BIP39 mnemonic, private key with DER header
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {AccountPrivateData}
@@ -1690,7 +1696,7 @@ export class BladeSDK {
      * @param slippage slippage in percents. Transaction will revert if the price changes unfavorably by more than this percentage.
      * @param serviceId service id to use for swap (saucerswap, etc)
      * @param completionKey optional field bridge between mobile webViews and native apps
-     * @returns {success: boolean}
+     * @returns {StatusResult}
      * @example
      * const result = await bladeSdk.swapTokens("0.0.10001", "302e020100300506032b65700422042043234DEADBEEF255...", "HBAR", 1, "SAUCE", 0.5, "saucerswapV2");
      */
@@ -1703,7 +1709,7 @@ export class BladeSDK {
         slippage: number,
         serviceId: string,
         completionKey?: string
-    ): Promise<{ success: boolean }> {
+    ): Promise<StatusResult> {
         try {
             if (accountId && accountPrivateKey) {
                 await this.setUser(AccountProvider.Hedera, accountId, accountPrivateKey);
@@ -1899,7 +1905,7 @@ export class BladeSDK {
      * @param initialSupply token initial supply (0 for nft)
      * @param maxSupply token max supply
      * @param completionKey optional field bridge between mobile webViews and native apps
-     * @returns {tokenId: string}
+     * @returns {CreateTokenResult}
      * @example
      * const keys: KeyRecord[] = [
      *     {type: KeyType.admin, privateKey: adminKey},
@@ -1931,7 +1937,7 @@ export class BladeSDK {
         initialSupply: number,
         maxSupply: number = 250,
         completionKey?: string
-    ): Promise<{ tokenId: string }> {
+    ): Promise<CreateTokenResult> {
         try {
             if (treasuryAccountId && supplyPrivateKey) {
                 await this.setUser(AccountProvider.Hedera, treasuryAccountId, supplyPrivateKey);
