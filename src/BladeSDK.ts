@@ -239,6 +239,7 @@ export class BladeSDK {
      * This method returns basic params of initialized instance of BladeSDK. This params may useful for support.
      * Returned object likely will contain next fields: `apiKey`, `dAppCode`, `network`, `visitorId`, `sdkEnvironment`, `sdkVersion`, `nonce`
      * In case of support please not provide full apiKey, limit yourself to the part of the code that includes a few characters at the beginning and at the end (eg. `AdR3....BFgd`)
+     * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {InfoData}
      * @example
      * const info = bladeSdk.getInfo();
@@ -1447,9 +1448,9 @@ export class BladeSDK {
 
     /**
      * Get v-r-s signature of contract function params
-     * @param paramsEncoded - data to sign. Can be string or ParametersBuilder
-     * @param privateKey - signer private key (hex-encoded with DER header)
-     * @param completionKey - optional field bridge between mobile webViews and native apps
+     * @param paramsEncoded data to sign. Can be string or ParametersBuilder
+     * @param privateKey signer private key (hex-encoded with DER header)
+     * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {SplitSignatureData}
      * @example
      * const params = new ParametersBuilder().addAddress(accountId).addString("Hello");
