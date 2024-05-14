@@ -1,4 +1,5 @@
-import { writeFile } from "fs";
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { writeFile } = require("fs");
 
 writeFile(
     "./src/config.ts",
