@@ -12,6 +12,7 @@ import {
     AccountProvider,
     BalanceData,
     BridgeResponse,
+    CreateAccountData,
     KeyRecord,
     KeyType,
     NFTStorageProvider,
@@ -139,6 +140,29 @@ describe("testing methods related to HEDERA network", () => {
             checkResult(result, false);
         }
     }, 20_000);
+
+    test("bladeSdk-hedera.dropTokens", async () => {
+        const accountResult = await bladeSdk.createAccount("", "device-id", completionKey);
+        const account: CreateAccountData = accountResult.data;
+        checkResult(accountResult);
+
+        await bladeSdk.setUser(AccountProvider.PrivateKey, account.accountId, account.privateKey, completionKey);
+        await sleep(7000);
+
+        const successfulResult = await bladeSdk.dropTokens(account.accountId, process.env.NONCE, completionKey);
+        checkResult(successfulResult);
+
+        expect(successfulResult.data).toHaveProperty("status");
+        expect(successfulResult.data).toHaveProperty("statusCode");
+        expect(successfulResult.data).toHaveProperty("timestamp");
+        expect(successfulResult.data).toHaveProperty("executionStatus");
+        expect(successfulResult.data).toHaveProperty("requestId");
+        expect(successfulResult.data).toHaveProperty("accountId");
+        expect(successfulResult.data).toHaveProperty("redirectUrl");
+
+        const failedResult = await bladeSdk.dropTokens(account.accountId, process.env.NONCE, completionKey);
+        checkResult(failedResult, false);
+    }, 60_000);
 
     test("bladeSdk-hedera.transferBalance", async () => {
         let result = await bladeSdk.getBalance(accountId, completionKey);

@@ -4,6 +4,7 @@ import {
     BalanceData,
     KeyRecord,
     NFTStorageConfig,
+    TokenDropData,
     TransactionReceiptData,
     TransactionResponseData
 } from "../../models/Common";
@@ -119,6 +120,10 @@ export default class TokenServiceEthereum implements ITokenService {
         metadata: {},
         storageConfig: NFTStorageConfig
     ): Promise<TransactionReceiptData> {
+        throw new Error("Method not implemented.");
+    }
+
+    dropTokens(accountId: string, secretNonce: string, dAppCode: string, visitorId: string): Promise<TokenDropData> {
         throw new Error("Method not implemented.");
     }
 

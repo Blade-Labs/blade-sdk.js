@@ -6,6 +6,7 @@ import {
     BalanceData,
     KeyRecord,
     NFTStorageConfig,
+    TokenDropData,
     TransactionReceiptData,
     TransactionResponseData
 } from "../models/Common";
@@ -15,7 +16,6 @@ import TokenServiceEthereum from "./ethereum/TokenServiceEthereum";
 import {ethers} from "ethers";
 import ApiService from "../services/ApiService";
 import ConfigService from "../services/ConfigService";
-import {Network} from "../models/Networks";
 
 export interface ITokenService {
     getBalance(address: string): Promise<BalanceData>;
@@ -36,9 +36,10 @@ export interface ITokenService {
     nftMint(
         tokenId: string,
         file: File | string,
-        metadata: {},
+        metadata: object,
         storageConfig: NFTStorageConfig
     ): Promise<TransactionReceiptData>;
+    dropTokens(accountId: string, secretNonce: string, dAppCode: string, visitorId: string): Promise<TokenDropData>;
 }
 
 export type TransferInitData = {
@@ -142,6 +143,13 @@ export default class TokenServiceContext implements ITokenService {
     ): Promise<TransactionReceiptData> {
         this.checkSigner();
         return this.strategy!.nftMint(tokenId, file, metadata, storageConfig);
+    }
+
+    dropTokens(accountId: string, secretNonce: string, dAppCode: string, visitorId: string): Promise<TokenDropData> {
+        this.checkSigner();
+        this.checkInit();
+
+        return this.strategy.dropTokens(accountId, secretNonce, dAppCode, visitorId);
     }
 
     private checkInit() {

@@ -32,6 +32,7 @@ import {
     SplitSignatureData,
     SupportedEncoding,
     SwapQuotesData,
+    TokenDropData,
     TokenInfoData,
     TransactionReceiptData,
     TransactionResponseData,
@@ -200,7 +201,7 @@ export class BladeSDK {
             switch (accountProvider) {
                 case AccountProvider.PrivateKey:
                     if (ChainMap[this.chainId].serviceStrategy === ChainServiceStrategy.Hedera) {
-                        const key = PrivateKey.fromString(privateKey!);
+                        const key = PrivateKey.fromStringDer(privateKey!);
                         const client = ChainMap[this.chainId].isTestnet ? Client.forTestnet() : Client.forMainnet();
                         this.userAccountId = accountIdOrEmail;
                         this.userPrivateKey = privateKey!;
@@ -719,41 +720,26 @@ export class BladeSDK {
     }
     */
 
-    // TODO implement `dropTokens` method
     /**
      * Bladelink drop to account
      * @param accountId Hedera account id (0.0.xxxxx)
-     * @param accountPrivateKey account private key (DER encoded hex string)
      * @param secretNonce configured for dApp. Should be kept in secret
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {TokenDropData}
-    async dropTokens(
-        accountId: string,
-        accountPrivateKey: string,
-        secretNonce: string,
-        completionKey?: string
-    ): Promise<TokenDropData> {
+     */
+    async dropTokens(accountId: string, secretNonce: string, completionKey?: string): Promise<TokenDropData> {
         try {
-            if (accountId && accountPrivateKey) {
-                await this.setUser(AccountProvider.Hedera, accountId, accountPrivateKey);
-            }
-            accountId = this.getUser().accountId;
-
-            const signatures = await this.signer.sign([Buffer.from(secretNonce)]);
-            return this.sendMessageToNative(
-                completionKey,
-                await dropTokens(this.network, {
-                    visitorId: this.visitorId,
-                    dAppCode: this.dAppCode,
-                    accountId,
-                    signedNonce: Buffer.from(signatures[0].signature).toString("base64"),
-                })
+            const result = await this.tokenServiceContext.dropTokens(
+                accountId,
+                secretNonce,
+                this.dAppCode,
+                this.visitorId
             );
-        } catch (error: any) {
+            return this.sendMessageToNative(completionKey, result);
+        } catch (error) {
             return this.sendMessageToNative(completionKey, null, error);
         }
     }
-    */
 
     /**
      * Sign base64-encoded message with private key. Returns hex-encoded signature.
@@ -1146,7 +1132,7 @@ export class BladeSDK {
     private sendMessageToNative<T>(
         completionKey: string | undefined,
         data: T,
-        error: Partial<CustomError> | any | null = null
+        error: Partial<CustomError> | null = null
     ): T {
         if (!this.webView || !completionKey) {
             if (error) {
@@ -1172,6 +1158,9 @@ export class BladeSDK {
         if (bladeMessageHandler) {
             bladeMessageHandler.postMessage(JSON.stringify(responseObject));
         }
+
+        // TODO: change this to match method signature return type
+        // return "data: T", instead of wrapper "{data: T, error: Error}"
         return JSON.parse(JSON.stringify(responseObject));
     }
 }

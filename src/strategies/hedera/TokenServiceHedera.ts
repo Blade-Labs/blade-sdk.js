@@ -19,10 +19,12 @@ import {Buffer} from "buffer";
 import {ITokenService, TransferInitData, TransferTokenInitData} from "../TokenServiceContext";
 import {
     BalanceData,
+    DAppConfig,
     KeyRecord,
     KeyType,
     NFTStorageConfig,
     NFTStorageProvider,
+    TokenDropData,
     TransactionReceiptData,
     TransactionResponseData
 } from "../../models/Common";
@@ -32,6 +34,7 @@ import {formatReceipt} from "../../helpers/TransactionHelpers";
 import {dataURLtoFile} from "../../helpers/FileHelper";
 import {NFTStorage} from "nft.storage";
 import {ChainMap, KnownChainIds} from "../../models/Chain";
+import {Network} from "../../models/Networks";
 
 export default class TokenServiceHedera implements ITokenService {
     private readonly chainId: KnownChainIds;
@@ -152,11 +155,11 @@ export default class TokenServiceHedera implements ITokenService {
         const network = ChainMap[this.chainId].isTestnet ? "testnet" : "mainnet";
         const freeAssociationTokens = (await this.configService.getConfig("tokens"))[network]?.association || [];
         if (freeAssociationTokens.includes(tokenId) || !tokenId) {
-            const result = await this.apiService.getTokenAssociateTransactionForAccount(tokenId, accountId);
-            if (!result.transactionBytes) {
+            const res = await this.apiService.getTokenAssociateTransactionForAccount(tokenId, accountId);
+            if (!res.transactionBytes) {
                 throw new Error("Failed to get transaction bytes for free association. Token already associated?");
             }
-            const buffer = Buffer.from(result.transactionBytes, "base64");
+            const buffer = Buffer.from(res.transactionBytes, "base64");
             transaction = Transaction.fromBytes(buffer);
         } else {
             transaction = await new TokenAssociateTransaction()
@@ -237,7 +240,7 @@ export default class TokenServiceHedera implements ITokenService {
             }
         }
         nftCreate = await nftCreate.freezeWithSigner(this.signer!);
-        let nftCreateTxSign;
+        let nftCreateTxSign: TokenCreateTransaction;
 
         if (adminKey) {
             nftCreateTxSign = await nftCreate.sign(adminKey);
@@ -265,7 +268,7 @@ export default class TokenServiceHedera implements ITokenService {
             file = dataURLtoFile(file, "filename");
         }
         if (typeof metadata === "string") {
-            metadata = JSON.parse(metadata);
+            metadata = JSON.parse(metadata) as object;
         }
 
         const groupSize = 1;
@@ -310,6 +313,31 @@ export default class TokenServiceHedera implements ITokenService {
                 throw new Error(`Mint failed`);
             }
             return formatReceipt(txReceipt, txResult.transactionHash.toString());
+        });
+    }
+    /**
+     * Bladelink drop to account
+     * @param accountId Hedera account id (0.0.xxxxx)
+     * @param accountPrivateKey account private key (DER encoded hex string)
+     * @param secretNonce configured for dApp. Should be kept in secret
+     * @param completionKey optional field bridge between mobile webViews and native apps
+     * @returns {TokenDropData}
+     */
+    async dropTokens(
+        accountId: string,
+        secretNonce: string,
+        dAppCode: string,
+        visitorId: string
+    ): Promise<TokenDropData> {
+        const network = ChainMap[this.chainId].isTestnet ? Network.Testnet : Network.Mainnet;
+
+        const signatures = await this.signer.sign([Buffer.from(secretNonce)]);
+
+        return this.apiService.dropTokens(network, {
+            visitorId,
+            dAppCode,
+            accountId,
+            signedNonce: Buffer.from(signatures[0].signature).toString("base64")
         });
     }
 }
