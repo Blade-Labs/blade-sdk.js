@@ -2015,7 +2015,7 @@ export class BladeSDK {
     }
 
     /**
-     * Associate token to account. Association fee will be covered by Blade, if tokenId configured in dApp
+     * Associate token to account. Association fee will be covered by PayMaster, if tokenId configured in dApp
      *
      * @param tokenId token id to associate. Empty to associate all tokens configured in dApp
      * @param accountId account id to associate token
