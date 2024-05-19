@@ -81,7 +81,6 @@ describe("testing methods related to HEDERA network", () => {
     const accountId3 = process.env.ACCOUNT_ID3 || "";
     const privateKey4 = process.env.PRIVATE_KEY_ED25519 || "";
     const accountId4 = process.env.ACCOUNT_ID_ED25519 || "";
-    const tokenId0 = process.env.TOKEN_ID0 || "";
 
     const chainId = KnownChainIds.HEDERA_TESTNET; // KnownChainIds.ETHEREUM_SEPOLIA
 
@@ -948,42 +947,4 @@ describe("testing methods related to HEDERA network", () => {
             checkResult(result, false);
         }
     });
-
-    test("bladeSdk-hedera.schedule", async () => {
-        await bladeSdk.setUser(AccountProvider.PrivateKey, accountId, privateKey, completionKey);
-
-        let result = await bladeSdk.createScheduleTransaction(
-            false,
-            "TRANSFER",
-            [
-                {
-                    type: "HBAR",
-                    sender: accountId,
-                    receiver: accountId2,
-                    value: Math.floor(Math.random() * 6000000)
-                },
-                {
-                    type: "FT",
-                    sender: accountId,
-                    receiver: accountId2,
-                    tokenId: tokenId0,
-                    value: 1
-                }
-                // {
-                //     type: "NFT",
-                //     sender: accounts[1].accountId,
-                //     receiver: accounts[2].accountId,
-                //     tokenId: "0.0.3982458",
-                //     serial: 4
-                // },
-            ],
-            completionKey
-        );
-        checkResult(result);
-        expect(result.data).toHaveProperty("scheduleId");
-        const scheduleId = result.data.scheduleId;
-
-        result = await bladeSdk.signScheduleId(scheduleId, false, accountId2, completionKey);
-        checkResult(result);
-    }, 60_000);
 }); // describe

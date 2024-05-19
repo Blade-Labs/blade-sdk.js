@@ -56,7 +56,7 @@ export const filterAndFormatTransactions = (
     return transactions;
 };
 
-export const formatReceipt = (txReceipt: TransactionReceipt, transactionHash?: string): TransactionReceiptData => {
+export const formatReceipt = (txReceipt: TransactionReceipt, transactionHash: string): TransactionReceiptData => {
     return {
         status: txReceipt.status?.toString(),
         contractAddress: txReceipt.contractId?.toString(),

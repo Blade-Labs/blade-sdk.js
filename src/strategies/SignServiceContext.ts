@@ -2,15 +2,7 @@ import {injectable, inject} from "inversify";
 import "reflect-metadata";
 
 import {Signer} from "@hashgraph/sdk";
-import {
-    ScheduleTransactionTransfer,
-    ScheduleTransactionType,
-    SignMessageData,
-    SignVerifyMessageData,
-    SplitSignatureData,
-    SupportedEncoding,
-    TransactionReceiptData
-} from "../models/Common";
+import {SignMessageData, SignVerifyMessageData, SplitSignatureData, SupportedEncoding} from "../models/Common";
 import {ChainMap, ChainServiceStrategy, KnownChainIds} from "../models/Chain";
 import SignServiceHedera from "./hedera/SignServiceHedera";
 import SignServiceEthereum from "./ethereum/SignServiceEthereum";
@@ -28,16 +20,6 @@ export interface ISignService {
         signature: string,
         addressOrPublicKey: string
     ): Promise<SignVerifyMessageData>;
-    signScheduleId(
-        scheduleId: string,
-        freeSchedule: boolean,
-        receiverAccountId?: string
-    ): Promise<TransactionReceiptData>;
-    createScheduleTransaction(
-        freeSchedule: boolean,
-        type: ScheduleTransactionType,
-        transfers: ScheduleTransactionTransfer[]
-    ): Promise<{scheduleId: string}>;
 }
 
 @injectable()
@@ -93,24 +75,6 @@ export default class SignServiceContext implements ISignService {
         addressOrPublicKey: string
     ): Promise<SignVerifyMessageData> {
         return this.strategy!.verify(encodedMessage, encoding, signature, addressOrPublicKey);
-    }
-
-    createScheduleTransaction(
-        freeSchedule: boolean,
-        type: ScheduleTransactionType,
-        transfers: ScheduleTransactionTransfer[]
-    ): Promise<{scheduleId: string}> {
-        this.checkInit();
-        return this.strategy!.createScheduleTransaction(freeSchedule, type, transfers);
-    }
-
-    signScheduleId(
-        scheduleId: string,
-        freeSchedule: boolean,
-        receiverAccountId?: string
-    ): Promise<TransactionReceiptData> {
-        this.checkInit();
-        return this.strategy!.signScheduleId(scheduleId, freeSchedule, receiverAccountId);
     }
 
     private checkInit() {
