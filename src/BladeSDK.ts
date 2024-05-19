@@ -26,6 +26,8 @@ import {
     IntegrationUrlData,
     KeyRecord,
     NFTStorageConfig,
+    ScheduleTransactionTransfer,
+    ScheduleTransactionType,
     SdkEnvironment,
     SignMessageData,
     SignVerifyMessageData,
@@ -519,46 +521,50 @@ export class BladeSDK {
         }
     }
 
-    // TODO implement `createScheduleTransaction` method
-    // TODO implement `signScheduleId` method
+    /**
+     * Create scheduled transaction
+     * @param accountId account id (0.0.xxxxx)
+     * @param accountPrivateKey optional field if you need specify account key (hex encoded privateKey with DER-prefix)
+     * @param type schedule transaction type (currently only TRANSFER supported)
+     * @param transfers array of transfers to schedule (HBAR, FT, NFT)
+     * @param freeSchedule if true, Blade will pay transaction fee (also dApp had to be configured for free schedules)
+     * @param completionKey optional field bridge between mobile webViews and native apps
+     */
+    async createScheduleTransaction(
+        freeSchedule: boolean = false,
+        type: ScheduleTransactionType,
+        transfers: ScheduleTransactionTransfer[],
+        completionKey?: string
+    ): Promise<{scheduleId: string}> {
+        try {
+            const result = await this.signServiceContext.createScheduleTransaction(freeSchedule, type, transfers);
+            return this.sendMessageToNative(completionKey, result);
+        } catch (error) {
+            throw this.sendMessageToNative(completionKey, null, error);
+        }
+    }
 
-    /*
-     /**
+    /**
      * Sign scheduled transaction
      * @param scheduleId scheduled transaction id (0.0.xxxxx)
      * @param accountId account id (0.0.xxxxx)
      * @param accountPrivateKey optional field if you need specify account key (hex encoded privateKey with DER-prefix)
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {SignMessageData}
-     * /
+     */
     async signScheduleId(
         scheduleId: string,
-        accountId: string,
-        accountPrivateKey: string,
+        freeSchedule: boolean = false,
+        receiverAccountId?: string,
         completionKey?: string
-    ): Promise<SignMessageData> {
+    ): Promise<TransactionReceiptData> {
         try {
-            if (accountId && accountPrivateKey) {
-                await this.setUser(AccountProvider.Hedera, accountId, accountPrivateKey);
-            }
-
-            return await new ScheduleSignTransaction()
-                .setScheduleId(scheduleId)
-                .freezeWithSigner(this.signer)
-                .then((tx) => tx.signWithSigner(this.signer))
-                .then((tx) => tx.executeWithSigner(this.signer))
-                .then((result) => result.getReceiptWithSigner(this.signer))
-                .then((data) => {
-                    return this.sendMessageToNative(completionKey, formatReceipt(data));
-                })
-                .catch((error) => {
-                    return this.sendMessageToNative(completionKey, null, error);
-                });
-        } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            const result = await this.signServiceContext.signScheduleId(scheduleId, freeSchedule, receiverAccountId);
+            return this.sendMessageToNative(completionKey, result);
+        } catch (error) {
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
-     */
 
     /**
      * Create Hedera account (ECDSA). Only for configured dApps. Depending on dApp config Blade create account, associate tokens, etc.
