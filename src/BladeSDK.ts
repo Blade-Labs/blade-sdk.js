@@ -122,7 +122,6 @@ import {
     ICryptoFlowTransaction,
     ICryptoFlowTransactionParams,
 } from "./models/CryptoFlow";
-import { NodeInfo } from "./models/MirrorNode";
 import * as FingerprintJS from "@fingerprintjs/fingerprintjs-pro";
 import { File, NFTStorage } from "nft.storage";
 import { decrypt, encrypt } from "./helpers/SecurityHelper";
