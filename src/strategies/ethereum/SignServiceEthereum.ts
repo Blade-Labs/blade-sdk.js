@@ -1,6 +1,13 @@
 import {ethers} from "ethers";
 import {ISignService} from "../SignServiceContext";
-import {SignMessageData, SignVerifyMessageData, SupportedEncoding} from "../../models/Common";
+import {
+    ScheduleTransactionTransfer,
+    ScheduleTransactionType,
+    SignMessageData,
+    SignVerifyMessageData,
+    SupportedEncoding,
+    TransactionReceiptData
+} from "../../models/Common";
 import {KnownChainIds} from "../../models/Chain";
 import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
@@ -57,5 +64,20 @@ export default class SignServiceEthereum implements ISignService {
         return {
             valid
         };
+    }
+
+    signScheduleId(
+        scheduleId: string,
+        freeSchedule: boolean,
+        receiverAccountId?: string
+    ): Promise<TransactionReceiptData> {
+        throw new Error("Method not implemented.");
+    }
+    createScheduleTransaction(
+        freeSchedule: boolean,
+        type: ScheduleTransactionType,
+        transfers: ScheduleTransactionTransfer[]
+    ): Promise<{scheduleId: string}> {
+        throw new Error("Method not implemented.");
     }
 }
