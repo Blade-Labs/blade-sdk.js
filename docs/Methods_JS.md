@@ -1,9 +1,9 @@
 # Contents
 
-* [init](./Methods_JS.md#init)
-* [getInfo](./Methods_JS.md#getInfo)
-* [setUser](./Methods_JS.md#setUser)
-* [resetUser](./Methods_JS.md#resetUser)
+* [init](#init)
+* [getInfo](methods_js.md#getInfo)
+* [setUser](Methods_JS.md#setUser)
+* [resetUser](methods_js.md#resetuser)
 * [getBalance](./Methods_JS.md#getBalance)
 * [getCoinList](./Methods_JS.md#getCoinList)
 * [getCoinPrice](./Methods_JS.md#getCoinPrice)
