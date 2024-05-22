@@ -1818,7 +1818,7 @@ export class BladeSDK {
      * @param targetCode name (HBAR, KARATE, USDC, other token code)
      * @param slippage slippage in percents. Transaction will revert if the price changes unfavorably by more than this percentage.
      * @param serviceId service id to use for swap (saucerswap, onmeta, etc)
-     * @param redirectUrl url to redirect after final step
+     * @param redirectUrl optional url to redirect after final step
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {IntegrationUrlData}
      * @example
@@ -1832,7 +1832,7 @@ export class BladeSDK {
         targetCode: string,
         slippage: number,
         serviceId: string,
-        redirectUrl: string,
+        redirectUrl: string = "",
         completionKey?: string
     ): Promise<IntegrationUrlData> {
         try {
