@@ -1,828 +1,1218 @@
----
-description: More details on how to use Blade-SDK.js
----
+# Contents
 
-# Usage
-
-## Class: BladeSDK
-
-#### Methods
-
-* [constructor](usage.md#constructor)
 * [init](usage.md#init)
+* [getInfo](usage.md#getinfo)
 * [setUser](usage.md#setuser)
 * [resetUser](usage.md#resetuser)
 * [getBalance](usage.md#getbalance)
 * [getCoinList](usage.md#getcoinlist)
 * [getCoinPrice](usage.md#getcoinprice)
+* [transferHbars](usage.md#transferhbars)
+* [contractCallFunction](usage.md#contractcallfunction)
+* [contractCallQueryFunction](usage.md#contractcallqueryfunction)
+* [transferTokens](usage.md#transfertokens)
+* [createScheduleTransaction](usage.md#createscheduletransaction)
+* [signScheduleId](usage.md#signscheduleid)
 * [createAccount](usage.md#createaccount)
 * [getPendingAccount](usage.md#getpendingaccount)
+* [deleteAccount](usage.md#deleteaccount)
 * [getAccountInfo](usage.md#getaccountinfo)
 * [getNodeList](usage.md#getnodelist)
 * [stakeToNode](usage.md#staketonode)
 * [getKeysFromMnemonic](usage.md#getkeysfrommnemonic)
 * [searchAccounts](usage.md#searchaccounts)
-* [transferHbars](usage.md#transferhbars)
-* [transferTokens](usage.md#transfertokens)
+* [dropTokens](usage.md#droptokens)
+* [sign](usage.md#sign)
+* [signVerify](usage.md#signverify)
+* [ethersSign](usage.md#etherssign)
+* [splitSignature](usage.md#splitsignature)
+* [getParamsSignature](usage.md#getparamssignature)
 * [getTransactions](usage.md#gettransactions)
-* [deleteAccount](usage.md#deleteaccount)
+* [getC14url](usage.md#getc14url)
+* [exchangeGetQuotes](usage.md#exchangegetquotes)
+* [swapTokens](usage.md#swaptokens)
+* [getTradeUrl](usage.md#gettradeurl)
 * [createToken](usage.md#createtoken)
 * [associateToken](usage.md#associatetoken)
 * [nftMint](usage.md#nftmint)
-* [contractCallFunction](usage.md#contractcallfunction)
-* [contractCallQueryFunction](usage.md#contractcallqueryfunction)
-* [getParamsSignature](usage.md#getparamssignature)
-* [sign](usage.md#sign)
-* [signVerify](usage.md#signverify)
-* [hethersSign](usage.md#hetherssign)
-* [splitSignature](usage.md#splitsignature)
-* [getC14url](usage.md#getc14url)
-* [exchangeGetQuotes](usage.md#exchangeGetQuotes)
-* [swapTokens](usage.md#swapTokens)
-* [getTradeUrl](usage.md#getTradeUrl)
-* [sendMessageToNative](usage.md#sendmessagetonative)
+* [getTokenInfo](usage.md#gettokeninfo)
 
-## Methods
+# Methods
 
-### constructor
-
-▸ **new BladeSDK**(`isWebView?`)
-
-BladeSDK constructor.
-
-#### Parameters
-
-| Name        | Type      | Default value | Description                                                                                                   |
-| ----------- | --------- | ------------- | ------------------------------------------------------------------------------------------------------------- |
-| `isWebView` | `boolean` | `false`       | true if you are using this SDK in webview of native app. It changes the way of communication with native app. |
-
-### init
-
-▸ **init**(`apiKey`, `network`, `dAppCode`, `fingerprint`, `completionKey?`): `Promise<InitData>`
+## init
 
 Inits instance of BladeSDK for correct work with Blade API and Hedera network.
 
+`init(
+        apiKey: string, 
+        network: string, 
+        dAppCode: string, 
+        visitorId: string = "", 
+        sdkEnvironment: SdkEnvironment = SdkEnvironment.Prod, 
+        sdkVersion: string = config.sdkVersion, 
+        completionKey?: string): Promise<InfoData>`
+
 #### Parameters
 
-| Name             | Type     | Description                                                   |
-| ---------------- | -------- | ------------------------------------------------------------- |
-| `apiKey`         | `string` | Unique key for API provided by Blade team.                    |
-| `network`        | `string` | "Mainnet" or "Testnet" of Hedera network                      |
-| `dAppCode`       | `string` | your dAppCode - request specific one by contacting us         |
-| `fingerprint`    | `string` | client unique fingerprint                                     |
-| `completionKey?` | `string` | optional field bridge between mobile webViews and native apps |
+| Name | Type | Description |
+|------|------| ----------- |
+| `apiKey` | `string` | Unique key for API provided by Blade team. |
+| `network` | `string` | "Mainnet" or "Testnet" of Hedera network |
+| `dAppCode` | `string` | your dAppCode - request specific one by contacting Bladelabs team |
+| `visitorId` | `string` | optional field to set client unique id. SDK will try to get it using fingerprintjs-pro library by default. |
+| `sdkEnvironment` | `SdkEnvironment` | optional field to set BladeAPI environment (Prod, CI). Prod used by default. |
+| `sdkVersion` | `string` | optional field, used for header X-SDK-VERSION |
+| `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
 
 #### Returns
 
-`Promise<InitData>` status: "success" or "error"
-
-***
-
-### setUser
-
-▸ **setUser**(`accountProvider`, `accountIdOrEmail`, `privateKey?`, `completionKey?`): `Promise<{accountId, accountProvider}>`
-
-Set account and privateKey as current user. SDK will use that credentials in case of empty `accountId`, `accountPrivateKey` in some methods. 
-
-#### Parameters
-
-| Name               | Type              | Description                                                                                                              |
-|--------------------|-------------------|--------------------------------------------------------------------------------------------------------------------------|
-| `accountProvider`  | `AccountProvider` | Enum of values [`Magic`](https://magic.link), `Hedera`...                                                                |
-| `accountIdOrEmail` | `string`          | Hedera account id (0.0.xxxxx) or email (user@domain) in case of Magic `accountProvider` == [`Magic`](https://magic.link) |
-| `privateKey?`      | `string`          | optional field in case of using Magic provider                                                                           |
-| `completionKey?`   | `string`          | optional field bridge between mobile webViews and native apps                                                            |
-
-#### Returns
-
-`Promise<{accountId, accountProvider}>`
-
-***
-
-### resetUser
-
-▸ **resetUser**(`completionKey?`): `Promise<success>`
-
-Clears current user credentials.
-
-#### Parameters
-
-| Name             | Type     | Description                                                   |
-| ---------------- | -------- | ------------------------------------------------------------- |
-| `completionKey?` | `string` | optional field bridge between mobile webViews and native apps |
-
-#### Returns
-
-`Promise<success>`
-
-***
-
-### getBalance
-
-▸ **getBalance**(`accountId`, `completionKey?`): `Promise<BalanceData>`
-
-Get hbar and token balances for specific account.
-
-#### Parameters
-
-| Name             | Type     | Description                                                   |
-| ---------------- | -------- | ------------------------------------------------------------- |
-| `accountId`      | `string` | Hedera account id (0.0.xxxxx)                                 |
-| `completionKey?` | `string` | optional field bridge between mobile webViews and native apps |
-
-#### Returns
-
-`Promise<BalanceData>`
-
-***
-
-### getCoinList
-
-▸ **getCoinList**(`completionKey?`): `Promise<CoinListData>`
-
-Get list of all available coins on CoinGecko.
-
-#### Parameters
-
-| Name             | Type     | Description                                                   |
-| ---------------- | -------- | ------------------------------------------------------------- |
-| `completionKey?` | `string` | optional field bridge between mobile webViews and native apps |
-
-#### Returns
-
-`Promise<CoinListData>` coin list, with id, name, symbol, platforms.
-
-
-***
-
-### getCoinPrice
-
-▸ **getCoinPrice**(`search`, `currency`, `completionKey?`): `Promise<CoinInfoData>`
-
-Get coin price and coin info from CoinGecko. Search can be coin id or address in one of the coin platforms.
-
-#### Parameters
-
-| Name             | Type     | Description                                                                                                 |
-|------------------| -------- |-------------------------------------------------------------------------------------------------------------|
-| `search`         | `string` | CoinGecko coinId, or address in one of the coin platforms or `hbar` (default, alias for `hedera-hashgraph`) |
-| `currency`       | `string` | Define currency for price field. Default: USD                                                               |
-| `completionKey?` | `string` | optional field bridge between mobile webViews and native apps                                               |
-
-#### Returns
-
-`Promise<CoinInfoData>` coin price in USD and all coin info from CoinGecko.
-
-***
-
-### createScheduleTransaction
-
-▸ **createScheduleTransaction**(`accountId`, `accountPrivateKey`, `type`, `transfers`, `freeSchedule`, `completionKey?`): `Promise<TransactionReceiptData>`
-
-Create scheduled transaction
-
-#### Parameters
-
-| Name                | Type                            | Description                                                                                 |
-|---------------------|---------------------------------|---------------------------------------------------------------------------------------------|
-| `accountId`         | `string`                        | account id (0.0.xxxxx)                                                                      |
-| `accountPrivateKey` | `string`                        | optional field if you need specify account key (hex encoded privateKey with DER-prefix)     |
-| `type`              | `ScheduleTransactionType`       | schedule transaction type (currently only TRANSFER supported)                               |
-| `transfers`         | `ScheduleTransactionTransfer[]` | array of transfers to schedule (HBAR, FT, NFT)                                              |
-| `freeSchedule`      | `boolean`                       | if true, Blade will pay transaction fee (also dApp had to be configured for free schedules) |
-| `completionKey?`    | `string`                        | optional field bridge between mobile webViews and native apps                               |
+`Promise<InfoData>` - status: "success" or "error"
 
 #### Example
 
 ```javascript
-const {scheduleId} = await bladeSdk.createScheduleTransaction(
-    accountId,
-    privateKey,
-    "TRANSFER",
-    [{
-        type: "HBAR",
-        sender: accountId,
-        receiver: receiverId,
-        value: 1 * 10**8,
-    },
-    {
-        type: "NFT",
-        sender: accountId,
-        receiver: receiverId,
-        tokenId: "0.0.3982458",
-        serial: 4
-    }],
-    true
-);
+const info = await bladeSdk.init("apiKey", "Mainnet", "dAppCode");
 ```
 
-#### Returns
+## getInfo
 
-`Promise<{ scheduleId: string }>`
+This method returns basic params of initialized instance of BladeSDK. This params may useful for support.
 
-***
+Returned object likely will contain next fields: `apiKey`, `dAppCode`, `network`, `visitorId`, `sdkEnvironment`, `sdkVersion`, `nonce`
 
-### signScheduleId
+In case of support please not provide full apiKey, limit yourself to the part of the code that includes a few characters at the beginning and at the end (eg. `AdR3....BFgd`)
 
-▸ **signScheduleId**(`scheduleId`, `accountId`, `accountPrivateKey`, `receiverAccountId`, `freeSchedule`, `completionKey?`): `Promise<TransactionReceiptData>`
-
-Sign scheduled transaction
+`getInfo(completionKey?: string): InfoData`
 
 #### Parameters
 
-| Name                 | Type      | Description                                                                                           |
-|----------------------|-----------|-------------------------------------------------------------------------------------------------------|
-| `scheduleId`         | `string`  | scheduled transaction id (0.0.xxxxx)                                                                  |
-| `accountId`          | `string`  | account id (0.0.xxxxx)                                                                                |
-| `accountPrivateKey`  | `string`  | optional field if you need specify account key (hex encoded privateKey with DER-prefix)               |
-| `receiverAccountId?` | `string`  | account id of receiver for additional validation in case of dApp freeSchedule transactions configured |
-| `freeSchedule`       | `boolean` | if true, Blade will pay transaction fee (also dApp had to be configured for free schedules)           |
-| `completionKey?`     | `string`  | optional field bridge between mobile webViews and native apps                                         |
+| Name | Type | Description |
+|------|------| ----------- |
+| `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
+
+#### Returns
+
+`InfoData`
+
+#### Example
+
+```javascript
+const info = bladeSdk.getInfo();
+```
+
+## setUser
+
+Set account for further operations.
+
+Currently supported two account providers: Hedera and Magic.
+
+Hedera: pass accountId and privateKey as hex-encoded strings with DER-prefix (302e020100300506032b657004220420...)
+
+Magic: pass email to accountIdOrEmail and empty string as privateKey. SDK will handle Magic authentication, and finish after user click on confirmation link in email.
+
+After successful authentication, SDK will store public and private keys in memory and use them for further operations.
+
+After that in each method call provide empty strings to accountId and accountPrivateKey. Otherwise, SDK will override current user with provided credentials as Hedera provider.
+
+In case of calling method with `accountId` and `accountPrivateKey` arguments, SDK will override current user with this credentials.
+
+It's optional method, you can pass accountId and accountPrivateKey in each method call. In further releases this method will be mandatory.
+
+`setUser(
+        accountProvider: AccountProvider, 
+        accountIdOrEmail: string, 
+        privateKey?: string, 
+        completionKey?: string): Promise<UserInfoData>`
+
+#### Parameters
+
+| Name | Type | Description |
+|------|------| ----------- |
+| `accountProvider` | `AccountProvider` | Account provider (Hedera or Magic) |
+| `accountIdOrEmail` | `string` | Hedera account id (0.0.xxxxx) or Magic email |
+| `privateKey` | `string` | private key with DER-prefix (302e020100300506032b657004220420...) or empty string for Magic provider |
+| `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
+
+#### Returns
+
+`Promise<UserInfoData>`
+
+#### Example
+
+```javascript
+// Set account for Hedera provider
+const userInfo = await bladeSdk.setUser(AccountProvider.Hedera, "0.0.45467464", "302e020100300506032b6570042204204323472EA5374E80B07346243234DEADBEEF25235235...");
+// Set account for Magic provider
+const userInfo = await bladeSdk.setUser(AccountProvider.Magic, "your_email@domain.com", "");
+```
+
+## resetUser
+
+Clears current user credentials.
+
+`resetUser(completionKey?: string): Promise<StatusResult>`
+
+#### Parameters
+
+| Name | Type | Description |
+|------|------| ----------- |
+| `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
+
+#### Returns
+
+`Promise<StatusResult>`
+
+#### Example
+
+```javascript
+const result = await bladeSdk.resetUser();
+```
+
+## getBalance
+
+Get hbar and token balances for specific account.
+
+`getBalance(accountId: string,  completionKey?: string): Promise<BalanceData>`
+
+#### Parameters
+
+| Name | Type | Description |
+|------|------| ----------- |
+| `accountId` | `string` | Hedera account id (0.0.xxxxx) |
+| `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
+
+#### Returns
+
+`Promise<BalanceData>` - hbars: number, tokens: [{tokenId: string, balance: number}]
+
+#### Example
+
+```javascript
+const balance = await bladeSdk.getBalance("0.0.45467464");
+```
+
+## getCoinList
+
+Get list of all available coins on CoinGecko.
+
+`getCoinList(completionKey?: string): Promise<CoinListData>`
+
+#### Parameters
+
+| Name | Type | Description |
+|------|------| ----------- |
+| `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
+
+#### Returns
+
+`Promise<CoinListData>`
+
+#### Example
+
+```javascript
+const coinList = await bladeSdk.getCoinList();
+```
+
+## getCoinPrice
+
+Get coin price and coin info from CoinGecko. Search can be coin id or address in one of the coin platforms.
+
+`getCoinPrice(
+        search: string = "hbar", 
+        currency: string = "usd", 
+        completionKey?: string): Promise<CoinInfoData>`
+
+#### Parameters
+
+| Name | Type | Description |
+|------|------| ----------- |
+| `search` | `string` | coin alias (get one using getCoinList method) |
+| `currency` | `string` | currency to get price in (usd, eur, etc.) |
+| `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
+
+#### Returns
+
+`Promise<CoinInfoData>`
+
+#### Example
+
+```javascript
+const coinInfo = await bladeSdk.getCoinPrice("hedera-hashgraph", "usd");
+```
+
+## transferHbars
+
+Send hbars to specific account.
+
+`transferHbars(
+        accountId: string, 
+        accountPrivateKey: string, 
+        receiverId: string, 
+        amount: string, 
+        memo: string, 
+        completionKey?: string): Promise<TransactionReceiptData>`
+
+#### Parameters
+
+| Name | Type | Description |
+|------|------| ----------- |
+| `accountId` | `string` | sender account id (0.0.xxxxx) |
+| `accountPrivateKey` | `string` | sender's hex-encoded private key with DER-header (302e020100300506032b657004220420...). ECDSA or Ed25519 |
+| `receiverId` | `string` | receiver account id (0.0.xxxxx) |
+| `amount` | `string` | amount of hbars to send (decimal number) |
+| `memo` | `string` | transaction memo |
+| `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
 
 #### Returns
 
 `Promise<TransactionReceiptData>`
 
-***
+#### Example
 
-### createAccount
+```javascript
+const receipt = await bladeSdk.transferHbars("0.0.10001", "302e020100300506032b65700422042043234DEADBEEF255...", "0.0.10002", "1.0", "test memo");
+```
 
-▸ **createAccount**(`privateKey?`, `deviceId?`, `completionKey?`): `Promise<CreateAccountData>`
+## contractCallFunction
 
-Create Hedera account (ECDSA) or with provided key. Only for configured dApps. Depending on dApp config Blade create account, associate tokens, etc. In case of not using pre-created accounts pool and network high load, this method can return transactionId and no accountId. In that case account creation added to queue, and you should wait some time and call `getPendingAccount()` method.
+Call contract function. Directly or via BladeAPI using paymaster account (fee will be paid by Paymaster account), depending on your dApp configuration.
+
+`contractCallFunction(
+        contractId: string, 
+        functionName: string, 
+        paramsEncoded: string | ParametersBuilder, 
+        accountId: string, 
+        accountPrivateKey: string, 
+        gas: number = 100000, 
+        usePaymaster: boolean = false, 
+        completionKey?: string): Promise<TransactionReceiptData>`
 
 #### Parameters
 
-| Name             | Type     | Description                                                                             |
-|------------------| -------- |-----------------------------------------------------------------------------------------|
-| `privateKey?`    | `string` | optional field if you need specify account key (hex encoded privateKey with DER-prefix) |
-| `deviceId?`      | `string` | optional field for headers for backend check                                            |
-| `completionKey?` | `string` | optional field bridge between mobile webViews and native apps                           |
+| Name | Type | Description |
+|------|------| ----------- |
+| `contractId` | `string` | contract id (0.0.xxxxx) |
+| `functionName` | `string` | name of the contract function to call |
+| `paramsEncoded` | `string \| ParametersBuilder` | function argument. Can be generated with ParametersBuilder  object |
+| `accountId` | `string` | operator account id (0.0.xxxxx) |
+| `accountPrivateKey` | `string` | operator's hex-encoded private key with DER-header, ECDSA or Ed25519 |
+| `gas` | `number` | gas limit for the transaction |
+| `usePaymaster` | `boolean` | if true, fee will be paid by Paymaster account (note: msg.sender inside the contract will be Paymaster account) |
+| `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
+
+#### Returns
+
+`Promise<TransactionReceiptData>`
+
+#### Example
+
+```javascript
+const params = new ParametersBuilder().addString("Hello");
+const contractId = "0.0.123456";
+const gas = 100000;
+const receipt = await bladeSdk.contractCallFunction(contractId, "set_message", params, "0.0.10001", "302e020100300506032b65700422042043234DEADBEEF255...", gas, false);
+```
+
+## contractCallQueryFunction
+
+Call query on contract function. Similar to {@link contractCallFunction} can be called directly or via BladeAPI using Paymaster account.
+
+`contractCallQueryFunction(
+        contractId: string, 
+        functionName: string, 
+        paramsEncoded: string | ParametersBuilder, 
+        accountId: string, 
+        accountPrivateKey: string, 
+        gas: number = 100000, 
+        usePaymaster: boolean = false, 
+        resultTypes: string[], 
+        completionKey?: string): Promise<ContractCallQueryRecordsData>`
+
+#### Parameters
+
+| Name | Type | Description |
+|------|------| ----------- |
+| `contractId` | `string` | - contract id (0.0.xxxxx) |
+| `functionName` | `string` | - name of the contract function to call |
+| `paramsEncoded` | `string \| ParametersBuilder` | - function argument. Can be generated with ParametersBuilder  object |
+| `accountId` | `string` | - operator account id (0.0.xxxxx) |
+| `accountPrivateKey` | `string` | - operator's hex-encoded private key with DER-header, ECDSA or Ed25519 |
+| `gas` | `number` | - gas limit for the transaction |
+| `usePaymaster` | `boolean` | - if true, the fee will be paid by paymaster account (note: msg.sender inside the contract will be Paymaster account) |
+| `resultTypes` | `string[]` | - array of result types. Currently supported only plain data types |
+| `completionKey` | `string` | - optional field bridge between mobile webViews and native apps |
+
+#### Returns
+
+`Promise<ContractCallQueryRecordsData>`
+
+#### Example
+
+```javascript
+const params = new ParametersBuilder();
+const contractId = "0.0.123456";
+const gas = 100000;
+const result = await bladeSdk.contractCallQueryFunction(contractId, "get_message", params, "0.0.10001", "302e020100300506032b65700422042043234DEADBEEF255...", gas, false, ["string"]);
+```
+
+## transferTokens
+
+Send token to specific account.
+
+`transferTokens(
+        tokenId: string, 
+        accountId: string, 
+        accountPrivateKey: string, 
+        receiverID: string, 
+        amountOrSerial: string, 
+        memo: string, 
+        usePaymaster: boolean = false, 
+        completionKey?: string): Promise<TransactionReceiptData>`
+
+#### Parameters
+
+| Name | Type | Description |
+|------|------| ----------- |
+| `tokenId` | `string` | token id to send (0.0.xxxxx) |
+| `accountId` | `string` | sender account id (0.0.xxxxx) |
+| `accountPrivateKey` | `string` | sender's hex-encoded private key with DER-header (302e020100300506032b657004220420...). ECDSA or Ed25519 |
+| `receiverID` | `string` | receiver account id (0.0.xxxxx) |
+| `amountOrSerial` | `string` | amount of fungible tokens to send (with token-decimals correction) on NFT serial number |
+| `memo` | `string` | transaction memo |
+| `usePaymaster` | `boolean` | if true, Paymaster account will pay fee transaction. Only for single dApp configured fungible-token. In that case tokenId not used |
+| `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
+
+#### Returns
+
+`Promise<TransactionReceiptData>`
+
+#### Example
+
+```javascript
+const receipt = await bladeSdk.transferTokens("0.0.1337", "0.0.10001", "302e020100300506032b65700422042043234DEADBEEF255...", "0.0.10002", "1.0", "test memo", false);
+```
+
+## createScheduleTransaction
+
+Create scheduled transaction
+
+`createScheduleTransaction(
+        accountId: string, 
+        accountPrivateKey: string, 
+        type: ScheduleTransactionType, 
+        transfers: ScheduleTransactionTransfer[], 
+        usePaymaster: boolean = false, 
+        completionKey?: string): Promise<ScheduleResult>`
+
+#### Parameters
+
+| Name | Type | Description |
+|------|------| ----------- |
+| `accountId` | `string` | account id (0.0.xxxxx) |
+| `accountPrivateKey` | `string` | optional field if you need specify account key (hex encoded privateKey with DER-prefix) |
+| `type` | `ScheduleTransactionType` | schedule transaction type (currently only TRANSFER supported) |
+| `transfers` | `ScheduleTransactionTransfer[]` | array of transfers to schedule (HBAR, FT, NFT) |
+| `usePaymaster` | `boolean` | if true, Paymaster account will pay transaction fee (also dApp had to be configured for free schedules) |
+| `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
+
+#### Returns
+
+`Promise<ScheduleResult>`
+
+#### Example
+
+```javascript
+const receiverAccountId = "0.0.10001";
+const receiverAccountPrivateKey = "302e020100300506032b65700422042043234DEADBEEF255...";
+const senderAccountId = "0.0.10002";
+const tokenId = "0.0.1337";
+const nftId = "0.0.1234";
+const {scheduleId} = await bladeSdk.createScheduleTransaction(
+    receiverAccountId,
+    receiverAccountPrivateKey,
+    "TRANSFER", [
+        {
+            type: "HBAR",
+            sender: senderAccountId,
+            receiver: receiverAccountId,
+            value: 1 * 10**8,
+        },
+        {
+            type: "FT",
+            sender: senderAccountId,
+            receiver: receiverAccountId,
+            tokenId: tokenId,
+            value: 1
+        },
+        {
+            type: "NFT",
+            sender: senderAccountId,
+            receiver: receiverAccountId,
+            tokenId: nftId,
+            serial: 4
+        },
+    ],
+    false
+);
+```
+
+## signScheduleId
+
+Sign scheduled transaction
+
+`signScheduleId(
+        scheduleId: string, 
+        accountId: string, 
+        accountPrivateKey: string, 
+        receiverAccountId?: string, 
+        usePaymaster: boolean = false, 
+        completionKey?: string): Promise<TransactionReceiptData>`
+
+#### Parameters
+
+| Name | Type | Description |
+|------|------| ----------- |
+| `scheduleId` | `string` | scheduled transaction id (0.0.xxxxx) |
+| `accountId` | `string` | account id (0.0.xxxxx) |
+| `accountPrivateKey` | `string` | optional field if you need specify account key (hex encoded privateKey with DER-prefix) |
+| `receiverAccountId` | `string` | account id of receiver for additional validation in case of dApp freeSchedule transactions configured |
+| `usePaymaster` | `boolean` | if true, Paymaster account will pay transaction fee (also dApp had to be configured for free schedules) |
+| `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
+
+#### Returns
+
+`Promise<TransactionReceiptData>`
+
+#### Example
+
+```javascript
+const scheduleId = "0.0.754583634";
+const senderAccountId = "0.0.10002";
+const senderAccountPrivateKey = "302e020100300506032b65700422042043234DEADBEEF255...";
+const receiverAccountId = "0.0.10001";
+const receipt = await bladeSdk.signScheduleId(scheduleId, senderAccountId, senderAccountPrivateKey, receiverAccountId, false);
+```
+
+## createAccount
+
+Create new Hedera account (ECDSA). Only for configured dApps. Depending on dApp config Blade create account, associate tokens, etc.
+
+In case of not using pre-created accounts pool and network high load, this method can return transactionId and no accountId.
+
+In that case account creation added to queue, and you should wait some time and call `getPendingAccount()` method.
+
+`createAccount(privateKey?: string,  deviceId?: string,  completionKey?: string): Promise<CreateAccountData>`
+
+#### Parameters
+
+| Name | Type | Description |
+|------|------| ----------- |
+| `privateKey` | `string` | optional field if you need specify account key (hex encoded privateKey with DER-prefix) |
+| `deviceId` | `string` | optional field for headers for backend check |
+| `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
 
 #### Returns
 
 `Promise<CreateAccountData>`
 
-***
+#### Example
 
-### getPendingAccount
+```javascript
+const account = await bladeSdk.createAccount();
+```
 
-▸ **getPendingAccount**(`transactionId`, `mnemonic`, `completionKey?`): `Promise<CreateAccountData>`
+## getPendingAccount
 
-Get account from queue (read more at `createAccount()`). If account already created, return account data. If account not created yet, response will be same as in `createAccount()` method if account in queue.
+Get account from queue (read more at `createAccount()`).
+
+If account already created, return account data.
+
+If account not created yet, response will be same as in `createAccount()` method if account in queue.
+
+`getPendingAccount(
+        transactionId: string, 
+        mnemonic: string, 
+        completionKey?: string): Promise<CreateAccountData>`
 
 #### Parameters
 
-| Name             | Type     | Description                                                   |
-| ---------------- | -------- | ------------------------------------------------------------- |
-| `transactionId`  | `string` | returned from `createAccount()` method                        |
-| `mnemonic`       | `string` | returned from `createAccount()` method                        |
-| `completionKey?` | `string` | optional field bridge between mobile webViews and native apps |
+| Name | Type | Description |
+|------|------| ----------- |
+| `transactionId` | `string` | returned from `createAccount()` method |
+| `mnemonic` | `string` | returned from `createAccount()` method |
+| `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
 
 #### Returns
 
 `Promise<CreateAccountData>`
 
-***
+#### Example
 
-### getAccountInfo
+```javascript
+const account = await bladeSdk.createAccount();
+if (account.status === "PENDING") {
+  // wait some time and call getPendingAccount method
+  account = await bladeSdk.getPendingAccount(account.transactionId, account.seedPhrase);
+}
+```
 
-▸ **getAccountInfo**(`accountId`, `completionKey?`): `Promise<AccountInfoData>`
+## deleteAccount
 
-Get account info. EvmAddress is address of Hedera account if exists. Else accountId will be converted to solidity address. CalculatedEvmAddress is calculated from account public key. May be different from evmAddress.
+Delete Hedera account. This method requires account private key and operator private key. Operator is the one who paying fees
+
+`deleteAccount(
+        deleteAccountId: string, 
+        deletePrivateKey: string, 
+        transferAccountId: string, 
+        operatorAccountId: string, 
+        operatorPrivateKey: string, 
+        completionKey?: string): Promise<TransactionReceiptData>`
 
 #### Parameters
 
-| Name             | Type     | Description                                                   |
-| ---------------- | -------- | ------------------------------------------------------------- |
-| `accountId`      | `string` | Hedera account id (0.0.xxxxx)                                 |
-| `completionKey?` | `string` | optional field bridge between mobile webViews and native apps |
+| Name | Type | Description |
+|------|------| ----------- |
+| `deleteAccountId` | `string` | account id of account to delete (0.0.xxxxx) |
+| `deletePrivateKey` | `string` | account private key (DER encoded hex string) |
+| `transferAccountId` | `string` | if any funds left on account, they will be transferred to this account (0.0.xxxxx) |
+| `operatorAccountId` | `string` | operator account id (0.0.xxxxx). Used for fee |
+| `operatorPrivateKey` | `string` | operator's account private key (DER encoded hex string) |
+| `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
+
+#### Returns
+
+`Promise<TransactionReceiptData>`
+
+#### Example
+
+```javascript
+const receipt = await bladeSdk.deleteAccount(accountToDelete.accountId, accountToDelete.privateKey, "0.0.10001", "0.0.10001", "302e020100300506032b65700422042043234DEADBEEF255...");
+```
+
+## getAccountInfo
+
+Get account info.
+
+EvmAddress is address of Hedera account if exists. Else accountId will be converted to solidity address.
+
+CalculatedEvmAddress is calculated from account public key. May be different from evmAddress.
+
+`getAccountInfo(accountId: string,  completionKey?: string): Promise<AccountInfoData>`
+
+#### Parameters
+
+| Name | Type | Description |
+|------|------| ----------- |
+| `accountId` | `string` | Hedera account id (0.0.xxxxx) |
+| `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
 
 #### Returns
 
 `Promise<AccountInfoData>`
 
-***
+#### Example
 
-### getNodeList
+```javascript
+const accountInfo = await bladeSdk.getAccountInfo("0.0.10001");
+```
 
-▸ **getNodeList**(`completionKey?`): `Promise<{nodes: NodeList[]}>`
+## getNodeList
 
 Get Node list
 
+`getNodeList(completionKey?: string): Promise<NodeListData>`
+
 #### Parameters
 
-| Name             | Type     | Description                                                   |
-| ---------------- | -------- | ------------------------------------------------------------- |
-| `completionKey?` | `string` | optional field bridge between mobile webViews and native apps |
+| Name | Type | Description |
+|------|------| ----------- |
+| `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
 
 #### Returns
 
-`Promise<{nodes: NodeList[]}>`
+`Promise<NodeListData>`
 
-***
+#### Example
 
-### stakeToNode
+```javascript
+const nodeList = await bladeSdk.getNodeList();
+```
 
-▸ **stakeToNode**(`accountId`, `accountPrivateKey`, `nodeId`, `completionKey?`): `Promise<TransactionReceiptData>`
+## stakeToNode
 
 Stake/unstake account
 
+`stakeToNode(
+        accountId: string, 
+        accountPrivateKey: string, 
+        nodeId: number, 
+        completionKey?: string): Promise<TransactionReceiptData>`
+
 #### Parameters
 
-| Name                | Type     | Description                                                        |
-|---------------------| -------- |--------------------------------------------------------------------|
-| `accountId`         | `string` | Hedera account id (0.0.xxxxx)                                      |
-| `accountPrivateKey` | `string` | account private key (DER encoded hex string)                       |
-| `nodeId`            | `string` | node id to stake to. If negative or null, account will be unstaked |
-| `completionKey?`    | `string` | optional field bridge between mobile webViews and native apps      |
+| Name | Type | Description |
+|------|------| ----------- |
+| `accountId` | `string` | Hedera account id (0.0.xxxxx) |
+| `accountPrivateKey` | `string` | account private key (DER encoded hex string) |
+| `nodeId` | `number` | node id to stake to. If negative or null, account will be unstaked |
+| `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
 
 #### Returns
 
 `Promise<TransactionReceiptData>`
 
-***
+#### Example
 
-### getKeysFromMnemonic (deprecated)
+```javascript
+const receipt = await bladeSdk.stakeToNode("0.0.10001", "302e020100300506032b65700422042043234DEADBEEF255...", 3);
+```
 
-▸ **getKeysFromMnemonic**(`mnemonicRaw`, `lookupNames`, `completionKey?`): `Promise<PrivateKeyData>`
+## getKeysFromMnemonic
 
-Get ECDSA private key from mnemonic. Also try to find accountIds based on public key if lookupNames is true. Returned keys with DER header. EvmAddress computed from Public key.
+
+
+`getKeysFromMnemonic(
+        mnemonicRaw: string, 
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        lookupNames: boolean = true, 
+        completionKey?: string): Promise<PrivateKeyData>`
 
 #### Parameters
 
-| Name             | Type      | Description                                                   |
-| ---------------- | --------- | ------------------------------------------------------------- |
-| `mnemonicRaw`    | `string`  | BIP39 mnemonic                                                |
-| `lookupNames`    | `boolean` | if true, get accountIds from mirror node by public key        |
-| `completionKey?` | `string`  | optional field bridge between mobile webViews and native apps |
+| Name | Type | Description |
+|------|------| ----------- |
+| `mnemonicRaw` | `string` | BIP39 mnemonic |
+| `lookupNames` | `boolean` | not used anymore, account search is mandatory |
+| `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
 
 #### Returns
 
 `Promise<PrivateKeyData>`
 
-***
+#### Example
 
-### searchAccounts
+```javascript
+const result = await bladeSdk.getKeysFromMnemonic("purity slab doctor swamp tackle rebuild summer bean craft toddler blouse switch");
+```
 
-▸ **searchAccounts**(`keyOrMnemonic`, `completionKey?`): `Promise<AccountPrivateData>`
+## searchAccounts
 
-Get accounts list and keys from private key or mnemonic. Returned keys with DER header.
+Get accounts list and keys from private key or mnemonic
+
+Supporting standard and legacy key derivation.
+
+Every key with account will be returned.
+
+`searchAccounts(keyOrMnemonic: string,  completionKey?: string): Promise<AccountPrivateData>`
 
 #### Parameters
 
-| Name             | Type      | Description                                                   |
-|------------------| --------- | ------------------------------------------------------------- |
-| `keyOrMnemonic`  | `string`  | BIP39 mnemonic, private key with DER header                                              |
-| `completionKey?` | `string`  | optional field bridge between mobile webViews and native apps |
+| Name | Type | Description |
+|------|------| ----------- |
+| `keyOrMnemonic` | `string` | BIP39 mnemonic, private key with DER header |
+| `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
 
 #### Returns
 
 `Promise<AccountPrivateData>`
 
-***
+#### Example
 
-### dropTokens
+```javascript
+const resultKey = await bladeSdk.searchAccounts("302e020100300506032b65700422042043234DEADBEEF255...");
+const resultSeed = await bladeSdk.searchAccounts("purity slab doctor swamp tackle rebuild summer bean craft toddler blouse switch");
+```
 
-▸ **dropTokens**(`accountId`, `accountPrivateKey`, `secretNonce`, `completionKey?`): `Promise<TokenDropData>`
+## dropTokens
 
 Bladelink drop to account
 
+`dropTokens(
+        accountId: string, 
+        accountPrivateKey: string, 
+        secretNonce: string, 
+        completionKey?: string): Promise<TokenDropData>`
+
 #### Parameters
 
-| Name                | Type     | Description                                                   |
-|---------------------|----------|---------------------------------------------------------------|
-| `accountId`         | `string` | Hedera account id (0.0.xxxxx)                                 |
-| `accountPrivateKey` | `string` | account private key (DER encoded hex string)                  |
-| `secretNonce`       | `string` | configured for dApp. Should be kept in secret                 |
-| `completionKey?`    | `string` | optional field bridge between mobile webViews and native apps |
+| Name | Type | Description |
+|------|------| ----------- |
+| `accountId` | `string` | Hedera account id (0.0.xxxxx) |
+| `accountPrivateKey` | `string` | account private key (DER encoded hex string) |
+| `secretNonce` | `string` | configured for dApp. Should be kept in secret |
+| `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
 
 #### Returns
 
 `Promise<TokenDropData>`
 
-***
+#### Example
 
-### transferHbars
+```javascript
+const drop = await bladeSdk.dropTokens("0.0.10001", "302e020100300506032b65700422042043234DEADBEEF255...", "secret-nonce");
+```
 
-▸ **transferHbars**(`accountId`, `accountPrivateKey`, `receiverID`, `amount`, `completionKey?`): `Promise<TransactionResponse>`
+## sign
 
-Send hbars to specific account.
+Sign base64-encoded message with private key. Returns hex-encoded signature.
+
+`sign(messageString: string,  privateKey: string,  completionKey?: string): SignMessageData`
 
 #### Parameters
 
-| Name                | Type     | Description                                                                                              |
-| ------------------- | -------- | -------------------------------------------------------------------------------------------------------- |
-| `accountId`         | `string` | sender account id (0.0.xxxxx)                                                                            |
-| `accountPrivateKey` | `string` | sender's hex-encoded private key with DER-header (302e020100300506032b657004220420...). ECDSA or Ed25519 |
-| `receiverID`        | `string` | receiver account id (0.0.xxxxx)                                                                          |
-| `amount`            | `string` | of hbars to send (decimal number)                                                                        |
-| `completionKey?`    | `string` | optional field bridge between mobile webViews and native apps                                            |
+| Name | Type | Description |
+|------|------| ----------- |
+| `messageString` | `string` | base64-encoded message to sign |
+| `privateKey` | `string` | hex-encoded private key with DER header |
+| `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
 
 #### Returns
 
-`Promise<TransactionResponse>`
+`SignMessageData`
 
-***
+#### Example
 
-### transferTokens
+```javascript
+const signed = await bladeSdk.sign(btoa("Hello"), "302e020100300506032b65700422042043234DEADBEEF255...");
+```
 
-▸ **transferTokens**(`tokenId`, `accountId`, `accountPrivateKey`, `receiverID`, `amountOrSerial`, `freeTransfer?`, `completionKey?`): `Promise<TransactionResponse>`
+## signVerify
 
-Send token to specific account.
+Verify message signature by public key
+
+`signVerify(
+        messageString: string, 
+        signature: string, 
+        publicKey: string, 
+        completionKey?: string): SignVerifyMessageData`
 
 #### Parameters
 
-| Name                | Type      | Default value | Description                                                                                                   |
-| ------------------- | --------- | ------------- |---------------------------------------------------------------------------------------------------------------|
-| `tokenId`           | `string`  | `undefined`   | token id to send (0.0.xxxxx)                                                                                  |
-| `accountId`         | `string`  | `undefined`   | sender account id (0.0.xxxxx)                                                                                 |
-| `accountPrivateKey` | `string`  | `undefined`   | sender's hex-encoded private key with DER-header (302e020100300506032b657004220420...). ECDSA or Ed25519      |
-| `receiverID`        | `string`  | `undefined`   | receiver account id (0.0.xxxxx)                                                                               |
-| `amountOrSerial`    | `string`  | `undefined`   | mount of fungible tokens to send (with token-decimals correction) on NFT serial number                        |
-| `freeTransfer`      | `boolean` | `false`       | if true, Blade will pay fee transaction. Only for single dApp configured token. In that case tokenId not used |
-| `completionKey?`    | `string`  | `undefined`   | optional field bridge between mobile webViews and native apps                                                 |
+| Name | Type | Description |
+|------|------| ----------- |
+| `messageString` | `string` | base64-encoded message (same as provided to `sign()` method) |
+| `signature` | `string` | hex-encoded signature (result from `sign()` method) |
+| `publicKey` | `string` | hex-encoded public key with DER header |
+| `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
 
 #### Returns
 
-`Promise<TransactionResponse>`
+`SignVerifyMessageData`
 
-***
+#### Example
 
-### getTransactions
+```javascript
+const signature = "27cb9d51434cf1e76d7ac515b19442c619f641e6fccddbf4a3756b14466becb6992dc1d2a82268018147141fc8d66ff9ade43b7f78c176d070a66372d655f942";
+const publicKey = "302d300706052b8104000a032200029dc73991b0d9cdbb59b2cd0a97a0eaff6de...";
+const valid = await bladeSdk.signVerify(btoa("Hello"), signature, publicKey);
+```
 
-▸ **getTransactions**(`accountId`, `transactionType?`, `nextPage`, `transactionsLimit?`, `completionKey?`): `Promise<TransactionsHistoryData>`
+## ethersSign
 
-Get transactions history for account. Can be filtered by transaction type. Transaction requested from mirror node. Every transaction requested for child transactions. Result are flattened. If transaction type is not provided, all transactions will be returned. If transaction type is CRYPTOTRANSFERTOKEN records will additionally contain plainData field with decoded data.
+Sign base64-encoded message with private key using ethers lib. Returns hex-encoded signature.
+
+`ethersSign(messageString: string,  privateKey: string,  completionKey?: string): Promise<SignMessageData>`
 
 #### Parameters
 
-| Name                | Type     | Default value | Description                                                                                         |
-| ------------------- | -------- | ------------- | --------------------------------------------------------------------------------------------------- |
-| `accountId`         | `string` | `undefined`   | account id to get transactions for (0.0.xxxxx)                                                      |
-| `transactionType`   | `string` | `""`          | one of enum MirrorNodeTransactionType or "CRYPTOTRANSFERTOKEN"                                      |
-| `nextPage`          | `string` | `undefined`   | link to next page of transactions from previous request                                             |
-| `transactionsLimit` | `string` | `"10"`        | number of transactions to return. Speed of request depends on this value if transactionType is set. |
-| `completionKey?`    | `string` | `undefined`   | optional field bridge between mobile webViews and native apps                                       |
+| Name | Type | Description |
+|------|------| ----------- |
+| `messageString` | `string` | base64-encoded message to sign |
+| `privateKey` | `string` | hex-encoded private key with DER header |
+| `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
+
+#### Returns
+
+`Promise<SignMessageData>`
+
+#### Example
+
+```javascript
+const signed = await bladeSdk.ethersSign(btoa("Hello"), "302e020100300506032b65700422042043234DEADBEEF255...");
+```
+
+## splitSignature
+
+Split signature to v-r-s format.
+
+`splitSignature(signature: string,  completionKey?: string): SplitSignatureData`
+
+#### Parameters
+
+| Name | Type | Description |
+|------|------| ----------- |
+| `signature` | `string` | hex-encoded signature |
+| `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
+
+#### Returns
+
+`SplitSignatureData`
+
+#### Example
+
+```javascript
+const signature = "27cb9d51434cf1e76d7ac515b19442c619f641e6fccddbf4a3756b14466becb6992dc1d2a82268018147141fc8d66ff9ade43b7f78c176d070a66372d655f942";
+const {v, r, s} = await bladeSdk.splitSignature(signature);
+```
+
+## getParamsSignature
+
+Get v-r-s signature of contract function params
+
+`getParamsSignature(
+        paramsEncoded: string | ParametersBuilder, 
+        privateKey: string, 
+        completionKey?: string): Promise<SplitSignatureData>`
+
+#### Parameters
+
+| Name | Type | Description |
+|------|------| ----------- |
+| `paramsEncoded` | `string \| ParametersBuilder` | data to sign. Can be string or ParametersBuilder |
+| `privateKey` | `string` | signer private key (hex-encoded with DER header) |
+| `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
+
+#### Returns
+
+`Promise<SplitSignatureData>`
+
+#### Example
+
+```javascript
+const params = new ParametersBuilder().addAddress(accountId).addString("Hello");
+const result = await bladeSdk.getParamsSignature(params, "302e020100300506032b65700422042043234DEADBEEF255...");
+```
+
+## getTransactions
+
+Get transactions history for account. Can be filtered by transaction type.
+
+Transaction requested from mirror node. Every transaction requested for child transactions. Result are flattened.
+
+If transaction type is not provided, all transactions will be returned.
+
+If transaction type is CRYPTOTRANSFERTOKEN records will additionally contain plainData field with decoded data.
+
+`getTransactions(
+        accountId: string, 
+        transactionType: string = "", 
+        nextPage: string, 
+        transactionsLimit: string = "10", 
+        completionKey?: string): Promise<TransactionsHistoryData>`
+
+#### Parameters
+
+| Name | Type | Description |
+|------|------| ----------- |
+| `accountId` | `string` | account id to get transactions for (0.0.xxxxx) |
+| `transactionType` | `string` | one of enum MirrorNodeTransactionType or "CRYPTOTRANSFERTOKEN" |
+| `nextPage` | `string` | link to next page of transactions from previous request |
+| `transactionsLimit` | `string` | number of transactions to return. Speed of request depends on this value if transactionType is set. |
+| `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
 
 #### Returns
 
 `Promise<TransactionsHistoryData>`
 
-***
+#### Example
 
-### deleteAccount
+```javascript
+const transactions = await bladeSdk.getTransactions("0.0.10001");
+```
 
-▸ **deleteAccount**(`deleteAccountId`, `deletePrivateKey`, `transferAccountId`, `operatorAccountId`, `operatorPrivateKey`, `completionKey?`): `Promise<TransactionReceiptData>`
-
-Delete Hedera account
-
-#### Parameters
-
-| Name                 | Type     | Description                                                                        |
-| -------------------- | -------- | ---------------------------------------------------------------------------------- |
-| `deleteAccountId`    | `string` | account id of account to delete (0.0.xxxxx)                                        |
-| `deletePrivateKey`   | `string` | account private key (DER encoded hex string)                                       |
-| `transferAccountId`  | `string` | if any funds left on account, they will be transferred to this account (0.0.xxxxx) |
-| `operatorAccountId`  | `string` | operator account id (0.0.xxxxx). Used for fee                                      |
-| `operatorPrivateKey` | `string` | operator's account private key (DER encoded hex string)                            |
-| `completionKey?`     | `string` | optional field bridge between mobile webViews and native apps                      |
-
-#### Returns
-
-`Promise<TransactionReceiptData>`
-
-***
-
-### createToken
-
-▸ **createToken**(`treasuryAccountId`, `supplyPrivateKey`, `tokenName`, `tokenSymbol`, `isNft`, `keys`, `decimals`, `initialSupply`, `maxSupply`, `completionKey?`): `Promise<{tokenId: string}>`
-
-Create token (NFT or Fungible Token)
-
-#### Parameters
-
-| Name                | Type          | Description                                                   |
-|---------------------|---------------|---------------------------------------------------------------|
-| `treasuryAccountId` | `string`      | treasury account id                                           |
-| `supplyPrivateKey`  | `string`      | supply account private key                                    |
-| `tokenName`         | `string`      | token name (string up to 100 bytes)                           |
-| `tokenSymbol`       | `string`      | token symbol (string up to 100 bytes)                         |
-| `isNft`             | `boolean`     | set token type NFT                                            |
-| `keys`              | `KeyRecord[]` | token keys                                                    |
-| `decimals`          | `number`      | token decimals (0 for nft)                                    |
-| `initialSupply`     | `number`      | token initial supply (0 for nft)                              |
-| `maxSupply`         | `number`      | token max supply                                              |
-| `completionKey`     | `string`      | optional field bridge between mobile webViews and native apps |
-
-#### Returns
-
-`Promise<{tokenId: string}>`
-
-***
-
-### associateToken
-
-▸ **associateToken**(`tokenId`, `accountId`, `accountPrivateKey`, `completionKey?`): `Promise<TransactionReceiptData>`
-
-Associate token to account
-
-#### Parameters
-
-| Name                | Type      | Description                                                   |
-|---------------------|-----------|---------------------------------------------------------------|
-| `tokenId`           | `string`  | token id                                                      |
-| `accountId`         | `string`  | account id to associate token                                 |
-| `accountPrivateKey` | `string`  | account private key                                           |
-| `completionKey`     | `string`  | optional field bridge between mobile webViews and native apps |
-
-#### Returns
-
-`Promise<TransactionReceiptData>`
-
-***
-
-### nftMint
-
-▸ **nftMint**(`tokenId`, `accountId`, `accountPrivateKey`, `file`: , `metadata`, `storageConfig`, `completionKey`): `Promise<TransactionReceiptData>`
-
-Mint one NFT
-
-#### Parameters
-
-| Name                | Type               | Description                                                                                                               |
-|---------------------|--------------------|---------------------------------------------------------------------------------------------------------------------------|
-| `tokenId`           | `string`           | token id to mint NFT                                                                                                      |
-| `accountId`         | `string`           | token supply account id                                                                                                   |
-| `accountPrivateKey` | `string`           | token supply private key                                                                                                  |
-| `file`              | `string`           | image to mint (File or bas64 DataUrl image, eg.: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAA...) |
-| `metadata`          | `string`, `any{}`  | NFT metadata (JSON object)                                                                                                |
-| `storageConfig`     | `NFTStorageConfig` | {NFTStorageConfig} IPFS provider config                                                                                   |
-| `completionKey`     | `string`           | optional field bridge between mobile webViews and native apps                                                             |
-
-#### Returns
-
-`Promise<TransactionReceiptData>`
-
-***
-
-### contractCallFunction
-
-▸ **contractCallFunction**(`contractId`, `functionName`, `paramsEncoded`, `accountId`, `accountPrivateKey`, `gas?`, `bladePayFee?`, `completionKey?`): `Promise<TransactionReceiptData>`
-
-Call contract function. Directly or via Blade Payer account (fee will be paid by Blade), depending on your dApp configuration.
-
-#### Parameters
-
-| Name                | Type                                                       | Default value                                  | Description                                                                                           |
-| ------------------- | ---------------------------------------------------------- |------------------------------------------------| ----------------------------------------------------------------------------------------------------- |
-| `contractId`        | `string`                                                   | `undefined`                                    | contract id (0.0.xxxxx)                                                                               |
-| `functionName`      | `string`                                                   | `undefined`                                    | name of the contract function to call                                                                 |
-| `paramsEncoded`     | `string` \| [`ParametersBuilder`](parametersbuilder.md)    | `undefined`   | function argument. Can be generated with ParametersBuilder object                                     |
-| `accountId`         | `string`                                                   | `undefined`                                    | operator account id (0.0.xxxxx)                                                                       |
-| `accountPrivateKey` | `string`                                                   | `undefined`                                    | operator's hex-encoded private key with DER-header, ECDSA or Ed25519                                  |
-| `gas`               | `number`                                                   | `100000`                                       | gas limit for the transaction                                                                         |
-| `bladePayFee`       | `boolean`                                                  | `false`                                        | if true, fee will be paid by Blade (note: msg.sender inside the contract will be Blade Payer account) |
-| `completionKey?`    | `string`                                                   | `undefined`                                    | optional field bridge between mobile webViews and native apps                                         |
-
-#### Returns
-
-`Promise<TransactionReceiptData>`
-
-***
-
-### contractCallQueryFunction
-
-▸ **contractCallQueryFunction**(`contractId`, `functionName`, `paramsEncoded`, `accountId`, `accountPrivateKey`, `gas?`, `bladePayFee?`, `resultTypes`, `completionKey?`): `Promise<ContractCallQueryRecord[]>`
-
-Call query on contract function. Similar to contractCallFunction can be called directly or via Blade Payer account.
-
-#### Parameters
-
-| Name                | Type                                                       | Default value                                  | Description                                                                                           |
-| ------------------- | ---------------------------------------------------------- |------------------------------------------------| ----------------------------------------------------------------------------------------------------- |
-| `contractId`        | `string`                                                   | `undefined`                                    | contract id (0.0.xxxxx)                                                                               |
-| `functionName`      | `string`                                                   | `undefined`                                    | name of the contract function to call                                                                 |
-| `paramsEncoded`     | `string` \| [`ParametersBuilder`](parametersbuilder.md)    | `undefined`   | function argument. Can be generated with ParametersBuilder object                                     |
-| `accountId`         | `string`                                                   | `undefined`                                    | operator account id (0.0.xxxxx)                                                                       |
-| `accountPrivateKey` | `string`                                                   | `undefined`                                    | operator's hex-encoded private key with DER-header, ECDSA or Ed25519                                  |
-| `gas`               | `number`                                                   | `100000`                                       | gas limit for the transaction                                                                         |
-| `bladePayFee`       | `boolean`                                                  | `false`                                        | if true, fee will be paid by Blade (note: msg.sender inside the contract will be Blade Payer account) |
-| `resultTypes`       | `string`\[]                                                | `undefined`                                    | array of result types. Currently supported only plain data types                                      |
-| `completionKey?`    | `string`                                                   | `undefined`                                    | optional field bridge between mobile webViews and native apps                                         |
-
-#### Returns
-
-`Promise<ContractCallQueryRecord[]>`
-
-***
-
-### getParamsSignature
-
-▸ **getParamsSignature**(`paramsEncoded`, `privateKey`, `completionKey?`): `Promise<SplitSignatureData>`
-
-Get v-r-s signature of contract function params
-
-#### Parameters
-
-| Name             | Type                                                       | Description                                             |
-| ---------------- | ---------------------------------------------------------- |---------------------------------------------------------|
-| `paramsEncoded`  | `string` \| [`ParametersBuilder`](parametersbuilder.md)    | data to sign. Can be string or ParametersBuilder              |
-| `privateKey`     | `string`                                                   | signer private key (hex-encoded with DER header)        |
-| `completionKey?` | `string`                                                   | optional field bridge between mobile webViews and native apps |
-
-#### Returns
-
-`Promise<SplitSignatureData>`
-
-***
-
-### sign
-
-▸ **sign**(`messageString`, `privateKey`, `completionKey?`): `Promise<SignMessageData>`
-
-Sign base64-encoded message with private key. Returns hex-encoded signature.
-
-#### Parameters
-
-| Name             | Type     | Description                                                   |
-| ---------------- | -------- | ------------------------------------------------------------- |
-| `messageString`  | `string` | base64-encoded message to sign                                |
-| `privateKey`     | `string` | hex-encoded private key with DER header                       |
-| `completionKey?` | `string` | optional field bridge between mobile webViews and native apps |
-
-#### Returns
-
-`Promise<SignMessageData>`
-
-***
-
-### signVerify
-
-▸ **signVerify**(`messageString`, `signature`, `publicKey`, `completionKey?`): `Promise<SignVerifyMessageData>`
-
-Verify message signature by public key
-
-#### Parameters
-
-| Name             | Type     | Description                                                   |
-| ---------------- | -------- | ------------------------------------------------------------- |
-| `messageString`  | `string` | base64-encoded message (same as provided to `sign()` method)  |
-| `signature`      | `string` | hex-encoded signature (result from `sign()` method)           |
-| `publicKey`      | `string` | hex-encoded public key with DER header                        |
-| `completionKey?` | `string` | optional field bridge between mobile webViews and native apps |
-
-#### Returns
-
-`Promise<SignVerifyMessageData>`
-
-***
-
-### hethersSign
-
-▸ **hethersSign**(`messageString`, `privateKey`, `completionKey?`): `Promise<SignMessageData>`
-
-Sign base64-encoded message with private key using hethers lib. Returns hex-encoded signature.
-
-#### Parameters
-
-| Name             | Type     | Description                                                   |
-| ---------------- | -------- | ------------------------------------------------------------- |
-| `messageString`  | `string` | base64-encoded message to sign                                |
-| `privateKey`     | `string` | hex-encoded private key with DER header                       |
-| `completionKey?` | `string` | optional field bridge between mobile webViews and native apps |
-
-#### Returns
-
-`Promise<SignMessageData>`
-
-***
-
-### splitSignature
-
-▸ **splitSignature**(`signature`, `completionKey?`): `Promise<SplitSignatureData>`
-
-Split signature to v-r-s format.
-
-#### Parameters
-
-| Name             | Type     | Description                                                   |
-| ---------------- | -------- | ------------------------------------------------------------- |
-| `signature`      | `string` | hex-encoded signature                                         |
-| `completionKey?` | `string` | optional field bridge between mobile webViews and native apps |
-
-#### Returns
-
-`Promise<SplitSignatureData>`
-
-***
-
-### getC14url
-
-▸ **getC14url**(`asset`, `account`, `amount`, `completionKey?`): `Promise<IntegrationUrlData>`
+## getC14url
 
 Get configured url for C14 integration (iframe or popup)
 
+`getC14url(
+        asset: string, 
+        account: string, 
+        amount: string, 
+        completionKey?: string): Promise<IntegrationUrlData>`
+
 #### Parameters
 
-| Name             | Type     | Description                                                   |
-| ---------------- | -------- | ------------------------------------------------------------- |
-| `asset`          | `string` | name (USDC or HBAR)                                           |
-| `account`        | `string` | receiver account id (0.0.xxxxx)                               |
-| `amount`         | `string` | preset amount. May be overwritten if out of range (min/max)   |
-| `completionKey?` | `string` | optional field bridge between mobile webViews and native apps |
+| Name | Type | Description |
+|------|------| ----------- |
+| `asset` | `string` | name (USDC or HBAR) |
+| `account` | `string` | receiver account id (0.0.xxxxx) |
+| `amount` | `string` | preset amount. May be overwritten if out of range (min/max) |
+| `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
 
 #### Returns
 
 `Promise<IntegrationUrlData>`
 
-### exchangeGetQuotes
+#### Example
 
-▸ **exchangeGetQuotes**(`sourceCode`, `sourceAmount`, `targetCode`, `strategy`, `completionKey?`): `Promise<SwapQuotesData>`
+```javascript
+const {url} = await bladeSdk.getC14url("HBAR", "0.0.10001", "100");
+```
 
-Get swap quotes from different services
+## exchangeGetQuotes
+
+Get quotes from different services for buy, sell or swap
+
+`exchangeGetQuotes(
+        sourceCode: string, 
+        sourceAmount: number, 
+        targetCode: string, 
+        strategy: CryptoFlowServiceStrategy, 
+        completionKey?: string): Promise<SwapQuotesData>`
 
 #### Parameters
 
-| Name             | Type     | Description                                                        |
-| ---------------- | -------- |--------------------------------------------------------------------|
-| `sourceCode`     | `string` | name (HBAR, KARATE, other token code)                              |
-| `sourceAmount`   | `string` | source amount swap, buy or sell                                    |
-| `targetCode`     | `string` | target asset code (HBAR, KARATE, USDC, other token code)           |
-| `strategy`       | `string` | strategy one of enum `CryptoFlowServiceStrategy` (Buy, Sell, Swap) |
-| `completionKey?` | `string` | optional field bridge between mobile webViews and native apps      |
+| Name | Type | Description |
+|------|------| ----------- |
+| `sourceCode` | `string` | name (HBAR, KARATE, other token code) |
+| `sourceAmount` | `number` | amount to swap, buy or sell |
+| `targetCode` | `string` | name (HBAR, KARATE, USDC, other token code) |
+| `strategy` | `CryptoFlowServiceStrategy` | one of enum CryptoFlowServiceStrategy (Buy, Sell, Swap) |
+| `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
 
 #### Returns
 
 `Promise<SwapQuotesData>`
 
-***
+#### Example
 
-### swapTokens
+```javascript
+const quotes = await bladeSdk.exchangeGetQuotes("EUR", 100, "HBAR", CryptoFlowServiceStrategy.BUY);
+```
 
-▸ **swapTokens**(`accountId`, `accountPrivateKey`, `sourceCode`, `sourceAmount`, `targetCode`, `slippage`, `serviceId`, `completionKey?`): `Promise<{success: boolean}>`
+## swapTokens
 
 Swap tokens
 
+`swapTokens(
+        accountId: string, 
+        accountPrivateKey: string, 
+        sourceCode: string, 
+        sourceAmount: number, 
+        targetCode: string, 
+        slippage: number, 
+        serviceId: string, 
+        completionKey?: string): Promise<StatusResult>`
+
 #### Parameters
 
-| Name                | Type     | Description                                                                                                         |
-|---------------------| -------- |---------------------------------------------------------------------------------------------------------------------|
-| `accountId`         | `string` | account id (0.0.xxxxx)                                                                                              |
-| `accountPrivateKey` | `string` | hex-encoded private key with DER header                                                                             |
-| `sourceCode`        | `string` | source asset code (HBAR, KARATE, other token code)                                                                  |
-| `sourceAmount`      | `string` | source amount to swap                                                                                               |
-| `targetCode`        | `string` | target asset code (HBAR, KARATE, USDC, other token code)                                                            |
-| `slippage`          | `string` | slippage in percents (0.5). Transaction will revert if the price changes unfavorably by more than this percentage.  |
-| `serviceId`         | `string` | service id to use for swap (saucerswap, etc)                                                                                             |
-| `completionKey?`    | `string` | optional field bridge between mobile webViews and native apps                                                       |
+| Name | Type | Description |
+|------|------| ----------- |
+| `accountId` | `string` | account id |
+| `accountPrivateKey` | `string` | account private key |
+| `sourceCode` | `string` | name (HBAR, KARATE, other token code) |
+| `sourceAmount` | `number` | amount to swap |
+| `targetCode` | `string` | name (HBAR, KARATE, other token code) |
+| `slippage` | `number` | slippage in percents. Transaction will revert if the price changes unfavorably by more than this percentage. |
+| `serviceId` | `string` | service id to use for swap (saucerswap, etc) |
+| `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
 
 #### Returns
 
-`Promise<{success: boolean}>`
+`Promise<StatusResult>`
 
-***
+#### Example
 
-### getTradeUrl
+```javascript
+const result = await bladeSdk.swapTokens("0.0.10001", "302e020100300506032b65700422042043234DEADBEEF255...", "HBAR", 1, "SAUCE", 0.5, "saucerswapV2");
+```
 
-▸ **getTradeUrl**(`strategy`, `accountId`, `sourceCode`, `sourceAmount`, `targetCode`, `slippage`, `serviceId`, `redirectUrl`, `completionKey?`): `Promise<IntegrationUrlData>`
+## getTradeUrl
 
 Get configured url to buy or sell tokens or fiat
 
+`getTradeUrl(
+        strategy: CryptoFlowServiceStrategy, 
+        accountId: string, 
+        sourceCode: string, 
+        sourceAmount: number, 
+        targetCode: string, 
+        slippage: number, 
+        serviceId: string, 
+        redirectUrl: string = "", 
+        completionKey?: string): Promise<IntegrationUrlData>`
+
 #### Parameters
 
-| Name             | Type     | Description                                                                                                        |
-|------------------| -------- |--------------------------------------------------------------------------------------------------------------------|
-| `strategy`       | `string` | strategy (`buy` or `sell`)                                                                                         |
-| `accountId`      | `string` | account id (0.0.xxxxx)                                                                                             |
-| `sourceCode`     | `string` | source asset code (HBAR, KARATE, USDC, EUR, other token or fiat code)                                              |
-| `sourceAmount`   | `string` | source amount to buy/sell                                                                                          |
-| `targetCode`     | `string` | source asset code (HBAR, KARATE, USDC, EUR, other token or fiat code)                                              |
-| `slippage`       | `string` | slippage in percents (0.5). Transaction will revert if the price changes unfavorably by more than this percentage. |
-| `serviceId`      | `string` | service id to use for buy/sell (c14, etc)                                                                          |
-| `redirectUrl`    | `string` | url to redirect after final step                                                                                   |
-| `completionKey?` | `string` | optional field bridge between mobile webViews and native apps                                                      |
+| Name | Type | Description |
+|------|------| ----------- |
+| `strategy` | `CryptoFlowServiceStrategy` | Buy / Sell |
+| `accountId` | `string` | account id |
+| `sourceCode` | `string` | name (HBAR, KARATE, USDC, other token code) |
+| `sourceAmount` | `number` | amount to buy/sell |
+| `targetCode` | `string` | name (HBAR, KARATE, USDC, other token code) |
+| `slippage` | `number` | slippage in percents. Transaction will revert if the price changes unfavorably by more than this percentage. |
+| `serviceId` | `string` | service id to use for swap (saucerswap, onmeta, etc) |
+| `redirectUrl` | `string` | optional url to redirect after final step |
+| `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
 
 #### Returns
-    
+
 `Promise<IntegrationUrlData>`
 
-***
+#### Example
 
-### sendMessageToNative
+```javascript
+const {url} = await bladeSdk.getTradeUrl(CryptoFlowServiceStrategy.BUY, "0.0.10001", "EUR", 50, "HBAR", 0.5, "saucerswapV2", redirectUrl);
+```
 
-▸ `Private` **sendMessageToNative**(`completionKey`, `data`, `error?`): `any`
+## createToken
 
-Message that sends response back to native handler
+Create token (NFT or Fungible Token)
+
+`createToken(
+        treasuryAccountId: string, 
+        supplyPrivateKey: string, 
+        tokenName: string, 
+        tokenSymbol: string, 
+        isNft: boolean, 
+        keys: KeyRecord[] | string, 
+        decimals: number, 
+        initialSupply: number, 
+        maxSupply: number = 250, 
+        completionKey?: string): Promise<CreateTokenResult>`
 
 #### Parameters
 
-| Name            | Type     | Default value |
-| --------------- | -------- | ------------- |
-| `completionKey` | `string` | `undefined`   |
-| `data`          | `any`    | `undefined`   |
-| `error`         | `any`    | `null`        |
+| Name | Type | Description |
+|------|------| ----------- |
+| `treasuryAccountId` | `string` | treasury account id |
+| `supplyPrivateKey` | `string` | supply account private key |
+| `tokenName` | `string` | token name (string up to 100 bytes) |
+| `tokenSymbol` | `string` | token symbol (string up to 100 bytes) |
+| `isNft` | `boolean` | set token type NFT |
+| `keys` | `KeyRecord[] \| string` | token keys |
+| `decimals` | `number` | token decimals (0 for nft) |
+| `initialSupply` | `number` | token initial supply (0 for nft) |
+| `maxSupply` | `number` | token max supply |
+| `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
 
 #### Returns
 
-`any`
+`Promise<CreateTokenResult>`
+
+#### Example
+
+```javascript
+const keys: KeyRecord[] = [
+    {type: KeyType.admin, privateKey: adminKey},
+    {type: KeyType.wipe, privateKey: wipeKey},
+    {type: KeyType.pause, privateKey: pauseKey},
+];
+const treasuryAccountId = "0.0.10001";
+const supplyKey = "302e020100300506032b65700422042043234DEADBEEF255...";
+const result = await bladeSdk.createToken(
+    treasuryAccountId, // treasuryAccountId
+    supplyKey, // supplyPrivateKey
+    tokenName,
+    tokenSymbol,
+    true, // isNft
+    keys,
+    0, // decimals
+    0, // initialSupply
+    250, // maxSupply
+);
+```
+
+## associateToken
+
+Associate token to account. Association fee will be covered by PayMaster, if tokenId configured in dApp
+
+`associateToken(
+        tokenId: string, 
+        accountId: string, 
+        accountPrivateKey: string, 
+        completionKey?: string): Promise<TransactionReceiptData>`
+
+#### Parameters
+
+| Name | Type | Description |
+|------|------| ----------- |
+| `tokenId` | `string` | token id to associate. Empty to associate all tokens configured in dApp |
+| `accountId` | `string` | account id to associate token |
+| `accountPrivateKey` | `string` | account private key |
+| `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
+
+#### Returns
+
+`Promise<TransactionReceiptData>`
+
+#### Example
+
+```javascript
+const result = await bladeSdk.associateToken("0.0.1337", "0.0.10001", "302e020100300506032b65700422042043234DEADBEEF255...");
+```
+
+## nftMint
+
+Mint one NFT
+
+`nftMint(
+        tokenId: string, 
+        accountId: string, 
+        accountPrivateKey: string, 
+        file: File | string, 
+        metadata: object, 
+        storageConfig: NFTStorageConfig, 
+        completionKey?: string): Promise<TransactionReceiptData>`
+
+#### Parameters
+
+| Name | Type | Description |
+|------|------| ----------- |
+| `tokenId` | `string` | token id to mint NFT |
+| `accountId` | `string` | token supply account id |
+| `accountPrivateKey` | `string` | token supply private key |
+| `file` | `File \| string` | image to mint (File or base64 DataUrl image, eg.: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAA...) |
+| `metadata` | `object` | NFT metadata (JSON object) |
+| `storageConfig` | `NFTStorageConfig` | IPFS provider config |
+| `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
+
+#### Returns
+
+`Promise<TransactionReceiptData>`
+
+#### Example
+
+```javascript
+const receipt = await bladeSdk.nftMint(
+    tokenId,
+    treasuryAccountId,
+    supplyKey,
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAARUlEQVR42u3PMREAAAgEIO1fzU5vBlcPGtCVTD3QIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIXCyqyi6fIALs1AAAAAElFTkSuQmCC", // TODO upload file base64
+    {
+        author: "GaryDu",
+        other: "metadata",
+        some: "more properties"
+    },
+    {
+        provider: NFTStorageProvider.nftStorage,
+        apiKey: nftStorageApiKey,
+    }
+);
+```
+
+## getTokenInfo
+
+Get token info. Fungible or NFT. Also get NFT metadata if serial provided
+
+`getTokenInfo(tokenId: string,  serial: string = "",  completionKey?: string): Promise<TokenInfoData>`
+
+#### Parameters
+
+| Name | Type | Description |
+|------|------| ----------- |
+| `tokenId` | `string` | token id |
+| `serial` | `string` | serial number for NFT |
+| `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
+
+#### Returns
+
+`Promise<TokenInfoData>`
+
+#### Example
+
+```javascript
+const tokenInfo = await bladeSdk.getTokenInfo("0.0.1234", "3");
+```
+

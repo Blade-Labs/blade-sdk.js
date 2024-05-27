@@ -1,7 +1,8 @@
 import { MirrorNodeTransactionType } from "./TransactionType";
 import { Network } from "./Networks";
 import { ICryptoFlowQuote } from "./CryptoFlow";
-import { NftInfo, NftMetadata, TokenInfo } from "./MirrorNode";
+import {NftInfo, NftMetadata, NodeInfo, TokenInfo} from "./MirrorNode";
+import { Signer } from "@hashgraph/sdk";
 
 export enum SdkEnvironment {
     Prod = "Prod",
@@ -150,9 +151,9 @@ export interface NFTStorageConfig {
     apiKey: string;
 }
 
-export interface BridgeResponse {
+export interface BridgeResponse<T> {
     completionKey: string;
-    data: any;
+    data: T;
     error?: any;
 }
 
@@ -168,12 +169,10 @@ export interface InfoData {
 
 export interface BalanceData {
     hbars: number;
-    tokens: [
-        {
-            tokenId: string;
-            balance: number;
-        }
-    ];
+    tokens: {
+        tokenId: string;
+        balance: number;
+    }[];
 }
 
 export interface ContractCallQueryRecord {
@@ -181,13 +180,18 @@ export interface ContractCallQueryRecord {
     value: string | number | boolean;
 }
 
+export interface ContractCallQueryRecordsData {
+    values: ContractCallQueryRecord[];
+    gasUsed: number;
+}
+
 export interface CreateAccountData {
     seedPhrase: string;
     publicKey: string;
     privateKey: string;
-    accountId?: string;
+    accountId: string | null;
     evmAddress: string;
-    transactionId?: string;
+    transactionId?: string | null;
     status: string;
     queueNumber?: number;
 }
@@ -208,6 +212,29 @@ export interface AccountPrivateData {
     accounts: AccountPrivateRecord[];
 }
 
+export interface UserInfoData {
+    accountId: string;
+    accountProvider: AccountProvider | null;
+    userPrivateKey: string;
+    userPublicKey: string;
+}
+
+export interface StatusResult {
+    success: boolean
+}
+
+export interface ScheduleResult {
+    scheduleId: string;
+}
+
+export interface NodeListData {
+    nodes: NodeInfo[];
+}
+
+export interface CreateTokenResult {
+    tokenId: string;
+}
+
 export interface AccountPrivateRecord {
     privateKey: string;
     publicKey: string;
@@ -220,7 +247,7 @@ export interface AccountPrivateRecord {
 export interface PrivateKeyData {
     privateKey: string;
     publicKey: string;
-    accounts: [string];
+    accounts: string[];
     evmAddress: string;
 }
 
@@ -240,7 +267,7 @@ export interface SplitSignatureData {
 
 export interface TransactionsHistoryData {
     transactions: TransactionData[];
-    nextPage?: string;
+    nextPage: string | null;
 }
 
 export interface TransactionData {
@@ -384,6 +411,13 @@ export interface ScheduleTransactionTransfer {
     value?: number;
     tokenId?: string;
     serial?: number;
+}
+
+export interface UserInfo {
+    signer: Signer;
+    accountId: string;
+    privateKey: string;
+    publicKey: string;
 }
 
 export enum ScheduleTransactionType {

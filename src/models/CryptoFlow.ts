@@ -124,7 +124,7 @@ export interface ICryptoFlowQuote {
     source: IAssetQuote;
     target: IAssetQuote;
     rate: number | null;
-    widgetUrl?: string;
+    widgetUrl: string;
     paymentMethods?: string[];
     path?: { tokenId: string, fee?: number }[];
 }

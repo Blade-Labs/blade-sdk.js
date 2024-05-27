@@ -14,250 +14,258 @@ const params = new ParametersBuilder()
  ;
 ```
 
-## Table of contents
 
-### Methods
+# Contents
 
-- [constructor](parametersbuilder.md#constructor)
-- [encode](parametersbuilder.md#encode)
-- [addAddress](parametersbuilder.md#addaddress)
-- [addAddressArray](parametersbuilder.md#addaddressarray)
-- [addBytes32](parametersbuilder.md#addbytes32)
-- [addUInt8](parametersbuilder.md#adduint8)
-- [addUInt64](parametersbuilder.md#adduint64)
-- [addUInt64Array](parametersbuilder.md#adduint64array)
-- [addInt64](parametersbuilder.md#addint64)
-- [addUInt256](parametersbuilder.md#adduint256)
-- [addUInt256Array](parametersbuilder.md#adduint256array)
-- [addTuple](parametersbuilder.md#addtuple)
-- [addTupleArray](parametersbuilder.md#addtuplearray)
-- [addString](parametersbuilder.md#addstring)
-- [addStringArray](parametersbuilder.md#addstringarray)
+* [addAddress](parametersbuilder.md#addaddress)
+* [addAddressArray](parametersbuilder.md#addaddressarray)
+* [addBytes32](parametersbuilder.md#addbytes32)
+* [addUInt8](parametersbuilder.md#adduint8)
+* [addUInt64](parametersbuilder.md#adduint64)
+* [addUInt64Array](parametersbuilder.md#adduint64array)
+* [addInt64](parametersbuilder.md#addint64)
+* [addUInt256](parametersbuilder.md#adduint256)
+* [addUInt256Array](parametersbuilder.md#adduint256array)
+* [addTuple](parametersbuilder.md#addtuple)
+* [addTupleArray](parametersbuilder.md#addtuplearray)
+* [addString](parametersbuilder.md#addstring)
+* [addStringArray](parametersbuilder.md#addstringarray)
+* [encode](parametersbuilder.md#encode)
 
-## Methods
+# Methods
 
-### constructor
+## addAddress
 
-▸ **new ParametersBuilder**()
 
-___
 
-### encode
+`addAddress(value: string | AccountId): ParametersBuilder`
 
-▸ **encode**(): `string`
+#### Parameters
+
+| Name | Type | Description |
+|------|------| ----------- |
+| `value` | `string \| AccountId` |  |
+
+#### Returns
+
+`ParametersBuilder`
+
+
+## addAddressArray
+
+
+
+`addAddressArray(value: string[] | AccountId[]): ParametersBuilder`
+
+#### Parameters
+
+| Name | Type | Description |
+|------|------| ----------- |
+| `value` | `string[] \| AccountId[]` |  |
+
+#### Returns
+
+`ParametersBuilder`
+
+
+## addBytes32
+
+
+
+`addBytes32(value: Uint8Array | number[]): ParametersBuilder`
+
+#### Parameters
+
+| Name | Type | Description |
+|------|------| ----------- |
+| `value` | `Uint8Array \| number[]` |  |
+
+#### Returns
+
+`ParametersBuilder`
+
+
+## addUInt8
+
+
+
+`addUInt8(value: number): ParametersBuilder`
+
+#### Parameters
+
+| Name | Type | Description |
+|------|------| ----------- |
+| `value` | `number` |  |
+
+#### Returns
+
+`ParametersBuilder`
+
+
+## addUInt64
+
+
+
+`addUInt64(value: BigNumber): ParametersBuilder`
+
+#### Parameters
+
+| Name | Type | Description |
+|------|------| ----------- |
+| `value` | `BigNumber` |  |
+
+#### Returns
+
+`ParametersBuilder`
+
+
+## addUInt64Array
+
+
+
+`addUInt64Array(value: BigNumber[]): ParametersBuilder`
+
+#### Parameters
+
+| Name | Type | Description |
+|------|------| ----------- |
+| `value` | `BigNumber[]` |  |
+
+#### Returns
+
+`ParametersBuilder`
+
+
+## addInt64
+
+
+
+`addInt64(value: BigNumber): ParametersBuilder`
+
+#### Parameters
+
+| Name | Type | Description |
+|------|------| ----------- |
+| `value` | `BigNumber` |  |
+
+#### Returns
+
+`ParametersBuilder`
+
+
+## addUInt256
+
+
+
+`addUInt256(value: BigNumber): ParametersBuilder`
+
+#### Parameters
+
+| Name | Type | Description |
+|------|------| ----------- |
+| `value` | `BigNumber` |  |
+
+#### Returns
+
+`ParametersBuilder`
+
+
+## addUInt256Array
+
+
+
+`addUInt256Array(value: BigNumber[]): ParametersBuilder`
+
+#### Parameters
+
+| Name | Type | Description |
+|------|------| ----------- |
+| `value` | `BigNumber[]` |  |
+
+#### Returns
+
+`ParametersBuilder`
+
+
+## addTuple
+
+
+
+`addTuple(value: ParametersBuilder): ParametersBuilder`
+
+#### Parameters
+
+| Name | Type | Description |
+|------|------| ----------- |
+| `value` | `ParametersBuilder` |  |
+
+#### Returns
+
+`ParametersBuilder`
+
+
+## addTupleArray
+
+
+
+`addTupleArray(value: ParametersBuilder[]): ParametersBuilder`
+
+#### Parameters
+
+| Name | Type | Description |
+|------|------| ----------- |
+| `value` | `ParametersBuilder[]` |  |
+
+#### Returns
+
+`ParametersBuilder`
+
+
+## addString
+
+
+
+`addString(value: string): ParametersBuilder`
+
+#### Parameters
+
+| Name | Type | Description |
+|------|------| ----------- |
+| `value` | `string` |  |
+
+#### Returns
+
+`ParametersBuilder`
+
+
+## addStringArray
+
+
+
+`addStringArray(value: string[]): ParametersBuilder`
+
+#### Parameters
+
+| Name | Type | Description |
+|------|------| ----------- |
+| `value` | `string[]` |  |
+
+#### Returns
+
+`ParametersBuilder`
+
+
+## encode
 
 Encodes the parameters to a base64 string, compatible with the methods of the BladeSDK
+
 Calling this method is optional, as the BladeSDK will automatically encode the parameters if needed
+
+`encode(): string`
+
 
 #### Returns
 
 `string`
 
-___
-
-### addAddress
-
-▸ **addAddress**(`value`): [`ParametersBuilder`](parametersbuilder.md)
-
-#### Parameters
-
-| Name | Type |
-| :------ | :------ |
-| `value` | `string` \| `default` |
-
-#### Returns
-
-[`ParametersBuilder`](parametersbuilder.md)
-
-___
-
-### addAddressArray
-
-▸ **addAddressArray**(`value`): [`ParametersBuilder`](parametersbuilder.md)
-
-#### Parameters
-
-| Name | Type |
-| :------ | :------ |
-| `value` | `string`[] \| `default`[] |
-
-#### Returns
-
-[`ParametersBuilder`](parametersbuilder.md)
-
-___
-
-### addBytes32
-
-▸ **addBytes32**(`value`): [`ParametersBuilder`](parametersbuilder.md)
-
-#### Parameters
-
-| Name | Type |
-| :------ | :------ |
-| `value` | `number`[] \| `Uint8Array` |
-
-#### Returns
-
-[`ParametersBuilder`](parametersbuilder.md)
-
-___
-
-### addUInt8
-
-▸ **addUInt8**(`value`): [`ParametersBuilder`](parametersbuilder.md)
-
-#### Parameters
-
-| Name | Type |
-| :------ | :------ |
-| `value` | `number` |
-
-#### Returns
-
-[`ParametersBuilder`](parametersbuilder.md)
-
-___
-
-### addUInt64
-
-▸ **addUInt64**(`value`): [`ParametersBuilder`](parametersbuilder.md)
-
-#### Parameters
-
-| Name | Type |
-| :------ | :------ |
-| `value` | `BigNumber` |
-
-#### Returns
-
-[`ParametersBuilder`](parametersbuilder.md)
-
-___
-
-### addUInt64Array
-
-▸ **addUInt64Array**(`value`): [`ParametersBuilder`](parametersbuilder.md)
-
-#### Parameters
-
-| Name | Type |
-| :------ | :------ |
-| `value` | `BigNumber`[] |
-
-#### Returns
-
-[`ParametersBuilder`](parametersbuilder.md)
-
-___
-
-### addInt64
-
-▸ **addInt64**(`value`): [`ParametersBuilder`](parametersbuilder.md)
-
-#### Parameters
-
-| Name | Type |
-| :------ | :------ |
-| `value` | `BigNumber` |
-
-#### Returns
-
-[`ParametersBuilder`](parametersbuilder.md)
-
-___
-
-### addUInt256
-
-▸ **addUInt256**(`value`): [`ParametersBuilder`](parametersbuilder.md)
-
-#### Parameters
-
-| Name | Type |
-| :------ | :------ |
-| `value` | `BigNumber` |
-
-#### Returns
-
-[`ParametersBuilder`](parametersbuilder.md)
-
-___
-
-### addUInt256Array
-
-▸ **addUInt256Array**(`value`): [`ParametersBuilder`](parametersbuilder.md)
-
-#### Parameters
-
-| Name | Type |
-| :------ | :------ |
-| `value` | `BigNumber`[] |
-
-#### Returns
-
-[`ParametersBuilder`](parametersbuilder.md)
-
-___
-
-### addTuple
-
-▸ **addTuple**(`value`): [`ParametersBuilder`](parametersbuilder.md)
-
-#### Parameters
-
-| Name | Type |
-| :------ | :------ |
-| `value` | [`ParametersBuilder`](parametersbuilder.md) |
-
-#### Returns
-
-[`ParametersBuilder`](parametersbuilder.md)
-
-___
-
-### addTupleArray
-
-▸ **addTupleArray**(`value`): [`ParametersBuilder`](parametersbuilder.md)
-
-#### Parameters
-
-| Name | Type |
-| :------ | :------ |
-| `value` | [`ParametersBuilder`](parametersbuilder.md)[] |
-
-#### Returns
-
-[`ParametersBuilder`](parametersbuilder.md)
-
-___
-
-### addString
-
-▸ **addString**(`value`): [`ParametersBuilder`](parametersbuilder.md)
-
-#### Parameters
-
-| Name | Type |
-| :------ | :------ |
-| `value` | `string` |
-
-#### Returns
-
-[`ParametersBuilder`](parametersbuilder.md)
-
-___
-
-### addStringArray
-
-▸ **addStringArray**(`value`): [`ParametersBuilder`](parametersbuilder.md)
-
-#### Parameters
-
-| Name | Type |
-| :------ | :------ |
-| `value` | `string`[] |
-
-#### Returns
-
-[`ParametersBuilder`](parametersbuilder.md)
 
