@@ -64,6 +64,10 @@ Inits instance of BladeSDK for correct work with Blade API and Hedera network.
 | `sdkVersion` | `string` | optional field, used for header X-SDK-VERSION |
 | `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
 
+#### Returns
+
+`Promise<InfoData>` - status: "success" or "error"
+
 #### Example
 
 ```javascript
@@ -85,6 +89,10 @@ In case of support please not provide full apiKey, limit yourself to the part of
 | Name | Type | Description |
 |------|------| ----------- |
 | `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
+
+#### Returns
+
+`InfoData`
 
 #### Example
 
@@ -125,6 +133,10 @@ It's optional method, you can pass accountId and accountPrivateKey in each metho
 | `privateKey` | `string` | private key with DER-prefix (302e020100300506032b657004220420...) or empty string for Magic provider |
 | `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
 
+#### Returns
+
+`Promise<UserInfoData>`
+
 #### Example
 
 ```javascript
@@ -146,6 +158,10 @@ Clears current user credentials.
 |------|------| ----------- |
 | `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
 
+#### Returns
+
+`Promise<StatusResult>`
+
 #### Example
 
 ```javascript
@@ -165,6 +181,10 @@ Get hbar and token balances for specific account.
 | `accountId` | `string` | Hedera account id (0.0.xxxxx) |
 | `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
 
+#### Returns
+
+`Promise<BalanceData>` - hbars: number, tokens: [{tokenId: string, balance: number}]
+
 #### Example
 
 ```javascript
@@ -182,6 +202,10 @@ Get list of all available coins on CoinGecko.
 | Name | Type | Description |
 |------|------| ----------- |
 | `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
+
+#### Returns
+
+`Promise<CoinListData>`
 
 #### Example
 
@@ -205,6 +229,10 @@ Get coin price and coin info from CoinGecko. Search can be coin id or address in
 | `search` | `string` | coin alias (get one using getCoinList method) |
 | `currency` | `string` | currency to get price in (usd, eur, etc.) |
 | `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
+
+#### Returns
+
+`Promise<CoinInfoData>`
 
 #### Example
 
@@ -234,6 +262,10 @@ Send hbars to specific account.
 | `amount` | `string` | amount of hbars to send (decimal number) |
 | `memo` | `string` | transaction memo |
 | `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
+
+#### Returns
+
+`Promise<TransactionReceiptData>`
 
 #### Example
 
@@ -267,6 +299,10 @@ Call contract function. Directly or via BladeAPI using paymaster account (fee wi
 | `gas` | `number` | gas limit for the transaction |
 | `usePaymaster` | `boolean` | if true, fee will be paid by Paymaster account (note: msg.sender inside the contract will be Paymaster account) |
 | `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
+
+#### Returns
+
+`Promise<TransactionReceiptData>`
 
 #### Example
 
@@ -306,6 +342,10 @@ Call query on contract function. Similar to {@link contractCallFunction} can be 
 | `resultTypes` | `string[]` | - array of result types. Currently supported only plain data types |
 | `completionKey` | `string` | - optional field bridge between mobile webViews and native apps |
 
+#### Returns
+
+`Promise<ContractCallQueryRecordsData>`
+
 #### Example
 
 ```javascript
@@ -342,6 +382,10 @@ Send token to specific account.
 | `usePaymaster` | `boolean` | if true, Paymaster account will pay fee transaction. Only for single dApp configured fungible-token. In that case tokenId not used |
 | `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
 
+#### Returns
+
+`Promise<TransactionReceiptData>`
+
 #### Example
 
 ```javascript
@@ -370,6 +414,10 @@ Create scheduled transaction
 | `transfers` | `ScheduleTransactionTransfer[]` | array of transfers to schedule (HBAR, FT, NFT) |
 | `usePaymaster` | `boolean` | if true, Paymaster account will pay transaction fee (also dApp had to be configured for free schedules) |
 | `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
+
+#### Returns
+
+`Promise<ScheduleResult>`
 
 #### Example
 
@@ -431,6 +479,10 @@ Sign scheduled transaction
 | `usePaymaster` | `boolean` | if true, Paymaster account will pay transaction fee (also dApp had to be configured for free schedules) |
 | `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
 
+#### Returns
+
+`Promise<TransactionReceiptData>`
+
 #### Example
 
 ```javascript
@@ -459,6 +511,10 @@ In that case account creation added to queue, and you should wait some time and 
 | `deviceId` | `string` | optional field for headers for backend check |
 | `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
 
+#### Returns
+
+`Promise<CreateAccountData>`
+
 #### Example
 
 ```javascript
@@ -485,6 +541,10 @@ If account not created yet, response will be same as in `createAccount()` method
 | `transactionId` | `string` | returned from `createAccount()` method |
 | `mnemonic` | `string` | returned from `createAccount()` method |
 | `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
+
+#### Returns
+
+`Promise<CreateAccountData>`
 
 #### Example
 
@@ -519,6 +579,10 @@ Delete Hedera account. This method requires account private key and operator pri
 | `operatorPrivateKey` | `string` | operator's account private key (DER encoded hex string) |
 | `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
 
+#### Returns
+
+`Promise<TransactionReceiptData>`
+
 #### Example
 
 ```javascript
@@ -542,6 +606,10 @@ CalculatedEvmAddress is calculated from account public key. May be different fro
 | `accountId` | `string` | Hedera account id (0.0.xxxxx) |
 | `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
 
+#### Returns
+
+`Promise<AccountInfoData>`
+
 #### Example
 
 ```javascript
@@ -559,6 +627,10 @@ Get Node list
 | Name | Type | Description |
 |------|------| ----------- |
 | `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
+
+#### Returns
+
+`Promise<NodeListData>`
 
 #### Example
 
@@ -585,6 +657,10 @@ Stake/unstake account
 | `nodeId` | `number` | node id to stake to. If negative or null, account will be unstaked |
 | `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
 
+#### Returns
+
+`Promise<TransactionReceiptData>`
+
 #### Example
 
 ```javascript
@@ -609,6 +685,10 @@ const receipt = await bladeSdk.stakeToNode("0.0.10001", "302e020100300506032b657
 | `lookupNames` | `boolean` | not used anymore, account search is mandatory |
 | `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
 
+#### Returns
+
+`Promise<PrivateKeyData>`
+
 #### Example
 
 ```javascript
@@ -631,6 +711,10 @@ Every key with account will be returned.
 |------|------| ----------- |
 | `keyOrMnemonic` | `string` | BIP39 mnemonic, private key with DER header |
 | `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
+
+#### Returns
+
+`Promise<AccountPrivateData>`
 
 #### Example
 
@@ -658,6 +742,10 @@ Bladelink drop to account
 | `secretNonce` | `string` | configured for dApp. Should be kept in secret |
 | `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
 
+#### Returns
+
+`Promise<TokenDropData>`
+
 #### Example
 
 ```javascript
@@ -677,6 +765,10 @@ Sign base64-encoded message with private key. Returns hex-encoded signature.
 | `messageString` | `string` | base64-encoded message to sign |
 | `privateKey` | `string` | hex-encoded private key with DER header |
 | `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
+
+#### Returns
+
+`SignMessageData`
 
 #### Example
 
@@ -703,6 +795,10 @@ Verify message signature by public key
 | `publicKey` | `string` | hex-encoded public key with DER header |
 | `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
 
+#### Returns
+
+`SignVerifyMessageData`
+
 #### Example
 
 ```javascript
@@ -725,6 +821,10 @@ Sign base64-encoded message with private key using ethers lib. Returns hex-encod
 | `privateKey` | `string` | hex-encoded private key with DER header |
 | `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
 
+#### Returns
+
+`Promise<SignMessageData>`
+
 #### Example
 
 ```javascript
@@ -743,6 +843,10 @@ Split signature to v-r-s format.
 |------|------| ----------- |
 | `signature` | `string` | hex-encoded signature |
 | `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
+
+#### Returns
+
+`SplitSignatureData`
 
 #### Example
 
@@ -767,6 +871,10 @@ Get v-r-s signature of contract function params
 | `paramsEncoded` | `string \| ParametersBuilder` | data to sign. Can be string or ParametersBuilder |
 | `privateKey` | `string` | signer private key (hex-encoded with DER header) |
 | `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
+
+#### Returns
+
+`Promise<SplitSignatureData>`
 
 #### Example
 
@@ -802,6 +910,10 @@ If transaction type is CRYPTOTRANSFERTOKEN records will additionally contain pla
 | `transactionsLimit` | `string` | number of transactions to return. Speed of request depends on this value if transactionType is set. |
 | `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
 
+#### Returns
+
+`Promise<TransactionsHistoryData>`
+
 #### Example
 
 ```javascript
@@ -826,6 +938,10 @@ Get configured url for C14 integration (iframe or popup)
 | `account` | `string` | receiver account id (0.0.xxxxx) |
 | `amount` | `string` | preset amount. May be overwritten if out of range (min/max) |
 | `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
+
+#### Returns
+
+`Promise<IntegrationUrlData>`
 
 #### Example
 
@@ -853,6 +969,10 @@ Get quotes from different services for buy, sell or swap
 | `targetCode` | `string` | name (HBAR, KARATE, USDC, other token code) |
 | `strategy` | `CryptoFlowServiceStrategy` | one of enum CryptoFlowServiceStrategy (Buy, Sell, Swap) |
 | `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
+
+#### Returns
+
+`Promise<SwapQuotesData>`
 
 #### Example
 
@@ -887,6 +1007,10 @@ Swap tokens
 | `serviceId` | `string` | service id to use for swap (saucerswap, etc) |
 | `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
 
+#### Returns
+
+`Promise<StatusResult>`
+
 #### Example
 
 ```javascript
@@ -905,7 +1029,7 @@ Get configured url to buy or sell tokens or fiat
         targetCode: string, 
         slippage: number, 
         serviceId: string, 
-        redirectUrl: string, 
+        redirectUrl: string = "", 
         completionKey?: string): Promise<IntegrationUrlData>`
 
 #### Parameters
@@ -919,8 +1043,12 @@ Get configured url to buy or sell tokens or fiat
 | `targetCode` | `string` | name (HBAR, KARATE, USDC, other token code) |
 | `slippage` | `number` | slippage in percents. Transaction will revert if the price changes unfavorably by more than this percentage. |
 | `serviceId` | `string` | service id to use for swap (saucerswap, onmeta, etc) |
-| `redirectUrl` | `string` | url to redirect after final step |
+| `redirectUrl` | `string` | optional url to redirect after final step |
 | `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
+
+#### Returns
+
+`Promise<IntegrationUrlData>`
 
 #### Example
 
@@ -958,6 +1086,10 @@ Create token (NFT or Fungible Token)
 | `initialSupply` | `number` | token initial supply (0 for nft) |
 | `maxSupply` | `number` | token max supply |
 | `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
+
+#### Returns
+
+`Promise<CreateTokenResult>`
 
 #### Example
 
@@ -1001,6 +1133,10 @@ Associate token to account. Association fee will be covered by PayMaster, if tok
 | `accountPrivateKey` | `string` | account private key |
 | `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
 
+#### Returns
+
+`Promise<TransactionReceiptData>`
+
 #### Example
 
 ```javascript
@@ -1031,6 +1167,10 @@ Mint one NFT
 | `metadata` | `object` | NFT metadata (JSON object) |
 | `storageConfig` | `NFTStorageConfig` | IPFS provider config |
 | `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
+
+#### Returns
+
+`Promise<TransactionReceiptData>`
 
 #### Example
 
@@ -1065,6 +1205,10 @@ Get token info. Fungible or NFT. Also get NFT metadata if serial provided
 | `tokenId` | `string` | token id |
 | `serial` | `string` | serial number for NFT |
 | `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
+
+#### Returns
+
+`Promise<TokenInfoData>`
 
 #### Example
 
