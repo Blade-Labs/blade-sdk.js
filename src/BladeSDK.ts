@@ -595,6 +595,7 @@ export class BladeSDK {
                                 .setGas(gas)
                                 .setFunction(functionName)
                                 .setFunctionParameters(contractFunctionParameters)
+                                .setMaxQueryPayment(Hbar.from(3, HbarUnit.Hbar))
                                 .executeWithSigner(this.signer)
 
                         } catch (contract_error: any) {

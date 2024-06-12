@@ -332,7 +332,7 @@ test.only('bladeSdk.contractCallFunction', async () => {
 
     try {
         // fail on wrong function params (CONTRACT_REVERT_EXECUTED) with error_message
-        params = new ParametersBuilder().addString(message).addAddress("0x65f17cac69fb3df1328a5c239761d32e8b346da0").addAddressArray([accountId, accountId2]).addTuple(new ParametersBuilder().addUInt64(num1).addUInt64(num2));
+        params = new ParametersBuilder();
         result = await bladeSdk.contractCallFunction(contractId, "revert_fnc", params, accountId, privateKey, 1000000, true, completionKey);
         console.log('1', result);
         checkResult(result);
