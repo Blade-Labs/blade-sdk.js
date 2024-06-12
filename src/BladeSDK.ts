@@ -582,7 +582,37 @@ export class BladeSDK {
                 .then((data) => {
                     return this.sendMessageToNative(completionKey, formatReceipt(data));
                 })
-                .catch((error) => {
+                .catch(async(error: any) => {
+                    if (error.message.includes("CONTRACT_REVERT_EXECUTED")) {
+                        try {
+                            let response: ContractFunctionResult;
+
+                            console.log(functionName);
+                            
+
+                            response = await new ContractCallQuery()
+                                .setContractId(contractId)
+                                .setGas(gas)
+                                .setFunction(functionName)
+                                .setFunctionParameters(contractFunctionParameters)
+                                .executeWithSigner(this.signer)
+
+                        } catch (contract_error: any) {
+                            console.log(contract_error);
+                            
+                            if (contract_error?.contractFunctionResult?.errorMessage.startsWith('0x') && contract_error?.contractFunctionResult?.errorMessage.length > 2) {
+                                const reason = ethers.utils.defaultAbiCoder.decode(
+                                    ['string'],
+                                    ethers.utils.hexDataSlice(contract_error.contractFunctionResult.errorMessage, 4)
+                                )
+
+                                const error_message = error.message + `(${reason[0]})`
+
+                                throw this.sendMessageToNative(completionKey, null, error_message);
+                            }
+                        }
+                    }
+
                     throw this.sendMessageToNative(completionKey, null, error);
                 });
         } catch (error: any) {

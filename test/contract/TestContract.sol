@@ -3,6 +3,7 @@ pragma solidity >=0.7.0 <0.8.9;
 // SPDX-License-Identifier: UNLICENSED
 
 contract HelloHedera {
+    mapping(address => bool) public delegationStatus;
 
     struct Numbers {
         uint64 num1;
@@ -25,7 +26,7 @@ contract HelloHedera {
 
     // return a (message, caller_address, count)
     function get_message() public view returns (string memory) {
-        return (message);
+        return message;
     }
 
     function set_numbers(string memory message_, Numbers memory numbers_) public {
@@ -36,5 +37,18 @@ contract HelloHedera {
 
     function get_sum() public view returns (string memory, uint64) {
         return (message, numbers.num1 + numbers.num2);
+    }
+
+    function revert_fnc() public {
+        revert("Return revert");
+    }
+
+    function functionRequiringDelegate() public view returns (string memory) {
+        require(delegationStatus[msg.sender], "No delegate set");
+        return "Function executed successfully with delegate";
+    }
+
+    function setDelegate(address _delegate) public {
+        delegationStatus[_delegate] = true;
     }
 }

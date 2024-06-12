@@ -1,10 +1,7 @@
-/**
- RUN: npm run test_deploy_contract
- */
-
 require("dotenv").config();
 const {
     FileCreateTransaction,
+    FileAppendTransaction,
     AccountId,
     PrivateKey,
     Client,
@@ -13,14 +10,13 @@ const {
 } = require("@hashgraph/sdk");
 const fs = require("fs");
 
-const contractBytecode = fs.readFileSync("./test/contract/test_contract_TestContract_sol_HelloHedera.bin", "utf8");
+const contractBytecode = fs.readFileSync("./test/contract/test_contract_TestContract_sol_HelloHedera.bin");
 
 (async () => {
     const accountIdTest = AccountId.fromString(process.env.ACCOUNT_ID);
     const accountKeyTest = PrivateKey.fromStringECDSA(process.env.PRIVATE_KEY);
 
-    // If we weren't able to grab it, we should throw a new error
-    if (accountIdTest == null || accountKeyTest == null) {
+    if (!accountIdTest || !accountKeyTest) {
         throw new Error("Environment variables ACCOUNT_ID and PRIVATE_KEY must be present");
     }
 
@@ -29,50 +25,58 @@ const contractBytecode = fs.readFileSync("./test/contract/test_contract_TestCont
     const client = Client.forTestnet();
     client.setOperator(accountIdTest, accountKeyTest);
 
-    // Store Smart contract bytecode
+    console.log('client', client);
 
-    // Create a file on Hedera and store the hex-encoded bytecode
-    const fileCreateTx = new FileCreateTransaction()
-        // Set the bytecode of the contract
-        .setContents(contractBytecode);
+    try {
+        // Create a file on Hedera and store the bytecode in chunks
+        const fileCreateTx = new FileCreateTransaction()
+            .setKeys([accountKeyTest.publicKey])
+            .setContents(contractBytecode.slice(0, 4096)) // First chunk
+            .setMaxTransactionFee(2000000); // Adjust this value as needed
 
-    // Submit the file to the Hedera test network signing with the transaction fee payer key specified with the client
-    const submitTx = await fileCreateTx.execute(client);
+        console.log('fileCreateTx', fileCreateTx);
 
-    // Get the receipt of the file create transaction
-    const fileReceipt = await submitTx.getReceipt(client);
+        const submitTx = await fileCreateTx.execute(client);
+        const fileReceipt = await submitTx.getReceipt(client);
+        const bytecodeFileId = fileReceipt.fileId;
 
-    // Get the file ID from the receipt
-    const bytecodeFileId = fileReceipt.fileId;
+        console.log(`The smart contract byte code file ID is ${bytecodeFileId}`);
 
-    // Log the file ID
-    // console.log(`*** The smart contract byte code file ID is ${bytecodeFileId} ***`)
+        // Append the rest of the bytecode if it's larger than 4096 bytes
+        if (contractBytecode.length > 4096) {
+            let startIndex = 4096;
+            while (startIndex < contractBytecode.length) {
+                const endIndex = Math.min(startIndex + 4096, contractBytecode.length);
+                const fileAppendTx = new FileAppendTransaction()
+                    .setFileId(bytecodeFileId)
+                    .setContents(contractBytecode.slice(startIndex, endIndex))
+                    .setMaxTransactionFee(2_000_000); // Adjust this value as needed
 
-    // Instantiate the contract instance
-    const contractTx = await new ContractCreateTransaction()
-        // Set the file ID of the Hedera file storing the bytecode
-        .setBytecodeFileId(bytecodeFileId)
-        // Set the gas to instantiate the contract
-        .setGas(1000000)
-        // Provide the constructor parameters for the contract
-        .setConstructorParameters(new ContractFunctionParameters().addString("Just created!"));
+                await fileAppendTx.execute(client);
+                startIndex = endIndex;
+            }
+        }
 
-    // Submit the transaction to the Hedera test network
-    const contractResponse = await contractTx.execute(client);
+        const contractTx = new ContractCreateTransaction()
+            .setBytecodeFileId(bytecodeFileId)
+            .setGas(5000000) // Increase if needed
+            .setConstructorParameters(new ContractFunctionParameters().addString("Just created!"))
+            .setMaxTransactionFee(2000000); // Adjust this value as needed
 
-    // Get the receipt of the file create transaction
-    const contractReceipt = await contractResponse.getReceipt(client);
+        const contractResponse = await contractTx.execute(client);
+        const contractReceipt = await contractResponse.getReceipt(client);
+        const newContractId = contractReceipt.contractId;
 
-    // Get the smart contract ID
-    const newContractId = contractReceipt.contractId;
+        console.log("************************************************************");
+        console.log("************************************************************");
+        console.log(`*** The smart contract ID is ${newContractId}`);
+        console.log("*** Set this contractId as environment variable in *.env ***");
+        console.log("************************************************************");
+        console.log("************************************************************");
 
-    // Log the smart contract ID
-    console.log("************************************************************");
-    console.log("************************************************************");
-    console.log(`*** The smart contract ID is ${newContractId}`);
-    console.log("*** Set this contractId as environment variable in *.env ***");
-    console.log("************************************************************");
-    console.log("************************************************************");
-
-    process.exit();
+        process.exit();
+    } catch (error) {
+        console.error("Error deploying contract:", error);
+        process.exit(1);
+    }
 })();
