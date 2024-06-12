@@ -307,7 +307,7 @@ describe("testing methods related to HEDERA network", () => {
     test("bladeSdk-hedera.createAccount", async () => {
         let result;
 
-        result = await bladeSdk.createAccount("device-id", completionKey);
+        result = await bladeSdk.createAccount("", "device-id", completionKey);
         checkResult(result);
 
         expect(result.data).toHaveProperty("seedPhrase");
@@ -336,7 +336,7 @@ describe("testing methods related to HEDERA network", () => {
 
         // fail on wrong api key
         try {
-            result = await bladeSdk.createAccount("device-id", completionKey);
+            result = await bladeSdk.createAccount("", "device-id", completionKey);
             expect("Code should not reach here").toEqual(result);
         } catch (result) {
             checkResult(result, false);

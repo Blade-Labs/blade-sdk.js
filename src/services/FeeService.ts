@@ -7,7 +7,7 @@ import {FeeManualOptions, FeeType} from "../models/CryptoFlow";
 import {ChainMap, KnownChainIds} from "../models/Chain";
 import BigNumber from "bignumber.js";
 import ConfigService from "./ConfigService";
-import {FeeConfig} from "../models/Common";
+import {DAppConfig, FeeConfig} from "../models/Common";
 
 export const HbarTokenId = "0.0.0";
 
@@ -73,10 +73,8 @@ export default class FeeService {
 
             const network = ChainMap[chainId].isTestnet ? Network.Testnet : Network.Mainnet;
             const feature: FeeType = manualOptions.type; // || detectFeeType(tx);
-            const feesConfig = (await this.configService.getConfig("fees")) as {
-                [key in Lowercase<Network>]: FeeConfig;
-            };
-            const featureConfig = feesConfig[network.toLowerCase() as Lowercase<Network>][feature];
+            const feesConfig = (this.configService.getConfig("fees") as Promise<DAppConfig["fees"]>)
+            const featureConfig = feesConfig[feature];
             const feeAmount = await this.calculateFeeAmount(tx, network, featureConfig, manualOptions);
             this.modifyTransactionWithFee(tx, payerAccount, featureConfig.collector, feeAmount);
 

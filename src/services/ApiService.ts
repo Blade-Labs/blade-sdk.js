@@ -18,7 +18,6 @@ import {
     NftMetadata
 } from "../models/MirrorNode";
 import {
-    ApiAccount,
     BladeConfig,
     CoinData,
     CoinInfoRaw,
@@ -28,7 +27,6 @@ import {
     ScheduleTransactionType,
     SdkEnvironment,
     TokenBalanceData,
-    TokenDropData,
     TransactionData
 } from "../models/Common";
 import {ChainMap, KnownChainIds} from "../models/Chain";
@@ -45,6 +43,14 @@ import {
     ICryptoFlowTransaction,
     ICryptoFlowTransactionParams
 } from "../models/CryptoFlow";
+import {
+    AccountCreateJob,
+    DropJob,
+    JobAction,
+    KycGrandJob,
+    TokenAssociateJob,
+    TransferTokensJob
+} from "../models/BladeApi";
 
 @injectable()
 export default class ApiService {
@@ -95,16 +101,35 @@ export default class ApiService {
         return `${platform}@${encryptedVersion}`;
     }
 
+    async getSecurityHeader(paramsHash, specialParams) {
+        const [clientType, clientVersion] = this.sdkVersion.split("@");
+        const tvteMain = `${(clientType)}@${this.dAppCode}@${this.network}\t`;
+        const tvteMainEncoded = Buffer.from(tvteMain).toString('hex');
+        const tvteSecret = `${clientVersion}@${Date.now()}@${this.visitorId}@${paramsHash}@${specialParams}`;
+
+        const tvteSecretEncrypted = await encrypt(tvteSecret, this.apiKey);
+        return `${tvteMainEncoded}${tvteSecretEncrypted}`;
+    }
+
+    async reqHeaders(headers: { [key: string]: string } = {}, specialParams = null) {
+        const tvteHeader = await this.getSecurityHeader('null', specialParams ? specialParams : 'null');
+        const headersInit = {
+            ...headers,
+            "X-TVTE-API": tvteHeader,
+            "Content-Type": "application/json",
+            "accept": "application/json",
+        };
+        return new Headers(headersInit)
+    }
+
     getApiUrl(isPublic = false): string {
         const publicPart = isPublic ? "/public" : "";
         if (this.environment === SdkEnvironment.Prod) {
-            return `https://rest.prod.bladewallet.io/openapi${publicPart}/v7`;
-        }
-        if (process.env.NODE_ENV === "test" && this.environment === SdkEnvironment.Test) {
-            return `https://localhost:8080/openapi${publicPart}/v7`;
+            throw new Error("Prod environment is not supported yet");
+            // return `https://dapi.bld-dev.bladewallet.io/dapi${publicPart}/v8`;
         }
         // CI
-        return `https://api.bld-dev.bladewallet.io/openapi${publicPart}/v7`;
+        return `https://dapi.bld-dev.bladewallet.io/dapi${publicPart}/v8`;
     }
 
     getIpfsTrustlessGatewayUrlList(): string[] {
@@ -116,44 +141,43 @@ export default class ApiService {
             let attemptCounter = 0;
 
             const interval = 5000;
-            // tslint:disable-next-line:no-shadowed-variable
-            const makeRequest = (fetchUrl: string, options: RequestInit) => {
-                attemptCounter += 1;
-                fetch(fetchUrl, options)
+            const makeRequest = () => {
+                attemptCounter++;
+                fetch(url, options)
                     .then(async res => {
                         if (!res.ok) {
                             // Request timeout check
-                            if ((res.status === 408 || res.status === 429) && attemptCounter < maxAttempts) {
-                                /* istanbul ignore next */
+                            if (
+                                // TODO add some options for fetchWithRetry to handle it or not
+                                // (res.status === 408 || res.status === 429) &&
+                                attemptCounter < maxAttempts
+                            ) {
                                 setTimeout(() => {
-                                    makeRequest(fetchUrl, options);
+                                    makeRequest();
                                 }, interval * attemptCounter);
                             } else {
-                                const rawData = await res.text();
+                                let error: any = await res.text();
                                 try {
-                                    reject({
-                                        url: res.url,
-                                        ...JSON.parse(rawData)
-                                    });
+                                    error = JSON.parse(error);
+                                    error._code = res.status;
+                                    error._url = res.url;
                                 } catch (e) {
-                                    reject({
-                                        url: res.url,
-                                        error: rawData
-                                    });
+                                    error = `${res.status} (${res.url}): ${error}`;
                                 }
+                                reject(error)
                             }
                         } else {
                             resolve(res);
                         }
                     })
-                    .catch(e => {
+                    .catch((e: Error) => {
                         reject({
-                            url: fetchUrl,
+                            url,
                             error: e.message
                         });
                     });
             };
-            makeRequest(url, options);
+            makeRequest();
         });
     }
 
@@ -184,10 +208,11 @@ export default class ApiService {
                 this.dAppConfigCached = await this.getDappConfig();
             }
             // load config from dApp config
-            hederaMirrorNodeConfig = this.dAppConfigCached.mirrorNode;
-            if (!hederaMirrorNodeConfig.testnet && !hederaMirrorNodeConfig.mainnet) {
+            // TODO check if mirrorNode appears
+            // hederaMirrorNodeConfig = this.dAppConfigCached.mirrorNode;
+            // if (!hederaMirrorNodeConfig.testnet && !hederaMirrorNodeConfig.mainnet) {
                 throw new Error("No mirror node config found");
-            }
+            // }
         } catch (e) {
             hederaMirrorNodeConfig = {
                 testnet: [
@@ -231,16 +256,9 @@ export default class ApiService {
     }
 
     async getBladeConfig(): Promise<BladeConfig> {
-        const url = `${this.getApiUrl()}/sdk/config`;
+        const url = `${this.getApiUrl(true)}/sdk/config`;
         const options = {
             method: "GET",
-            headers: new Headers({
-                "X-NETWORK": this.network.toUpperCase(),
-                // "X-VISITOR-ID": params.visitorId,
-                "X-DAPP-CODE": this.dAppCode,
-                "X-SDK-VERSION": this.sdkVersion,
-                "Content-Type": "application/json"
-            })
         };
 
         return fetch(url, options)
@@ -249,128 +267,128 @@ export default class ApiService {
     }
 
     async getDappConfig(): Promise<DAppConfig> {
-        const url = `${this.getApiUrl()}/${this.dAppCode}/config`;
+        const url = `${this.getApiUrl()}/client/config`;
         const options = {
             method: "GET",
-            headers: new Headers({
-                "X-NETWORK": this.network.toUpperCase(),
-                "X-VISITOR-ID": this.visitorId,
-                "X-SDK-TVTE-API": await this.getTvteHeader(),
-                "Content-Type": "application/json"
-            })
+            headers: await this.reqHeaders(),
         };
 
         return fetch(url, options)
             .then(this.statusCheck)
-            .then(x => x.json())
-            .then(config => {
-                return config[this.dAppCode];
-            });
+            .then(x => x.json());
     }
 
-    async createAccount(params: {deviceId: string; publicKey: string}) {
-        const url = `${this.getApiUrl()}/accounts`;
-        const headers: any = {
-            "X-NETWORK": this.network.toUpperCase(),
-            "X-VISITOR-ID": this.visitorId, // fingerprint (visitorId) (eg.: YoZoVL4XZspaCtLH4GoL)
-            "X-DAPP-CODE": this.dAppCode,
-            "X-SDK-TVTE-API": await this.getTvteHeader(),
-            "Content-Type": "application/json"
-        };
-        if (params.deviceId) {
-            headers["X-DID-API"] = params.deviceId;
+    async createAccount(requestMode: JobAction, taskId: string, params?: {deviceId: string; publicKey: string}): Promise<AccountCreateJob> {
+        let url: string;
+        let options: RequestInit;
+        let retryCount = 3;
+        switch (requestMode) {
+            case JobAction.INIT:
+                url = `${this.getApiUrl()}/accounts`;
+                options = {
+                    method: "POST",
+                    headers: await this.reqHeaders({
+                        ...(params.deviceId && {"X-DID-API": params.deviceId})
+                    }),
+                    body: JSON.stringify({
+                        publicKey: params.publicKey
+                    })
+                };
+                retryCount = 0;
+                break;
+            case JobAction.CHECK:
+                url = `${this.getApiUrl()}/accounts/${taskId}`;
+                options = {
+                    method: "GET",
+                    headers: await this.reqHeaders(),
+                };
+                break;
+            case JobAction.CONFIRM:
+                url = `${this.getApiUrl()}/${taskId}/confirm`;
+                options = {
+                    method: "PATCH",
+                    headers: await this.reqHeaders(),
+                };
+                retryCount = 1;
+                break;
+            default:
+                throw new Error("Invalid request mode");
         }
 
-        const options = {
-            method: "POST",
-            headers: new Headers(headers),
-            body: JSON.stringify({
-                publicKey: params.publicKey
-            })
-        };
-
-        return fetch(url, options)
+        return this.fetchWithRetry(url, options, retryCount)
             .then(this.statusCheck)
             .then(x => x.json());
     }
 
-    async checkAccountCreationStatus(transactionId: string): Promise<any> {
-        const url = `${this.getApiUrl()}/accounts/status?transactionId=${transactionId}`;
-        const options = {
-            method: "GET",
-            headers: new Headers({
-                "X-NETWORK": this.network.toUpperCase(),
-                "X-VISITOR-ID": this.visitorId,
-                "X-DAPP-CODE": this.dAppCode,
-                "X-SDK-TVTE-API": await this.getTvteHeader(),
-                "Content-Type": "application/json"
-            })
-        };
-
-        return fetch(url, options)
-            .then(this.statusCheck)
-            .then(x => x.json());
-    }
-
-    async getPendingAccountData(transactionId: string) {
-        const url = `${this.getApiUrl()}/accounts/details?transactionId=${transactionId}`;
-        const options = {
-            method: "GET",
-            headers: new Headers({
-                "X-NETWORK": this.network.toUpperCase(),
-                "X-VISITOR-ID": this.visitorId,
-                "X-DAPP-CODE": this.dAppCode,
-                "X-SDK-TVTE-API": await this.getTvteHeader(),
-                "Content-Type": "application/json"
-            })
-        };
-
-        return fetch(url, options)
-            .then(this.statusCheck)
-            .then(x => x.json());
-    }
-
-    async confirmAccountUpdate(accountId: string): Promise<Response> {
-        const url = `${this.getApiUrl()}/accounts/confirm`;
-        const options = {
-            method: "PATCH",
-            headers: new Headers({
-                "X-NETWORK": this.network.toUpperCase(),
-                "X-VISITOR-ID": this.visitorId,
-                "X-DAPP-CODE": this.dAppCode,
-                "X-SDK-TVTE-API": await this.getTvteHeader(),
-                "Content-Type": "application/json"
-            }),
-            body: JSON.stringify({
-                id: accountId
-            })
-        };
-
-        return fetch(url, options).then(this.statusCheck);
-    }
-
-    async getTokenAssociateTransactionForAccount(tokenId: string | null, accountId: string): Promise<ApiAccount> {
-        const url = `${this.getApiUrl()}/tokens`;
-        const body: any = {
-            id: accountId
-        };
-        if (tokenId) {
-            body.token = tokenId;
+    async tokenAssociation(requestMode: JobAction, taskId: string, params?: {tokenIds: string[]; accountId: string}): Promise<TokenAssociateJob> {
+        let url: string;
+        let options: RequestInit;
+        let retryCount = 1;
+        switch (requestMode) {
+            case JobAction.INIT:
+                url = `${this.getApiUrl()}/tokens/associate`
+                options = {
+                    method: "POST",
+                    headers: await this.reqHeaders(),
+                    body: JSON.stringify({
+                        accountId: params.accountId,
+                        tokenIds: params.tokenIds,
+                    })
+                };
+                break;
+            case JobAction.CHECK:
+                url = `${this.getApiUrl()}/tokens/associate/${taskId}`
+                options = {
+                    method: "GET",
+                    headers: await this.reqHeaders(),
+                };
+                retryCount = 3;
+                break;
+            case JobAction.CONFIRM:
+                url = `${this.getApiUrl()}/tokens/associate/${taskId}/confirm`
+                options = {
+                    method: "PATCH",
+                    headers: await this.reqHeaders(),
+                };
+                break;
+            default:
+                throw new Error("Invalid request mode");
         }
 
-        const options = {
-            method: "PATCH",
-            headers: new Headers({
-                "X-NETWORK": this.network.toUpperCase(),
-                "X-VISITOR-ID": this.visitorId,
-                "X-DAPP-CODE": this.dAppCode,
-                "X-SDK-TVTE-API": await this.getTvteHeader(),
-                "Content-Type": "application/json"
-            }),
-            body: JSON.stringify(body)
-        };
+        return this.fetchWithRetry(url, options, retryCount)
+            .then(this.statusCheck)
+            .then(x => x.json());
+    }
 
-        return fetch(url, options)
+    async kycGrant(requestMode: JobAction, taskId: string, params?: {tokenIds: string[]; accountId: string}): Promise<KycGrandJob> {
+        let url: string;
+        let options: RequestInit;
+        let retryCount = 1;
+        switch (requestMode) {
+            case JobAction.INIT:
+                url = `${this.getApiUrl()}/tokens/kyc`
+                options = {
+                    method: "POST",
+                    headers: await this.reqHeaders(),
+                    body: JSON.stringify({
+                        accountId: params.accountId,
+                        tokenIds: params.tokenIds,
+                    })
+                };
+                break;
+            case JobAction.CHECK:
+                url = `${this.getApiUrl()}/tokens/kyc/${taskId}`
+                options = {
+                    method: "GET",
+                    headers: await this.reqHeaders(),
+                };
+                retryCount = 3;
+                break;
+            default:
+                throw new Error("Invalid request mode");
+        }
+
+        return this.fetchWithRetry(url, options, retryCount)
             .then(this.statusCheck)
             .then(x => x.json());
     }
@@ -456,7 +474,8 @@ export default class ApiService {
     }
 
     async transferTokens(
-        params: Partial<{
+        requestMode: JobAction, taskId: string,
+        params?: Partial<{
             visitorId: string;
             dAppCode: string;
             receiverAccountId: string;
@@ -464,29 +483,49 @@ export default class ApiService {
             amount: number;
             decimals: string;
             memo: string;
+            tokenAddress: string;
         }>
-    ): Promise<{transactionBytes: string}> {
-        const url = `${this.getApiUrl()}/tokens/transfers`;
+    ): Promise<TransferTokensJob> {
+        let url: string;
+        let options: RequestInit;
+        let retryCount = 1;
+        switch (requestMode) {
+            case JobAction.INIT:
+                url = `${this.getApiUrl()}/tokens/transfers`
+                options = {
+                    method: "POST",
+                    headers: await this.reqHeaders(),
+                    body: JSON.stringify({
+                        receiverAccountId: params.receiverAccountId,
+                        senderAccountId: params.senderAccountId,
+                        amount: params.amount,
+                        decimals: params.decimals,
+                        memo: params.memo,
+                        tokenId: params.tokenAddress
+                    })
+                };
+                break;
+            case JobAction.CHECK:
+                url = `${this.getApiUrl()}/tokens/transfers/${taskId}`
+                options = {
+                    method: "GET",
+                    headers: await this.reqHeaders(),
+                };
+                retryCount = 3;
+                break;
+            case JobAction.CONFIRM:
+                url = `${this.getApiUrl()}/tokens/transfers/${taskId}/confirm`
+                options = {
+                    method: "PATCH",
+                    headers: await this.reqHeaders(),
+                };
+                retryCount = 1;
+                break;
+            default:
+                throw new Error("Invalid request mode");
+        }
 
-        const options = {
-            method: "POST",
-            headers: new Headers({
-                "X-NETWORK": this.network.toUpperCase(),
-                "X-VISITOR-ID": params.visitorId || this.visitorId,
-                "X-DAPP-CODE": params.dAppCode || this.dAppCode,
-                "X-SDK-TVTE-API": await this.getTvteHeader(),
-                "Content-Type": "application/json"
-            }),
-            body: JSON.stringify({
-                receiverAccountId: params.receiverAccountId,
-                senderAccountId: params.senderAccountId,
-                amount: params.amount,
-                decimals: params.decimals,
-                memo: params.memo
-            })
-        };
-
-        return fetch(url, options)
+        return this.fetchWithRetry(url, options, retryCount)
             .then(this.statusCheck)
             .then(x => x.json());
     }
@@ -540,30 +579,38 @@ export default class ApiService {
     }
 
     async dropTokens(
-        network: Network,
-        params: {accountId: string; signedNonce: string; dAppCode: string; visitorId: string}
-    ): Promise<TokenDropData> {
-        const url = `${this.getApiUrl()}/tokens/drop`;
-        const headers = {
-            "X-NETWORK": network.toUpperCase(),
-            "X-VISITOR-ID": params.visitorId,
-            "X-DAPP-CODE": params.dAppCode,
-            "X-SDK-TVTE-API": await this.getTvteHeader(),
-            "Content-Type": "application/json"
-        };
+        requestMode: JobAction, taskId: string,
+        params?: {accountId: string; signedNonce: string;}
+    ): Promise<DropJob> {
+        let url: string;
+        let options: RequestInit;
+        let retryCount = 1;
+        switch (requestMode) {
+            case JobAction.INIT:
+                url = `${this.getApiUrl()}/drop`
+                options = {
+                    method: "POST",
+                    headers: await this.reqHeaders({}, `signedNonce=${params.signedNonce}`),
+                    body: JSON.stringify({
+                        accountId: params.accountId
+                    })
+                };
+                break;
+            case JobAction.CHECK:
+                url = `${this.getApiUrl()}/drop/${taskId}`
+                options = {
+                    method: "GET",
+                    headers: await this.reqHeaders(),
+                };
+                retryCount = 3;
+                break;
+            default:
+                throw new Error("Invalid request mode");
+        }
 
-        const options = {
-            method: "POST",
-            headers: new Headers(headers),
-            body: JSON.stringify({
-                accountId: params.accountId,
-                signedNonce: params.signedNonce
-            })
-        };
-
-        return fetch(url, options)
+        return this.fetchWithRetry(url, options, retryCount)
             .then(this.statusCheck)
-            .then(x => x.json() as Promise<TokenDropData>);
+            .then(x => x.json());
     }
 
     async getC14token() {

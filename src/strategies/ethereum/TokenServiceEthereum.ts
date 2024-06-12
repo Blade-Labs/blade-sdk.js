@@ -123,7 +123,7 @@ export default class TokenServiceEthereum implements ITokenService {
         throw new Error("Method not implemented.");
     }
 
-    dropTokens(accountId: string, secretNonce: string, dAppCode: string, visitorId: string): Promise<TokenDropData> {
+    dropTokens(accountId: string, secretNonce: string): Promise<TokenDropData> {
         throw new Error("Method not implemented.");
     }
 

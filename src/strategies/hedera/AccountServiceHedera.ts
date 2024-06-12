@@ -15,8 +15,8 @@ import {
     AccountInfoData,
     AccountPrivateData,
     AccountPrivateRecord,
-    AccountStatus,
     CreateAccountData,
+    DAppConfig,
     TransactionReceiptData,
     TransactionsHistoryData
 } from "../../models/Common";
@@ -27,6 +27,8 @@ import {AccountInfo, NodeInfo} from "../../models/MirrorNode";
 import {ethers} from "ethers";
 import {executeUpdateAccountTransactions} from "../../helpers/AccountHelpers";
 import {getReceipt} from "../../helpers/TransactionHelpers";
+import {sleep} from "../../helpers/ApiHelper";
+import {JobAction, JobStatus} from "../../models/BladeApi";
 
 export default class AccountServiceHedera implements IAccountService {
     private readonly chainId: KnownChainIds;
@@ -52,84 +54,84 @@ export default class AccountServiceHedera implements IAccountService {
             key = await mnemonic.toStandardECDSAsecp256k1PrivateKey();
         }
 
-        const {id, transactionBytes, updateAccountTransactionBytes, associationPresetTokenStatus, transactionId} =
-            await this.apiService.createAccount({deviceId, publicKey: key.publicKey.toStringDer()});
-        const client = this.getClient();
-        await executeUpdateAccountTransactions(client, key, updateAccountTransactionBytes, transactionBytes);
+        let accountCreateJob= await this.apiService.createAccount(JobAction.INIT, "",{deviceId, publicKey: key.publicKey.toStringDer()});
 
-        if (associationPresetTokenStatus === "FAILED") {
-            // if token association failed on backend, fetch /tokens and execute transactionBytes
-            try {
-                const tokenTransaction = await this.apiService.getTokenAssociateTransactionForAccount(null, id);
-                if (!tokenTransaction.transactionBytes) {
-                    throw new Error("Token association failed");
-                }
-                const buffer = Buffer.from(tokenTransaction.transactionBytes, "base64");
-                const transaction = await Transaction.fromBytes(buffer).sign(key);
-                await transaction.execute(client);
-            } catch (error) {
-                // ignore this error, continue
+        while (true) {
+            if (accountCreateJob.status === JobStatus.SUCCESS) {
+                break;
             }
+            if (accountCreateJob.status === JobStatus.FAILED) {
+                throw new Error(accountCreateJob.errorMessage);
+            }
+            // TODO set timeout from sdk-config
+            await sleep(5000)
+            accountCreateJob = await this.apiService.createAccount(JobAction.CHECK, accountCreateJob.taskId);
         }
 
-        if (updateAccountTransactionBytes) {
-            await this.apiService.confirmAccountUpdate(id).catch(() => {
-                // ignore this error, continue
+        const {accountId, transactionBytes} = accountCreateJob.result!;
+
+        const client = this.getClient();
+        if (transactionBytes) {
+            await executeUpdateAccountTransactions(client, key, transactionBytes);
+            await this.apiService.createAccount(JobAction.CONFIRM, accountCreateJob.taskId).catch(() => {
+                // ignore this error, continue (no content)
             });
+        }
+
+        const tokensConfig = await (this.configService.getConfig("tokens") as Promise<DAppConfig["tokens"]>);
+        try {
+            let tokenTransactionJob = await this.apiService.tokenAssociation(JobAction.INIT, "", {accountId, tokenIds: tokensConfig.association});
+            while (true) {
+                if (tokenTransactionJob.status === JobStatus.SUCCESS) {
+                    break;
+                }
+                if (tokenTransactionJob.status === JobStatus.FAILED) {
+                    throw new Error(tokenTransactionJob.errorMessage);
+                }
+                // TODO set timeout from sdk-config
+                await sleep(1000);
+                tokenTransactionJob = await this.apiService.tokenAssociation(JobAction.CHECK, tokenTransactionJob.taskId);
+            }
+
+            if (!tokenTransactionJob.result.transactionBytes) {
+                throw new Error("Token association failed");
+            }
+            const buffer = Buffer.from(tokenTransactionJob.result.transactionBytes, "base64");
+            const transaction = await Transaction.fromBytes(buffer).sign(key);
+            await transaction.execute(client);
+
+            await this.apiService.tokenAssociation(JobAction.CONFIRM, tokenTransactionJob.taskId).catch(() => {
+                // ignore this error, continue (no content)
+            });
+        } catch (error) {
+            // ignore this error, continue
+            console.log(error);
+        }
+
+        // KYC
+        if (tokensConfig.kycNeeded && tokensConfig.kycNeeded.length) {
+            const kycGrantJob = await this.apiService.kycGrant(JobAction.INIT, "", {accountId, tokenIds: tokensConfig.kycNeeded});
+            while (true) {
+                if (kycGrantJob.status === JobStatus.SUCCESS) {
+                    break;
+                }
+                if (kycGrantJob.status === JobStatus.FAILED) {
+                    throw new Error(kycGrantJob.errorMessage);
+                }
+
+                await sleep(1000);
+                await this.apiService.kycGrant(JobAction.CHECK, kycGrantJob.taskId);
+            }
         }
         const evmAddress = ethers.utils.computeAddress(`0x${key.publicKey.toStringRaw()}`);
         return {
-            transactionId,
-            status: transactionId ? "PENDING" : "SUCCESS",
+            status: JobStatus.SUCCESS,
             seedPhrase,
             publicKey: key.publicKey.toStringDer(),
             privateKey: key.toStringDer(),
-            accountId: id || null,
+            accountId: accountId || null,
             evmAddress: evmAddress.toLowerCase()
         };
-    }
-
-    // TODO check if this method is needed
-    async getPendingAccount(transactionId: string, mnemonic: string): Promise<CreateAccountData> {
-        const seedPhrase = await Mnemonic.fromString(mnemonic);
-        const privateKey = await seedPhrase.toStandardECDSAsecp256k1PrivateKey();
-        const publicKey = privateKey.publicKey.toStringDer();
-        let evmAddress = ethers.utils.computeAddress(`0x${privateKey.publicKey.toStringRaw()}`);
-
-        const result = {
-            transactionId: transactionId || null,
-            status: AccountStatus.PENDING,
-            seedPhrase: seedPhrase.toString(),
-            publicKey,
-            privateKey: privateKey.toStringDer(),
-            accountId: null,
-            evmAddress: evmAddress.toLowerCase(),
-            queueNumber: 0
-        };
-
-        const {status, queueNumber} = await this.apiService.checkAccountCreationStatus(transactionId);
-        if (status === AccountStatus.SUCCESS) {
-            const {id, transactionBytes, updateAccountTransactionBytes, originalPublicKey} =
-                await this.apiService.getPendingAccountData(transactionId);
-            await executeUpdateAccountTransactions(
-                this.getClient(),
-                privateKey,
-                updateAccountTransactionBytes,
-                transactionBytes
-            );
-
-            await this.apiService.confirmAccountUpdate(id);
-            evmAddress = ethers.utils.computeAddress(
-                `0x${originalPublicKey ? originalPublicKey.slice(-66) : privateKey.publicKey.toStringRaw()}`
-            );
-            result.transactionId = null;
-            result.status = status;
-            result.accountId = id;
-            result.evmAddress = evmAddress.toLowerCase();
-        } else {
-            result.queueNumber = queueNumber;
-        }
-        return result;
     }
 
     // TODO check if this method is needed

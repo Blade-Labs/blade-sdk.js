@@ -585,28 +585,6 @@ export class BladeSDK {
     }
 
     /**
-     * Get account from queue (read more at `createAccount()`).
-     * If account already created, return account data.
-     * If account not created yet, response will be same as in `createAccount()` method if account in queue.
-     * @param transactionId returned from `createAccount()` method
-     * @param mnemonic returned from `createAccount()` method
-     * @param completionKey optional field bridge between mobile webViews and native apps
-     * @returns {CreateAccountData}
-     */
-    async getPendingAccount(
-        transactionId: string,
-        mnemonic: string,
-        completionKey?: string
-    ): Promise<CreateAccountData> {
-        try {
-            const result = await this.accountServiceContext.getPendingAccount(transactionId, mnemonic);
-            return this.sendMessageToNative(completionKey, result);
-        } catch (error) {
-            throw this.sendMessageToNative(completionKey, null, error);
-        }
-    }
-
-    /**
      * Delete Hedera account
      * @param deleteAccountId account id of account to delete (0.0.xxxxx)
      * @param deletePrivateKey account private key (DER encoded hex string)
@@ -737,9 +715,7 @@ export class BladeSDK {
         try {
             const result = await this.tokenServiceContext.dropTokens(
                 accountId,
-                secretNonce,
-                this.dAppCode,
-                this.visitorId
+                secretNonce
             );
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
@@ -1159,7 +1135,7 @@ export class BladeSDK {
             };
         }
 
-        // @ts-ignore  // IOS or Android
+        // @ts-expect-error  // IOS or Android
         const bladeMessageHandler = window?.webkit?.messageHandlers?.bladeMessageHandler || window?.bladeMessageHandler;
         if (bladeMessageHandler) {
             bladeMessageHandler.postMessage(JSON.stringify(responseObject));

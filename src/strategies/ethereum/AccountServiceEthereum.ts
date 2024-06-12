@@ -48,10 +48,6 @@ export default class AccountServiceEthereum implements IAccountService {
         throw new Error("Method not implemented.");
     }
 
-    getPendingAccount(transactionId: string, mnemonic: string): Promise<CreateAccountData> {
-        throw new Error("Method not supported for this chain");
-    }
-
     deleteAccount(
         deleteAccountId: string,
         deletePrivateKey: string,
