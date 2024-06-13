@@ -206,7 +206,6 @@ export const GET = async (network: Network, route: string) => {
                 .then((x) => x.json());
         } catch (e) {
             // console.log(`Mirror node service (${service.name}) failed to make request: ${service.url}${route}`);
-            throw new Error(`Mirror node service (${service.name}) failed to make request: ${service.url}${route}`);
         }
     }
     throw new Error(`All mirror node services failed to make request to: ${route}`);
@@ -765,7 +764,7 @@ export const getNftMetadataFromIpfs = async (cid: string): Promise<NftMetadata> 
 
 export const getContractErrorMessage = async (network: Network, param: string, contractId: string) => {
     const MAX_ATTEMPTS = 5;
-    const INTERVAL_MS = 400;
+    const INTERVAL_MS = 1500;
     
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
         try {
@@ -784,25 +783,21 @@ export const getContractErrorMessage = async (network: Network, param: string, c
                 const consensusTimestamp = response.transactions[0].consensus_timestamp;
 
                 let contractResponse: any = await new Promise((resolve, reject) => {
-                    setTimeout(async () => {
-                        try {
-                            const result = await GET(network, `/contracts/${contractId}/results/${consensusTimestamp}`);
-                            resolve(result);
-                        } catch (error) {
-                            console.log(error);
-                            
-                            reject(error);
-                        }
-                    }, INTERVAL_MS);
+                    try {
+                        const result = GET(network, `/contracts/${contractId}/results/${consensusTimestamp}`);
+                        resolve(result);
+                    } catch (error) {
+                        reject(error);
+                    }
                 });
 
                 return contractResponse?.error_message;
             } else {
-                throw new Error("No transactions found in the response");
+                return null
             }
         } catch (error) {
             if (attempt === MAX_ATTEMPTS) {
-                throw new Error(`Failed to fetch contract error message after ${MAX_ATTEMPTS} attempts`);
+                return null
             }
         }
     }

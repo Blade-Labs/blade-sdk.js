@@ -592,16 +592,16 @@ export class BladeSDK {
                         const nanos = error?.transactionId?.validStart?.nanos?.low
                         const message = await getContractErrorMessage(this.network, `${transactionID}-${seconds}-${nanos}`, contractId);
 
-                            if (message.startsWith('0x') && message.length > 2) {
-                                const reason = ethers.utils.defaultAbiCoder.decode(
-                                    ['string'],
-                                    ethers.utils.hexDataSlice(message, 4)
-                                )
+                        if (message && message.startsWith('0x') && message.length > 2) {
+                            const reason = ethers.utils.defaultAbiCoder.decode(
+                                ['string'],
+                                ethers.utils.hexDataSlice(message, 4)
+                            )
 
-                                const error_message = error.message + ` (${reason[0]})`
+                            const error_message = error.message + ` (${reason[0]})`
 
-                                throw this.sendMessageToNative(completionKey, null, error_message);
-                            }
+                            throw this.sendMessageToNative(completionKey, null, error_message);
+                        }
                     }
 
                     throw this.sendMessageToNative(completionKey, null, error);

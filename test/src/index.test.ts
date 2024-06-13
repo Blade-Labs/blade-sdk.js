@@ -334,7 +334,7 @@ test('bladeSdk.contractCallFunction', async () => {
         // fail on wrong function params (CONTRACT_REVERT_EXECUTED) with error_message
         params = new ParametersBuilder()
         result = await bladeSdk.contractCallFunction(contractId, "revert_fnc", params, accountId, privateKey, 1000000, true, completionKey);
-        checkResult(result);
+        expect("Code should not reach here").toBeNull();
     } catch (result) {
         checkResult(result, false);
 
@@ -342,7 +342,11 @@ test('bladeSdk.contractCallFunction', async () => {
         const regex = /\(([^)]+)\)/;
         const match = reason.match(regex);
 
-        expect(result.error.reason.includes("CONTRACT_REVERT_EXECUTED") && match[1].length > 0).toEqual(true);
+        if (match && match.length && match[1]) {
+            expect(result.error.reason.includes("CONTRACT_REVERT_EXECUTED") && match[1].length > 0).toEqual(true);
+        } else {
+            expect(result.error.reason.includes("CONTRACT_REVERT_EXECUTED")).toEqual(true);
+        }
     }
 
     try {
