@@ -20,12 +20,8 @@ const contractBytecode = fs.readFileSync("./test/contract/test_contract_TestCont
         throw new Error("Environment variables ACCOUNT_ID and PRIVATE_KEY must be present");
     }
 
-    console.log(`Deploying contract for ${accountIdTest} account`);
-
     const client = Client.forTestnet();
     client.setOperator(accountIdTest, accountKeyTest);
-
-    console.log('client', client);
 
     try {
         // Create a file on Hedera and store the bytecode in chunks
@@ -34,13 +30,9 @@ const contractBytecode = fs.readFileSync("./test/contract/test_contract_TestCont
             .setContents(contractBytecode.slice(0, 4096)) // First chunk
             .setMaxTransactionFee(2000000); // Adjust this value as needed
 
-        console.log('fileCreateTx', fileCreateTx);
-
         const submitTx = await fileCreateTx.execute(client);
         const fileReceipt = await submitTx.getReceipt(client);
         const bytecodeFileId = fileReceipt.fileId;
-
-        console.log(`The smart contract byte code file ID is ${bytecodeFileId}`);
 
         // Append the rest of the bytecode if it's larger than 4096 bytes
         if (contractBytecode.length > 4096) {

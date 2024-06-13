@@ -255,7 +255,7 @@ test('bladeSdk.transferHbars', async () => {
     }
 }, 60_000);
 
-test.only('bladeSdk.contractCallFunction', async () => {
+test('bladeSdk.contractCallFunction', async () => {
     const contractId = process.env.CONTRACT_ID || "";
     expect(contractId).not.toEqual("");
     const client = Client.forTestnet();
@@ -320,52 +320,49 @@ test.only('bladeSdk.contractCallFunction', async () => {
     expect(contractCallQueryResult.getString(0)).toEqual(message);
     expect(contractCallQueryResult.getUint64(1).toNumber()).toEqual(num1 + num2);
 
-    // try {
-    //     // fail on wrong function params (CONTRACT_REVERT_EXECUTED)
-    //     params = new ParametersBuilder().addString(message).addAddress("0x65f17cac69fb3df1328a5c239761d32e8b346da0").addAddressArray([accountId, accountId2]).addTuple(new ParametersBuilder().addUInt64(num1).addUInt64(num2));
-    //     result = await bladeSdk.contractCallFunction(contractId, "set_numbers", params.encode(), accountId, privateKey, 1000000, false, completionKey);
-    //     expect("Code should not reach here").toBeNull();
-    // } catch (result) {
-    //     checkResult(result, false);
-    //     expect(result.error.reason.includes("CONTRACT_REVERT_EXECUTED")).toEqual(true);
-    // }
-
     try {
-        // fail on wrong function params (CONTRACT_REVERT_EXECUTED) with error_message
-        params = new ParametersBuilder();
-        result = await bladeSdk.contractCallFunction(contractId, "revert_fnc", params, accountId, privateKey, 1000000, true, completionKey);
-        console.log('1', result);
-        checkResult(result);
+        // fail on wrong function params (CONTRACT_REVERT_EXECUTED)
+        params = new ParametersBuilder().addString(message).addAddress("0x65f17cac69fb3df1328a5c239761d32e8b346da0").addAddressArray([accountId, accountId2]).addTuple(new ParametersBuilder().addUInt64(num1).addUInt64(num2));
+        result = await bladeSdk.contractCallFunction(contractId, "set_numbers", params.encode(), accountId, privateKey, 1000000, false, completionKey);
+        expect("Code should not reach here").toBeNull();
     } catch (result) {
         checkResult(result, false);
-        console.log(result.error.reason);
-        
-        const reason = result.error.reason;
-        const regex = /\(([^)]+)\)/;
-        const match = reason.match(regex);
-        console.log(match);
-        
         expect(result.error.reason.includes("CONTRACT_REVERT_EXECUTED")).toEqual(true);
     }
 
-    // try {
-    //     // fail on invalid json
-    //     const paramsEncoded = '[{"type":"string",""""""""]'
-    //     result = await bladeSdk.contractCallFunction(contractId, "set_numbers", paramsEncoded, accountId, privateKey, 1000000, false, completionKey);
-    //     expect("Code should not reach here").toBeNull();
-    // } catch (result) {
-    //     checkResult(result, false);
-    //     expect(result.error.reason.includes("Unexpected token")).toEqual(true);
-    // }
+    try {
+        // fail on wrong function params (CONTRACT_REVERT_EXECUTED) with error_message
+        params = new ParametersBuilder()
+        result = await bladeSdk.contractCallFunction(contractId, "revert_fnc", params, accountId, privateKey, 1000000, true, completionKey);
+        checkResult(result);
+    } catch (result) {
+        checkResult(result, false);
 
-    // try {
-    //     // fail on low gas
-    //     params = new ParametersBuilder().addString(message).addTuple(new ParametersBuilder().addUInt64(num1).addUInt64(num2));
-    //     result = await bladeSdk.contractCallFunction(contractId, "set_message", params, accountId, privateKey, 1, false, completionKey);
-    //     expect("Code should not reach here").toBeNull();
-    // } catch (result) {
-    //     checkResult(result, false);
-    // }
+        const reason = result.error.reason;
+        const regex = /\(([^)]+)\)/;
+        const match = reason.match(regex);
+
+        expect(result.error.reason.includes("CONTRACT_REVERT_EXECUTED") && match[1].length > 0).toEqual(true);
+    }
+
+    try {
+        // fail on invalid json
+        const paramsEncoded = '[{"type":"string",""""""""]'
+        result = await bladeSdk.contractCallFunction(contractId, "set_numbers", paramsEncoded, accountId, privateKey, 1000000, false, completionKey);
+        expect("Code should not reach here").toBeNull();
+    } catch (result) {
+        checkResult(result, false);
+        expect(result.error.reason.includes("Unexpected token")).toEqual(true);
+    }
+
+    try {
+        // fail on low gas
+        params = new ParametersBuilder().addString(message).addTuple(new ParametersBuilder().addUInt64(num1).addUInt64(num2));
+        result = await bladeSdk.contractCallFunction(contractId, "set_message", params, accountId, privateKey, 1, false, completionKey);
+        expect("Code should not reach here").toBeNull();
+    } catch (result) {
+        checkResult(result, false);
+    }
 }, 120_000);
 
 test('bladeSdk.contractCallQueryFunction', async () => {
