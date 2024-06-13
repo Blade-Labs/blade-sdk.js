@@ -51,6 +51,7 @@ import {
     signContractCallTx,
     signScheduleRequest,
     transferTokens,
+    getContractErrorMessage,
 } from "./services/ApiService";
 import { getAccountsFromMnemonic, getAccountsFromPrivateKey } from "./services/AccountService";
 import CryptoFlowService from "./services/CryptoFlowService";
@@ -582,7 +583,27 @@ export class BladeSDK {
                 .then((data) => {
                     return this.sendMessageToNative(completionKey, formatReceipt(data));
                 })
-                .catch((error) => {
+                .catch(async(error: any) => {
+                    const parseErrorMessage = JSON.parse(JSON.stringify(error))
+
+                    if (error.message.includes("CONTRACT_REVERT_EXECUTED")) {
+                        const transactionID = parseErrorMessage.transactionId.split('@')[0]
+                        const seconds = error?.transactionId?.validStart?.seconds?.low
+                        const nanos = error?.transactionId?.validStart?.nanos?.low
+                        const message = await getContractErrorMessage(this.network, `${transactionID}-${seconds}-${nanos}`, contractId);
+
+                        if (message && message.startsWith('0x') && message.length > 2) {
+                            const reason = ethers.utils.defaultAbiCoder.decode(
+                                ['string'],
+                                ethers.utils.hexDataSlice(message, 4)
+                            )
+
+                            const error_message = error.message + ` (${reason[0]})`
+
+                            throw this.sendMessageToNative(completionKey, null, error_message);
+                        }
+                    }
+
                     throw this.sendMessageToNative(completionKey, null, error);
                 });
         } catch (error: any) {

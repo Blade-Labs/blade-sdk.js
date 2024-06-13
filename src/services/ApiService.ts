@@ -761,3 +761,44 @@ export const getNftMetadataFromIpfs = async (cid: string): Promise<NftMetadata> 
 
     return response.json();
 };
+
+export const getContractErrorMessage = async (network: Network, param: string, contractId: string) => {
+    const MAX_ATTEMPTS = 5;
+    const INTERVAL_MS = 1500;
+    
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+        try {
+            let response: any = await new Promise((resolve, reject) => {
+                setTimeout(async () => {
+                    try {
+                        const result = await GET(network, `/transactions/${param}`);
+                        resolve(result);
+                    } catch (error) {
+                        reject(error);
+                    }
+                }, INTERVAL_MS);
+            });
+
+            if (response && response.transactions && response.transactions.length > 0) {
+                const consensusTimestamp = response.transactions[0].consensus_timestamp;
+
+                let contractResponse: any = await new Promise((resolve, reject) => {
+                    try {
+                        const result = GET(network, `/contracts/${contractId}/results/${consensusTimestamp}`);
+                        resolve(result);
+                    } catch (error) {
+                        reject(error);
+                    }
+                });
+
+                return contractResponse?.error_message;
+            } else {
+                return null
+            }
+        } catch (error) {
+            if (attempt === MAX_ATTEMPTS) {
+                return null
+            }
+        }
+    }
+};

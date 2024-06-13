@@ -331,6 +331,21 @@ test('bladeSdk.contractCallFunction', async () => {
     }
 
     try {
+        // fail on wrong function params (CONTRACT_REVERT_EXECUTED) with error_message
+        params = new ParametersBuilder()
+        result = await bladeSdk.contractCallFunction(contractId, "revert_fnc", params, accountId, privateKey, 1000000, true, completionKey);
+        expect("Code should not reach here").toBeNull();
+    } catch (result) {
+        checkResult(result, false);
+
+        const reason = result.error.reason;
+        const regex = /\(([^)]+)\)/;
+        const match = reason.match(regex);
+
+        expect(result.error.reason.includes("CONTRACT_REVERT_EXECUTED") && match[1].length > 0).toEqual(true);
+    }
+
+    try {
         // fail on invalid json
         const paramsEncoded = '[{"type":"string",""""""""]'
         result = await bladeSdk.contractCallFunction(contractId, "set_numbers", paramsEncoded, accountId, privateKey, 1000000, false, completionKey);
