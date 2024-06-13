@@ -363,6 +363,33 @@ export const getTokenAssociateTransactionForAccount = async (
         .then((x) => x.json());
 };
 
+export const getTokenAssociateOnDemand = async (
+    campaignName: string,
+    accountId: string
+): Promise<ApiAccount> => {
+    const url = `${getApiUrl()}/tokens/demand`;
+    const body: any = {
+        id: accountId,
+        action: campaignName
+    };
+
+    const options = {
+        method: "PATCH",
+        headers: new Headers({
+            "X-NETWORK": network.toUpperCase(),
+            "X-VISITOR-ID": visitorId,
+            "X-DAPP-CODE": dAppCode,
+            "X-SDK-TVTE-API": await getTvteHeader(),
+            "Content-Type": "application/json",
+        }),
+        body: JSON.stringify(body),
+    };
+
+    return fetch(url, options)
+        .then(statusCheck)
+        .then((x) => x.json());
+};
+
 export const getAccountBalance = async (accountId: string): Promise<BalanceData> => {
     const account = await getAccountInfo(network, accountId); // GET(network, `/accounts/${accountId}`);
     const tokens = await getAccountTokens(accountId);

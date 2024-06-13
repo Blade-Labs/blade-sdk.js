@@ -52,6 +52,7 @@ import {
     signScheduleRequest,
     transferTokens,
     getContractErrorMessage,
+    getTokenAssociateOnDemand
 } from "./services/ApiService";
 import { getAccountsFromMnemonic, getAccountsFromPrivateKey } from "./services/AccountService";
 import CryptoFlowService from "./services/CryptoFlowService";
@@ -2037,16 +2038,17 @@ export class BladeSDK {
     /**
      * Associate token to account. Association fee will be covered by PayMaster, if tokenId configured in dApp
      *
-     * @param tokenId token id to associate. Empty to associate all tokens configured in dApp
+     * @param tokenIdOrCampaign token id to associate. Empty to associate all tokens configured in dApp. Campaign name to associate on demand
      * @param accountId account id to associate token
      * @param accountPrivateKey account private key
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {TransactionReceiptData}
      * @example
      * const result = await bladeSdk.associateToken("0.0.1337", "0.0.10001", "302e020100300506032b65700422042043234DEADBEEF255...");
+     * const result = await bladeSdk.associateToken("CampaignName", "0.0.10001", "302e020100300506032b65700422042043234DEADBEEF255...");
      */
     async associateToken(
-        tokenId: string,
+        tokenIdOrCampaign: string,
         accountId: string,
         accountPrivateKey: string,
         completionKey?: string
@@ -2059,17 +2061,28 @@ export class BladeSDK {
 
             let transaction: Transaction;
             const freeAssociationTokens = (await getConfig("tokens"))[this.network.toLowerCase()]?.association || [];
-            if (freeAssociationTokens.includes(tokenId) || !tokenId) {
-                const result = await getTokenAssociateTransactionForAccount(tokenId, accountId);
+            if (freeAssociationTokens.includes(tokenIdOrCampaign) || !tokenIdOrCampaign) {
+                const result = await getTokenAssociateTransactionForAccount(tokenIdOrCampaign, accountId);
                 if (!result.transactionBytes) {
                     throw new Error("Failed to get transaction bytes for free association. Token already associated?");
                 }
                 const buffer = Buffer.from(result.transactionBytes, "base64");
                 transaction = Transaction.fromBytes(buffer);
+            } else if (!/^\d+.\d+.\d+$/g.test(tokenIdOrCampaign)) {
+                // if not valid tokenId provided, we assume that campaignName is provided, try to AssociateOnDemand
+                const result = await getTokenAssociateOnDemand(tokenIdOrCampaign, accountId);
+                if (!result.transactionBytes) {
+                    throw new Error("Failed to get transaction bytes for campaign association");
+                }
+
+                const buffer = Buffer.from(result.transactionBytes, "base64");
+                transaction = await Transaction.fromBytes(buffer)
+                    .signWithSigner(this.signer)
+                    .then((tx) => tx.freezeWithSigner(this.signer));
             } else {
                 transaction = await new TokenAssociateTransaction()
                     .setAccountId(accountId)
-                    .setTokenIds([tokenId])
+                    .setTokenIds([tokenIdOrCampaign])
                     .freezeWithSigner(this.signer);
             }
             return transaction

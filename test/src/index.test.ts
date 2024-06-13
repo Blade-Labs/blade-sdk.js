@@ -1,5 +1,13 @@
 // @ts-nocheck
-import {AccountId, Client, ContractCallQuery, Hbar, Mnemonic, PrivateKey} from "@hashgraph/sdk";
+import {
+    AccountCreateTransaction,
+    AccountId,
+    Client,
+    ContractCallQuery,
+    Hbar,
+    Mnemonic,
+    PrivateKey
+} from "@hashgraph/sdk";
 import {associateToken, checkResult, createToken, getTokenInfo, sleep} from "./helpers";
 import {GET, getTransaction} from "../../src/services/ApiService";
 import {Network} from "../../src/models/Networks";
@@ -49,6 +57,7 @@ const privateKey4 = process.env.PRIVATE_KEY_ED25519 || "";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const accountId4 = process.env.ACCOUNT_ID_ED25519 || "";
 const tokenId0 = process.env.TOKEN_ID0 || "";
+const tokenId1 = process.env.TOKEN_ID1 || "";
 
 
 beforeEach(async () => {
@@ -1262,6 +1271,45 @@ test('bladeSdk.schedule', async () => {
 
     result = await bladeSdk.signScheduleId(scheduleId, accountId, privateKey, accountId2, false, completionKey);
     checkResult(result);
+}, 60_000);
+
+
+test("bladeSdk.associateToken", async () => {
+    let result;
+    const mnemonic = await Mnemonic.generate12();
+    const key = await mnemonic.toStandardECDSAsecp256k1PrivateKey();
+
+    const operatorKey = PrivateKey.fromStringDer(privateKey);
+
+    const client = Client.forTestnet();
+    client.setOperator(accountId, operatorKey);
+    const receipt = await new AccountCreateTransaction()
+        .setKey(key)
+        .setAccountMemo("test association")
+        .execute(client)
+        .then((tx) => tx.getReceipt(client))
+
+    result = await bladeSdk.associateToken(tokenId0, receipt.accountId.toString(), key.toStringDer(), completionKey);
+    checkResult(result);
+    try {
+        result = await bladeSdk.associateToken(tokenId0, receipt.accountId.toString(), key.toStringDer(), completionKey);
+        expect("Code should not reach here").toEqual(result);
+    } catch (result) {
+        checkResult(result, false);
+    }
+
+    // association on demand
+    result = await bladeSdk.associateToken("drop1", receipt.accountId.toString(), key.toStringDer(), completionKey);
+    checkResult(result);
+
+    try {
+        result = await bladeSdk.associateToken(tokenId1, receipt.accountId.toString(), key.toStringDer(), completionKey);
+        expect("Code should not reach here").toEqual(result);
+    } catch (result) {
+        checkResult(result, false);
+        expect(result.error.reason.includes("INSUFFICIENT_PAYER_BALANCE")).toEqual(true);
+    }
+
 }, 60_000);
 
 test('ParametersBuilder.defined', async () => {
