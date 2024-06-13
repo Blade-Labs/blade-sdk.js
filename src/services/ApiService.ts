@@ -39,7 +39,6 @@ import {
     ICryptoFlowTransactionParams,
 } from "../models/CryptoFlow";
 import { getConfig } from "./ConfigService";
-import { resolve } from "webpack.config";
 
 let sdkVersion = ``;
 let apiKey = ``;
