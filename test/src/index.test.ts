@@ -342,11 +342,7 @@ test('bladeSdk.contractCallFunction', async () => {
         const regex = /\(([^)]+)\)/;
         const match = reason.match(regex);
 
-        if (match && match.length && match[1]) {
-            expect(result.error.reason.includes("CONTRACT_REVERT_EXECUTED") && match[1].length > 0).toEqual(true);
-        } else {
-            expect(result.error.reason.includes("CONTRACT_REVERT_EXECUTED")).toEqual(true);
-        }
+        expect(result.error.reason.includes("CONTRACT_REVERT_EXECUTED") && match[1].length > 0).toEqual(true);
     }
 
     try {
