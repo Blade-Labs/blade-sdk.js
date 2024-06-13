@@ -26,7 +26,7 @@ contract HelloHedera {
 
     // return a (message, caller_address, count)
     function get_message() public view returns (string memory) {
-        return message;
+        return (message);
     }
 
     function set_numbers(string memory message_, Numbers memory numbers_) public {

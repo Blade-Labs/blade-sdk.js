@@ -1,3 +1,7 @@
+/**
+ RUN: npm run test_deploy_contract
+ */
+
 require("dotenv").config();
 const {
     FileCreateTransaction,
