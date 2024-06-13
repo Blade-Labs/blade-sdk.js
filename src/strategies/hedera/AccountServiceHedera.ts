@@ -29,6 +29,7 @@ import {executeUpdateAccountTransactions} from "../../helpers/AccountHelpers";
 import {getReceipt} from "../../helpers/TransactionHelpers";
 import {sleep} from "../../helpers/ApiHelper";
 import {JobAction, JobStatus} from "../../models/BladeApi";
+import {Buffer} from "buffer";
 
 export default class AccountServiceHedera implements IAccountService {
     private readonly chainId: KnownChainIds;
@@ -73,34 +74,34 @@ export default class AccountServiceHedera implements IAccountService {
         const client = this.getClient();
         if (transactionBytes) {
             await executeUpdateAccountTransactions(client, key, transactionBytes);
-            await this.apiService.createAccount(JobAction.CONFIRM, accountCreateJob.taskId).catch(() => {
+            await this.apiService.createAccount(JobAction.CONFIRM, accountCreateJob.taskId).catch((e) => {
                 // ignore this error, continue (no content)
             });
         }
 
         const tokensConfig = await (this.configService.getConfig("tokens") as Promise<DAppConfig["tokens"]>);
         try {
-            let tokenTransactionJob = await this.apiService.tokenAssociation(JobAction.INIT, "", {accountId, tokenIds: tokensConfig.association});
+            let tokenAssociationJob = await this.apiService.tokenAssociation(JobAction.INIT, "", {accountId, tokenIds: tokensConfig.association});
             while (true) {
-                if (tokenTransactionJob.status === JobStatus.SUCCESS) {
+                if (tokenAssociationJob.status === JobStatus.SUCCESS) {
                     break;
                 }
-                if (tokenTransactionJob.status === JobStatus.FAILED) {
-                    throw new Error(tokenTransactionJob.errorMessage);
+                if (tokenAssociationJob.status === JobStatus.FAILED) {
+                    throw new Error(tokenAssociationJob.errorMessage);
                 }
                 // TODO set timeout from sdk-config
                 await sleep(1000);
-                tokenTransactionJob = await this.apiService.tokenAssociation(JobAction.CHECK, tokenTransactionJob.taskId);
+                tokenAssociationJob = await this.apiService.tokenAssociation(JobAction.CHECK, tokenAssociationJob.taskId);
             }
 
-            if (!tokenTransactionJob.result.transactionBytes) {
+            if (!tokenAssociationJob.result.transactionBytes) {
                 throw new Error("Token association failed");
             }
-            const buffer = Buffer.from(tokenTransactionJob.result.transactionBytes, "base64");
+            const buffer = Buffer.from(tokenAssociationJob.result.transactionBytes, "base64");
             const transaction = await Transaction.fromBytes(buffer).sign(key);
             await transaction.execute(client);
 
-            await this.apiService.tokenAssociation(JobAction.CONFIRM, tokenTransactionJob.taskId).catch(() => {
+            await this.apiService.tokenAssociation(JobAction.CONFIRM, tokenAssociationJob.taskId).catch((e) => {
                 // ignore this error, continue (no content)
             });
         } catch (error) {

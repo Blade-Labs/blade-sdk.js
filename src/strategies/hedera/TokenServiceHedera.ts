@@ -19,6 +19,7 @@ import {Buffer} from "buffer";
 import {ITokenService, TransferInitData, TransferTokenInitData} from "../TokenServiceContext";
 import {
     BalanceData,
+    DAppConfig,
     KeyRecord,
     KeyType,
     NFTStorageConfig,
@@ -170,24 +171,44 @@ export default class TokenServiceHedera implements ITokenService {
     }
 
     async associateToken(tokenId: string, accountId: string): Promise<TransactionReceiptData> {
-        let transaction: Transaction;
-        const network = ChainMap[this.chainId].isTestnet ? "testnet" : "mainnet";
-        const freeAssociationTokens = (await this.configService.getConfig("tokens"))[network]?.association || [];
-        if (freeAssociationTokens.includes(tokenId) || !tokenId) {
-            // const res = await this.apiService.tokenAssociationForAccount([tokenId], accountId);
-            // if (!res.transactionBytes) {
-            //     throw new Error("Failed to get transaction bytes for free association. Token already associated?");
-            // }
-            // const buffer = Buffer.from(res.transactionBytes, "base64");
-            // transaction = Transaction.fromBytes(buffer);
-            // TODO fix token assciate
+        let result: TransactionResponseHedera;
+        const tokensConfig = await (this.configService.getConfig("tokens") as Promise<DAppConfig["tokens"]>);
+        if (tokensConfig.association.includes(tokenId) || !tokenId) {
+            let tokenAssociationJob = await this.apiService.tokenAssociation(JobAction.INIT, "", {accountId, tokenIds: [tokenId]});
+            while (true) {
+                if (tokenAssociationJob.status === JobStatus.SUCCESS) {
+                    break;
+                }
+                if (tokenAssociationJob.status === JobStatus.FAILED) {
+                    throw new Error(tokenAssociationJob.errorMessage);
+                }
+                // TODO set timeout from sdk-config
+                await sleep(1000);
+                tokenAssociationJob = await this.apiService.tokenAssociation(JobAction.CHECK, tokenAssociationJob.taskId);
+            }
+
+            if (!tokenAssociationJob.result.transactionBytes) {
+                throw new Error("Token association failed");
+            }
+
+            const buffer = Buffer.from(tokenAssociationJob.result.transactionBytes, "base64");
+            const transaction = Transaction.fromBytes(buffer)
+
+            result = await transaction.signWithSigner(this.signer!)
+                .then(tx => tx.executeWithSigner(this.signer!))
+                .then(async result => {
+                    await this.apiService.tokenAssociation(JobAction.CONFIRM, tokenAssociationJob.taskId).catch(() => {
+                        // ignore this error, continue (no content)
+                    });
+                    return result;
+                });
         } else {
-            transaction = await new TokenAssociateTransaction()
+            const transaction = await new TokenAssociateTransaction()
                 .setAccountId(accountId)
                 .setTokenIds([tokenId])
                 .freezeWithSigner(this.signer!);
+            result = await transaction.signWithSigner(this.signer!).then(tx => tx.executeWithSigner(this.signer!));
         }
-        const result = await transaction.signWithSigner(this.signer!).then(tx => tx.executeWithSigner(this.signer!));
 
         return result.getReceiptWithSigner(this.signer!).then(txReceipt => {
             if (txReceipt.status !== Status.Success) {
@@ -365,14 +386,13 @@ export default class TokenServiceHedera implements ITokenService {
             dropJob = await this.apiService.dropTokens(JobAction.CHECK, dropJob.taskId);
         }
 
+        console.log(dropJob)
+
         // TODO to implement
         return {
             status: dropJob.status,
-            statusCode: 0,
-            timestamp: "string",
-            executionStatus: "string",
-            requestId: "string",
-            accountId: "string",
+            accountId: dropJob.result.accountId,
+            dropStatuses: dropJob.result.dropStatuses,
             redirectUrl: "string"
         };
     }

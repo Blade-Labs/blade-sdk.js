@@ -2,7 +2,7 @@ import {MirrorNodeTransactionType} from "./TransactionType";
 import {ICryptoFlowQuote} from "./CryptoFlow";
 import {CryptoKeyType, KnownChainIds} from "./Chain";
 import {NftInfo, NftMetadata, TokenInfo} from "./MirrorNode";
-import {JobStatus} from "@/models/BladeApi";
+import {DropStatus, JobStatus} from "./BladeApi";
 
 export enum SdkEnvironment {
     Prod = "Prod",
@@ -355,11 +355,10 @@ export interface TransactionResponseData {
 
 export interface TokenDropData {
     status: string;
-    statusCode: number;
-    timestamp: string;
-    executionStatus: string;
-    requestId: string;
     accountId: string;
+    dropStatuses: {
+       [key: string]: DropStatus;
+    };
     redirectUrl: string;
 }
 

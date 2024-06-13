@@ -45,6 +45,8 @@ import {
 } from "../models/CryptoFlow";
 import {
     AccountCreateJob,
+    ContractCallJob,
+    ContractCallQueryJob,
     DropJob,
     JobAction,
     KycGrandJob,
@@ -304,7 +306,7 @@ export default class ApiService {
                 };
                 break;
             case JobAction.CONFIRM:
-                url = `${this.getApiUrl()}/${taskId}/confirm`;
+                url = `${this.getApiUrl()}/accounts/${taskId}/confirm`;
                 options = {
                     method: "PATCH",
                     headers: await this.reqHeaders(),
@@ -530,50 +532,100 @@ export default class ApiService {
             .then(x => x.json());
     }
 
-    async signContractCallTx(params: any) {
-        const url = `${this.getApiUrl()}/smart/contract/sign`;
-        const options = {
-            method: "POST",
-            headers: new Headers({
-                "X-NETWORK": this.network.toUpperCase(),
-                "X-VISITOR-ID": this.visitorId,
-                "X-DAPP-CODE": this.dAppCode,
-                "X-SDK-TVTE-API": await this.getTvteHeader(),
-                "Content-Type": "application/json"
-            }),
-            body: JSON.stringify({
-                functionParametersHash: Buffer.from(params.contractFunctionParameters).toString("base64"),
-                contractId: params.contractAddress,
-                functionName: params.functionName,
-                gas: params.gas
-            })
-        };
+    async signContractCallTx(
+        requestMode: JobAction, taskId: string,
+        params?: {
+            contractAddress: string;
+            functionName: string;
+            contractFunctionParameters: string;
+            gas: number;
+            memo: string;
+        }
+    ): Promise<ContractCallJob> {
+        let url: string;
+        let options: RequestInit;
+        let retryCount = 1;
+        switch (requestMode) {
+            case JobAction.INIT:
+                url = `${this.getApiUrl()}/contracts/execute`
+                options = {
+                    method: "POST",
+                    headers: await this.reqHeaders(),
+                    body: JSON.stringify({
+                        contractId: params.contractAddress,
+                        functionName: params.functionName,
+                        functionParametersHash: params.contractFunctionParameters,
+                        gas: params.gas,
+                        memo: params.memo
+                    })
+                };
+                break;
+            case JobAction.CHECK:
+                url = `${this.getApiUrl()}/contracts/execute/${taskId}`
+                options = {
+                    method: "GET",
+                    headers: await this.reqHeaders(),
+                };
+                retryCount = 3;
+                break;
+            case JobAction.CONFIRM:
+                url = `${this.getApiUrl()}/contracts/execute/${taskId}/confirm`
+                options = {
+                    method: "PATCH",
+                    headers: await this.reqHeaders(),
+                };
+                retryCount = 1;
+                break;
+            default:
+                throw new Error("Invalid request mode");
+        }
 
-        return fetch(url, options)
+        return this.fetchWithRetry(url, options, retryCount)
             .then(this.statusCheck)
             .then(x => x.json());
     }
 
-    async apiCallContractQuery(params: any) {
-        const url = `${this.getApiUrl()}/smart/contract/call`;
-        const options = {
-            method: "POST",
-            headers: new Headers({
-                "X-NETWORK": this.network.toUpperCase(),
-                "X-VISITOR-ID": this.visitorId,
-                "X-DAPP-CODE": this.dAppCode,
-                "X-SDK-TVTE-API": await this.getTvteHeader(),
-                "Content-Type": "application/json"
-            }),
-            body: JSON.stringify({
-                functionParametersHash: Buffer.from(params.contractFunctionParameters).toString("base64"),
-                contractId: params.contractId,
-                functionName: params.functionName,
-                gas: params.gas
-            })
-        };
+    async apiCallContractQuery(
+        requestMode: JobAction, taskId: string,
+        params?: {
+            contractAddress: string;
+            functionName: string;
+            contractFunctionParameters: string;
+            gas: number;
+            memo: string;
+        }
+    ): Promise<ContractCallQueryJob> {
+        let url: string;
+        let options: RequestInit;
+        let retryCount = 1;
+        switch (requestMode) {
+            case JobAction.INIT:
+                url = `${this.getApiUrl()}/contracts/call`
+                options = {
+                    method: "POST",
+                    headers: await this.reqHeaders(),
+                    body: JSON.stringify({
+                        contractId: params.contractAddress,
+                        functionName: params.functionName,
+                        functionParametersHash: params.contractFunctionParameters,
+                        gas: params.gas,
+                        memo: params.memo
+                    })
+                };
+                break;
+            case JobAction.CHECK:
+                url = `${this.getApiUrl()}/contracts/call/${taskId}`
+                options = {
+                    method: "GET",
+                    headers: await this.reqHeaders(),
+                };
+                retryCount = 3;
+                break;
+            default:
+                throw new Error("Invalid request mode");
+        }
 
-        return fetch(url, options)
+        return this.fetchWithRetry(url, options, retryCount)
             .then(this.statusCheck)
             .then(x => x.json());
     }

@@ -73,3 +73,103 @@ export interface TransferTokensJob extends V8Response {
         transactionBytes: string;
     };
 }
+
+export interface ContractCallJob extends V8Response {
+    result?: {
+        contractId: string;
+        functionName: string;
+        functionParametersHash: string;
+        gas: number;
+        memo: string;
+        transactionBytes: string;
+    };
+}
+
+export interface ContractCallQueryJob extends V8Response {
+    // TODO actualise
+    result?: {
+        "contractId": "string",
+        "functionName": "string",
+        "functionParametersHash": "string",
+        "gas": 0,
+        "memo": "string",
+        "contractFunctionResult": {
+            "contractId": {
+                "shard": 0,
+                "realm": 0,
+                "num": 0,
+                "checksum": "string",
+                "evmAddress": "string"
+            },
+            "evmAddress": {
+                "shard": 0,
+                "realm": 0,
+                "num": 0,
+                "checksum": "string",
+                "evmAddress": "string"
+            },
+            "errorMessage": "string",
+            "bloom": {
+                "empty": true,
+                "validUtf8": true
+            },
+            "gasUsed": 0,
+            "logs": [
+                {
+                    "contractId": {
+                        "shard": 0,
+                        "realm": 0,
+                        "num": 0,
+                        "checksum": "string",
+                        "evmAddress": "string"
+                    },
+                    "bloom": {
+                        "empty": true,
+                        "validUtf8": true
+                    },
+                    "topics": [
+                        {
+                            "empty": true,
+                            "validUtf8": true
+                        }
+                    ],
+                    "data": {
+                        "empty": true,
+                        "validUtf8": true
+                    }
+                }
+            ],
+            "gas": 0,
+            "hbarAmount": {
+                "value": 0
+            },
+            "contractFunctionParametersBytes": "string",
+            "senderAccountId": {
+                "shard": 0,
+                "realm": 0,
+                "num": 0,
+                "aliasKey": {
+                    "ecdsa": true,
+                    "ed25519": true
+                },
+                "evmAddress": {},
+                "checksum": "string"
+            },
+            "contractNonces": [
+                {
+                    "contractId": {
+                        "shard": 0,
+                        "realm": 0,
+                        "num": 0,
+                        "checksum": "string",
+                        "evmAddress": "string"
+                    },
+                    "nonce": 0
+                }
+            ],
+            "signerNonce": 0
+        },
+        "bloom": "string",
+        "rawResult": "string"
+    }
+}
