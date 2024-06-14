@@ -54,6 +54,11 @@ export enum NFTStorageProvider {
     nftStorage = "nftStorage",
 }
 
+export enum AssociationAction {
+    FREE = "FREE",
+    DEMAND = "DEMAND",
+}
+
 export interface BladeConfig {
     fpApiKey?: string;
     exchangeServiceSignerPubKey?: string;
