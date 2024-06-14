@@ -13,6 +13,7 @@ import {
 } from "../models/MirrorNode";
 import {
     ApiAccount,
+    AssociationAction,
     BalanceData,
     BladeConfig,
     CoinData,
@@ -334,44 +335,36 @@ export const confirmAccountUpdate = async (params: ConfirmUpdateAccountData): Pr
     return fetch(url, options).then(statusCheck);
 };
 
-export const getTokenAssociateTransactionForAccount = async (
-    tokenId: string | null,
+export const getTokenAssociateTransaction = async (
+    action: AssociationAction,
+    tokenIdOrCampaign: string | null,
     accountId: string
 ): Promise<ApiAccount> => {
-    const url = `${getApiUrl()}/tokens`;
-    const body: any = {
-        id: accountId,
-    };
-    if (tokenId) {
-        body.token = tokenId;
+    let url: string;
+    let body: {
+        [key: string]: any;
     }
 
-    const options = {
-        method: "PATCH",
-        headers: new Headers({
-            "X-NETWORK": network.toUpperCase(),
-            "X-VISITOR-ID": visitorId,
-            "X-DAPP-CODE": dAppCode,
-            "X-SDK-TVTE-API": await getTvteHeader(),
-            "Content-Type": "application/json",
-        }),
-        body: JSON.stringify(body),
-    };
-
-    return fetch(url, options)
-        .then(statusCheck)
-        .then((x) => x.json());
-};
-
-export const getTokenAssociateOnDemand = async (
-    campaignName: string,
-    accountId: string
-): Promise<ApiAccount> => {
-    const url = `${getApiUrl()}/tokens/demand`;
-    const body: any = {
-        id: accountId,
-        action: campaignName
-    };
+    switch (action) {
+        case AssociationAction.FREE:
+            url = `${getApiUrl()}/tokens`;
+            body = {
+                id: accountId,
+            };
+            if (tokenIdOrCampaign) {
+                body.token = tokenIdOrCampaign;
+            }
+            break;
+        case AssociationAction.DEMAND:
+            url = `${getApiUrl()}/tokens/demand`;
+            body = {
+                id: accountId,
+                action: tokenIdOrCampaign
+            };
+            break;
+        default:
+            throw new Error("Unknown association action");
+    }
 
     const options = {
         method: "PATCH",

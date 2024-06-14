@@ -43,7 +43,6 @@ import {
     getNftMetadataFromIpfs,
     getNodeList,
     getPendingAccountData,
-    getTokenAssociateTransactionForAccount,
     getTransactionsFrom,
     initApiService,
     requestTokenInfo,
@@ -52,7 +51,7 @@ import {
     signScheduleRequest,
     transferTokens,
     getContractErrorMessage,
-    getTokenAssociateOnDemand
+    getTokenAssociateTransaction
 } from "./services/ApiService";
 import { getAccountsFromMnemonic, getAccountsFromPrivateKey } from "./services/AccountService";
 import CryptoFlowService from "./services/CryptoFlowService";
@@ -71,6 +70,7 @@ import {
     AccountPrivateRecord,
     AccountProvider,
     AccountStatus,
+    AssociationAction,
     BalanceData,
     BladeConfig,
     BridgeResponse,
@@ -1022,7 +1022,7 @@ export class BladeSDK {
             if (associationPresetTokenStatus === "FAILED") {
                 // if token association failed on backend, fetch /tokens and execute transactionBytes
                 try {
-                    const tokenTransaction = await getTokenAssociateTransactionForAccount(null, id);
+                    const tokenTransaction = await getTokenAssociateTransaction(AssociationAction.FREE, null, id);
                     if (!tokenTransaction.transactionBytes) {
                         throw new Error("Token association failed");
                     }
@@ -2062,7 +2062,7 @@ export class BladeSDK {
             let transaction: Transaction;
             const freeAssociationTokens = (await getConfig("tokens"))[this.network.toLowerCase()]?.association || [];
             if (freeAssociationTokens.includes(tokenIdOrCampaign) || !tokenIdOrCampaign) {
-                const result = await getTokenAssociateTransactionForAccount(tokenIdOrCampaign, accountId);
+                const result = await getTokenAssociateTransaction(AssociationAction.FREE, tokenIdOrCampaign, accountId);
                 if (!result.transactionBytes) {
                     throw new Error("Failed to get transaction bytes for free association. Token already associated?");
                 }
@@ -2070,7 +2070,7 @@ export class BladeSDK {
                 transaction = Transaction.fromBytes(buffer);
             } else if (!/^\d+.\d+.\d+$/g.test(tokenIdOrCampaign)) {
                 // if not valid tokenId provided, we assume that campaignName is provided, try to AssociateOnDemand
-                const result = await getTokenAssociateOnDemand(tokenIdOrCampaign, accountId);
+                const result = await getTokenAssociateTransaction(AssociationAction.DEMAND, tokenIdOrCampaign, accountId);
                 if (!result.transactionBytes) {
                     throw new Error("Failed to get transaction bytes for campaign association");
                 }
