@@ -460,6 +460,7 @@ export const transferTokens = async (network: Network, params: any) => {
             amount: params.amount,
             decimals: params.decimals,
             memo: params.memo,
+            tokenId: params.tokenId,
         }),
     };
 

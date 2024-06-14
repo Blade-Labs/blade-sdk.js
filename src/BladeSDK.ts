@@ -746,7 +746,7 @@ export class BladeSDK {
                     amount: correctedAmount,
                     decimals: null,
                     memo,
-                    // no tokenId, backend pick first token from list for currend dApp
+                    tokenId,
                 };
 
                 const { transactionBytes } = await transferTokens(this.network, options);
