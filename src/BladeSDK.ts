@@ -162,7 +162,7 @@ export class BladeSDK {
                     apiKey: "key", // the valid key is passed on the backend side, and ".get()" does not require the key as well
                     scriptUrlPattern: `${this.apiService.getApiUrl(true)}/fpjs/<version>/<loaderVersion>`,
                     endpoint: [
-                        await this.configService.getConfig(`fingerprintSubdomain`),
+                        await this.configService.getConfig(`fpSubdomain`),
                         FingerprintJS.defaultEndpoint
                     ]
                 };
