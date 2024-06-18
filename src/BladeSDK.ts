@@ -7,7 +7,6 @@ import ApiService from "./services/ApiService";
 import CryptoFlowService from "./services/CryptoFlowService";
 import {HbarTokenId} from "./services/FeeService";
 import ConfigService from "./services/ConfigService";
-import AccountService from "./services/AccountService";
 import {Network} from "./models/Networks";
 import StringHelpers from "./helpers/StringHelpers";
 import {CustomError} from "./models/Errors";
@@ -82,7 +81,6 @@ export class BladeSDK {
 
     /**
      * BladeSDK constructor.
-     * @param accountService - instance of AccountService
      * @param configService - instance of ConfigService
      * @param apiService - instance of ApiService
      * @param accountServiceContext - instance of AccountServiceContext
@@ -94,7 +92,6 @@ export class BladeSDK {
      * @param isWebView - true if you are using this SDK in webview of native app. It changes the way of communication with native app.
      */
     constructor(
-        @inject("accountService") private readonly accountService: AccountService,
         @inject("configService") private readonly configService: ConfigService,
         @inject("apiService") private readonly apiService: ApiService,
         @inject("accountServiceContext") private readonly accountServiceContext: AccountServiceContext,
@@ -712,7 +709,6 @@ export class BladeSDK {
      * @param keyOrMnemonic BIP39 mnemonic, private key with DER header
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {AccountPrivateData}
-    */
 
     async searchAccounts(keyOrMnemonic: string, completionKey?: string): Promise<AccountPrivateData> {
         try {
@@ -730,6 +726,7 @@ export class BladeSDK {
             throw this.sendMessageToNative(completionKey, null, error);
         }
     }
+    */
 
     /**
      * Bladelink drop to account
