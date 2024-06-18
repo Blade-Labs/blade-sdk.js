@@ -61,6 +61,7 @@ export enum AssociationAction {
 
 export interface BladeConfig {
     fpApiKey?: string;
+    fpSubdomain?: string;
     exchangeServiceSignerPubKey?: string;
     swapContract?: string;
     swapWrapHbar?: string;

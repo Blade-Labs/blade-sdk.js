@@ -3,10 +3,12 @@ import { BladeConfig, DAppConfig } from "../models/Common";
 
 let config: BladeConfig = {
     fpApiKey: undefined,
+    fpSubdomain: undefined,
     exchangeServiceSignerPubKey: undefined,
     swapContract: undefined,
     swapWrapHbar: undefined,
     saucerswapApi: undefined,
+    magicLinkPublicKey: undefined,
 };
 let dAppConfig: DAppConfig;
 
