@@ -709,15 +709,16 @@ export class BladeSDK {
      * @param keyOrMnemonic BIP39 mnemonic, private key with DER header
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {AccountPrivateData}
+    */
 
     async searchAccounts(keyOrMnemonic: string, completionKey?: string): Promise<AccountPrivateData> {
         try {
             const accounts: AccountPrivateRecord[] = [];
             if (keyOrMnemonic.trim().split(" ").length > 1) {
                 // mnemonic
-                accounts.push(...(await this.accountService.getAccountsFromMnemonic(keyOrMnemonic, this.network)));
+                accounts.push(...(await this.accountServiceContext.getAccountsFromMnemonic(keyOrMnemonic, this.network)));
             } else {
-                accounts.push(...(await this.accountService.getAccountsFromPrivateKey(keyOrMnemonic, this.network)));
+                accounts.push(...(await this.accountServiceContext.getAccountsFromPrivateKey(keyOrMnemonic, this.network)));
             }
             return this.sendMessageToNative(completionKey, {
                 accounts,
@@ -726,7 +727,6 @@ export class BladeSDK {
             throw this.sendMessageToNative(completionKey, null, error);
         }
     }
-    */
 
     /**
      * Bladelink drop to account

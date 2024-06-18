@@ -213,6 +213,21 @@ export default class AccountServiceEthereum implements IAccountService {
         };
     }
 
+
+     getAccountsFromMnemonic(
+        mnemonicRaw: string,
+        network: Network
+    ): Promise<AccountPrivateRecord[]> {
+        throw new Error("Method not supported for this chain");
+    }
+
+    getAccountsFromPrivateKey (
+        privateKeyRaw: string,
+        network: Network
+    ): Promise<AccountPrivateRecord[]> {
+        throw new Error("Method not supported for this chain");
+    }
+
     private async initAlchemy() {
         if (!this.alchemy) {
             const alchemyNetwork = ChainMap[this.chainId].isTestnet
