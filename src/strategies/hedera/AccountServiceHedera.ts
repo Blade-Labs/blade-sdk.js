@@ -307,64 +307,73 @@ export default class AccountServiceHedera implements IAccountService {
                 .filter((word) => word)
                 .join(" ")
         );
-    
+
         // derive to ECDSA Standard - find account
         // derive to ECDSA Legacy - find account
         // derive to ED25519 Standard - find account
         // derive to ED25519 Legacy - find account
         // return all records with account found. If no account show ECDSA Standard keys
     
-        const records: AccountPrivateRecord[] = [];
-        let key: PrivateKey;
+        const promises: Promise<AccountPrivateRecord[]>[] = [];
+    
         for (const keyType of Object.values(CryptoKeyType)) {
             for (let standard = 1; standard >= 0; standard--) {
+                let keyPromise: Promise<PrivateKey>;
+    
                 if (keyType === CryptoKeyType.ECDSA_SECP256K1) {
-                    if (standard) {
-                        key = await mnemonic.toStandardECDSAsecp256k1PrivateKey();
-                    } else {
-                        key = await mnemonic.toEcdsaPrivateKey();
-                    }
+                    keyPromise = standard 
+                        ? mnemonic.toStandardECDSAsecp256k1PrivateKey() 
+                        : mnemonic.toEcdsaPrivateKey();
                 } else {
-                    if (standard) {
-                        key = await mnemonic.toStandardEd25519PrivateKey();
-                    } else {
-                        key = await mnemonic.toEd25519PrivateKey();
-                    }
+                    keyPromise = standard 
+                        ? mnemonic.toStandardEd25519PrivateKey() 
+                        : mnemonic.toEd25519PrivateKey();
                 }
-                records.push(...(await this.prepareAccountRecord(key, keyType)));
+    
+                promises.push(keyPromise.then(key => this.prepareAccountRecord(key, keyType)));
             }
         }
     
+        const recordsArray = await Promise.all(promises);
+        const records: AccountPrivateRecord[] = recordsArray.flat();
+    
         if (!records.length) {
-            // if no accounts found derive to ECDSA Standard, and return record with empty address
-            key = await mnemonic.toStandardECDSAsecp256k1PrivateKey();
-            records.push(...(await this.prepareAccountRecord(key, CryptoKeyType.ECDSA_SECP256K1, true)));
+            // if no accounts found, derive to ECDSA Standard, and return record with empty address
+            const key = await mnemonic.toStandardECDSAsecp256k1PrivateKey();
+            const fallbackRecords = await this.prepareAccountRecord(key, CryptoKeyType.ECDSA_SECP256K1, true);
+            records.push(...fallbackRecords);
         }
-
+    
         return records;
-    };
+    }
 
-    private async getAccountsFromPrivateKey (
+    private async getAccountsFromPrivateKey(
         privateKeyRaw: string
     ): Promise<AccountPrivateRecord[]> {
         const privateKey = privateKeyRaw.toLowerCase().trim().replace("0x", "");
         const privateKeys: PrivateKey[] = [];
+
         if (privateKey.length >= 96) {
             // 96 chars - hex encoded ED25519 with DER header without 0x prefix
             // 100 chars - hex encoded ECDSA with DER header without 0x prefix
             privateKeys.push(PrivateKey.fromStringDer(privateKey));
         } else {
             // try to parse as ECDSA and ED25519 private key, and find account by public key
-            privateKeys.push(PrivateKey.fromStringECDSA(privateKey), PrivateKey.fromStringED25519(privateKey));
+            privateKeys.push(
+                PrivateKey.fromStringECDSA(privateKey),
+                PrivateKey.fromStringED25519(privateKey)
+            );
         }
     
-        const records: AccountPrivateRecord[] = [];
-        for (const key of privateKeys) {
+        const promises = privateKeys.map(async (key) => {
             const keyType = key.type === "ED25519" ? CryptoKeyType.ED25519 : CryptoKeyType.ECDSA_SECP256K1;
-            records.push(...(await this.prepareAccountRecord(key, keyType)));
-        }
+            return this.prepareAccountRecord(key, keyType);
+        });
+    
+        const recordsArray = await Promise.all(promises);
+        const records: AccountPrivateRecord[] = recordsArray.flat();
         return records;
-    };
+    }
 
     private async prepareAccountRecord(
         privateKey: PrivateKey,
