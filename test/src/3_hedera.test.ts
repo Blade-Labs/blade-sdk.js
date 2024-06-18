@@ -307,7 +307,7 @@ describe("testing methods related to HEDERA network", () => {
     test("bladeSdk-hedera.createAccount", async () => {
         let result;
 
-        result = await bladeSdk.createAccount("device-id", completionKey);
+        result = await bladeSdk.createAccount("", "device-id", completionKey);
         checkResult(result);
 
         expect(result.data).toHaveProperty("seedPhrase");
@@ -336,7 +336,7 @@ describe("testing methods related to HEDERA network", () => {
 
         // fail on wrong api key
         try {
-            result = await bladeSdk.createAccount("device-id", completionKey);
+            result = await bladeSdk.createAccount("", "device-id", completionKey);
             expect("Code should not reach here").toEqual(result);
         } catch (result) {
             checkResult(result, false);
@@ -345,7 +345,7 @@ describe("testing methods related to HEDERA network", () => {
 
     test("bladeSdk-hedera.getAccountInfo", async () => {
         let result;
-        const account = await bladeSdk.createAccount("device-id", completionKey);
+        const account = await bladeSdk.createAccount("", "device-id", completionKey);
         checkResult(account);
         const newAccountId = account.data.accountId;
 
@@ -379,7 +379,7 @@ describe("testing methods related to HEDERA network", () => {
     test("bladeSdk-hedera.deleteAccount", async () => {
         let result;
 
-        result = await bladeSdk.createAccount("device-id", completionKey);
+        result = await bladeSdk.createAccount("", "device-id", completionKey);
         checkResult(result);
         const newAccountId = result.data.accountId;
         const newPrivateKey = result.data.privateKey;
@@ -412,7 +412,7 @@ describe("testing methods related to HEDERA network", () => {
 
     test("bladeSdk-hedera.getKeysFromMnemonic", async () => {
         let result;
-        result = await bladeSdk.createAccount("device-id", completionKey);
+        result = await bladeSdk.createAccount("", "device-id", completionKey);
         checkResult(result);
 
         const accountSample = {
@@ -455,7 +455,7 @@ describe("testing methods related to HEDERA network", () => {
 
     test("bladeSdk-hedera.searchAccounts", async () => {
         let result;
-        result = await bladeSdk.createAccount("device-id", completionKey);
+        result = await bladeSdk.createAccount("", "device-id", completionKey);
         checkResult(result);
 
         const accountSample = {
