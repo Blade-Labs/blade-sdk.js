@@ -9,9 +9,7 @@ import {
     CreateAccountData,
     TransactionReceiptData,
     TransactionsHistoryData,
-    AccountPrivateRecord
 } from "../models/Common";
-import { Network } from "../models/Networks";
 import {ChainMap, ChainServiceStrategy, KnownChainIds} from "../models/Chain";
 import AccountServiceHedera from "./hedera/AccountServiceHedera";
 import AccountServiceEthereum from "./ethereum/AccountServiceEthereum";
@@ -38,14 +36,7 @@ export interface IAccountService {
         nextPage: string,
         transactionsLimit: string
     ): Promise<TransactionsHistoryData>;
-    getAccountsFromMnemonic(
-        mnemonicRaw: string,
-        network: Network
-    ): Promise<AccountPrivateRecord[]>;
-    getAccountsFromPrivateKey(
-        privateKeyRaw: string,
-        network: Network
-    ): Promise<AccountPrivateRecord[]>;
+    searchAccounts(keyOrMnemonic: string): Promise<AccountPrivateData>;
 }
 
 @injectable()
@@ -134,20 +125,9 @@ export default class AccountServiceContext implements IAccountService {
         return this.strategy!.getTransactions(accountAddress, transactionType, nextPage, transactionsLimit);
     }
 
-    getAccountsFromMnemonic(
-        mnemonicRaw: string,
-        network: Network
-    ): Promise<AccountPrivateRecord[]> {
+    searchAccounts(keyOrMnemonic: string): Promise<AccountPrivateData> {
         this.checkInit();
-        return this.strategy!.getAccountsFromMnemonic(mnemonicRaw, network);
-    }
-
-    getAccountsFromPrivateKey(
-        privateKeyRaw: string,
-        network: Network
-    ): Promise<AccountPrivateRecord[]> {
-        this.checkInit();
-        return this.strategy!.getAccountsFromPrivateKey(privateKeyRaw, network);
+        return this.strategy!.searchAccounts(keyOrMnemonic);
     }
 
     private checkInit() {

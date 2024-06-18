@@ -701,7 +701,6 @@ export class BladeSDK {
         }
     }
 
-    // TODO implement `searchAccounts` method
     /**
      * Get accounts list and keys from private key or mnemonic
      * Returned keys with DER header.
@@ -713,16 +712,8 @@ export class BladeSDK {
 
     async searchAccounts(keyOrMnemonic: string, completionKey?: string): Promise<AccountPrivateData> {
         try {
-            const accounts: AccountPrivateRecord[] = [];
-            if (keyOrMnemonic.trim().split(" ").length > 1) {
-                // mnemonic
-                accounts.push(...(await this.accountServiceContext.getAccountsFromMnemonic(keyOrMnemonic, this.network)));
-            } else {
-                accounts.push(...(await this.accountServiceContext.getAccountsFromPrivateKey(keyOrMnemonic, this.network)));
-            }
-            return this.sendMessageToNative(completionKey, {
-                accounts,
-            });
+            const result = await this.accountServiceContext.searchAccounts(keyOrMnemonic);
+            return this.sendMessageToNative(completionKey, result);
         } catch (error: any) {
             throw this.sendMessageToNative(completionKey, null, error);
         }

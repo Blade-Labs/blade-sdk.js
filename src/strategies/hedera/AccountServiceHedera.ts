@@ -282,9 +282,22 @@ export default class AccountServiceHedera implements IAccountService {
         return await this.apiService.getTransactionsFrom(accountAddress, transactionType, nextPage, transactionsLimit);
     }
 
-    async getAccountsFromMnemonic(
-        mnemonicRaw: string,
-        network: Network
+    async searchAccounts(keyOrMnemonic: string): Promise<AccountPrivateData> {
+        const accounts: AccountPrivateRecord[] = [];
+        if (keyOrMnemonic.trim().split(" ").length > 1) {
+            // mnemonic
+            accounts.push(...(await this.getAccountsFromMnemonic(keyOrMnemonic)));
+        } else {
+            accounts.push(...(await this.getAccountsFromPrivateKey(keyOrMnemonic)));
+        }
+
+        return {
+            accounts: accounts
+        }
+    }
+
+    private async getAccountsFromMnemonic(
+        mnemonicRaw: string
     ): Promise<AccountPrivateRecord[]> {
         const mnemonic = await Mnemonic.fromString(
             mnemonicRaw
@@ -318,22 +331,21 @@ export default class AccountServiceHedera implements IAccountService {
                         key = await mnemonic.toEd25519PrivateKey();
                     }
                 }
-                records.push(...(await this.prepareAccountRecord(key, keyType, network)));
+                records.push(...(await this.prepareAccountRecord(key, keyType)));
             }
         }
     
         if (!records.length) {
             // if no accounts found derive to ECDSA Standard, and return record with empty address
             key = await mnemonic.toStandardECDSAsecp256k1PrivateKey();
-            records.push(...(await this.prepareAccountRecord(key, CryptoKeyType.ECDSA_SECP256K1, network, true)));
+            records.push(...(await this.prepareAccountRecord(key, CryptoKeyType.ECDSA_SECP256K1, true)));
         }
-    
+
         return records;
     };
 
-    async getAccountsFromPrivateKey (
-        privateKeyRaw: string,
-        network: Network
+    private async getAccountsFromPrivateKey (
+        privateKeyRaw: string
     ): Promise<AccountPrivateRecord[]> {
         const privateKey = privateKeyRaw.toLowerCase().trim().replace("0x", "");
         const privateKeys: PrivateKey[] = [];
@@ -349,7 +361,7 @@ export default class AccountServiceHedera implements IAccountService {
         const records: AccountPrivateRecord[] = [];
         for (const key of privateKeys) {
             const keyType = key.type === "ED25519" ? CryptoKeyType.ED25519 : CryptoKeyType.ECDSA_SECP256K1;
-            records.push(...(await this.prepareAccountRecord(key, keyType, network)));
+            records.push(...(await this.prepareAccountRecord(key, keyType)));
         }
         return records;
     };
@@ -357,7 +369,6 @@ export default class AccountServiceHedera implements IAccountService {
     private async prepareAccountRecord(
         privateKey: PrivateKey,
         keyType: CryptoKeyType,
-        network: Network,
         force: boolean = false
     ): Promise<AccountPrivateRecord[]> {
         const accounts: Partial<AccountInfo>[] = await this.apiService.getAccountsFromPublicKey(privateKey.publicKey);
