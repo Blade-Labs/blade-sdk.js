@@ -315,22 +315,20 @@ export default class AccountServiceHedera implements IAccountService {
         // return all records with account found. If no account show ECDSA Standard keys
     
         const promises: Promise<AccountPrivateRecord[]>[] = [];
+        let key: PrivateKey;
     
         for (const keyType of Object.values(CryptoKeyType)) {
             for (let standard = 1; standard >= 0; standard--) {
-                let keyPromise: Promise<PrivateKey>;
-    
                 if (keyType === CryptoKeyType.ECDSA_SECP256K1) {
-                    keyPromise = standard 
-                        ? mnemonic.toStandardECDSAsecp256k1PrivateKey() 
-                        : mnemonic.toEcdsaPrivateKey();
+                    key = standard 
+                        ? await mnemonic.toStandardECDSAsecp256k1PrivateKey() 
+                        : await mnemonic.toEcdsaPrivateKey();
                 } else {
-                    keyPromise = standard 
-                        ? mnemonic.toStandardEd25519PrivateKey() 
-                        : mnemonic.toEd25519PrivateKey();
+                    key = standard 
+                        ? await mnemonic.toStandardEd25519PrivateKey() 
+                        : await mnemonic.toEd25519PrivateKey();
                 }
-    
-                promises.push(keyPromise.then(key => this.prepareAccountRecord(key, keyType)));
+                promises.push(this.prepareAccountRecord(key, keyType));
             }
         }
     

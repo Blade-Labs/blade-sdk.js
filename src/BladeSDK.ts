@@ -709,7 +709,6 @@ export class BladeSDK {
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {AccountPrivateData}
     */
-
     async searchAccounts(keyOrMnemonic: string, completionKey?: string): Promise<AccountPrivateData> {
         try {
             const result = await this.accountServiceContext.searchAccounts(keyOrMnemonic);
