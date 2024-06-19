@@ -213,6 +213,11 @@ export default class AccountServiceEthereum implements IAccountService {
         };
     }
 
+
+    searchAccounts(keyOrMnemonic: string): Promise<AccountPrivateData> {
+        throw new Error("Method not supported for this chain");
+    }
+
     private async initAlchemy() {
         if (!this.alchemy) {
             const alchemyNetwork = ChainMap[this.chainId].isTestnet

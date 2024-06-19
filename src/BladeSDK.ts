@@ -13,6 +13,7 @@ import {CustomError} from "./models/Errors";
 import {
     AccountInfoData,
     AccountPrivateData,
+    AccountPrivateRecord,
     AccountProvider,
     BalanceData,
     BridgeResponse,
@@ -700,7 +701,6 @@ export class BladeSDK {
         }
     }
 
-    // TODO implement `searchAccounts` method
     /**
      * Get accounts list and keys from private key or mnemonic
      * Returned keys with DER header.
@@ -708,23 +708,15 @@ export class BladeSDK {
      * @param keyOrMnemonic BIP39 mnemonic, private key with DER header
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {AccountPrivateData}
+    */
     async searchAccounts(keyOrMnemonic: string, completionKey?: string): Promise<AccountPrivateData> {
         try {
-            const accounts: AccountPrivateRecord[] = [];
-            if (keyOrMnemonic.trim().split(" ").length > 1) {
-                // mnemonic
-                accounts.push(...(await getAccountsFromMnemonic(keyOrMnemonic, this.network)));
-            } else {
-                accounts.push(...(await getAccountsFromPrivateKey(keyOrMnemonic, this.network)));
-            }
-            return this.sendMessageToNative(completionKey, {
-                accounts,
-            });
+            const result = await this.accountServiceContext.searchAccounts(keyOrMnemonic);
+            return this.sendMessageToNative(completionKey, result);
         } catch (error: any) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
-    */
 
     /**
      * Bladelink drop to account

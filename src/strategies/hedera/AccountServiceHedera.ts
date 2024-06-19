@@ -6,7 +6,8 @@ import {
     PrivateKey,
     PublicKey,
     Signer,
-    Transaction
+    Transaction,
+    HEDERA_PATH
 } from "@hashgraph/sdk";
 
 import {IAccountService} from "../AccountServiceContext";
@@ -20,11 +21,13 @@ import {
     TransactionReceiptData,
     TransactionsHistoryData
 } from "../../models/Common";
+import {Network} from "../../models/Networks";
 import {ChainMap, CryptoKeyType, KnownChainIds} from "../../models/Chain";
 import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
 import {AccountInfo, NodeInfo} from "../../models/MirrorNode";
 import {ethers} from "ethers";
+import StringHelpers from "../../helpers/StringHelpers";
 import {executeUpdateAccountTransactions} from "../../helpers/AccountHelpers";
 import {getReceipt} from "../../helpers/TransactionHelpers";
 
@@ -277,6 +280,124 @@ export default class AccountServiceHedera implements IAccountService {
         transactionsLimit: string
     ): Promise<TransactionsHistoryData> {
         return await this.apiService.getTransactionsFrom(accountAddress, transactionType, nextPage, transactionsLimit);
+    }
+
+    async searchAccounts(keyOrMnemonic: string): Promise<AccountPrivateData> {
+        const accounts: AccountPrivateRecord[] = [];
+        if (keyOrMnemonic.trim().split(" ").length > 1) {
+            // mnemonic
+            accounts.push(...(await this.getAccountsFromMnemonic(keyOrMnemonic)));
+        } else {
+            accounts.push(...(await this.getAccountsFromPrivateKey(keyOrMnemonic)));
+        }
+
+        return {
+            accounts: accounts
+        }
+    }
+
+    private async getAccountsFromMnemonic(
+        mnemonicRaw: string
+    ): Promise<AccountPrivateRecord[]> {
+        const mnemonic = await Mnemonic.fromString(
+            mnemonicRaw
+                .toLowerCase()
+                .trim()
+                .split(" ")
+                .filter((word) => word)
+                .join(" ")
+        );
+
+        // derive to ECDSA Standard - find account
+        // derive to ECDSA Legacy - find account
+        // derive to ED25519 Standard - find account
+        // derive to ED25519 Legacy - find account
+        // return all records with account found. If no account show ECDSA Standard keys
+    
+        const promises: Promise<AccountPrivateRecord[]>[] = [];
+        let key: PrivateKey;
+    
+        for (const keyType of Object.values(CryptoKeyType)) {
+            for (let standard = 1; standard >= 0; standard--) {
+                if (keyType === CryptoKeyType.ECDSA_SECP256K1) {
+                    key = standard 
+                        ? await mnemonic.toStandardECDSAsecp256k1PrivateKey() 
+                        : await mnemonic.toEcdsaPrivateKey();
+                } else {
+                    key = standard 
+                        ? await mnemonic.toStandardEd25519PrivateKey() 
+                        : await mnemonic.toEd25519PrivateKey();
+                }
+                promises.push(this.prepareAccountRecord(key, keyType));
+            }
+        }
+    
+        const recordsArray = await Promise.all(promises);
+        const records: AccountPrivateRecord[] = recordsArray.flat();
+    
+        if (!records.length) {
+            // if no accounts found, derive to ECDSA Standard, and return record with empty address
+            const key = await mnemonic.toStandardECDSAsecp256k1PrivateKey();
+            const fallbackRecords = await this.prepareAccountRecord(key, CryptoKeyType.ECDSA_SECP256K1, true);
+            records.push(...fallbackRecords);
+        }
+    
+        return records;
+    }
+
+    private async getAccountsFromPrivateKey(
+        privateKeyRaw: string
+    ): Promise<AccountPrivateRecord[]> {
+        const privateKey = privateKeyRaw.toLowerCase().trim().replace("0x", "");
+        const privateKeys: PrivateKey[] = [];
+
+        if (privateKey.length >= 96) {
+            // 96 chars - hex encoded ED25519 with DER header without 0x prefix
+            // 100 chars - hex encoded ECDSA with DER header without 0x prefix
+            privateKeys.push(PrivateKey.fromStringDer(privateKey));
+        } else {
+            // try to parse as ECDSA and ED25519 private key, and find account by public key
+            privateKeys.push(
+                PrivateKey.fromStringECDSA(privateKey),
+                PrivateKey.fromStringED25519(privateKey)
+            );
+        }
+    
+        const promises = privateKeys.map(async (key) => {
+            const keyType = key.type === "ED25519" ? CryptoKeyType.ED25519 : CryptoKeyType.ECDSA_SECP256K1;
+            return this.prepareAccountRecord(key, keyType);
+        });
+    
+        const recordsArray = await Promise.all(promises);
+        const records: AccountPrivateRecord[] = recordsArray.flat();
+        return records;
+    }
+
+    private async prepareAccountRecord(
+        privateKey: PrivateKey,
+        keyType: CryptoKeyType,
+        force: boolean = false
+    ): Promise<AccountPrivateRecord[]> {
+        const accounts: Partial<AccountInfo>[] = await this.apiService.getAccountsFromPublicKey(privateKey.publicKey);
+    
+        if (!accounts.length && force) {
+            accounts.push({});
+        }
+    
+        return accounts.map((record) => {
+            const evmAddress =
+                keyType === CryptoKeyType.ECDSA_SECP256K1
+                    ? ethers.utils.computeAddress(`0x${privateKey.publicKey.toStringRaw()}`).toLowerCase()
+                    : record?.evm_address;
+            return {
+                privateKey: privateKey.toStringDer(),
+                publicKey: privateKey.publicKey.toStringDer(),
+                evmAddress: evmAddress || "",
+                address: record?.account || "",
+                path: StringHelpers.pathArrayToString(HEDERA_PATH),
+                keyType,
+            };
+        });
     }
 
     private getClient() {
