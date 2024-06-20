@@ -23,7 +23,7 @@ export default class ConfigService {
         // TODO set correct apikey
         alchemyMainnetRPC: "https://eth-mainnet.g.alchemy.com/v2/",
         alchemyMainnetAPIKey: undefined,
-        fingerprintSubdomain: "https://identity.bladewallet.io"
+        fpSubdomain: "https://identity.bladewallet.io"
     };
     private dAppConfig?: DAppConfig;
 

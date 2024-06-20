@@ -8,7 +8,7 @@ import {
     AccountPrivateData,
     CreateAccountData,
     TransactionReceiptData,
-    TransactionsHistoryData
+    TransactionsHistoryData,
 } from "../models/Common";
 import {ChainMap, ChainServiceStrategy, KnownChainIds} from "../models/Chain";
 import AccountServiceHedera from "./hedera/AccountServiceHedera";
@@ -37,6 +37,7 @@ export interface IAccountService {
         nextPage: string,
         transactionsLimit: string
     ): Promise<TransactionsHistoryData>;
+    searchAccounts(keyOrMnemonic: string): Promise<AccountPrivateData>;
 }
 
 @injectable()
@@ -118,6 +119,11 @@ export default class AccountServiceContext implements IAccountService {
     ): Promise<TransactionsHistoryData> {
         this.checkInit();
         return this.strategy!.getTransactions(accountAddress, transactionType, nextPage, transactionsLimit);
+    }
+
+    searchAccounts(keyOrMnemonic: string): Promise<AccountPrivateData> {
+        this.checkInit();
+        return this.strategy!.searchAccounts(keyOrMnemonic);
     }
 
     private checkInit() {

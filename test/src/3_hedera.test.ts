@@ -24,7 +24,7 @@ import TokenServiceContext from "../../src/strategies/TokenServiceContext";
 import SignServiceContext from "../../src/strategies/SignServiceContext";
 import ContractServiceContext from "../../src/strategies/ContractServiceContext";
 import TradeServiceContext from "../../src/strategies/TradeServiceContext";
-import {KnownChainIds} from "../../src/models/Chain";
+import {KnownChainIds, CryptoKeyType} from "../../src/models/Chain";
 import SignService from "../../src/services/SignService";
 import {ethers} from "ethers";
 import {
@@ -388,7 +388,7 @@ describe("testing methods related to HEDERA network", () => {
     test("bladeSdk-hedera.deleteAccount", async () => {
         let result;
 
-        result = await bladeSdk.createAccount("","device-id", completionKey);
+        result = await bladeSdk.createAccount("", "device-id", completionKey);
         checkResult(result);
         const newAccountId = result.data.accountId;
         const newPrivateKey = result.data.privateKey;
@@ -425,7 +425,8 @@ describe("testing methods related to HEDERA network", () => {
 
     test("bladeSdk-hedera.getKeysFromMnemonic", async () => {
         let result;
-        result = await bladeSdk.createAccount("","device-id", completionKey);
+
+        result = await bladeSdk.createAccount("", "device-id", completionKey);
         checkResult(result);
 
         const accountSample = {
@@ -464,6 +465,67 @@ describe("testing methods related to HEDERA network", () => {
         checkResult(result);
         expect(result.data.accounts.length).toBeGreaterThanOrEqual(1);
         expect(result.data.accounts[0].address).toEqual("");
+    }, 60_000);
+
+    test("bladeSdk-hedera.searchAccounts", async () => {
+        let result;
+        result = await bladeSdk.createAccount("", "device-id", completionKey);
+        checkResult(result);
+
+        const accountSample = {
+            accountId: result.data.accountId,
+            privateKey: result.data.privateKey,
+            publicKey: result.data.publicKey,
+            seedPhrase: result.data.seedPhrase,
+            evmAddress: result.data.evmAddress
+        };
+
+        result = await bladeSdk.searchAccounts(accountSample.seedPhrase, completionKey);
+        checkResult(result);
+
+        await sleep(7000);
+
+        expect(result.data).toHaveProperty("accounts");
+        expect(Array.isArray(result.data.accounts)).toEqual(true);
+        expect(result.data.accounts.length).toBeGreaterThanOrEqual(1);
+
+        expect(result.data.accounts[0]).toHaveProperty("privateKey");
+        expect(result.data.accounts[0]).toHaveProperty("publicKey");
+        expect(result.data.accounts[0]).toHaveProperty("address");
+        expect(result.data.accounts[0]).toHaveProperty("evmAddress");
+        expect(result.data.accounts[0]).toHaveProperty("path");
+        expect(result.data.accounts[0]).toHaveProperty("keyType");
+
+        expect(result.data.accounts[0].address).toEqual(accountSample.accountId);
+        expect(result.data.accounts[0].privateKey).toEqual(accountSample.privateKey);
+        expect(result.data.accounts[0].publicKey).toEqual(accountSample.publicKey);
+        expect(result.data.accounts[0].evmAddress).toEqual(accountSample.evmAddress);
+        expect(result.data.accounts[0].keyType).toEqual(CryptoKeyType.ECDSA_SECP256K1);
+
+        try {
+            result = await bladeSdk.searchAccounts("invalid seed phrase", completionKey);
+            expect("Code should not reach here").toEqual(result);
+        } catch (result) {
+            checkResult(result, false);
+        }
+
+        try {
+            result = await bladeSdk.searchAccounts("0xinvalidPrivateKey", completionKey);
+            expect("Code should not reach here").toEqual(result);
+        } catch (result) {
+            checkResult(result, false);
+        }
+
+        result = await bladeSdk.searchAccounts((await Mnemonic.generate12()).toString(), completionKey);
+        checkResult(result);
+        expect(result.data.accounts.length).toBeGreaterThanOrEqual(1);
+        expect(result.data.accounts[0].address).toEqual("");   
+
+        // ecdsa key without account
+        result = await bladeSdk.searchAccounts("3030020100300706052b8104000a04220420b355ed04bf673f326da0935df005566646eb30481d08e81dc75fc9b9fda90a3f", completionKey);
+        checkResult(result);
+        expect(result.data.accounts.length).toEqual(0);
+
     }, 60_000);
 
     test("bladeSdk-hedera.getTransactions", async () => {
