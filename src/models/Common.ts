@@ -2,6 +2,7 @@ import {MirrorNodeTransactionType} from "./TransactionType";
 import {ICryptoFlowQuote} from "./CryptoFlow";
 import {CryptoKeyType, KnownChainIds} from "./Chain";
 import {NftInfo, NftMetadata, TokenInfo} from "./MirrorNode";
+import {DropStatus, JobStatus} from "./BladeApi";
 
 export enum SdkEnvironment {
     Prod = "Prod",
@@ -73,27 +74,20 @@ export interface TokensConfig {
 }
 
 export interface DAppConfig {
-    autoAssociate: string; // boolean
+    dappCode: string;
     displayName: string;
-    keyType: string; // "ECDSA" | "ED25519"
-    redirectUrl: string;
-    smartContract: string; // boolean
-    freeSchedules: string; // boolean
-    freeAssociate: string; // boolean
-    freeTransfer: string; // boolean
-    autoAssociatePresetTokens: string; // boolean
-    automaticTokenAssociations: string; // boolean
-    fees: {
-        mainnet: FeeConfig;
-        testnet: FeeConfig;
-    };
-    tokens: {
-        mainnet: TokensConfig;
-        testnet: TokensConfig;
-    };
-    redirectSameWindow: string; // boolean
-    closeAfterSuccess: string; // boolean
-    mirrorNode: IMirrorNodeServiceNetworkConfigs;
+    network: string;
+    tokenAssociate: boolean;
+    kycGrant: boolean;
+    tokenTransfer: boolean;
+    scheduleSign: boolean;
+    contractExecute: boolean;
+    maxAutoTokenAssociation: number;
+    createAccountWithAlias: boolean;
+    urlEncodeParams: boolean;
+    activeDrop: boolean;
+    fees: FeeConfig;
+    tokens: TokensConfig;
     [key: string]: unknown; // Index signature
 }
 
@@ -192,11 +186,9 @@ export interface CreateAccountData {
     seedPhrase: string;
     publicKey: string;
     privateKey: string;
-    accountId: string | null;
+    accountId: string;
     evmAddress: string;
-    transactionId: string | null;
-    status: string;
-    queueNumber?: number;
+    status: JobStatus;
 }
 
 export interface AccountInfoData {
@@ -272,13 +264,6 @@ export interface NftTransferData {
     senderAddress: string;
     serial: string;
     tokenAddress: string;
-}
-
-export enum AccountStatus {
-    PENDING = "PENDING",
-    SUCCESS = "SUCCESS",
-    RETRY = "RETRY",
-    FAILED = "FAILED"
 }
 
 export interface C14WidgetConfig {
@@ -370,11 +355,10 @@ export interface TransactionResponseData {
 
 export interface TokenDropData {
     status: string;
-    statusCode: number;
-    timestamp: string;
-    executionStatus: string;
-    requestId: string;
     accountId: string;
+    dropStatuses: {
+       [key: string]: DropStatus;
+    };
     redirectUrl: string;
 }
 

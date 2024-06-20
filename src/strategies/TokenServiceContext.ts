@@ -39,7 +39,7 @@ export interface ITokenService {
         metadata: object,
         storageConfig: NFTStorageConfig
     ): Promise<TransactionReceiptData>;
-    dropTokens(accountId: string, secretNonce: string, dAppCode: string, visitorId: string): Promise<TokenDropData>;
+    dropTokens(accountId: string, secretNonce: string): Promise<TokenDropData>;
 }
 
 export type TransferInitData = {
@@ -145,11 +145,11 @@ export default class TokenServiceContext implements ITokenService {
         return this.strategy!.nftMint(tokenId, file, metadata, storageConfig);
     }
 
-    dropTokens(accountId: string, secretNonce: string, dAppCode: string, visitorId: string): Promise<TokenDropData> {
+    dropTokens(accountId: string, secretNonce: string): Promise<TokenDropData> {
         this.checkSigner();
         this.checkInit();
 
-        return this.strategy.dropTokens(accountId, secretNonce, dAppCode, visitorId);
+        return this.strategy.dropTokens(accountId, secretNonce);
     }
 
     private checkInit() {

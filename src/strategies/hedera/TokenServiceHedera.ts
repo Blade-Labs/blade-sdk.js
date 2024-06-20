@@ -1,18 +1,18 @@
 import {
-    Signer,
-    TransactionResponse as TransactionResponseHedera,
     Hbar,
     HbarUnit,
-    TransferTransaction,
-    Transaction,
-    TokenAssociateTransaction,
-    Status,
-    TokenCreateTransaction,
-    TokenSupplyType,
     PrivateKey,
-    TokenType,
     PublicKey,
-    TokenMintTransaction
+    Signer,
+    Status,
+    TokenAssociateTransaction,
+    TokenCreateTransaction,
+    TokenMintTransaction,
+    TokenSupplyType,
+    TokenType,
+    Transaction,
+    TransactionResponse as TransactionResponseHedera,
+    TransferTransaction
 } from "@hashgraph/sdk";
 import {Buffer} from "buffer";
 
@@ -34,7 +34,8 @@ import {formatReceipt} from "../../helpers/TransactionHelpers";
 import {dataURLtoFile} from "../../helpers/FileHelper";
 import {NFTStorage} from "nft.storage";
 import {ChainMap, KnownChainIds} from "../../models/Chain";
-import {Network} from "../../models/Networks";
+import {JobAction, JobStatus} from "../../models/BladeApi";
+import {sleep} from "../../helpers/ApiHelper";
 
 export default class TokenServiceHedera implements ITokenService {
     private readonly chainId: KnownChainIds;
@@ -96,7 +97,7 @@ export default class TokenServiceHedera implements ITokenService {
                 throw new Error("NFT free transfer is not supported");
             }
         }
-        freeTransfer = freeTransfer && (await this.configService.getConfig("freeTransfer")).toLowerCase() === "true";
+        freeTransfer = freeTransfer && (await this.configService.getConfig("tokenTransfer"));
         const correctedAmount = parseFloat(amountOrSerial) * 10 ** parseInt(meta.decimals, 10);
 
         if (freeTransfer) {
@@ -105,19 +106,38 @@ export default class TokenServiceHedera implements ITokenService {
                 senderAccountId: from,
                 amount: correctedAmount,
                 decimals: null,
-                memo
-                // no tokenId, backend pick first token from list for currend dApp
+                memo,
+                tokenAddress
             };
 
-            const {transactionBytes} = await this.apiService.transferTokens(options);
-            const buffer = Buffer.from(transactionBytes, "base64");
+            let transferTokenJob = await this.apiService.transferTokens(JobAction.INIT, "", options);
+
+            while (true) {
+                if (transferTokenJob.status === JobStatus.SUCCESS) {
+                    break;
+                }
+                if (transferTokenJob.status === JobStatus.FAILED) {
+                    throw new Error(transferTokenJob.errorMessage);
+                }
+
+                // TODO set timeout from sdk-config
+                await sleep(1000);
+                transferTokenJob = await this.apiService.transferTokens(JobAction.CHECK, transferTokenJob.taskId);
+            }
+
+            const buffer = Buffer.from(transferTokenJob.result.transactionBytes, "base64");
             const transaction = Transaction.fromBytes(buffer);
 
             return transaction
                 .freezeWithSigner(this.signer!)
                 .then(tx => tx.signWithSigner(this.signer!))
                 .then(tx => tx.executeWithSigner(this.signer!))
-                .then(data => {
+                .then(async data => {
+
+                    await this.apiService.transferTokens(JobAction.CONFIRM, transferTokenJob.taskId).catch(() => {
+                        // ignore this error, continue (no content)
+                    });
+
                     return {
                         transactionId: data.transactionId.toString(),
                         transactionHash: data.transactionHash.toString()
@@ -151,23 +171,44 @@ export default class TokenServiceHedera implements ITokenService {
     }
 
     async associateToken(tokenId: string, accountId: string): Promise<TransactionReceiptData> {
-        let transaction: Transaction;
-        const network = ChainMap[this.chainId].isTestnet ? "testnet" : "mainnet";
-        const freeAssociationTokens = (await this.configService.getConfig("tokens"))[network]?.association || [];
-        if (freeAssociationTokens.includes(tokenId) || !tokenId) {
-            const res = await this.apiService.getTokenAssociateTransactionForAccount(tokenId, accountId);
-            if (!res.transactionBytes) {
-                throw new Error("Failed to get transaction bytes for free association. Token already associated?");
+        let result: TransactionResponseHedera;
+        const tokensConfig = await (this.configService.getConfig("tokens") as Promise<DAppConfig["tokens"]>);
+        if (tokensConfig.association.includes(tokenId) || !tokenId) {
+            let tokenAssociationJob = await this.apiService.tokenAssociation(JobAction.INIT, "", {accountId, tokenIds: [tokenId]});
+            while (true) {
+                if (tokenAssociationJob.status === JobStatus.SUCCESS) {
+                    break;
+                }
+                if (tokenAssociationJob.status === JobStatus.FAILED) {
+                    throw new Error(tokenAssociationJob.errorMessage);
+                }
+                // TODO set timeout from sdk-config
+                await sleep(1000);
+                tokenAssociationJob = await this.apiService.tokenAssociation(JobAction.CHECK, tokenAssociationJob.taskId);
             }
-            const buffer = Buffer.from(res.transactionBytes, "base64");
-            transaction = Transaction.fromBytes(buffer);
+
+            if (!tokenAssociationJob.result.transactionBytes) {
+                throw new Error("Token association failed");
+            }
+
+            const buffer = Buffer.from(tokenAssociationJob.result.transactionBytes, "base64");
+            const transaction = Transaction.fromBytes(buffer)
+
+            result = await transaction.signWithSigner(this.signer!)
+                .then(tx => tx.executeWithSigner(this.signer!))
+                .then(async result => {
+                    await this.apiService.tokenAssociation(JobAction.CONFIRM, tokenAssociationJob.taskId).catch(() => {
+                        // ignore this error, continue (no content)
+                    });
+                    return result;
+                });
         } else {
-            transaction = await new TokenAssociateTransaction()
+            const transaction = await new TokenAssociateTransaction()
                 .setAccountId(accountId)
                 .setTokenIds([tokenId])
                 .freezeWithSigner(this.signer!);
+            result = await transaction.signWithSigner(this.signer!).then(tx => tx.executeWithSigner(this.signer!));
         }
-        const result = await transaction.signWithSigner(this.signer!).then(tx => tx.executeWithSigner(this.signer!));
 
         return result.getReceiptWithSigner(this.signer!).then(txReceipt => {
             if (txReceipt.status !== Status.Success) {
@@ -323,21 +364,36 @@ export default class TokenServiceHedera implements ITokenService {
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {TokenDropData}
      */
-    async dropTokens(
-        accountId: string,
-        secretNonce: string,
-        dAppCode: string,
-        visitorId: string
-    ): Promise<TokenDropData> {
-        const network = ChainMap[this.chainId].isTestnet ? Network.Testnet : Network.Mainnet;
-
+    async dropTokens(accountId: string, secretNonce: string): Promise<TokenDropData> {
         const signatures = await this.signer.sign([Buffer.from(secretNonce)]);
 
-        return this.apiService.dropTokens(network, {
-            visitorId,
-            dAppCode,
+        let dropJob = await this.apiService.dropTokens(JobAction.INIT, "", {
             accountId,
             signedNonce: Buffer.from(signatures[0].signature).toString("base64")
         });
+
+        while (true) {
+            console.log(dropJob);
+
+            if (dropJob.status === JobStatus.SUCCESS) {
+                break;
+            }
+            if (dropJob.status === JobStatus.FAILED) {
+                throw new Error(dropJob.errorMessage);
+            }
+            // TODO set timeout from sdk-config
+            await sleep(1000);
+            dropJob = await this.apiService.dropTokens(JobAction.CHECK, dropJob.taskId);
+        }
+
+        console.log(dropJob)
+
+        // TODO to implement
+        return {
+            status: dropJob.status,
+            accountId: dropJob.result.accountId,
+            dropStatuses: dropJob.result.dropStatuses,
+            redirectUrl: "string"
+        };
     }
 }

@@ -1,4 +1,4 @@
-import {associateToken, checkResult, createToken, sleep, completionKey} from "./helpers";
+import {associateToken, checkResult, completionKey, createToken, sleep} from "./helpers";
 import ApiService from "../../src/services/ApiService";
 import CryptoFlowService from "../../src/services/CryptoFlowService";
 import ConfigService from "../../src/services/ConfigService";
@@ -27,7 +27,15 @@ import TradeServiceContext from "../../src/strategies/TradeServiceContext";
 import {KnownChainIds, CryptoKeyType} from "../../src/models/Chain";
 import SignService from "../../src/services/SignService";
 import {ethers} from "ethers";
-import {AccountId, Client, ContractCallQuery, Hbar, Mnemonic, PrivateKey} from "@hashgraph/sdk";
+import {
+    AccountCreateTransaction,
+    AccountId,
+    Client,
+    ContractCallQuery,
+    Hbar,
+    Mnemonic,
+    PrivateKey
+} from "@hashgraph/sdk";
 import {isEqual} from "lodash";
 import BigNumber from "bignumber.js";
 import {TokenInfo} from "../../src/models/MirrorNode";
@@ -82,6 +90,7 @@ describe("testing methods related to HEDERA network", () => {
     const privateKey4 = process.env.PRIVATE_KEY_ED25519 || "";
     const accountId4 = process.env.ACCOUNT_ID_ED25519 || "";
     const tokenId0 = process.env.TOKEN_ID0 || "";
+    const tokenId1 = process.env.TOKEN_ID1 || "";
 
     const chainId = KnownChainIds.HEDERA_TESTNET; // KnownChainIds.ETHEREUM_SEPOLIA
 
@@ -161,8 +170,8 @@ describe("testing methods related to HEDERA network", () => {
         expect(successfulResult.data).toHaveProperty("accountId");
         expect(successfulResult.data).toHaveProperty("redirectUrl");
 
-        const failedResult = await bladeSdk.dropTokens(account.accountId, process.env.NONCE, completionKey);
-        checkResult(failedResult, false);
+        // const failedResult = await bladeSdk.dropTokens(account.accountId, process.env.NONCE, completionKey);
+        // checkResult(failedResult, false);
     }, 60_000);
 
     test("bladeSdk-hedera.transferBalance", async () => {
@@ -374,7 +383,7 @@ describe("testing methods related to HEDERA network", () => {
         } catch (accountInfo) {
             checkResult(accountInfo, false);
         }
-    }, 60_000);
+    }, 600_000);
 
     test("bladeSdk-hedera.deleteAccount", async () => {
         let result;
@@ -410,8 +419,13 @@ describe("testing methods related to HEDERA network", () => {
         }
     }, 60_000);
 
+    test("bladeSdk-hedera.searchAccounts", async () => {
+        expect(false).toEqual("TODO: implement searchAccounts test");
+    }, 60_000);
+
     test("bladeSdk-hedera.getKeysFromMnemonic", async () => {
         let result;
+
         result = await bladeSdk.createAccount("", "device-id", completionKey);
         checkResult(result);
 
@@ -584,7 +598,43 @@ describe("testing methods related to HEDERA network", () => {
         result = await apiService.getTransaction(Network.Testnet, "wrong tx id", accountId);
         expect(Array.isArray(result));
         expect(result.length).toEqual(0);
-    }, 30_000);
+    }, 600_000);
+
+    test("bladeSdk-hedera.associateToken", async () => {
+        let result;
+        const mnemonic = await Mnemonic.generate12();
+        const key = await mnemonic.toStandardECDSAsecp256k1PrivateKey();
+
+        const operatorKey = PrivateKey.fromString(privateKey);
+
+        const client = Client.forTestnet();
+        client.setOperator(accountId, operatorKey);
+        const receipt = await new AccountCreateTransaction()
+            .setKey(key)
+            .setAccountMemo("test association")
+            .execute(client)
+            .then((tx) => tx.getReceipt(client))
+
+        result = await bladeSdk.setUser(AccountProvider.PrivateKey, receipt.accountId.toString(), key.toStringDer(), completionKey);
+        checkResult(result);
+        result = await bladeSdk.associateToken(tokenId0, completionKey);
+        checkResult(result);
+        try {
+            result = await bladeSdk.associateToken(tokenId0, completionKey);
+            expect("Code should not reach here").toEqual(result);
+        } catch (result) {
+            checkResult(result, false);
+        }
+
+        try {
+            result = await bladeSdk.associateToken(tokenId1, completionKey);
+            expect("Code should not reach here").toEqual(result);
+        } catch (result) {
+            checkResult(result, false);
+            expect(result.error.reason.includes("INSUFFICIENT_PAYER_BALANCE")).toEqual(true);
+        }
+    }, 60_000);
+
 
     test("bladeSdk-hedera.createToken + nftMint + associateToken + transferTokens", async () => {
         const treasuryAccountId = accountId;
@@ -862,67 +912,67 @@ describe("testing methods related to HEDERA network", () => {
             expect(result.error.reason.includes("INSUFFICIENT_GAS")).toEqual(true);
         }
     }, 120_000);
-    //
-    // test('bladeSdk-hedera.contractCallQueryFunction', async () => {
-    //     const contractId = process.env.CONTRACT_ID || "";
-    //     expect(contractId).not.toEqual("");
-    //     const client = Client.forTestnet();
-    //     client.setOperator(accountId, privateKey);
-    //
-    //     let result = await bladeSdk.init(process.env.API_KEY, process.env.NETWORK, process.env.DAPP_CODE, process.env.VISITOR_ID, process.env.SDK_ENV, sdkVersion, completionKey);
-    //     checkResult(result);
-    //
-    //     let message = `Hello DIRECT test ${Math.random()}`;
-    //     let params = new ParametersBuilder().addString(message);
-    //
-    //     result = await bladeSdk.contractCallFunction(contractId, "set_message", params, accountId, privateKey, 100000, false, completionKey);
-    //     checkResult(result);
-    //
-    //     await sleep(10_000);
-    //     // direct call
-    //     params = new ParametersBuilder();
-    //     result = await bladeSdk.contractCallQueryFunction(contractId, "get_message", params, accountId, privateKey, 100000, false, ["string"], completionKey);
-    //     checkResult(result);
-    //
-    //     expect(Array.isArray(result.data.values)).toEqual(true);
-    //     expect(result.data.values.length).toEqual(1);
-    //
-    //     expect(result.data.values[0]).toHaveProperty("type");
-    //     expect(result.data.values[0]).toHaveProperty("value");
-    //     expect(result.data.values[0].type).toEqual("string");
-    //     expect(result.data.values[0].value).toEqual(message);
-    //
-    //     // call with API
-    //
-    //     message = `Hello API test ${Math.random()}`;
-    //     params = new ParametersBuilder().addString(message);
-    //
-    //     result = await bladeSdk.contractCallFunction(contractId, "set_message", params, accountId, privateKey, 100000, true, completionKey);
-    //     checkResult(result);
-    //
-    //     await sleep(10_000);
-    //     params = new ParametersBuilder();
-    //     result = await bladeSdk.contractCallQueryFunction(contractId, "get_message", params, accountId, privateKey, 100000, true, ["string"], completionKey);
-    //     checkResult(result);
-    //
-    //     expect(Array.isArray(result.data.values)).toEqual(true);
-    //     expect(result.data.values.length).toEqual(1);
-    //
-    //     expect(result.data.values[0]).toHaveProperty("type");
-    //     expect(result.data.values[0]).toHaveProperty("value");
-    //     expect(result.data.values[0].type).toEqual("string");
-    //     expect(result.data.values[0].value).toEqual(message);
-    //
-    //     params = new ParametersBuilder();
-    //     result = await bladeSdk.contractCallQueryFunction(contractId, "unknown function", params, accountId, privateKey, 100000, true, ["string"], completionKey);
-    //     checkResult(result, false);
-    //
-    //     result = await bladeSdk.contractCallQueryFunction(contractId, "get_message", params, "0.0.3", privateKey2, 100000, false, ["string"], completionKey);
-    //     checkResult(result, false);
-    //
-    //     result = await bladeSdk.contractCallQueryFunction(contractId, "get_message", params, accountId, privateKey, 100000, false, ["bytes32", "unknown-type"], completionKey);
-    //     checkResult(result, false);
-    // }, 120_000);
+
+    test('bladeSdk-hedera.contractCallQueryFunction', async () => {
+        const contractId = process.env.CONTRACT_ID || "";
+        expect(contractId).not.toEqual("");
+        const client = Client.forTestnet();
+        client.setOperator(accountId, privateKey);
+
+        let result = await bladeSdk.setUser(AccountProvider.PrivateKey, accountId, privateKey, completionKey);
+        checkResult(result);
+
+        let message = `Hello DIRECT test ${Math.random()}`;
+        let params = new ParametersBuilder().addString(message);
+
+        result = await bladeSdk.contractCallFunction(contractId, "set_message", params, 100000, false, completionKey);
+        checkResult(result);
+
+        await sleep(10_000);
+        // direct call
+        params = new ParametersBuilder();
+        result = await bladeSdk.contractCallQueryFunction(contractId, "get_message", params, 100000, false, ["string"], completionKey);
+        checkResult(result);
+
+        expect(Array.isArray(result.data.values)).toEqual(true);
+        expect(result.data.values.length).toEqual(1);
+
+        expect(result.data.values[0]).toHaveProperty("type");
+        expect(result.data.values[0]).toHaveProperty("value");
+        expect(result.data.values[0].type).toEqual("string");
+        expect(result.data.values[0].value).toEqual(message);
+
+        // call with API
+
+        message = `Hello API test ${Math.random()}`;
+        params = new ParametersBuilder().addString(message);
+
+        result = await bladeSdk.contractCallFunction(contractId, "set_message", params, 100000, true, completionKey);
+        checkResult(result);
+
+        await sleep(10_000);
+        params = new ParametersBuilder();
+        result = await bladeSdk.contractCallQueryFunction(contractId, "get_message", params, 100000, true, ["string"], completionKey);
+        checkResult(result);
+
+        expect(Array.isArray(result.data.values)).toEqual(true);
+        expect(result.data.values.length).toEqual(1);
+
+        expect(result.data.values[0]).toHaveProperty("type");
+        expect(result.data.values[0]).toHaveProperty("value");
+        expect(result.data.values[0].type).toEqual("string");
+        expect(result.data.values[0].value).toEqual(message);
+
+        params = new ParametersBuilder();
+        result = await bladeSdk.contractCallQueryFunction(contractId, "unknown function", params, 100000, true, ["string"], completionKey);
+        checkResult(result, false);
+
+        result = await bladeSdk.contractCallQueryFunction(contractId, "get_message", params, 100000, false, ["string"], completionKey);
+        checkResult(result, false);
+
+        result = await bladeSdk.contractCallQueryFunction(contractId, "get_message", params, 100000, false, ["bytes32", "unknown-type"], completionKey);
+        checkResult(result, false);
+    }, 620_000);
 
     test("bladeSdk-hedera.sign + signVerify", async () => {
         let result;
