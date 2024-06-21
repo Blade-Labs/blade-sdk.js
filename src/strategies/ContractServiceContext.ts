@@ -18,14 +18,14 @@ export interface IContractService {
         functionName: string,
         paramsEncoded: string | ParametersBuilder,
         gas: number,
-        bladePayFee: boolean
+        usePaymaster: boolean
     ): Promise<TransactionReceiptData>;
     contractCallQueryFunction(
         contractAddress: string,
         functionName: string,
         paramsEncoded: string | ParametersBuilder,
         gas: number,
-        bladePayFee: boolean,
+        usePaymaster: boolean,
         resultTypes: string[]
     ): Promise<ContractCallQueryRecordsData>;
 }
@@ -72,10 +72,10 @@ export default class ContractServiceContext implements IContractService {
         functionName: string,
         paramsEncoded: string | ParametersBuilder,
         gas: number,
-        bladePayFee: boolean
+        usePaymaster: boolean
     ): Promise<TransactionReceiptData> {
         this.checkInit();
-        return this.strategy!.contractCallFunction(contractAddress, functionName, paramsEncoded, gas, bladePayFee);
+        return this.strategy!.contractCallFunction(contractAddress, functionName, paramsEncoded, gas, usePaymaster);
     }
 
     contractCallQueryFunction(
@@ -83,7 +83,7 @@ export default class ContractServiceContext implements IContractService {
         functionName: string,
         paramsEncoded: string | ParametersBuilder,
         gas: number,
-        bladePayFee: boolean,
+        usePaymaster: boolean,
         resultTypes: string[]
     ): Promise<ContractCallQueryRecordsData> {
         this.checkInit();
@@ -92,7 +92,7 @@ export default class ContractServiceContext implements IContractService {
             functionName,
             paramsEncoded,
             gas,
-            bladePayFee,
+            usePaymaster,
             resultTypes
         );
     }

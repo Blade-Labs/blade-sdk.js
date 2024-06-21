@@ -13,7 +13,6 @@ import {CustomError} from "./models/Errors";
 import {
     AccountInfoData,
     AccountPrivateData,
-    AccountPrivateRecord,
     AccountProvider,
     BalanceData,
     BridgeResponse,
@@ -26,6 +25,7 @@ import {
     InfoData,
     IntegrationUrlData,
     KeyRecord,
+    MagicWithHedera,
     NFTStorageConfig,
     ScheduleTransactionTransfer,
     ScheduleTransactionType,
@@ -40,7 +40,7 @@ import {
     TransactionReceiptData,
     TransactionResponseData,
     TransactionsHistoryData,
-    UserInfoData
+    UserInfoData, WebViewWindow
 } from "./models/Common";
 import {ChainMap, ChainServiceStrategy, KnownChainIds} from "./models/Chain";
 import config from "./config";
@@ -59,6 +59,7 @@ import AccountServiceContext from "./strategies/AccountServiceContext";
 import SignServiceContext from "./strategies/SignServiceContext";
 import ContractServiceContext from "./strategies/ContractServiceContext";
 import TradeServiceContext from "./strategies/TradeServiceContext";
+import {MagicUserMetadata} from "@magic-sdk/types";
 
 @injectable()
 export class BladeSDK {
@@ -74,7 +75,7 @@ export class BladeSDK {
     private readonly webView: boolean = false;
     private accountProvider: AccountProvider | null = null;
     private signer: Signer | ethers.Signer | null = null;
-    private magic: any;
+    private magic: MagicWithHedera | null = null;
     private userAccountId: string = "";
     private userPublicKey: string = "";
     private userPrivateKey: string = "";
@@ -190,7 +191,7 @@ export class BladeSDK {
      * Returns information about initialized instance of BladeSDK.
      * @returns {InfoData}
      */
-    async getInfo(completionKey?: string): Promise<InfoData> {
+    getInfo(completionKey?: string): InfoData {
         return this.sendMessageToNative(completionKey, this.getInfoData());
     }
 
@@ -219,7 +220,9 @@ export class BladeSDK {
                         this.userAccountId = ethers.utils.computeAddress(this.userPublicKey);
                         const alchemyRpc = await this.configService.getConfig(`alchemy${this.network}RPC`);
                         const alchemyApiKey = await this.configService.getConfig(`alchemy${this.network}APIKey`);
-
+                        if (!alchemyRpc || !alchemyApiKey) {
+                            throw new Error("Alchemy config not found");
+                        }
                         const provider = new ethers.providers.JsonRpcProvider(alchemyRpc + alchemyApiKey);
                         this.signer = new ethers.Wallet(this.userPrivateKey, provider);
                     } else {
@@ -227,17 +230,17 @@ export class BladeSDK {
                     }
                     break;
                 case AccountProvider.Magic:
-                    let userInfo;
+                    let userInfo: MagicUserMetadata | undefined;
                     if (!this.magic) {
                         await this.initMagic(this.chainId);
                     }
 
                     if (await this.magic?.user.isLoggedIn()) {
-                        userInfo = await this.magic.user.getInfo();
+                        userInfo = await this.magic!.user.getInfo();
                         if (userInfo.email !== accountIdOrEmail) {
-                            this.magic.user.logout();
-                            await this.magic.auth.loginWithMagicLink({email: accountIdOrEmail, showUI: false});
-                            userInfo = await this.magic.user.getInfo();
+                            await this.magic!.user.logout();
+                            await this.magic!.auth.loginWithMagicLink({email: accountIdOrEmail, showUI: false});
+                            userInfo = await this.magic!.user.getInfo();
                         }
                     } else {
                         await this.magic?.auth.loginWithMagicLink({email: accountIdOrEmail, showUI: false});
@@ -248,14 +251,15 @@ export class BladeSDK {
                         throw new Error("Not logged in Magic. Please call magicLogin() first");
                     }
 
-                    this.userAccountId = userInfo.publicAddress;
+                    this.userAccountId = userInfo?.publicAddress || "";
                     if (ChainMap[this.chainId].serviceStrategy === ChainServiceStrategy.Hedera) {
-                        const {publicKeyDer} = await this.magic.hedera.getPublicKey();
+                        const {publicKeyDer} = (await this.magic!.hedera.getPublicKey()) as {publicKeyDer: string};
                         this.userPublicKey = publicKeyDer;
-                        const magicSign = (message: any) => this.magic.hedera.sign(message);
+                        const magicSign = (message: Uint8Array) => this.magic!.hedera.sign(message);
                         this.signer = new MagicSigner(this.userAccountId, this.network, publicKeyDer, magicSign);
                     } else if (ChainMap[this.chainId].serviceStrategy === ChainServiceStrategy.Ethereum) {
-                        const provider = new ethers.providers.Web3Provider(this.magic.rpcProvider);
+                        // @ts-ignore
+                        const provider = new ethers.providers.Web3Provider(this.magic!.rpcProvider);
                         this.signer = provider.getSigner();
                         // TODO check how to get public key from magic
                         this.userPublicKey = "";
@@ -297,7 +301,7 @@ export class BladeSDK {
                 if (!this.magic) {
                     await this.initMagic(this.chainId);
                 }
-                await this.magic.user.logout();
+                await this.magic!.user.logout();
             }
             this.accountProvider = null;
 
@@ -360,7 +364,7 @@ export class BladeSDK {
      * @param receiverAddress receiver account address (0.0.xxxxx or 0x123456789abcdef...)
      * @param amountOrSerial amount of fungible tokens to send (with token-decimals correction) on NFT serial number. (e.g. amount 0.01337 when token decimals 8 will send 1337000 units of token)
      * @param memo transaction memo
-     * @param freeTransfer if true, Blade will pay fee transaction. Only for single dApp configured fungible-token. In that case tokenId not used
+     * @param usePaymaster if true, Paymaster account will pay fee transaction. Only for single dApp configured fungible-token. In that case tokenId not used
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns Promise<TransactionResponseData>
      */
@@ -369,7 +373,7 @@ export class BladeSDK {
         receiverAddress: string,
         amountOrSerial: string,
         memo: string,
-        freeTransfer: boolean = false,
+        usePaymaster: boolean = false,
         completionKey?: string
     ): Promise<TransactionResponseData> {
         try {
@@ -380,7 +384,7 @@ export class BladeSDK {
                 amountOrSerial,
                 tokenAddress,
                 memo,
-                freeTransfer
+                usePaymaster
             });
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
@@ -461,7 +465,7 @@ export class BladeSDK {
      * @param functionName - name of the contract function to call
      * @param paramsEncoded - function argument. Can be generated with {@link ParametersBuilder} object
      * @param gas - gas limit for the transaction
-     * @param bladePayFee - if true, fee will be paid by Blade (note: msg.sender inside the contract will be Blade Payer account)
+     * @param usePaymaster - if true, fee will be paid by Paymaster account (note: msg.sender inside the contract will be Paymaster account)
      * @param completionKey - optional field bridge between mobile webViews and native apps
      * @returns {Partial<TransactionReceipt>}
      */
@@ -470,7 +474,7 @@ export class BladeSDK {
         functionName: string,
         paramsEncoded: string | ParametersBuilder,
         gas: number = 100000,
-        bladePayFee: boolean = false,
+        usePaymaster: boolean = false,
         completionKey?: string
     ): Promise<TransactionReceiptData> {
         try {
@@ -479,7 +483,7 @@ export class BladeSDK {
                 functionName,
                 paramsEncoded,
                 gas,
-                bladePayFee
+                usePaymaster
             );
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
@@ -489,13 +493,13 @@ export class BladeSDK {
 
     /**
      * Call query on contract function. Similar to {@link contractCallFunction} can be called directly or via Blade Payer account.
-     * @param contractId - contract id (0.0.xxxxx)
-     * @param functionName - name of the contract function to call
-     * @param paramsEncoded - function argument. Can be generated with {@link ParametersBuilder} object
-     * @param gas - gas limit for the transaction
-     * @param bladePayFee - if true, fee will be paid by Blade (note: msg.sender inside the contract will be Blade Payer account)
-     * @param resultTypes - array of result types. Currently supported only plain data types
-     * @param completionKey - optional field bridge between mobile webViews and native apps
+     * @param contractId contract id (0.0.xxxxx)
+     * @param functionName name of the contract function to call
+     * @param paramsEncoded function argument. Can be generated with {@link ParametersBuilder} object
+     * @param gas gas limit for the transaction
+     * @param usePaymaster if true, the fee will be paid by paymaster account (note: msg.sender inside the contract will be Paymaster account)
+     * @param resultTypes array of result types. Currently supported only plain data types
+     * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {ContractCallQueryRecordsData}
      */
     async contractCallQueryFunction(
@@ -503,7 +507,7 @@ export class BladeSDK {
         functionName: string,
         paramsEncoded: string | ParametersBuilder,
         gas: number = 100000,
-        bladePayFee: boolean = false,
+        usePaymaster: boolean = false,
         resultTypes: string[],
         completionKey?: string
     ): Promise<ContractCallQueryRecordsData> {
@@ -513,7 +517,7 @@ export class BladeSDK {
                 functionName,
                 paramsEncoded,
                 gas,
-                bladePayFee,
+                usePaymaster,
                 resultTypes
             );
             return this.sendMessageToNative(completionKey, result);
@@ -524,21 +528,19 @@ export class BladeSDK {
 
     /**
      * Create scheduled transaction
-     * @param accountId account id (0.0.xxxxx)
-     * @param accountPrivateKey optional field if you need specify account key (hex encoded privateKey with DER-prefix)
      * @param type schedule transaction type (currently only TRANSFER supported)
      * @param transfers array of transfers to schedule (HBAR, FT, NFT)
-     * @param freeSchedule if true, Blade will pay transaction fee (also dApp had to be configured for free schedules)
+     * @param usePaymaster if true, Paymaster account will pay transaction fee (also dApp had to be configured for free schedules)
      * @param completionKey optional field bridge between mobile webViews and native apps
      */
     async createScheduleTransaction(
-        freeSchedule: boolean = false,
         type: ScheduleTransactionType,
         transfers: ScheduleTransactionTransfer[],
+        usePaymaster: boolean = false,
         completionKey?: string
     ): Promise<{scheduleId: string}> {
         try {
-            const result = await this.signServiceContext.createScheduleTransaction(freeSchedule, type, transfers);
+            const result = await this.signServiceContext.createScheduleTransaction(type, transfers, usePaymaster);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -548,19 +550,19 @@ export class BladeSDK {
     /**
      * Sign scheduled transaction
      * @param scheduleId scheduled transaction id (0.0.xxxxx)
-     * @param accountId account id (0.0.xxxxx)
-     * @param accountPrivateKey optional field if you need specify account key (hex encoded privateKey with DER-prefix)
+     * @param receiverAccountId account id of receiver for additional validation in case of dApp freeSchedule transactions configured
+     * @param usePaymaster if true, Paymaster account will pay transaction fee (also dApp had to be configured for free schedules)
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {SignMessageData}
      */
     async signScheduleId(
         scheduleId: string,
-        freeSchedule: boolean = false,
         receiverAccountId?: string,
+        usePaymaster?: boolean,
         completionKey?: string
     ): Promise<TransactionReceiptData> {
         try {
-            const result = await this.signServiceContext.signScheduleId(scheduleId, freeSchedule, receiverAccountId);
+            const result = await this.signServiceContext.signScheduleId(scheduleId, receiverAccountId || "", !!usePaymaster);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -711,7 +713,7 @@ export class BladeSDK {
             );
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -1051,7 +1053,7 @@ export class BladeSDK {
                 metadata
             });
         } catch (error) {
-            return this.sendMessageToNative(completionKey, null, error);
+            throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
@@ -1066,7 +1068,7 @@ export class BladeSDK {
         } else if (ChainMap[chainId].serviceStrategy === ChainServiceStrategy.Ethereum) {
             options.network = StringHelpers.networkToEthereum(this.network);
         }
-        this.magic = new Magic(await this.configService.getConfig(`magicLinkPublicKey`), options);
+        this.magic = new Magic(await this.configService.getConfig(`magicLinkPublicKey`), options) as unknown as MagicWithHedera;
     }
 
     private getUser(): {signer: Signer | ethers.Signer; accountId: string; privateKey: string; publicKey: string} {
@@ -1106,11 +1108,35 @@ export class BladeSDK {
     private sendMessageToNative<T>(
         completionKey: string | undefined,
         data: T,
-        error: Partial<CustomError> | null = null
+        error: unknown = null
     ): T {
+        let errorObj: Partial<CustomError> | null = null;
+        if (error) {
+            errorObj = {name: "Error"}
+
+            if (error instanceof Error) {
+                errorObj = {
+                    ...error,
+                    name: error.name,
+                    reason: error.message,
+                };
+            } else if (typeof error === "string") {
+                errorObj.reason = error;
+            } else if (typeof error === "object") {
+                errorObj = {
+                    ...error,
+                    name: (error as CustomError).name || "Error",
+                    reason: (errorObj as CustomError).reason || (errorObj as CustomError).message || JSON.stringify(error)
+                };
+            } else {
+                errorObj.reason = JSON.stringify(error)
+            }
+        }
+
+
         if (!this.webView || !completionKey) {
-            if (error) {
-                throw error;
+            if (errorObj) {
+                throw errorObj;
             }
             return data;
         }
@@ -1121,20 +1147,19 @@ export class BladeSDK {
             data
         };
         if (error) {
-            responseObject.error = {
-                name: error?.name || "Error",
-                reason: error.reason || error.message || JSON.stringify(error)
-            };
+            responseObject.error = errorObj;
         }
 
-        // @ts-expect-error  // IOS or Android
-        const bladeMessageHandler = window?.webkit?.messageHandlers?.bladeMessageHandler || window?.bladeMessageHandler;
+        // IOS or Android
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-assignment
+        const bladeMessageHandler = (window as unknown as WebViewWindow)?.webkit?.messageHandlers?.bladeMessageHandler || (window as unknown as WebViewWindow)?.bladeMessageHandler;
         if (bladeMessageHandler) {
             bladeMessageHandler.postMessage(JSON.stringify(responseObject));
         }
 
         // TODO: change this to match method signature return type
+        // still same to make tests work
         // return "data: T", instead of wrapper "{data: T, error: Error}"
-        return JSON.parse(JSON.stringify(responseObject));
+        return JSON.parse(JSON.stringify(responseObject)) as T;
     }
 }

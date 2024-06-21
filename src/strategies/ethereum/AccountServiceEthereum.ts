@@ -10,7 +10,7 @@ import {
 } from "../../models/Common";
 import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
-import {NodeInfo} from "../../models/MirrorNode";
+import {NodeInfo, MirrorNodeTransactionType} from "../../models/MirrorNode";
 import {ethers} from "ethers";
 import {ChainMap, CryptoKeyType, KnownChainIds} from "../../models/Chain";
 import {Network} from "../../models/Networks";
@@ -23,7 +23,6 @@ import {
     Network as AlchemyNetwork,
     SortingOrder
 } from "alchemy-sdk";
-import {MirrorNodeTransactionType} from "../../models/TransactionType";
 
 export default class AccountServiceEthereum implements IAccountService {
     private readonly chainId: KnownChainIds;
@@ -44,19 +43,15 @@ export default class AccountServiceEthereum implements IAccountService {
         this.configService = configService;
     }
 
-    createAccount(privateKey: string, deviceId: string): Promise<CreateAccountData> {
+    createAccount(): Promise<CreateAccountData> {
         throw new Error("Method not implemented.");
     }
 
-    deleteAccount(
-        deleteAccountId: string,
-        deletePrivateKey: string,
-        transferAccountId: string
-    ): Promise<TransactionReceiptData> {
+    deleteAccount(): Promise<TransactionReceiptData> {
         throw new Error("Method not supported for this chain");
     }
 
-    getAccountInfo(accountId: string): Promise<AccountInfoData> {
+    getAccountInfo(): Promise<AccountInfoData> {
         throw new Error("Method not implemented.");
     }
 
@@ -64,7 +59,7 @@ export default class AccountServiceEthereum implements IAccountService {
         throw new Error("Method not supported for this chain");
     }
 
-    stakeToNode(accountId: string, nodeId: number): Promise<TransactionReceiptData> {
+    stakeToNode(): Promise<TransactionReceiptData> {
         throw new Error("Method not supported for this chain");
     }
 
@@ -210,7 +205,7 @@ export default class AccountServiceEthereum implements IAccountService {
     }
 
 
-    searchAccounts(keyOrMnemonic: string): Promise<AccountPrivateData> {
+    searchAccounts(): Promise<AccountPrivateData> {
         throw new Error("Method not supported for this chain");
     }
 

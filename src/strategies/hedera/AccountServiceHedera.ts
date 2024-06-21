@@ -82,7 +82,7 @@ export default class AccountServiceHedera implements IAccountService {
             });
         }
 
-        const tokensConfig = await (this.configService.getConfig("tokens") as Promise<DAppConfig["tokens"]>);
+        const tokensConfig = await this.configService.getConfig("tokens");
         try {
             let tokenAssociationJob = await this.apiService.tokenAssociation(JobAction.INIT, "", {accountId, tokenIds: tokensConfig.association});
             while (true) {
@@ -97,7 +97,7 @@ export default class AccountServiceHedera implements IAccountService {
                 tokenAssociationJob = await this.apiService.tokenAssociation(JobAction.CHECK, tokenAssociationJob.taskId);
             }
 
-            if (!tokenAssociationJob.result.transactionBytes) {
+            if (!tokenAssociationJob.result?.transactionBytes) {
                 throw new Error("Token association failed");
             }
             const buffer = Buffer.from(tokenAssociationJob.result.transactionBytes, "base64");
@@ -133,7 +133,7 @@ export default class AccountServiceHedera implements IAccountService {
             seedPhrase,
             publicKey: key.publicKey.toStringDer(),
             privateKey: key.toStringDer(),
-            accountId: accountId || null,
+            accountId: accountId.toString(),
             evmAddress: evmAddress.toLowerCase()
         };
     }

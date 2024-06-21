@@ -21,6 +21,7 @@ import ContractServiceContext from "../../src/strategies/ContractServiceContext"
 import TradeServiceContext from "../../src/strategies/TradeServiceContext";
 import {KnownChainIds} from "../../src/models/Chain";
 import SignService from "../../src/services/SignService";
+import {AccountInfo} from "../../src/models/MirrorNode";
 const {BladeSDK, ParametersBuilder} = require("../../src/webView");
 
 Object.defineProperty(global.self, "crypto", {
@@ -243,13 +244,13 @@ describe("testing sdk CORE functionality", () => {
     }, 120_000);
 
     test("bladeSdk.utils", async () => {
-        const arr = flatArray([1, 2, 3, [4, 5, 6, [7, 8, 9, [10], [11]], [12]]]);
+        const arr = flatArray([1, 2, 3, [4, 5, 6, [7, 8, 9, [10], [11]], [12]]] as any[]);
         expect(Array.isArray(arr)).toEqual(true);
 
         const originalString = "hello";
         const encrypted = await encrypt(originalString, process.env.API_KEY || "");
         expect(await decrypt(encrypted, process.env.API_KEY || "")).toEqual(originalString);
 
-        expect((await apiService.GET(Network.Testnet, `/accounts/${accountId}`)).account).toEqual(accountId);
+        expect((await apiService.GET<AccountInfo>(Network.Testnet, `/accounts/${accountId}`)).account).toEqual(accountId);
     });
 }); // describe

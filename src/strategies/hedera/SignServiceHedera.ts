@@ -40,10 +40,8 @@ export default class SignServiceHedera implements ISignService {
 
     async sign(encodedMessage: string, encoding: SupportedEncoding): Promise<SignMessageData> {
         const message = Buffer.from(encodedMessage, encoding);
-        let signedMessage = "";
-
         const signatures: SignerSignature[] = await this.signer.sign([message]);
-        signedMessage = Buffer.from(signatures[0].signature).toString("hex");
+        const signedMessage = Buffer.from(signatures[0].signature).toString("hex");
 
         return {
             signedMessage
@@ -56,7 +54,7 @@ export default class SignServiceHedera implements ISignService {
         signature: string,
         addressOrPublicKey: string
     ): Promise<SignVerifyMessageData> {
-        let publicKey;
+        let publicKey: PublicKey;
         // if address - get public key
         try {
             const accountId = AccountId.fromString(addressOrPublicKey).toString();
@@ -77,12 +75,12 @@ export default class SignServiceHedera implements ISignService {
     }
 
     async createScheduleTransaction(
-        freeSchedule: boolean = false,
         type: ScheduleTransactionType,
-        transfers: ScheduleTransactionTransfer[]
+        transfers: ScheduleTransactionTransfer[],
+        usePaymaster: boolean = false,
     ): Promise<{scheduleId: string}> {
-        freeSchedule = freeSchedule && (await this.configService.getConfig("freeSchedules")).toLowerCase() === "true";
-        if (freeSchedule) {
+        usePaymaster = usePaymaster && await this.configService.getConfig("scheduleSign");
+        if (usePaymaster) {
             const result = await this.apiService.createScheduleRequest(type, transfers);
             return result;
         } else {
@@ -132,7 +130,7 @@ export default class SignServiceHedera implements ISignService {
                         .then(result => result.getReceiptWithSigner(this.signer))
                         .then(data => {
                             return {
-                                scheduleId: data.scheduleId.toString()
+                                scheduleId: data.scheduleId?.toString() || ""
                             };
                         });
                 }
@@ -144,11 +142,11 @@ export default class SignServiceHedera implements ISignService {
 
     async signScheduleId(
         scheduleId: string,
-        freeSchedule: boolean = false,
-        receiverAccountId?: string
+        receiverAccountId: string,
+        usePaymaster: boolean = false,
     ): Promise<TransactionReceiptData> {
-        freeSchedule = freeSchedule && (await this.configService.getConfig("freeSchedules")).toLowerCase() === "true";
-        if (freeSchedule) {
+        usePaymaster = usePaymaster && await this.configService.getConfig("scheduleSign");
+        if (usePaymaster) {
             if (!receiverAccountId) {
                 throw new Error("Receiver account id required for free schedule transaction");
             }

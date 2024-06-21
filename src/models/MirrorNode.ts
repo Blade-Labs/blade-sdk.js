@@ -1,12 +1,19 @@
 import {CryptoKeyType} from "./Chain";
-import {MirrorNodeTransactionType} from "./TransactionType";
 
 export type AccountInfoMirrorResponse = APIPagination & {
     accounts: AccountInfo[];
 };
 
-export type MirrorNodeListResponse = APIPagination & {
+export type NodeListMirrorResponse = APIPagination & {
     nodes: NodeInfo[];
+};
+
+export type TokenRelationshipMirrorResponse = APIPagination & {
+    tokens: TokenRelationship[];
+};
+
+export type TransactionsMirrorResponse = APIPagination & {
+    transactions: TransactionMirrorDetails[];
 };
 
 export type APIPagination = {
@@ -14,6 +21,16 @@ export type APIPagination = {
         next: string | null;
     };
 };
+
+export type TokenRelationship = {
+    automatic_association: boolean;
+    balance: number;
+    created_timestamp: string;
+    decimals: number;
+    token_id: string;
+    freeze_status: string;
+    kyc_status: string;
+}
 
 export type HederaKey = {
     _type: CryptoKeyType;
@@ -143,24 +160,24 @@ export type TransferDetail = {
 
 export type NftTransferDetail = {
     is_approval: boolean;
-    receiver_account_id: string;
-    sender_account_id: string;
+    receiver_account_id: string | null;
+    sender_account_id: string | null;
     serial_number: number;
-    token_id: string;
+    token_id: string | null;
 };
 
-export type TransactionDetails = {
-    bytes: any; // ?
+export type TransactionMirrorDetails = {
+    bytes: string | null;
     charged_tx_fee: number;
     consensus_timestamp: string;
-    entity_id: any; // ?
+    entity_id: string | null;
     max_fee: string;
-    memo_base64: string;
+    memo_base64: string | null;
     name: MirrorNodeTransactionType;
     nft_transfers: NftTransferDetail[];
-    node: string;
+    node: string | null;
     nonce: number;
-    parent_consensus_timestamp: any; // ?
+    parent_consensus_timestamp: string | null;
     result: string;
     scheduled: boolean;
     staking_reward_transfers: TransferDetail[];
@@ -172,6 +189,50 @@ export type TransactionDetails = {
     valid_start_timestamp: string;
 };
 
-export type TransactionDetailsResponse = {
-    transactions: TransactionDetails[];
+export enum MirrorNodeTransactionType {
+    CONSENSUSCREATETOPIC = "CONSENSUSCREATETOPIC",
+    CONSENSUSDELETETOPIC = "CONSENSUSDELETETOPIC",
+    CONSENSUSSUBMITMESSAGE = "CONSENSUSSUBMITMESSAGE",
+    CONSENSUSUPDATETOPIC = "CONSENSUSUPDATETOPIC",
+    CONTRACTCALL = "CONTRACTCALL",
+    CONTRACTCREATEINSTANCE = "CONTRACTCREATEINSTANCE",
+    CONTRACTDELETEINSTANCE = "CONTRACTDELETEINSTANCE",
+    CONTRACTUPDATEINSTANCE = "CONTRACTUPDATEINSTANCE",
+    CRYPTOADDLIVEHASH = "CRYPTOADDLIVEHASH",
+    CRYPTOCREATEACCOUNT = "CRYPTOCREATEACCOUNT",
+    CRYPTODELETE = "CRYPTODELETE",
+    CRYPTODELETELIVEHASH = "CRYPTODELETELIVEHASH",
+    CRYPTOTRANSFER = "CRYPTOTRANSFER",
+    CRYPTOUPDATEACCOUNT = "CRYPTOUPDATEACCOUNT",
+    FILEAPPEND = "FILEAPPEND",
+    FILECREATE = "FILECREATE",
+    FILEDELETE = "FILEDELETE",
+    FILEUPDATE = "FILEUPDATE",
+    FREEZE = "FREEZE",
+    SCHEDULECREATE = "SCHEDULECREATE",
+    SCHEDULEDELETE = "SCHEDULEDELETE",
+    SCHEDULESIGN = "SCHEDULESIGN",
+    SYSTEMDELETE = "SYSTEMDELETE",
+    SYSTEMUNDELETE = "SYSTEMUNDELETE",
+    TOKENASSOCIATE = "TOKENASSOCIATE",
+    TOKENBURN = "TOKENBURN",
+    TOKENCREATION = "TOKENCREATION",
+    TOKENDELETION = "TOKENDELETION",
+    TOKENDISSOCIATE = "TOKENDISSOCIATE",
+    TOKENFEESCHEDULEUPDATE = "TOKENFEESCHEDULEUPDATE",
+    TOKENFREEZE = "TOKENFREEZE",
+    TOKENGRANTKYC = "TOKENGRANTKYC",
+    TOKENMINT = "TOKENMINT",
+    TOKENPAUSE = "TOKENPAUSE",
+    TOKENREVOKEKYC = "TOKENREVOKEKYC",
+    TOKENUNFREEZE = "TOKENUNFREEZE",
+    TOKENUNPAUSE = "TOKENUNPAUSE",
+    TOKENUPDATE = "TOKENUPDATE",
+    TOKENWIPE = "TOKENWIPE",
+    UNCHECKEDSUBMIT = "UNCHECKEDSUBMIT"
+}
+
+
+export type Trans11actionDetailsResponse = {
+    transactions: TransactionMirrorDetails[];
 };

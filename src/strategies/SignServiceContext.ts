@@ -30,13 +30,13 @@ export interface ISignService {
     ): Promise<SignVerifyMessageData>;
     signScheduleId(
         scheduleId: string,
-        freeSchedule: boolean,
-        receiverAccountId?: string
+        receiverAccountId: string,
+        usePaymaster: boolean,
     ): Promise<TransactionReceiptData>;
     createScheduleTransaction(
-        freeSchedule: boolean,
         type: ScheduleTransactionType,
-        transfers: ScheduleTransactionTransfer[]
+        transfers: ScheduleTransactionTransfer[],
+        usePaymaster: boolean,
     ): Promise<{scheduleId: string}>;
 }
 
@@ -96,21 +96,21 @@ export default class SignServiceContext implements ISignService {
     }
 
     createScheduleTransaction(
-        freeSchedule: boolean,
         type: ScheduleTransactionType,
-        transfers: ScheduleTransactionTransfer[]
+        transfers: ScheduleTransactionTransfer[],
+        usePaymaster: boolean,
     ): Promise<{scheduleId: string}> {
         this.checkInit();
-        return this.strategy!.createScheduleTransaction(freeSchedule, type, transfers);
+        return this.strategy!.createScheduleTransaction(type, transfers, usePaymaster);
     }
 
     signScheduleId(
         scheduleId: string,
-        freeSchedule: boolean,
-        receiverAccountId?: string
+        receiverAccountId: string,
+        usePaymaster: boolean,
     ): Promise<TransactionReceiptData> {
         this.checkInit();
-        return this.strategy!.signScheduleId(scheduleId, freeSchedule, receiverAccountId);
+        return this.strategy!.signScheduleId(scheduleId, receiverAccountId, usePaymaster);
     }
 
     private checkInit() {

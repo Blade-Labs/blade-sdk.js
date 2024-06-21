@@ -55,7 +55,7 @@ export type TransferTokenInitData = {
     to: string;
     amountOrSerial: string;
     memo?: string;
-    freeTransfer: boolean;
+    usePaymaster: boolean;
 };
 
 @injectable()
@@ -149,7 +149,7 @@ export default class TokenServiceContext implements ITokenService {
         this.checkSigner();
         this.checkInit();
 
-        return this.strategy.dropTokens(accountId, secretNonce);
+        return this.strategy!.dropTokens(accountId, secretNonce);
     }
 
     private checkInit() {

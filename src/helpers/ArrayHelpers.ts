@@ -1,5 +1,5 @@
-export const flatArray = (array: any[]): any[] => {
-    const result: any[] = [];
+export const flatArray = <T>(array: T[][]): T[] => {
+    const result: T[] = [];
 
     if (array && Array.isArray(array)) {
         for (const value of array) {

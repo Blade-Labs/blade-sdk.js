@@ -1,8 +1,9 @@
-import {MirrorNodeTransactionType} from "./TransactionType";
 import {ICryptoFlowQuote} from "./CryptoFlow";
 import {CryptoKeyType, KnownChainIds} from "./Chain";
-import {NftInfo, NftMetadata, TokenInfo} from "./MirrorNode";
+import {NftInfo, NftMetadata, TokenInfo, MirrorNodeTransactionType} from "./MirrorNode";
 import {DropStatus, JobStatus} from "./BladeApi";
+import {Magic} from "magic-sdk";
+import {HederaExtension} from "@magic-ext/hedera";
 
 export enum SdkEnvironment {
     Prod = "Prod",
@@ -35,14 +36,23 @@ export enum SupportedEncoding {
 }
 
 export interface BladeConfig {
-    fpApiKey?: string;
-    exchangeServiceSignerPubKey?: string;
-    swapContract?: string;
-    swapWrapHbar?: string;
-    saucerswapApi?: string;
-    magicLinkPublicKey?: string;
-    hederaMirrorNodeConfig?: string;
-    [key: string]: string | undefined; // Index signature
+    fpApiKey: string;
+    fpSubdomain: string;
+    exchangeServiceSignerPubKey: string;
+    swapContract: string; // '{ "Testnet": "0.0.123", "Mainnet": "0.0.123" }'
+    swapWrapHbar: string; // '{ "Testnet": ["0.0.1337"], "Mainnet": ["0.0.1337"] }'
+    saucerswapApi: string; // '{"Testnet":"https://test-api.saucerswap.finance/","Mainnet":"https://api.saucerswap.finance/"}',
+    magicLinkPublicKey: string;
+    refreshTaskPeriodSeconds: number;
+    feesConfig: string; // '{"Mainnet":{"AccountCreate":{"collector":"0.0.123","min":0.01,"amount":0,"max":0.5,"limitsCurrency":"usd"},"TradeNFT":{...}, ...}}',
+
+    // // TODO add alchemy keys in backend config
+    alchemyTestnetRPC: string;
+    alchemyTestnetAPIKey: string;
+    alchemyMainnetRPC: string;
+    alchemyMainnetAPIKey: string;
+
+    [key: string]: string | number | undefined; // Index signature
 }
 
 export interface FeeFeatureConfig {
@@ -88,6 +98,7 @@ export interface DAppConfig {
     activeDrop: boolean;
     fees: FeeConfig;
     tokens: TokensConfig;
+    mirrorNode: IMirrorNodeServiceConfig[];
     [key: string]: unknown; // Index signature
 }
 
@@ -96,22 +107,6 @@ export interface IMirrorNodeServiceConfig {
     url: string;
     priority: number;
     apikey?: string;
-}
-
-export type ApiAccount = {
-    id: string;
-    publicKey: string;
-    network: "MAINNET" | "TESTNET";
-    transactionBytes?: string;
-    maxAutoTokenAssociation?: number;
-    associationPresetTokenStatus?: "NEEDLESS" | "PENDING" | "FAILED" | "SUCCESSFUL";
-    updateAccountTransactionBytes?: string;
-    transactionId?: string | null;
-};
-
-export interface IMirrorNodeServiceNetworkConfigs {
-    mainnet: IMirrorNodeServiceConfig[];
-    testnet: IMirrorNodeServiceConfig[];
 }
 
 export interface IMirrorNodeServiceConfig {
@@ -389,4 +384,21 @@ export enum ScheduleTransferType {
     HBAR = "HBAR",
     FT = "FT",
     NFT = "NFT"
+}
+
+export interface MagicWithHedera extends Magic {
+    hedera: HederaExtension;
+}
+
+export interface WebViewWindow extends Window {
+    webkit: {
+        messageHandlers: {
+            bladeMessageHandler: {
+                postMessage: (data: string) => void;
+            };
+        };
+    };
+    bladeMessageHandler: {
+        postMessage: (data: string) => void;
+    };
 }

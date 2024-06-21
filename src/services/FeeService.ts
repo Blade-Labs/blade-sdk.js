@@ -73,7 +73,7 @@ export default class FeeService {
 
             const network = ChainMap[chainId].isTestnet ? Network.Testnet : Network.Mainnet;
             const feature: FeeType = manualOptions.type; // || detectFeeType(tx);
-            const feesConfig = (this.configService.getConfig("fees") as Promise<DAppConfig["fees"]>)
+            const feesConfig = await this.configService.getConfig("fees")
             const featureConfig = feesConfig[feature];
             const feeAmount = await this.calculateFeeAmount(tx, network, featureConfig, manualOptions);
             this.modifyTransactionWithFee(tx, payerAccount, featureConfig.collector, feeAmount);

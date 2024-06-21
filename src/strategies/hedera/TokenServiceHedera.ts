@@ -87,20 +87,20 @@ export default class TokenServiceHedera implements ITokenService {
         to,
         tokenAddress,
         memo,
-        freeTransfer
+        usePaymaster
     }: TransferTokenInitData): Promise<TransactionResponseData> {
         const meta = await this.apiService.requestTokenInfo(tokenAddress);
         let isNFT = false;
         if (meta.type === "NON_FUNGIBLE_UNIQUE") {
             isNFT = true;
-            if (freeTransfer) {
+            if (usePaymaster) {
                 throw new Error("NFT free transfer is not supported");
             }
         }
-        freeTransfer = freeTransfer && (await this.configService.getConfig("tokenTransfer"));
+        usePaymaster = usePaymaster && await this.configService.getConfig("tokenTransfer");
         const correctedAmount = parseFloat(amountOrSerial) * 10 ** parseInt(meta.decimals, 10);
 
-        if (freeTransfer) {
+        if (usePaymaster) {
             const options = {
                 receiverAccountId: to,
                 senderAccountId: from,
@@ -123,6 +123,10 @@ export default class TokenServiceHedera implements ITokenService {
                 // TODO set timeout from sdk-config
                 await sleep(1000);
                 transferTokenJob = await this.apiService.transferTokens(JobAction.CHECK, transferTokenJob.taskId);
+            }
+
+            if (!transferTokenJob.result || !transferTokenJob.result.transactionBytes) {
+                throw new Error("Failed to fetch transaction bytes");
             }
 
             const buffer = Buffer.from(transferTokenJob.result.transactionBytes, "base64");
@@ -172,7 +176,7 @@ export default class TokenServiceHedera implements ITokenService {
 
     async associateToken(tokenId: string, accountId: string): Promise<TransactionReceiptData> {
         let result: TransactionResponseHedera;
-        const tokensConfig = await (this.configService.getConfig("tokens") as Promise<DAppConfig["tokens"]>);
+        const tokensConfig = await this.configService.getConfig("tokens");
         if (tokensConfig.association.includes(tokenId) || !tokenId) {
             let tokenAssociationJob = await this.apiService.tokenAssociation(JobAction.INIT, "", {accountId, tokenIds: [tokenId]});
             while (true) {
@@ -187,7 +191,7 @@ export default class TokenServiceHedera implements ITokenService {
                 tokenAssociationJob = await this.apiService.tokenAssociation(JobAction.CHECK, tokenAssociationJob.taskId);
             }
 
-            if (!tokenAssociationJob.result.transactionBytes) {
+            if (!tokenAssociationJob.result || !tokenAssociationJob.result.transactionBytes) {
                 throw new Error("Token association failed");
             }
 
@@ -365,7 +369,7 @@ export default class TokenServiceHedera implements ITokenService {
      * @returns {TokenDropData}
      */
     async dropTokens(accountId: string, secretNonce: string): Promise<TokenDropData> {
-        const signatures = await this.signer.sign([Buffer.from(secretNonce)]);
+        const signatures = await this.signer!.sign([Buffer.from(secretNonce)]);
 
         let dropJob = await this.apiService.dropTokens(JobAction.INIT, "", {
             accountId,
@@ -391,8 +395,8 @@ export default class TokenServiceHedera implements ITokenService {
         // TODO to implement
         return {
             status: dropJob.status,
-            accountId: dropJob.result.accountId,
-            dropStatuses: dropJob.result.dropStatuses,
+            accountId: dropJob.result!.accountId,
+            dropStatuses: dropJob!.result!.dropStatuses,
             redirectUrl: "string"
         };
     }

@@ -595,7 +595,7 @@ describe("testing methods related to HEDERA network", () => {
         }
 
         // invalid tx
-        result = await apiService.getTransaction(Network.Testnet, "wrong tx id", accountId);
+        result = await apiService.getTransaction(Network.Testnet, "wrong tx id");
         expect(Array.isArray(result));
         expect(result.length).toEqual(0);
     }, 600_000);

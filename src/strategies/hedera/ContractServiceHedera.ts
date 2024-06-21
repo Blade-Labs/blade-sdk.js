@@ -37,13 +37,13 @@ export default class ContractServiceHedera implements IContractService {
         functionName: string,
         paramsEncoded: string | ParametersBuilder,
         gas: number,
-        bladePayFee: boolean
+        usePaymaster: boolean
     ): Promise<TransactionReceiptData> {
         const {bytecode} = await getContractFunctionBytecode(functionName, paramsEncoded);
 
         let response: Promise<TransactionResponse>;
-        bladePayFee = bladePayFee && (await this.configService.getConfig("contractExecute"));
-        if (bladePayFee) {
+        usePaymaster = usePaymaster && await this.configService.getConfig("contractExecute");
+        if (usePaymaster) {
             const options = {
                 contractFunctionParameters: bytecode.toString("base64"),
                 contractAddress,
@@ -64,6 +64,11 @@ export default class ContractServiceHedera implements IContractService {
                 await sleep(1000);
                 contractCallJob = await this.apiService.signContractCallTx(JobAction.CHECK, contractCallJob.taskId);
             }
+
+            if (!contractCallJob.result) {
+                throw new Error("Failed to fetch transaction bytes backend");
+            }
+
             response = Transaction.fromBytes(Buffer.from(contractCallJob.result.transactionBytes, "base64"))
 
                 .freezeWithSigner(this.signer!)
@@ -96,13 +101,13 @@ export default class ContractServiceHedera implements IContractService {
         functionName: string,
         paramsEncoded: string | ParametersBuilder,
         gas: number,
-        bladePayFee: boolean,
+        usePaymaster: boolean,
         resultTypes: string[]
     ): Promise<ContractCallQueryRecordsData> {
         const {bytecode} = await getContractFunctionBytecode(functionName, paramsEncoded);
         let response: ContractFunctionResult;
 
-        if (bladePayFee) {
+        if (usePaymaster) {
             const options = {
                 contractFunctionParameters: bytecode.toString("base64"),
                 contractAddress,
@@ -121,6 +126,10 @@ export default class ContractServiceHedera implements IContractService {
                 // TODO set timeout from sdk-config
                 await sleep(1000);
                 contractCallQueryJob = await this.apiService.apiCallContractQuery(JobAction.CHECK, contractCallQueryJob.taskId);
+            }
+
+            if (!contractCallQueryJob.result) {
+                throw new Error("No result from backend");
             }
 
             const {contractFunctionResult, rawResult} = contractCallQueryJob.result;

@@ -9,13 +9,8 @@ type ConfigValueByKey<TKey extends ConfigKey> = Config[TKey];
 
 @injectable()
 export default class ConfigService {
-    private config: BladeConfig = {
-        fpApiKey: undefined,
-        exchangeServiceSignerPubKey: undefined,
-        swapContract: undefined,
-        swapWrapHbar: undefined,
-        saucerswapApi: undefined,
-        magicLinkPublicKey: undefined,
+    private config: Partial<BladeConfig> = {
+        fpSubdomain: 'https://identity.bladewallet.io',
 
         // TODO add alchemy keys in backend config
         alchemyTestnetRPC: "https://eth-sepolia.g.alchemy.com/v2/",
@@ -25,7 +20,7 @@ export default class ConfigService {
         alchemyMainnetAPIKey: undefined,
         fpSubdomain: "https://identity.bladewallet.io"
     };
-    private dAppConfig?: DAppConfig;
+    private dAppConfig: Partial<DAppConfig> = {};
 
     constructor(@inject("apiService") private readonly apiService: ApiService) {}
 
@@ -37,12 +32,12 @@ export default class ConfigService {
                 this.config = {
                     ...this.config,
                     ...(await this.apiService.getBladeConfig())
-                };
+                }
             }
             return this.config[key];
         }
 
-        if (!this.dAppConfig?.fees) {
+        if (!this.dAppConfig.dappCode) {
             // check if dAppConfig is empty
             this.dAppConfig = await this.apiService.getDappConfig();
         }

@@ -78,7 +78,7 @@ export default class TokenServiceEthereum implements ITokenService {
         to,
         tokenAddress,
         memo,
-        freeTransfer
+        usePaymaster
     }: TransferTokenInitData): Promise<TransactionResponseData> {
         await this.initAlchemy();
         const contract = new Contract(tokenAddress, ERC20ABI, this.signer!);

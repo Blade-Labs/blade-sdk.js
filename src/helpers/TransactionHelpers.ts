@@ -1,6 +1,6 @@
 import {Signer, TransactionReceipt, TransactionResponse} from "@hashgraph/sdk";
 import {TransactionData, TransactionReceiptData} from "../models/Common";
-import {MirrorNodeTransactionType} from "../models/TransactionType";
+import {MirrorNodeTransactionType} from "../models/MirrorNode";
 
 export const filterAndFormatTransactions = (
     transactions: TransactionData[],
@@ -63,7 +63,7 @@ export const formatReceipt = (txReceipt: TransactionReceipt, transactionHash?: s
         topicSequenceNumber: txReceipt.topicSequenceNumber?.toString(),
         totalSupply: txReceipt.totalSupply?.toString(),
         serials: txReceipt.serials?.map(serial => serial.toString()),
-        transactionHash
+        transactionHash: transactionHash || ""
     };
 };
 

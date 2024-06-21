@@ -66,18 +66,10 @@ export default class SignServiceEthereum implements ISignService {
         };
     }
 
-    signScheduleId(
-        scheduleId: string,
-        freeSchedule: boolean,
-        receiverAccountId?: string
-    ): Promise<TransactionReceiptData> {
+    signScheduleId(): Promise<TransactionReceiptData> {
         throw new Error("Method not implemented.");
     }
-    createScheduleTransaction(
-        freeSchedule: boolean,
-        type: ScheduleTransactionType,
-        transfers: ScheduleTransactionTransfer[]
-    ): Promise<{scheduleId: string}> {
+    createScheduleTransaction(): Promise<{scheduleId: string}> {
         throw new Error("Method not implemented.");
     }
 }
