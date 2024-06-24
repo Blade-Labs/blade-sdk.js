@@ -10,6 +10,7 @@ import SignServiceContext from "./strategies/SignServiceContext";
 import ContractServiceContext from "./strategies/ContractServiceContext";
 import TradeServiceContext from "./strategies/TradeServiceContext";
 import SignService from "./services/SignService";
+import AuthService from "./services/AuthService";
 
 // TODO make symbols
 
@@ -25,8 +26,8 @@ export const getContainer = (isWebView: boolean = false) => {
     bladeContainer.bind("cryptoFlowService").to(CryptoFlowService).inSingletonScope();
     bladeContainer.bind("signService").to(SignService).inSingletonScope();
     bladeContainer.bind("feeService").to(FeeService).inSingletonScope();
+    bladeContainer.bind("authService").to(AuthService).inSingletonScope();
     bladeContainer.bind("apiService").to(ApiService).inSingletonScope();
-    // bladeContainer.bind<ILogger>('apiService').to(ApiService).inSingletonScope();
     bladeContainer.bind(BladeSDK).toSelf();
     return bladeContainer;
 };

@@ -21,6 +21,7 @@ import ContractServiceContext from "../../src/strategies/ContractServiceContext"
 import TradeServiceContext from "../../src/strategies/TradeServiceContext";
 import {KnownChainIds} from "../../src/models/Chain";
 import SignService from "../../src/services/SignService";
+import AuthService from "../../src/services/AuthService";
 import {AccountInfo} from "../../src/models/MirrorNode";
 const {BladeSDK, ParametersBuilder} = require("../../src/webView");
 
@@ -37,6 +38,7 @@ dotenv.config();
 describe("testing sdk CORE functionality", () => {
     const apiService = new ApiService();
     const configService = new ConfigService(apiService);
+    const authService = new AuthService(apiService, configService);
     const feeService = new FeeService(configService);
     const signService = new SignService();
     const cryptoFlowService = new CryptoFlowService(configService, feeService);
@@ -49,6 +51,7 @@ describe("testing sdk CORE functionality", () => {
     const bladeSdk = new BladeSDK(
         configService,
         apiService,
+        authService,
         accountServiceContext,
         tokenServiceContext,
         signServiceContext,

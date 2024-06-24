@@ -40,6 +40,7 @@ import {isEqual} from "lodash";
 import BigNumber from "bignumber.js";
 import {TokenInfo} from "../../src/models/MirrorNode";
 import {ParametersBuilder} from "../../src/ParametersBuilder";
+import AuthService from "../../src/services/AuthService";
 
 const {BladeSDK} = require("../../src/webView");
 
@@ -56,6 +57,7 @@ dotenv.config();
 describe("testing methods related to HEDERA network", () => {
     const apiService = new ApiService();
     const configService = new ConfigService(apiService);
+    const authService = new AuthService(apiService, configService);
     const feeService = new FeeService(configService);
     const signService = new SignService();
     const cryptoFlowService = new CryptoFlowService(configService, feeService);
@@ -68,6 +70,7 @@ describe("testing methods related to HEDERA network", () => {
     const bladeSdk = new BladeSDK(
         configService,
         apiService,
+        authService,
         accountServiceContext,
         tokenServiceContext,
         signServiceContext,

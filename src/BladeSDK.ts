@@ -1,19 +1,20 @@
 import {inject, injectable} from "inversify";
 import "reflect-metadata";
 import {Buffer} from "buffer";
-import {Client, PrivateKey, Signer, TokenType} from "@hashgraph/sdk";
+import {Signer, TokenType} from "@hashgraph/sdk";
 import {ethers} from "ethers";
 import ApiService from "./services/ApiService";
 import CryptoFlowService from "./services/CryptoFlowService";
 import {HbarTokenId} from "./services/FeeService";
 import ConfigService from "./services/ConfigService";
+import AuthService from "./services/AuthService";
 import {Network} from "./models/Networks";
 import StringHelpers from "./helpers/StringHelpers";
 import {CustomError} from "./models/Errors";
 import {
     AccountInfoData,
     AccountPrivateData,
-    AccountProvider,
+    AccountProvider, ActiveUser,
     BalanceData,
     BridgeResponse,
     CoinData,
@@ -25,7 +26,6 @@ import {
     InfoData,
     IntegrationUrlData,
     KeyRecord,
-    MagicWithHedera,
     NFTStorageConfig,
     ScheduleTransactionTransfer,
     ScheduleTransactionType,
@@ -42,48 +42,36 @@ import {
     TransactionsHistoryData,
     UserInfoData, WebViewWindow
 } from "./models/Common";
-import {ChainMap, ChainServiceStrategy, KnownChainIds} from "./models/Chain";
+import {ChainMap, KnownChainIds} from "./models/Chain";
 import config from "./config";
 import {ParametersBuilder} from "./ParametersBuilder";
 import {CryptoFlowServiceStrategy} from "./models/CryptoFlow";
 import {NftInfo, NftMetadata, NodeInfo} from "./models/MirrorNode";
-import * as FingerprintJS from "@fingerprintjs/fingerprintjs-pro";
 import {File} from "nft.storage";
-import {decrypt, encrypt} from "./helpers/SecurityHelper";
-import {Magic, MagicSDKAdditionalConfiguration} from "magic-sdk";
-import {HederaExtension} from "@magic-ext/hedera";
-import {MagicSigner} from "./signers/magic/MagicSigner";
-import {HederaProvider, HederaSigner} from "./signers/hedera";
 import TokenServiceContext from "./strategies/TokenServiceContext";
 import AccountServiceContext from "./strategies/AccountServiceContext";
 import SignServiceContext from "./strategies/SignServiceContext";
 import ContractServiceContext from "./strategies/ContractServiceContext";
 import TradeServiceContext from "./strategies/TradeServiceContext";
-import {MagicUserMetadata} from "@magic-sdk/types";
 
 @injectable()
 export class BladeSDK {
     // todo update method annotations
 
     private apiKey: string = "";
-    private network: Network = Network.Testnet;
     private chainId: KnownChainIds = KnownChainIds.HEDERA_TESTNET;
     private dAppCode: string = "";
     private visitorId: string = "";
     private sdkEnvironment: SdkEnvironment = SdkEnvironment.Prod;
     private sdkVersion: string = config.sdkVersion;
     private readonly webView: boolean = false;
-    private accountProvider: AccountProvider | null = null;
-    private signer: Signer | ethers.Signer | null = null;
-    private magic: MagicWithHedera | null = null;
-    private userAccountId: string = "";
-    private userPublicKey: string = "";
-    private userPrivateKey: string = "";
+    private user: ActiveUser | null = null;
 
     /**
      * BladeSDK constructor.
      * @param configService - instance of ConfigService
      * @param apiService - instance of ApiService
+     * @param authService - instance of AuthService
      * @param accountServiceContext - instance of AccountServiceContext
      * @param tokenServiceContext - instance of TokenServiceContext
      * @param signServiceContext - instance of SignServiceContext
@@ -95,12 +83,12 @@ export class BladeSDK {
     constructor(
         @inject("configService") private readonly configService: ConfigService,
         @inject("apiService") private readonly apiService: ApiService,
+        @inject("authService") private readonly authService: AuthService,
         @inject("accountServiceContext") private readonly accountServiceContext: AccountServiceContext,
         @inject("tokenServiceContext") private readonly tokenServiceContext: TokenServiceContext,
         @inject("signServiceContext") private readonly signServiceContext: SignServiceContext,
         @inject("contractServiceContext") private readonly contractServiceContext: ContractServiceContext,
         @inject("tradeServiceContext") private readonly tradeServiceContext: TradeServiceContext,
-
         @inject("cryptoFlowService") private readonly cryptoFlowService: CryptoFlowService,
         @inject("isWebView") private readonly isWebView: boolean
     ) {
@@ -131,55 +119,13 @@ export class BladeSDK {
 
         this.apiKey = apiKey;
         this.chainId = StringHelpers.stringToChainId(chainId);
-        this.network = ChainMap[this.chainId].isTestnet ? Network.Testnet : Network.Mainnet;
         this.dAppCode = dAppCode;
         this.sdkEnvironment = sdkEnvironment;
         this.sdkVersion = sdkVersion;
         this.visitorId = visitorId;
 
-        // TODO
-        // set account on init
-        // remove accountId and privateKey fields from methods
-
         this.apiService.initApiService(apiKey, dAppCode, sdkEnvironment, sdkVersion, this.chainId, visitorId);
-        if (!this.visitorId) {
-            try {
-                const [decryptedVisitorId, timestamp, env] = (
-                    await decrypt(localStorage.getItem("BladeSDK.visitorId") || "", this.apiKey)
-                ).split("@");
-                if (
-                    this.sdkEnvironment === (env as SdkEnvironment) &&
-                    Date.now() - parseInt(timestamp, 10) < 3600_000 * 24 * 30
-                ) {
-                    // if visitorId was saved less than 30 days ago and in the same environment
-                    this.visitorId = decryptedVisitorId;
-                }
-            } catch (e) {
-                // console.log("failed to decrypt visitor id", e);
-            }
-        }
-        if (!this.visitorId) {
-            try {
-                const fpConfig = {
-                    apiKey: "key", // the valid key is passed on the backend side, and ".get()" does not require the key as well
-                    scriptUrlPattern: `${this.apiService.getApiUrl(true)}/fpjs/<version>/<loaderVersion>`,
-                    endpoint: [
-                        await this.configService.getConfig(`fpSubdomain`),
-                        FingerprintJS.defaultEndpoint
-                    ]
-                };
-                const fpPromise = await FingerprintJS.load(fpConfig);
-                this.visitorId = (await fpPromise.get()).visitorId;
-                localStorage.setItem(
-                    "BladeSDK.visitorId",
-                    await encrypt(`${this.visitorId}@${Date.now()}@${this.sdkEnvironment}`, this.apiKey)
-                );
-            } catch (error) {
-                // tslint:disable-next-line:no-console
-                console.log("failed to get visitor id", error);
-            }
-        }
-        this.apiService.setVisitorId(this.visitorId);
+        this.visitorId = await this.authService.getVisitorId(this.visitorId, this.apiKey, this.sdkEnvironment);
         this.accountServiceContext.init(this.chainId, null); // init without signer, to be able to create account
         this.tokenServiceContext.init(this.chainId, null); // init without signer, to be able to getBalance
         this.tradeServiceContext.init(this.chainId, null); // init without signer, to be able to get14Url
@@ -202,108 +148,29 @@ export class BladeSDK {
         completionKey?: string
     ): Promise<UserInfoData> {
         try {
-            switch (accountProvider) {
-                case AccountProvider.PrivateKey:
-                    if (ChainMap[this.chainId].serviceStrategy === ChainServiceStrategy.Hedera) {
-                        const key = PrivateKey.fromStringDer(privateKey!);
-                        const client = ChainMap[this.chainId].isTestnet ? Client.forTestnet() : Client.forMainnet();
-                        this.userAccountId = accountIdOrEmail;
-                        this.userPrivateKey = privateKey!;
-                        this.userPublicKey = key.publicKey.toStringDer();
-                        const provider = new HederaProvider({client});
-                        this.signer = new HederaSigner(this.userAccountId, key, provider);
-                    } else if (ChainMap[this.chainId].serviceStrategy === ChainServiceStrategy.Ethereum) {
-                        const key = PrivateKey.fromStringECDSA(privateKey!);
-                        this.userPrivateKey = `0x${key.toStringRaw()}`;
-                        this.userPublicKey = `0x${key.publicKey.toStringRaw()}`;
+            this.user = await this.authService.setUser(this.chainId, accountProvider, accountIdOrEmail, privateKey);
 
-                        this.userAccountId = ethers.utils.computeAddress(this.userPublicKey);
-                        const alchemyRpc = await this.configService.getConfig(`alchemy${this.network}RPC`);
-                        const alchemyApiKey = await this.configService.getConfig(`alchemy${this.network}APIKey`);
-                        if (!alchemyRpc || !alchemyApiKey) {
-                            throw new Error("Alchemy config not found");
-                        }
-                        const provider = new ethers.providers.JsonRpcProvider(alchemyRpc + alchemyApiKey);
-                        this.signer = new ethers.Wallet(this.userPrivateKey, provider);
-                    } else {
-                        throw new Error("Unsupported chain");
-                    }
-                    break;
-                case AccountProvider.Magic:
-                    let userInfo: MagicUserMetadata | undefined;
-                    if (!this.magic) {
-                        await this.initMagic(this.chainId);
-                    }
-
-                    if (await this.magic?.user.isLoggedIn()) {
-                        userInfo = await this.magic!.user.getInfo();
-                        if (userInfo.email !== accountIdOrEmail) {
-                            await this.magic!.user.logout();
-                            await this.magic!.auth.loginWithMagicLink({email: accountIdOrEmail, showUI: false});
-                            userInfo = await this.magic!.user.getInfo();
-                        }
-                    } else {
-                        await this.magic?.auth.loginWithMagicLink({email: accountIdOrEmail, showUI: false});
-                        userInfo = await this.magic?.user.getInfo();
-                    }
-
-                    if (!(await this.magic?.user.isLoggedIn())) {
-                        throw new Error("Not logged in Magic. Please call magicLogin() first");
-                    }
-
-                    this.userAccountId = userInfo?.publicAddress || "";
-                    if (ChainMap[this.chainId].serviceStrategy === ChainServiceStrategy.Hedera) {
-                        const {publicKeyDer} = (await this.magic!.hedera.getPublicKey()) as {publicKeyDer: string};
-                        this.userPublicKey = publicKeyDer;
-                        const magicSign = (message: Uint8Array) => this.magic!.hedera.sign(message);
-                        this.signer = new MagicSigner(this.userAccountId, this.network, publicKeyDer, magicSign);
-                    } else if (ChainMap[this.chainId].serviceStrategy === ChainServiceStrategy.Ethereum) {
-                        // @ts-ignore
-                        const provider = new ethers.providers.Web3Provider(this.magic!.rpcProvider);
-                        this.signer = provider.getSigner();
-                        // TODO check how to get public key from magic
-                        this.userPublicKey = "";
-                    }
-                    break;
-                default:
-                    break;
-            }
-            this.tokenServiceContext.init(this.chainId, this.signer!);
-            this.accountServiceContext.init(this.chainId, this.signer!);
-            this.signServiceContext.init(this.chainId, this.signer!);
-            this.contractServiceContext.init(this.chainId, this.signer!);
-            this.tradeServiceContext.init(this.chainId, this.signer!);
-            this.accountProvider = accountProvider;
+            this.tokenServiceContext.init(this.chainId, this.user.signer);
+            this.accountServiceContext.init(this.chainId, this.user.signer);
+            this.signServiceContext.init(this.chainId, this.user.signer);
+            this.contractServiceContext.init(this.chainId, this.user.signer);
+            this.tradeServiceContext.init(this.chainId, this.user.signer);
 
             return this.sendMessageToNative(completionKey, {
-                accountId: this.userAccountId,
-                accountProvider: this.accountProvider,
-                userPrivateKey: this.userPrivateKey,
-                userPublicKey: this.userPublicKey
+                accountId: this.user.accountId,
+                accountProvider: this.user.provider,
+                userPrivateKey: this.user.privateKey,
+                userPublicKey: this.user.publicKey
             });
         } catch (error: any) {
-            this.userAccountId = "";
-            this.userPrivateKey = "";
-            this.userPublicKey = "";
-            this.signer = null;
-            this.magic = null;
+            this.user = null;
             throw this.sendMessageToNative(completionKey, null, error);
         }
     }
 
     async resetUser(completionKey?: string): Promise<{success: boolean}> {
         try {
-            this.userPublicKey = "";
-            this.userPrivateKey = "";
-            this.userAccountId = "";
-            this.signer = null;
-            if (this.accountProvider === AccountProvider.Magic) {
-                if (!this.magic) {
-                    await this.initMagic(this.chainId);
-                }
-                await this.magic!.user.logout();
-            }
-            this.accountProvider = null;
+            this.user = await this.authService.resetUser();
 
             return this.sendMessageToNative(completionKey, {
                 success: true
@@ -346,7 +213,7 @@ export class BladeSDK {
     ): Promise<TransactionResponseData> {
         try {
             const result = await this.tokenServiceContext.transferBalance({
-                from: this.userAccountId,
+                from: this.getUser().accountId,
                 to: receiverAddress,
                 amount,
                 memo
@@ -379,7 +246,7 @@ export class BladeSDK {
         try {
             // TODO send NFT for Ethereum tokens
             const result = await this.tokenServiceContext.transferToken({
-                from: this.userAccountId,
+                from: this.getUser().accountId,
                 to: receiverAddress,
                 amountOrSerial,
                 tokenAddress,
@@ -623,9 +490,8 @@ export class BladeSDK {
      */
     async getAccountInfo(accountId: string, completionKey?: string): Promise<AccountInfoData> {
         try {
-            if (!accountId) {
-                accountId = this.userAccountId;
-            }
+            accountId = accountId || this.getUser().accountId;
+
             const result = await this.accountServiceContext.getAccountInfo(accountId);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
@@ -656,7 +522,7 @@ export class BladeSDK {
      */
     async stakeToNode(nodeId: number, completionKey?: string): Promise<TransactionReceiptData> {
         try {
-            const result = await this.accountServiceContext.stakeToNode(this.userAccountId, nodeId);
+            const result = await this.accountServiceContext.stakeToNode(this.getUser().accountId, nodeId);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -750,9 +616,8 @@ export class BladeSDK {
         completionKey?: string
     ): Promise<SignVerifyMessageData> {
         try {
-            if (!addressOrPublicKey) {
-                addressOrPublicKey = this.getUser().publicKey;
-            }
+            addressOrPublicKey = addressOrPublicKey || this.getUser().publicKey;
+
             const result = await this.signServiceContext.verify(
                 encodedMessage,
                 encoding,
@@ -821,9 +686,8 @@ export class BladeSDK {
         completionKey?: string
     ): Promise<TransactionsHistoryData> {
         try {
-            if (!accountAddress) {
-                accountAddress = this.userAccountId;
-            }
+            accountAddress = accountAddress || this.getUser().accountId;
+
             const result = await this.accountServiceContext.getTransactions(
                 accountAddress,
                 transactionType,
@@ -908,7 +772,7 @@ export class BladeSDK {
     ): Promise<{success: boolean}> {
         try {
             const result = await this.tradeServiceContext.swapTokens(
-                this.userAccountId,
+                this.getUser().accountId,
                 sourceCode,
                 sourceAmount,
                 targetCode,
@@ -982,12 +846,14 @@ export class BladeSDK {
         completionKey?: string
     ): Promise<{tokenId: string}> {
         try {
+            const {accountId, publicKey} = this.getUser();
+
             const result = await this.tokenServiceContext.createToken(
                 tokenName,
                 tokenSymbol,
                 isNft,
-                this.userAccountId,
-                this.userPublicKey,
+                accountId,
+                publicKey,
                 keys,
                 decimals,
                 initialSupply,
@@ -1007,7 +873,7 @@ export class BladeSDK {
      */
     async associateToken(tokenId: string, completionKey?: string): Promise<TransactionReceiptData> {
         try {
-            const result = await this.tokenServiceContext.associateToken(tokenId, this.userAccountId!);
+            const result = await this.tokenServiceContext.associateToken(tokenId, this.getUser().accountId);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -1057,29 +923,15 @@ export class BladeSDK {
         }
     }
 
-    private async initMagic(chainId: KnownChainIds) {
-        const options: MagicSDKAdditionalConfiguration = {};
-        if (ChainMap[chainId].serviceStrategy === ChainServiceStrategy.Hedera) {
-            options.extensions = [
-                new HederaExtension({
-                    network: this.network.toLowerCase()
-                })
-            ];
-        } else if (ChainMap[chainId].serviceStrategy === ChainServiceStrategy.Ethereum) {
-            options.network = StringHelpers.networkToEthereum(this.network);
-        }
-        this.magic = new Magic(await this.configService.getConfig(`magicLinkPublicKey`), options) as unknown as MagicWithHedera;
-    }
-
     private getUser(): {signer: Signer | ethers.Signer; accountId: string; privateKey: string; publicKey: string} {
-        if (!this.signer) {
+        if (!this.user || !this.user.signer) {
             throw new Error("No user, please call setUser() first");
         }
         return {
-            signer: this.signer,
-            accountId: this.userAccountId,
-            privateKey: this.userPrivateKey,
-            publicKey: this.userPublicKey
+            signer: this.user.signer,
+            accountId: this.user.accountId,
+            privateKey: this.user.privateKey,
+            publicKey: this.user.publicKey
         };
     }
 
@@ -1087,17 +939,17 @@ export class BladeSDK {
         return {
             apiKey: this.apiKey,
             dAppCode: this.dAppCode,
-            network: this.network,
+            network: ChainMap[this.chainId].isTestnet ? Network.Testnet : Network.Mainnet,
             chainId: this.chainId,
             visitorId: this.visitorId,
             sdkEnvironment: this.sdkEnvironment,
             sdkVersion: this.sdkVersion,
             nonce: Math.round(Math.random() * 1000000000),
             user: {
-                accountId: this.userAccountId,
-                accountProvider: this.accountProvider,
-                userPrivateKey: this.userPrivateKey,
-                userPublicKey: this.userPublicKey
+                accountId: this.user?.accountId || "",
+                accountProvider: this.user?.provider || null,
+                userPrivateKey: this.user?.privateKey || "",
+                userPublicKey: this.user?.publicKey || ""
             }
         };
     }

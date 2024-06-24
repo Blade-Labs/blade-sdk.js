@@ -4,6 +4,8 @@ import {NftInfo, NftMetadata, TokenInfo, MirrorNodeTransactionType} from "./Mirr
 import {DropStatus, JobStatus} from "./BladeApi";
 import {Magic} from "magic-sdk";
 import {HederaExtension} from "@magic-ext/hedera";
+import {Signer} from "@hashgraph/sdk";
+import {ethers} from "ethers";
 
 export enum SdkEnvironment {
     Prod = "Prod",
@@ -114,6 +116,14 @@ export interface IMirrorNodeServiceConfig {
     url: string;
     priority: number;
     apikey?: string;
+}
+
+export interface ActiveUser {
+    accountId: string,
+    privateKey: string,
+    publicKey: string,
+    provider: AccountProvider,
+    signer: Signer | ethers.Signer
 }
 
 export interface KeyRecord {
