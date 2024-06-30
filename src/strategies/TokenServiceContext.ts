@@ -147,8 +147,6 @@ export default class TokenServiceContext implements ITokenService {
 
     dropTokens(accountId: string, secretNonce: string): Promise<TokenDropData> {
         this.checkSigner();
-        this.checkInit();
-
         return this.strategy!.dropTokens(accountId, secretNonce);
     }
 

@@ -119,9 +119,7 @@ export default class TokenServiceHedera implements ITokenService {
                 if (transferTokenJob.status === JobStatus.FAILED) {
                     throw new Error(transferTokenJob.errorMessage);
                 }
-
-                // TODO set timeout from sdk-config
-                await sleep(1000);
+                await sleep(await this.configService.getConfig("refreshTaskPeriodSeconds") * 1000);
                 transferTokenJob = await this.apiService.transferTokens(JobAction.CHECK, transferTokenJob.taskId);
             }
 
@@ -186,8 +184,7 @@ export default class TokenServiceHedera implements ITokenService {
                 if (tokenAssociationJob.status === JobStatus.FAILED) {
                     throw new Error(tokenAssociationJob.errorMessage);
                 }
-                // TODO set timeout from sdk-config
-                await sleep(1000);
+                await sleep(await this.configService.getConfig("refreshTaskPeriodSeconds") * 1000);
                 tokenAssociationJob = await this.apiService.tokenAssociation(JobAction.CHECK, tokenAssociationJob.taskId);
             }
 
@@ -377,20 +374,15 @@ export default class TokenServiceHedera implements ITokenService {
         });
 
         while (true) {
-            console.log(dropJob);
-
             if (dropJob.status === JobStatus.SUCCESS) {
                 break;
             }
             if (dropJob.status === JobStatus.FAILED) {
                 throw new Error(dropJob.errorMessage);
             }
-            // TODO set timeout from sdk-config
-            await sleep(1000);
+            await sleep(await this.configService.getConfig("refreshTaskPeriodSeconds") * 1000);
             dropJob = await this.apiService.dropTokens(JobAction.CHECK, dropJob.taskId);
         }
-
-        console.log(dropJob)
 
         // TODO to implement
         return {

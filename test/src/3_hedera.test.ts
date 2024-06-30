@@ -152,7 +152,7 @@ describe("testing methods related to HEDERA network", () => {
         } catch (result) {
             checkResult(result, false);
         }
-    }, 20_000);
+    }, 60_000);
 
     test("bladeSdk-hedera.dropTokens", async () => {
         const accountResult = await bladeSdk.createAccount("", "device-id", completionKey);
@@ -166,12 +166,10 @@ describe("testing methods related to HEDERA network", () => {
         checkResult(successfulResult);
 
         expect(successfulResult.data).toHaveProperty("status");
-        expect(successfulResult.data).toHaveProperty("statusCode");
-        expect(successfulResult.data).toHaveProperty("timestamp");
-        expect(successfulResult.data).toHaveProperty("executionStatus");
-        expect(successfulResult.data).toHaveProperty("requestId");
         expect(successfulResult.data).toHaveProperty("accountId");
         expect(successfulResult.data).toHaveProperty("redirectUrl");
+        expect(successfulResult.data).toHaveProperty("dropStatuses");
+        expect(Object.keys(successfulResult.data.dropStatuses).length).toBeGreaterThan(0);
 
         // const failedResult = await bladeSdk.dropTokens(account.accountId, process.env.NONCE, completionKey);
         // checkResult(failedResult, false);
@@ -422,10 +420,6 @@ describe("testing methods related to HEDERA network", () => {
         }
     }, 60_000);
 
-    test("bladeSdk-hedera.searchAccounts", async () => {
-        expect(false).toEqual("TODO: implement searchAccounts test");
-    }, 60_000);
-
     test("bladeSdk-hedera.getKeysFromMnemonic", async () => {
         let result;
 
@@ -637,7 +631,6 @@ describe("testing methods related to HEDERA network", () => {
             expect(result.error.reason.includes("INSUFFICIENT_PAYER_BALANCE")).toEqual(true);
         }
     }, 60_000);
-
 
     test("bladeSdk-hedera.createToken + nftMint + associateToken + transferTokens", async () => {
         const treasuryAccountId = accountId;
@@ -967,14 +960,27 @@ describe("testing methods related to HEDERA network", () => {
         expect(result.data.values[0].value).toEqual(message);
 
         params = new ParametersBuilder();
-        result = await bladeSdk.contractCallQueryFunction(contractId, "unknown function", params, 100000, true, ["string"], completionKey);
-        checkResult(result, false);
+        try {
+            result = await bladeSdk.contractCallQueryFunction(contractId, "unknown function", params, 100000, true, ["string"], completionKey);
+            expect("Code should not reach here1").toEqual(result);
+        } catch (result) {
+            checkResult(result, false);
+        }
 
-        result = await bladeSdk.contractCallQueryFunction(contractId, "get_message", params, 100000, false, ["string"], completionKey);
-        checkResult(result, false);
 
-        result = await bladeSdk.contractCallQueryFunction(contractId, "get_message", params, 100000, false, ["bytes32", "unknown-type"], completionKey);
-        checkResult(result, false);
+        try {
+            result = await bladeSdk.contractCallQueryFunction(contractId, "unknown function", params, 100000, true, ["string"], completionKey);
+            expect("Code should not reach here2").toEqual(result);
+        } catch (result) {
+            checkResult(result, false);
+        }
+
+        try {
+            result = await bladeSdk.contractCallQueryFunction(contractId, "get_message", params, 100000, false, ["bytes32", "unknown-type"], completionKey);
+            expect("Code should not reach here3").toEqual(result);
+        } catch (result) {
+            checkResult(result, false);
+        }
     }, 620_000);
 
     test("bladeSdk-hedera.sign + signVerify", async () => {

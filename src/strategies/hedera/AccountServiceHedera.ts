@@ -67,8 +67,7 @@ export default class AccountServiceHedera implements IAccountService {
             if (accountCreateJob.status === JobStatus.FAILED) {
                 throw new Error(accountCreateJob.errorMessage);
             }
-            // TODO set timeout from sdk-config
-            await sleep(5000)
+            await sleep(await this.configService.getConfig("refreshTaskPeriodSeconds") * 1000)
             accountCreateJob = await this.apiService.createAccount(JobAction.CHECK, accountCreateJob.taskId);
         }
 
@@ -92,8 +91,7 @@ export default class AccountServiceHedera implements IAccountService {
                 if (tokenAssociationJob.status === JobStatus.FAILED) {
                     throw new Error(tokenAssociationJob.errorMessage);
                 }
-                // TODO set timeout from sdk-config
-                await sleep(1000);
+                await sleep(await this.configService.getConfig("refreshTaskPeriodSeconds") * 1000);
                 tokenAssociationJob = await this.apiService.tokenAssociation(JobAction.CHECK, tokenAssociationJob.taskId);
             }
 
@@ -122,8 +120,7 @@ export default class AccountServiceHedera implements IAccountService {
                 if (kycGrantJob.status === JobStatus.FAILED) {
                     throw new Error(kycGrantJob.errorMessage);
                 }
-
-                await sleep(1000);
+                await sleep(await this.configService.getConfig("refreshTaskPeriodSeconds") * 1000);
                 await this.apiService.kycGrant(JobAction.CHECK, kycGrantJob.taskId);
             }
         }

@@ -60,8 +60,7 @@ export default class ContractServiceHedera implements IContractService {
                 if (contractCallJob.status === JobStatus.FAILED) {
                     throw new Error(contractCallJob.errorMessage);
                 }
-                // TODO set timeout from sdk-config
-                await sleep(1000);
+                await sleep(await this.configService.getConfig("refreshTaskPeriodSeconds") * 1000);
                 contractCallJob = await this.apiService.signContractCallTx(JobAction.CHECK, contractCallJob.taskId);
             }
 
@@ -123,8 +122,7 @@ export default class ContractServiceHedera implements IContractService {
                 if (contractCallQueryJob.status === JobStatus.FAILED) {
                     throw new Error(contractCallQueryJob.errorMessage);
                 }
-                // TODO set timeout from sdk-config
-                await sleep(1000);
+                await sleep(await this.configService.getConfig("refreshTaskPeriodSeconds") * 1000);
                 contractCallQueryJob = await this.apiService.apiCallContractQuery(JobAction.CHECK, contractCallQueryJob.taskId);
             }
 
@@ -140,22 +138,19 @@ export default class ContractServiceHedera implements IContractService {
             response = new ContractFunctionResult({
                 _createResult: false,
                 // @ts-expect-error - should be a Long, but we don't have the type for it
-                contractId: "contractFunctionResult?.contractId,",
-                // contractId: contractFunctionResult?.contractId,
+                contractId: contractFunctionResult?.contractId,
                 errorMessage: "",
                 bloom: Uint8Array.from([]),
                 // @ts-expect-error - should be a Long, but we don't have the type for it
-                gasUsed: 1, // contractFunctionResult?.gasUsed,
+                gasUsed: contractFunctionResult?.gasUsed,
                 logs: [],
                 createdContractIds: [],
                 evmAddress: null,
                 bytes: Buffer.from(rawResult, "base64"),
-                // gas: contractFunctionResult?.gasUsed,
-                // amount: contractFunctionResult?.gasUsed,
                 // @ts-expect-error - should be a Long, but we don't have the type for it
-                gas: 0,
+                gas: contractFunctionResult?.gasUsed,
                 // @ts-expect-error - should be a Long, but we don't have the type for it
-                amount: 0,
+                amount: contractFunctionResult?.gasUsed,
                 functionParameters: Uint8Array.from([]),
                 senderAccountId: null,
                 stateChanges: [],

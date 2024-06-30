@@ -529,6 +529,7 @@ export class BladeSDK {
         }
     }
 
+    // TODO remove
     /**
      * @deprecated Will be removed in version 0.7, switch to `searchAccounts` method
      * Get ECDSA private key from mnemonic. Also try to find accountIds based on public key if lookupNames is true.
@@ -591,6 +592,9 @@ export class BladeSDK {
      * @returns {SignMessageData}
      */
     async sign(encodedMessage: string, encoding: SupportedEncoding, completionKey?: string): Promise<SignMessageData> {
+
+        // TODO sign with ethers on hedera
+
         try {
             const result = await this.signServiceContext.sign(encodedMessage, encoding);
             return this.sendMessageToNative(completionKey, result);
@@ -700,7 +704,7 @@ export class BladeSDK {
         }
     }
 
-    // TODO migrate to `getTradeUrl` method
+    // TODO remove
     /**
      * Get configured url for C14 integration (iframe or popup)
      * @param asset name (USDC or HBAR)

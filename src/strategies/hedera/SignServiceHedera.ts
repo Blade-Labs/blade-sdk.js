@@ -24,6 +24,7 @@ import {KnownChainIds} from "../../models/Chain";
 import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
 import {formatReceipt} from "../../helpers/TransactionHelpers";
+import {Buffer} from "buffer";
 
 export default class SignServiceHedera implements ISignService {
     private readonly chainId: KnownChainIds;
