@@ -53,6 +53,7 @@ export interface BladeConfig {
     alchemyTestnetAPIKey: string;
     alchemyMainnetRPC: string;
     alchemyMainnetAPIKey: string;
+    ipfsGateway: string;
 
     [key: string]: string | number | undefined; // Index signature
 }

@@ -94,6 +94,7 @@ describe("testing methods related to HEDERA network", () => {
     const accountId4 = process.env.ACCOUNT_ID_ED25519 || "";
     const tokenId0 = process.env.TOKEN_ID0 || "";
     const tokenId1 = process.env.TOKEN_ID1 || "";
+    const nftId = process.env.NFT_ID || "";
 
     const chainId = KnownChainIds.HEDERA_TESTNET; // KnownChainIds.ETHEREUM_SEPOLIA
 
@@ -705,13 +706,13 @@ describe("testing methods related to HEDERA network", () => {
         await sleep(20_000);
         const tokenInfo: TokenInfo = await apiService.requestTokenInfo(tokenId);
 
-        expect(tokenInfo.admin_key.key).toEqual(PrivateKey.fromString(adminKey).publicKey.toStringRaw());
-        expect(tokenInfo.fee_schedule_key.key).toEqual(PrivateKey.fromString(feeScheduleKey).publicKey.toStringRaw());
-        expect(tokenInfo.freeze_key.key).toEqual(PrivateKey.fromString(freezeKey).publicKey.toStringRaw());
-        // expect(tokenInfo.kyc_key.key).toEqual(PrivateKey.fromString(kycKey).publicKey.toStringRaw());
-        expect(tokenInfo.pause_key.key).toEqual(PrivateKey.fromString(pauseKey).publicKey.toStringRaw());
-        expect(tokenInfo.supply_key.key).toEqual(PrivateKey.fromString(supplyKey).publicKey.toStringRaw());
-        expect(tokenInfo.wipe_key.key).toEqual(PrivateKey.fromString(wipeKey).publicKey.toStringRaw());
+        expect(tokenInfo.admin_key.key).toEqual(PrivateKey.fromStringDer(adminKey).publicKey.toStringRaw());
+        expect(tokenInfo.fee_schedule_key.key).toEqual(PrivateKey.fromStringDer(feeScheduleKey).publicKey.toStringRaw());
+        expect(tokenInfo.freeze_key.key).toEqual(PrivateKey.fromStringDer(freezeKey).publicKey.toStringRaw());
+        // expect(tokenInfo.kyc_key.key).toEqual(PrivateKey.fromStringDer(kycKey).publicKey.toStringRaw());
+        expect(tokenInfo.pause_key.key).toEqual(PrivateKey.fromStringDer(pauseKey).publicKey.toStringRaw());
+        expect(tokenInfo.supply_key.key).toEqual(PrivateKey.fromStringDer(supplyKey).publicKey.toStringRaw());
+        expect(tokenInfo.wipe_key.key).toEqual(PrivateKey.fromStringDer(wipeKey).publicKey.toStringRaw());
         expect(tokenInfo.decimals).toEqual("0");
         expect(tokenInfo.initial_supply).toEqual("0");
         expect(tokenInfo.max_supply).toEqual("250");
@@ -1070,10 +1071,9 @@ describe("testing methods related to HEDERA network", () => {
     });
 
     test("bladeSdk-hedera.schedule", async () => {
-        await bladeSdk.setUser(AccountProvider.PrivateKey, accountId, privateKey, completionKey);
+        await bladeSdk.setUser(AccountProvider.PrivateKey, accountId2, privateKey2, completionKey);
 
         let result = await bladeSdk.createScheduleTransaction(
-            false,
             "TRANSFER",
             [
                 {
@@ -1089,21 +1089,91 @@ describe("testing methods related to HEDERA network", () => {
                     tokenId: tokenId0,
                     value: 1
                 }
-                // {
-                //     type: "NFT",
-                //     sender: accounts[1].accountId,
-                //     receiver: accounts[2].accountId,
-                //     tokenId: "0.0.3982458",
-                //     serial: 4
-                // },
             ],
+            true,
+            completionKey
+        );
+        checkResult(result);
+        expect(result.data).toHaveProperty("scheduleId");
+        const scheduleIdPaymaster = result.data.scheduleId;
+
+        result = await bladeSdk.createScheduleTransaction(
+            "TRANSFER",
+            [
+                {
+                    type: "HBAR",
+                    sender: accountId,
+                    receiver: accountId2,
+                    value: Math.floor(Math.random() * 6000000)
+                },
+                {
+                    type: "FT",
+                    sender: accountId,
+                    receiver: accountId2,
+                    tokenId: tokenId0,
+                    value: 1
+                }
+            ],
+            false,
             completionKey
         );
         checkResult(result);
         expect(result.data).toHaveProperty("scheduleId");
         const scheduleId = result.data.scheduleId;
 
-        result = await bladeSdk.signScheduleId(scheduleId, false, accountId2, completionKey);
+        await bladeSdk.setUser(AccountProvider.PrivateKey, accountId, privateKey, completionKey);
+
+        result = await bladeSdk.signScheduleId(scheduleId, accountId2, false, completionKey);
+        checkResult(result);
+        result = await bladeSdk.signScheduleId(scheduleIdPaymaster, accountId2, true, completionKey);
         checkResult(result);
     }, 60_000);
+
+    test("bladeSdk-hedera.getNodeList + stake", async () => {
+        await bladeSdk.setUser(AccountProvider.PrivateKey, accountId, privateKey, completionKey);
+
+        let result = await bladeSdk.getNodeList(completionKey);
+        checkResult(result);
+        expect(result.data).toHaveProperty("nodes");
+        expect(Array.isArray(result.data.nodes)).toEqual(true);
+        expect(result.data.nodes.length).toBeGreaterThan(0);
+
+        expect(result.data.nodes[0]).toHaveProperty("description");
+        expect(result.data.nodes[0]).toHaveProperty("node_id");
+
+
+        result = await bladeSdk.stakeToNode(result.data.nodes[0].node_id, completionKey);
+        checkResult(result);
+
+        result = await bladeSdk.stakeToNode(-1, completionKey);
+        checkResult(result);
+
+    }, 60_000);
+
+    test('bladeSdk-hedera.getTokenInfo', async () => {
+        let result = await bladeSdk.getTokenInfo(nftId, "1", completionKey);
+        checkResult(result);
+
+        expect(result.data).toHaveProperty("token");
+        expect(result.data).toHaveProperty("nft");
+        expect(result.data).toHaveProperty("metadata");
+        expect(result.data.nft).toHaveProperty("token_id");
+        expect(result.data.nft).toHaveProperty("serial_number");
+        expect(result.data.metadata).toHaveProperty("author");
+        expect(result.data.metadata.author).toEqual("GaryDu");
+
+
+        result = await bladeSdk.getTokenInfo(tokenId0, "", completionKey);
+        checkResult(result);
+        expect(result.data.nft).toEqual(null);
+        expect(result.data.metadata).toEqual(null);
+
+        try {
+            result = await bladeSdk.getTokenInfo(nftId, "555", completionKey);
+            expect("Code should not reach here").toBeNull();
+        } catch (result) {
+            checkResult(result, false);
+        }
+    }, 60_000);
+
 }); // describe

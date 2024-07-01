@@ -52,6 +52,8 @@ import {
     DropJob,
     JobAction,
     KycGrandJob,
+    ScheduleRequestJob,
+    SignScheduleRequestJob,
     TokenAssociateJob,
     TransferTokensJob
 } from "../models/BladeApi";
@@ -136,10 +138,6 @@ export default class ApiService {
         return `https://dapi.bld-dev.bladewallet.io/dapi${publicPart}/v8`;
     }
 
-    getIpfsTrustlessGatewayUrlList(): string[] {
-        return ["https://trustless-gateway.link/ipfs", "https://4everland.io/ipfs"];
-    }
-
     async GET<T>(network: Network, route: string): Promise<T> {
         const options: Partial<RequestInit> = {};
         if (route.indexOf("/api/v1") === 0) {
@@ -214,7 +212,7 @@ export default class ApiService {
     async createAccount(
         requestMode: JobAction,
         taskId: string,
-        params?: {deviceId: string; publicKey: string}
+        params?: { deviceId: string; publicKey: string }
     ): Promise<AccountCreateJob> {
         let url: string;
         let options: RequestInit;
@@ -263,7 +261,7 @@ export default class ApiService {
     async tokenAssociation(
         requestMode: JobAction,
         taskId: string,
-        params?: {tokenIds: string[]; accountId: string}
+        params?: { tokenIds: string[]; accountId: string }
     ): Promise<TokenAssociateJob> {
         let url: string;
         let options: RequestInit;
@@ -310,7 +308,7 @@ export default class ApiService {
     async kycGrant(
         requestMode: JobAction,
         taskId: string,
-        params?: {tokenIds: string[]; accountId: string}
+        params?: { tokenIds: string[]; accountId: string }
     ): Promise<KycGrandJob> {
         let url: string;
         let options: RequestInit;
@@ -597,7 +595,7 @@ export default class ApiService {
     async dropTokens(
         requestMode: JobAction,
         taskId: string,
-        params?: {accountId: string; signedNonce: string}
+        params?: { accountId: string; signedNonce: string }
     ): Promise<DropJob> {
         let url: string;
         let options: RequestInit;
@@ -716,7 +714,7 @@ export default class ApiService {
         transactionType: string = "",
         nextPage: string | null = null,
         transactionsLimit: string = "10"
-    ): Promise<{nextPage: string | null; transactions: TransactionData[]}> {
+    ): Promise<{ nextPage: string | null; transactions: TransactionData[] }> {
         const limit = parseInt(transactionsLimit, 10);
         let info: TransactionsMirrorResponse;
         const result: TransactionData[] = [];
@@ -730,7 +728,7 @@ export default class ApiService {
             }
             nextPage = info.links.next ?? null;
 
-            const groupedTransactions: {[key: string]: TransactionData[]} = {};
+            const groupedTransactions: { [key: string]: TransactionData[] } = {};
 
             await Promise.all(
                 info.transactions.map(async (t: TransactionMirrorDetails) => {
@@ -805,63 +803,100 @@ export default class ApiService {
         return this.GET<NftInfo>(this.network, `/tokens/${tokenId}/nfts/${serial}`) as Promise<NftInfo>;
     }
 
-    async getNftMetadataFromIpfs(cid: string): Promise<NftMetadata | null> {
-        for (const gateway of this.getIpfsTrustlessGatewayUrlList()) {
-            try {
-                return fetch(`${gateway}/${cid}?format=raw`)
-                    .then(res => res.json()) as Promise<NftMetadata>
-            } catch (e) {
-                console.log(e);
-            }
+    async getNftMetadataFromIpfs(ipfsGateway: string, cid: string): Promise<NftMetadata | null> {
+        return fetchWithRetry(`${ipfsGateway}${cid}`, {})
+            .then(res => res.json()) as Promise<NftMetadata>
+    }
+
+
+    async createScheduleRequestJob(
+        requestMode: JobAction,
+        taskId: string,
+        params?: {type: ScheduleTransactionType, transfers: ScheduleTransactionTransfer[]}
+    ): Promise<ScheduleRequestJob> {
+        let url: string;
+        let options: RequestInit;
+        let retryCount = 3;
+        switch (requestMode) {
+            case JobAction.INIT:
+                if (!params) {
+                    throw new Error("Invalid params");
+                }
+                url = `${this.getApiUrl()}/tokens/schedules`;
+                options = {
+                    method: "POST",
+                    headers: await this.reqHeaders(),
+                    body: JSON.stringify({
+                        transaction: {
+                        type: params.type,
+                        transfers: params.transfers
+                            }
+                    })
+                };
+                retryCount = 0;
+                break;
+            case JobAction.CHECK:
+                url = `${this.getApiUrl()}/tokens/schedules/${taskId}`;
+                options = {
+                    method: "GET",
+                    headers: await this.reqHeaders()
+                };
+                break;
+            default:
+                throw new Error("Invalid request mode");
         }
 
-        console.log("Couldn't retrieve data from IPFS");
-        return null;
+        return fetchWithRetry(url, options, retryCount)
+            .then(statusCheck)
+            .then(x => x.json()) as Promise<ScheduleRequestJob>;
     }
 
-    async createScheduleRequest(type: ScheduleTransactionType, transfers: ScheduleTransactionTransfer[]): Promise<any> {
-        const url = `${this.getApiUrl()}/tokens/schedules`;
-        const options = {
-            method: "POST",
-            headers: new Headers({
-                "X-NETWORK": this.network.toUpperCase(),
-                "X-VISITOR-ID": this.visitorId,
-                "X-DAPP-CODE": this.dAppCode,
-                "X-SDK-TVTE-API": await this.getTvteHeader(),
-                "Content-Type": "application/json"
-            }),
-            body: JSON.stringify({
-                transaction: {
-                    type,
-                    transfers
+    async signScheduleRequestJob(
+        requestMode: JobAction,
+        taskId: string,
+        params?: {scheduledTransactionId: string, receiverAccountId: string}
+
+    ): Promise<SignScheduleRequestJob> {
+        let url: string;
+        let options: RequestInit;
+        let retryCount = 3;
+        switch (requestMode) {
+            case JobAction.INIT:
+                if (!params) {
+                    throw new Error("Invalid params");
                 }
-            })
-        };
+                url = `${this.getApiUrl()}/tokens/schedules/sign`;
+                options = {
+                    method: "POST",
+                    headers: await this.reqHeaders(),
+                    body: JSON.stringify({
+                        receiverAccountId: params.receiverAccountId,
+                        scheduledTransactionId: params.scheduledTransactionId
+                    })
+                };
+                retryCount = 0;
+                break;
+            case JobAction.CHECK:
+                url = `${this.getApiUrl()}/tokens/schedules/sign/${taskId}`;
+                options = {
+                    method: "GET",
+                    headers: await this.reqHeaders()
+                };
+                break;
+            case JobAction.CONFIRM:
+                url = `${this.getApiUrl()}/tokens/schedules/sign/${taskId}/confirm`;
+                options = {
+                    method: "PATCH",
+                    headers: await this.reqHeaders()
+                };
+                retryCount = 1;
+                break;
+            default:
+                throw new Error("Invalid request mode");
+        }
 
-        return fetch(url, options)
+        return fetchWithRetry(url, options, retryCount)
             .then(statusCheck)
-            .then(x => x.json());
-    }
-
-    async signScheduleRequest(
-        scheduledTransactionId: string,
-        receiverAccountId: string
-    ): Promise<{scheduleSignTransactionBytes: string}> {
-        const url = `${this.getApiUrl()}/tokens/schedules`;
-        const options = {
-            method: "PATCH",
-            headers: new Headers({
-                "X-NETWORK": this.network.toUpperCase(),
-                "X-VISITOR-ID": this.visitorId,
-                "X-DAPP-CODE": this.dAppCode,
-                "X-SDK-TVTE-API": await this.getTvteHeader(),
-                "Content-Type": "application/json"
-            }),
-            body: JSON.stringify({scheduledTransactionId, receiverAccountId})
-        };
-
-        return fetch(url, options)
-            .then(statusCheck)
-            .then(x => x.json());
+            .then(x => x.json()) as Promise<SignScheduleRequestJob>;
     }
 }

@@ -12,14 +12,14 @@
 | ❓      | ❌        | getCoinPrice                      | move to v8                                                        |
 | ✅      | ❓        | contractCallFunction              | test eth                                                          |
 | ✅      | ❓        | contractCallQueryFunction         | test eth. failing on hedera                                       |
-| ❓      | ❓        | createScheduleTransaction         | fix v8 integration                                                |
-| ❓      | ❓        | signScheduleId                    | fix v8 integration                                                |
+| ✅      | ❌        | createScheduleTransaction         |                                                                   |
+| ✅      | ❌        | signScheduleId                    |                                                                   |
 | ✅      | ❓        | createAccount                     | implement for eth                                                 |
 | ❌      | ❌        | getPendingAccount                 | removed in v8                                                     |
 | ✅      | ❌        | deleteAccount                     |                                                                   |
 | ✅      | ❓        | getAccountInfo                    | fix tests for eth                                                 |
-| ❓      | ❌        | getNodeList                       | move test from dev                                                |
-| ❓      | ❌        | stakeToNode                       | move test from dev                                                |
+| ✅      | ❌        | getNodeList                       |                                                                   |
+| ✅      | ❌        | stakeToNode                       |                                                                   |
 | ❌      | ❌        | getKeysFromMnemonic               | removed in 0.8                                                    |
 | ✅      | ❓        | searchAccounts                    | test for ETH                                                      |
 | ✅      | ❓        | dropTokens                        | check if we need this for ETH                                     |
@@ -36,5 +36,5 @@
 | ✅      | ❓        | createToken                       |                                                                   |
 | ✅      | ❓        | associateToken                    |                                                                   |
 | ✅      | ❓        | nftMint (delete token after test) |                                                                   |
-| ❓      | ❓        | getTokenInfo                      | cover with tests                                                  |
+| ✅      | ❓        | getTokenInfo                      | implement for ETH                                                 |
 

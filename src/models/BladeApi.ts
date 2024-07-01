@@ -173,3 +173,16 @@ export interface ContractCallQueryJob extends V8Response {
         "rawResult": "string"
     }
 }
+
+export interface ScheduleRequestJob extends V8Response {
+    result?: {
+        scheduleId: string;
+    };
+}
+
+export interface SignScheduleRequestJob extends V8Response {
+    result?: {
+        scheduleSignTransactionBytes: string
+    };
+}
+

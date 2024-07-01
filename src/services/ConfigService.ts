@@ -9,16 +9,24 @@ type ConfigValueByKey<TKey extends ConfigKey> = Config[TKey];
 
 @injectable()
 export default class ConfigService {
-    private config: Partial<BladeConfig> = {
+    private config: BladeConfig = {
+        fpApiKey: "",
         fpSubdomain: 'https://identity.bladewallet.io',
 
+        exchangeServiceSignerPubKey: "",
+        swapContract: "", // '{ "Testnet": "0.0.123", "Mainnet": "0.0.123" }'
+        swapWrapHbar: "", // '{ "Testnet": ["0.0.1337"], "Mainnet": ["0.0.1337"] }'
+        saucerswapApi: "", // '{"Testnet":"https://test-api.saucerswap.finance/","Mainnet":"https://api.saucerswap.finance/"}',
+        magicLinkPublicKey: "",
+        refreshTaskPeriodSeconds: 1,
+        feesConfig: "", // '{"Mainnet":{"AccountCreate":{"collector":"0.0.123","min":0.01,"amount":0,"max":0.5,"limitsCurrency":"usd"},"TradeNFT":{...}, ...}}',
+
         // TODO add alchemy keys in backend config
-        alchemyTestnetRPC: "https://eth-sepolia.g.alchemy.com/v2/",
-        alchemyTestnetAPIKey: undefined,
-        // TODO set correct apikey
-        alchemyMainnetRPC: "https://eth-mainnet.g.alchemy.com/v2/",
-        alchemyMainnetAPIKey: undefined,
-        fpSubdomain: "https://identity.bladewallet.io"
+        alchemyTestnetRPC: 'https://eth-sepolia.g.alchemy.com/v2/',
+        alchemyTestnetAPIKey: '',
+        alchemyMainnetRPC: 'https://eth-mainnet.g.alchemy.com/v2/',
+        alchemyMainnetAPIKey: '',
+        ipfsGateway: 'https://blade.mypinata.cloud/ipfs/'
     };
     private dAppConfig: Partial<DAppConfig> = {};
 

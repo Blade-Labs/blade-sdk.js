@@ -915,7 +915,8 @@ export class BladeSDK {
             let metadata: NftMetadata | null = null;
             if (token.type === TokenType.NonFungibleUnique.toString() && serial) {
                 nft = await this.apiService.getNftInfo(tokenId, serial);
-                metadata = await this.apiService.getNftMetadataFromIpfs(Buffer.from(nft.metadata, "base64").toString());
+                const ipfsGateway = await this.configService.getConfig("ipfsGateway")
+                metadata = await this.apiService.getNftMetadataFromIpfs(ipfsGateway, Buffer.from(nft.metadata, "base64").toString());
             }
             return this.sendMessageToNative(completionKey, {
                 token,

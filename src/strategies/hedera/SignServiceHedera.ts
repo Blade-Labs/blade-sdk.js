@@ -25,6 +25,8 @@ import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
 import {formatReceipt} from "../../helpers/TransactionHelpers";
 import {Buffer} from "buffer";
+import {JobAction, JobStatus} from "../../models/BladeApi";
+import {sleep} from "../../helpers/ApiHelper";
 
 export default class SignServiceHedera implements ISignService {
     private readonly chainId: KnownChainIds;
@@ -82,8 +84,22 @@ export default class SignServiceHedera implements ISignService {
     ): Promise<{scheduleId: string}> {
         usePaymaster = usePaymaster && await this.configService.getConfig("scheduleSign");
         if (usePaymaster) {
-            const result = await this.apiService.createScheduleRequest(type, transfers);
-            return result;
+            let createScheduleRequestJob = await this.apiService.createScheduleRequestJob(JobAction.INIT, "", {type, transfers});
+            while (true) {
+                if (createScheduleRequestJob.status === JobStatus.SUCCESS) {
+                    break;
+                }
+                if (createScheduleRequestJob.status === JobStatus.FAILED) {
+                    throw new Error(createScheduleRequestJob.errorMessage);
+                }
+                await sleep(await this.configService.getConfig("refreshTaskPeriodSeconds") * 1000);
+                createScheduleRequestJob = await this.apiService.createScheduleRequestJob(JobAction.CHECK, createScheduleRequestJob.taskId);
+            }
+
+            if (!createScheduleRequestJob.result) {
+                throw new Error("No result from backend");
+            }
+            return createScheduleRequestJob.result;
         } else {
             switch (type) {
                 case ScheduleTransactionType.TRANSFER: {
@@ -142,7 +158,7 @@ export default class SignServiceHedera implements ISignService {
     }
 
     async signScheduleId(
-        scheduleId: string,
+        scheduledTransactionId: string,
         receiverAccountId: string,
         usePaymaster: boolean = false,
     ): Promise<TransactionReceiptData> {
@@ -151,20 +167,34 @@ export default class SignServiceHedera implements ISignService {
             if (!receiverAccountId) {
                 throw new Error("Receiver account id required for free schedule transaction");
             }
-            const {scheduleSignTransactionBytes} = await this.apiService.signScheduleRequest(
-                scheduleId,
-                receiverAccountId
-            );
-            const buffer = Buffer.from(scheduleSignTransactionBytes, "base64");
+
+            let signScheduleRequestJob = await this.apiService.signScheduleRequestJob(JobAction.INIT, "", {receiverAccountId, scheduledTransactionId});
+            while (true) {
+                if (signScheduleRequestJob.status === JobStatus.SUCCESS) {
+                    break;
+                }
+                if (signScheduleRequestJob.status === JobStatus.FAILED) {
+                    throw new Error(signScheduleRequestJob.errorMessage);
+                }
+                await sleep(await this.configService.getConfig("refreshTaskPeriodSeconds") * 1000);
+                signScheduleRequestJob = await this.apiService.signScheduleRequestJob(JobAction.CHECK, signScheduleRequestJob.taskId);
+            }
+            if (!signScheduleRequestJob.result) {
+                throw new Error("No result from backend");
+            }
+
+            const buffer = Buffer.from(signScheduleRequestJob.result.scheduleSignTransactionBytes, "base64");
             const receipt = await Transaction.fromBytes(buffer)
                 .signWithSigner(this.signer)
                 .then(signedTx => signedTx.executeWithSigner(this.signer))
                 .then(result => result.getReceiptWithSigner(this.signer));
-            console.log("scheduleSignTransactionBytes receipt", receipt);
+            await this.apiService.signScheduleRequestJob(JobAction.CONFIRM, signScheduleRequestJob.taskId).catch((e) => {
+                // ignore this error, continue (no content)
+            });
             return formatReceipt(receipt);
         } else {
             return new ScheduleSignTransaction()
-                .setScheduleId(scheduleId)
+                .setScheduleId(scheduledTransactionId)
                 .freezeWithSigner(this.signer)
                 .then(tx => tx.signWithSigner(this.signer))
                 .then(tx => tx.executeWithSigner(this.signer))
