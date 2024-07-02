@@ -16,6 +16,7 @@ import {
     ICryptoFlowTransactionParams
 } from "../../models/CryptoFlow";
 import CryptoFlowService from "../../services/CryptoFlowService";
+import {HbarTokenId} from "../../services/FeeService";
 
 export default class TradeServiceHedera implements ITradeService {
     private readonly chainId: KnownChainIds;
@@ -102,20 +103,41 @@ export default class TradeServiceHedera implements ITradeService {
         strategy: CryptoFlowServiceStrategy
     ): Promise<SwapQuotesData> {
         const useTestnet = ChainMap[this.chainId].isTestnet;
-        const params: ICryptoFlowAssetsParams | ICryptoFlowQuoteParams | ICryptoFlowTransactionParams | any = {
+        const chainId = parseInt(this.chainId, 10);
+        const assets = (await this.apiService.getCryptoFlowData(
+            CryptoFlowRoutes.ASSETS,
+            {
+                sourceCode,
+                targetCode,
+                useTestnet,
+                targetChainId: chainId,
+                sourceChainId: chainId,
+            },
+            strategy
+        )) as ICryptoFlowAssets;
+
+        const sourceAddress = assets.source.find((asset) => asset.code === sourceCode)?.address;
+        const targetAddress = assets.target.find((asset) => asset.code === targetCode)?.address;
+
+
+        const params: ICryptoFlowQuoteParams = {
             sourceCode,
             sourceAmount,
             targetCode,
-            useTestnet
+            useTestnet,
+            walletAddress: HbarTokenId,
+            slippage: "0.5",
+            sourceAddress,
+            targetAddress,
         };
 
         switch (strategy.toLowerCase()) {
             case CryptoFlowServiceStrategy.BUY.toLowerCase(): {
-                params.targetChainId = this.chainId;
+                params.targetChainId = chainId;
                 break;
             }
             case CryptoFlowServiceStrategy.SELL.toLowerCase(): {
-                params.sourceChainId = this.chainId;
+                params.sourceChainId = chainId;
                 const assets = (await this.apiService.getCryptoFlowData(
                     CryptoFlowRoutes.ASSETS,
                     params,
@@ -128,8 +150,8 @@ export default class TradeServiceHedera implements ITradeService {
                 break;
             }
             case CryptoFlowServiceStrategy.SWAP.toLowerCase(): {
-                params.sourceChainId = this.chainId;
-                params.targetChainId = this.chainId;
+                params.sourceChainId = chainId;
+                params.targetChainId = chainId;
                 break;
             }
         }
@@ -147,19 +169,37 @@ export default class TradeServiceHedera implements ITradeService {
         sourceCode: string,
         sourceAmount: number,
         targetCode: string,
-        slippage: number,
+        slippage: string,
         serviceId: string
     ): Promise<{success: boolean}> {
         const useTestnet = ChainMap[this.chainId].isTestnet;
+        const chainId = parseInt(this.chainId, 10);
+        const assets = (await this.apiService.getCryptoFlowData(
+            CryptoFlowRoutes.ASSETS,
+            {
+                sourceCode,
+                targetCode,
+                useTestnet,
+                targetChainId: chainId,
+                sourceChainId: chainId,
+            },
+            CryptoFlowServiceStrategy.SWAP
+        )) as ICryptoFlowAssets;
+
+        const sourceAddress = assets.source.find((asset) => asset.code === sourceCode)?.address;
+        const targetAddress = assets.target.find((asset) => asset.code === targetCode)?.address;
+
         const quotes = (await this.apiService.getCryptoFlowData(
             CryptoFlowRoutes.QUOTES,
             {
                 sourceCode,
-                sourceChainId: +this.chainId,
+                sourceChainId: chainId,
                 sourceAmount,
                 targetCode,
-                targetChainId: +this.chainId,
-                useTestnet
+                targetChainId: chainId,
+                useTestnet,
+                sourceAddress,
+                targetAddress
             },
             CryptoFlowServiceStrategy.SWAP
         )) as ICryptoFlowQuote[];
@@ -171,7 +211,7 @@ export default class TradeServiceHedera implements ITradeService {
         const txData: ICryptoFlowTransaction = (await this.apiService.getCryptoFlowData(CryptoFlowRoutes.TRANSACTION, {
             serviceId,
             sourceCode,
-            sourceChainId: +this.chainId,
+            sourceChainId: chainId,
             sourceAddress: selectedQuote.source.asset.address,
             sourceAmount,
             targetCode,
@@ -188,7 +228,8 @@ export default class TradeServiceHedera implements ITradeService {
                 accountAddress,
                 this.chainId,
                 this.signer!,
-                true
+                true,
+                txData.allowanceTo
             );
             try {
                 await this.cryptoFlowService.executeHederaSwapTx(txData.calldata, this.signer!);
@@ -198,7 +239,8 @@ export default class TradeServiceHedera implements ITradeService {
                     accountAddress,
                     this.chainId,
                     this.signer!,
-                    false
+                    false,
+                    txData.allowanceTo
                 );
                 throw e;
             }
@@ -220,8 +262,9 @@ export default class TradeServiceHedera implements ITradeService {
         sourceCode: string,
         sourceAmount: number,
         targetCode: string,
-        slippage: number,
-        serviceId: string
+        slippage: string,
+        serviceId: string,
+        redirectUrl: string
     ): Promise<IntegrationUrlData> {
         const useTestnet = ChainMap[this.chainId].isTestnet;
 
@@ -253,6 +296,7 @@ export default class TradeServiceHedera implements ITradeService {
                 break;
             }
         }
+        params.redirectUrl = redirectUrl;
 
         const quotes = (await this.apiService.getCryptoFlowData(
             CryptoFlowRoutes.QUOTES,

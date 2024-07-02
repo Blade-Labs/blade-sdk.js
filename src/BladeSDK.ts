@@ -770,7 +770,7 @@ export class BladeSDK {
         sourceCode: string,
         sourceAmount: number,
         targetCode: string,
-        slippage: number,
+        slippage: string,
         serviceId: string,
         completionKey?: string
     ): Promise<{success: boolean}> {
@@ -798,6 +798,7 @@ export class BladeSDK {
      * @param targetCode name (HBAR, KARATE, USDC, other token code)
      * @param slippage slippage in percents. Transaction will revert if the price changes unfavorably by more than this percentage.
      * @param serviceId service id to use for swap (saucerswap, onmeta, etc)
+     * @param redirectUrl url to redirect after final step
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {IntegrationUrlData}
      */
@@ -807,8 +808,9 @@ export class BladeSDK {
         sourceCode: string,
         sourceAmount: number,
         targetCode: string,
-        slippage: number,
+        slippage: string,
         serviceId: string,
+        redirectUrl: string,
         completionKey?: string
     ): Promise<IntegrationUrlData> {
         try {
@@ -819,7 +821,8 @@ export class BladeSDK {
                 sourceAmount,
                 targetCode,
                 slippage,
-                serviceId
+                serviceId,
+                redirectUrl
             );
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {

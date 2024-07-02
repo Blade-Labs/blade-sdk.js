@@ -4,7 +4,6 @@ import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
 import {ITradeService} from "../TradeServiceContext";
 import {IntegrationUrlData, SwapQuotesData} from "../../models/Common";
-import {CryptoFlowServiceStrategy} from "../../models/CryptoFlow";
 import {KnownChainIds} from "../../models/Chain";
 
 export default class TradeServiceEthereum implements ITradeService {
@@ -20,39 +19,19 @@ export default class TradeServiceEthereum implements ITradeService {
         this.configService = configService;
     }
 
-    async getC14url(asset: string, account: string, amount: string): Promise<IntegrationUrlData> {
+    getC14url(): Promise<IntegrationUrlData> {
         throw new Error("Method not implemented.");
     }
 
-    async exchangeGetQuotes(
-        sourceCode: string,
-        sourceAmount: number,
-        targetCode: string,
-        strategy: CryptoFlowServiceStrategy
-    ): Promise<SwapQuotesData> {
+    exchangeGetQuotes(): Promise<SwapQuotesData> {
         throw new Error("Method not implemented.");
     }
 
-    async swapTokens(
-        accountAddress: string,
-        sourceCode: string,
-        sourceAmount: number,
-        targetCode: string,
-        slippage: number,
-        serviceId: string
-    ): Promise<{success: boolean}> {
+    swapTokens(): Promise<{success: boolean}> {
         throw new Error("Method not implemented.");
     }
 
-    async getTradeUrl(
-        strategy: CryptoFlowServiceStrategy,
-        accountId: string,
-        sourceCode: string,
-        sourceAmount: number,
-        targetCode: string,
-        slippage: number,
-        serviceId: string
-    ): Promise<IntegrationUrlData> {
+    getTradeUrl(): Promise<IntegrationUrlData> {
         throw new Error("Method not implemented.");
     }
 }

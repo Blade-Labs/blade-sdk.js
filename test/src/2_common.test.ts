@@ -62,8 +62,6 @@ describe("test COMMON functionality", () => {
 
     const privateKey = process.env.PRIVATE_KEY || ""; // ECDSA
     const accountId = process.env.ACCOUNT_ID || "";
-    const privateKeyED25519 = process.env.PRIVATE_KEY_ED25519 || "";
-    const accountId4ED25519 = process.env.ACCOUNT_ID_ED25519 || "";
     const chainId = KnownChainIds.HEDERA_TESTNET; // KnownChainIds.ETHEREUM_SEPOLIA
 
     beforeEach(async () => {
@@ -112,14 +110,17 @@ describe("test COMMON functionality", () => {
     });
 
     test("bladeSdk-common.getCoinPrice", async () => {
-        let result = await bladeSdk.getCoinPrice("Hbar", "usd", completionKey);
+        let result = await bladeSdk.getCoinPrice("Hbar", "uah", completionKey);
         checkResult(result);
 
         expect(result.data).toHaveProperty("priceUsd");
+        expect(result.data).toHaveProperty("price");
         expect(result.data).toHaveProperty("coin");
+        expect(result.data).toHaveProperty("currency");
         const coin = result.data.coin;
         expect(coin.id).toEqual("hedera-hashgraph");
         expect(coin.symbol).toEqual("hbar");
+        expect(result.data.currency).toEqual("uah");
         expect(coin.market_data.current_price.usd).toEqual(result.data.priceUsd);
 
         result = await bladeSdk.getCoinPrice("0.0.0", "uah", completionKey);
@@ -130,9 +131,9 @@ describe("test COMMON functionality", () => {
         checkResult(result);
         expect(result.data.coin.symbol).toEqual("karate");
 
-        // result = await bladeSdk.getCoinPrice("0.0.2283230", completionKey);
-        // checkResult(result);
-        // expect(result.data.coin.symbol).toEqual("karate");
+        result = await bladeSdk.getCoinPrice(process.env.KARATE_TOKEN_ID, "", completionKey);
+        checkResult(result);
+        expect(result.data.coin.symbol).toEqual("karate");
 
         result = await bladeSdk.getCoinPrice("karate-combat", "usd", completionKey);
         checkResult(result);
@@ -177,17 +178,12 @@ describe("test COMMON functionality", () => {
         }
     });
 
-    // TODO refactor
     test("bladeSdk-common.splitSignature", async () => {
         const message = "hello";
-        const messageString = Buffer.from(message).toString("base64");
+        const wallet = new ethers.Wallet(PrivateKey.fromStringDer(privateKey).toStringRaw());
+        const signature = await wallet.signMessage(Buffer.from(message));
 
-        let result = await bladeSdk.ethersSign(messageString, privateKey, completionKey);
-        checkResult(result);
-        expect(result.data).toHaveProperty("signedMessage");
-        const signature = result.data.signedMessage;
-
-        result = await bladeSdk.splitSignature(result.data.signedMessage, completionKey);
+        let result = await bladeSdk.splitSignature(signature, completionKey);
         checkResult(result);
 
         const v: number = result.data.v;
@@ -287,100 +283,4 @@ describe("test COMMON functionality", () => {
         }
     });
 
-    test("bladeSdk-common.exchangeGetQuotes", async () => {
-        let result = await bladeSdk.init(
-            process.env.API_KEY_MAINNET,
-            KnownChainIds.HEDERA_MAINNET,
-            process.env.DAPP_CODE,
-            process.env.VISITOR_ID,
-            process.env.SDK_ENV,
-            sdkVersion,
-            completionKey
-        );
-        checkResult(result);
-
-        result = await bladeSdk.exchangeGetQuotes("EUR", 50, "HBAR", "Buy", completionKey);
-        checkResult(result);
-
-        result = await bladeSdk.exchangeGetQuotes("USDC", 30, "PHP", "Sell", completionKey);
-        checkResult(result);
-
-        result = await bladeSdk.exchangeGetQuotes("HBAR", 5, "USDC", "Swap", completionKey);
-        checkResult(result);
-
-        try {
-            result = await bladeSdk.exchangeGetQuotes("aaaaaaa", 0, "bbbbbb", "FFFF", completionKey);
-            expect("Code should not reach here").toEqual(result);
-        } catch (result) {
-            checkResult(result, false);
-        }
-    }, 50_000);
-
-    test("bladeSdk-common.swapTokens", async () => {
-        let result;
-
-        try {
-            result = await bladeSdk.swapTokens("USDC", 0.00001, "HBAR", 0.5, "saucerswap", completionKey);
-            expect("Code should not reach here").toEqual(result);
-        } catch (result) {
-            checkResult(result, false);
-        }
-
-        result = await bladeSdk.setUser(
-            AccountProvider.PrivateKey,
-            accountId4ED25519,
-            privateKeyED25519,
-            completionKey
-        );
-        checkResult(result);
-
-        // TODO check why this is failing (TOKEN_NOT_ASSOCIATED_TO_ACCOUNT)
-        // result = await bladeSdk.swapTokens("USDC", 0.00001, "HBAR", 0.5, "saucerswap", completionKey);
-        // checkResult(result);
-
-        try {
-            result = await bladeSdk.swapTokens("USDC", 0.00001, "HBAR", 0.5, "unknown-service-id", completionKey);
-            expect("Code should not reach here").toEqual(result);
-        } catch (result) {
-            checkResult(result, false);
-        }
-    }, 60_000);
-
-    test("bladeSdk-common.getTradeUrl", async () => {
-        let result = await bladeSdk.init(
-            process.env.API_KEY_MAINNET,
-            chainId,
-            process.env.DAPP_CODE,
-            process.env.VISITOR_ID,
-            process.env.SDK_ENV,
-            sdkVersion,
-            completionKey
-        );
-        checkResult(result);
-
-        // TODO check what is wrong with the following tests
-        // result = await bladeSdk.getTradeUrl("buy", accountId, "EUR", 50, "HBAR", 0.5, "moonpay", completionKey);
-        // checkResult(result);
-        // expect(result.data).toHaveProperty("url");
-        //
-        // result = await bladeSdk.getTradeUrl("sell", accountId, "USDC", 50, "PHP", 0.5, "onmeta", completionKey);
-        // checkResult(result);
-        // expect(result.data).toHaveProperty("url");
-
-        try {
-            result = await bladeSdk.getTradeUrl(
-                "buy",
-                accountId,
-                "EUR",
-                50,
-                "HBAR",
-                0.5,
-                "unknown-service-id",
-                completionKey
-            );
-            expect("Code should not reach here").toEqual(result);
-        } catch (result) {
-            checkResult(result, false);
-        }
-    }, 30_000);
 }); // describe

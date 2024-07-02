@@ -22,7 +22,8 @@ export default class CryptoFlowService {
         activeAccount: string,
         chainId: KnownChainIds,
         signer: Signer,
-        approve: boolean = true
+        approve: boolean = true,
+        allowanceToAddr?: string
     ): Promise<void> {
         const network = ChainMap[chainId].isTestnet ? Network.Testnet : Network.Mainnet;
 
@@ -41,7 +42,7 @@ export default class CryptoFlowService {
 
             const tx = new AccountAllowanceApproveTransaction()
                 .setMaxTransactionFee(100)
-                .approveTokenAllowance(sourceToken.address, activeAccount, swapContract[network], amount);
+                .approveTokenAllowance(sourceToken.address, activeAccount, allowanceToAddr || swapContract[network], amount);
             const freezedTx = await tx.freezeWithSigner(signer);
             const signedTx = await freezedTx.signWithSigner(signer);
             const txResponse = await signedTx.executeWithSigner(signer);

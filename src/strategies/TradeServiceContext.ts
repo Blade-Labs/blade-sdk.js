@@ -9,7 +9,6 @@ import TradeServiceEthereum from "./ethereum/TradeServiceEthereum";
 import {ethers} from "ethers";
 import ApiService from "../services/ApiService";
 import ConfigService from "../services/ConfigService";
-import {Network} from "../models/Networks";
 import {CryptoFlowServiceStrategy} from "../models/CryptoFlow";
 import CryptoFlowService from "../services/CryptoFlowService";
 
@@ -26,7 +25,7 @@ export interface ITradeService {
         sourceCode: string,
         sourceAmount: number,
         targetCode: string,
-        slippage: number,
+        slippage: string,
         serviceId: string
     ): Promise<{success: boolean}>;
     getTradeUrl(
@@ -35,8 +34,9 @@ export interface ITradeService {
         sourceCode: string,
         sourceAmount: number,
         targetCode: string,
-        slippage: number,
-        serviceId: string
+        slippage: string,
+        serviceId: string,
+        redirectUrl: string,
     ): Promise<IntegrationUrlData>;
 }
 
@@ -99,7 +99,7 @@ export default class TradeServiceContext implements ITradeService {
         sourceCode: string,
         sourceAmount: number,
         targetCode: string,
-        slippage: number,
+        slippage: string,
         serviceId: string
     ): Promise<{success: boolean}> {
         this.checkSigner();
@@ -112,8 +112,9 @@ export default class TradeServiceContext implements ITradeService {
         sourceCode: string,
         sourceAmount: number,
         targetCode: string,
-        slippage: number,
-        serviceId: string
+        slippage: string,
+        serviceId: string,
+        redirectUrl: string,
     ): Promise<IntegrationUrlData> {
         this.checkInit();
         return this.strategy!.getTradeUrl(
@@ -123,7 +124,8 @@ export default class TradeServiceContext implements ITradeService {
             sourceAmount,
             targetCode,
             slippage,
-            serviceId
+            serviceId,
+            redirectUrl
         );
     }
 

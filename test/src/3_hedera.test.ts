@@ -95,6 +95,8 @@ describe("testing methods related to HEDERA network", () => {
     const tokenId0 = process.env.TOKEN_ID0 || "";
     const tokenId1 = process.env.TOKEN_ID1 || "";
     const nftId = process.env.NFT_ID || "";
+    const privateKeyED25519 = process.env.PRIVATE_KEY_ED25519 || "";
+    const accountId4ED25519 = process.env.ACCOUNT_ID_ED25519 || "";
 
     const chainId = KnownChainIds.HEDERA_TESTNET; // KnownChainIds.ETHEREUM_SEPOLIA
 
@@ -1176,4 +1178,101 @@ describe("testing methods related to HEDERA network", () => {
         }
     }, 60_000);
 
+    test("bladeSdk-hedera.swapTokens", async () => {
+        let result;
+
+        try {
+            result = await bladeSdk.swapTokens("USDC", 0.00001, "HBAR", 0.5, "saucerswap", completionKey);
+            expect("Code should not reach here").toEqual(result);
+        } catch (result) {
+            checkResult(result, false);
+        }
+
+        result = await bladeSdk.setUser(
+            AccountProvider.PrivateKey,
+            accountId4ED25519,
+            privateKeyED25519,
+            completionKey
+        );
+        checkResult(result);
+
+        result = await bladeSdk.swapTokens("HBAR", 0.01, "SAUCE", 0.5, "saucerswapV2", completionKey);
+        checkResult(result);
+
+        try {
+            result = await bladeSdk.swapTokens("USDC", 0.00001, "HBAR", 0.5, "unknown-service-id", completionKey);
+            expect("Code should not reach here").toEqual(result);
+        } catch (result) {
+            checkResult(result, false);
+        }
+    }, 60_000);
+
+    test("bladeSdk-hedera.exchangeGetQuotes", async () => {
+        let result = await bladeSdk.init(
+            process.env.API_KEY_MAINNET,
+            KnownChainIds.HEDERA_MAINNET,
+            process.env.DAPP_CODE,
+            process.env.VISITOR_ID,
+            process.env.SDK_ENV,
+            sdkVersion,
+            completionKey
+        );
+        checkResult(result);
+
+        result = await bladeSdk.exchangeGetQuotes("EUR", 50, "HBAR", "Buy", completionKey);
+        checkResult(result);
+
+        result = await bladeSdk.exchangeGetQuotes("HBAR", 30, "PHP", "Sell", completionKey);
+        checkResult(result);
+
+        result = await bladeSdk.exchangeGetQuotes("HBAR", 1500, "SAUCE", "Swap", completionKey);
+        checkResult(result);
+
+        try {
+            result = await bladeSdk.exchangeGetQuotes("aaaaaaa", 0, "bbbbbb", "FFFF", completionKey);
+            expect("Code should not reach here").toEqual(result);
+        } catch (result) {
+            checkResult(result, false);
+        }
+    }, 50_000);
+
+    test("bladeSdk-hedera.getTradeUrl", async () => {
+        let result = await bladeSdk.init(
+            process.env.API_KEY_MAINNET,
+            KnownChainIds.HEDERA_MAINNET,
+            process.env.DAPP_CODE,
+            process.env.VISITOR_ID,
+            process.env.SDK_ENV,
+            sdkVersion,
+            completionKey
+        );
+        checkResult(result);
+
+        const redirectUrl = "some-redirect-url";
+
+        result = await bladeSdk.getTradeUrl("buy", accountId, "EUR", 50, "HBAR", 0.5, "moonpay", redirectUrl, completionKey);
+        checkResult(result);
+        expect(result.data).toHaveProperty("url");
+
+        result = await bladeSdk.getTradeUrl("sell", accountId, "HBAR", 2000, "USD", 1, "transak", redirectUrl, completionKey);
+        checkResult(result);
+        expect(result.data).toHaveProperty("url");
+
+        try {
+            result = await bladeSdk.getTradeUrl(
+                "buy",
+                accountId,
+                "EUR",
+                50,
+                "HBAR",
+                0.5,
+                "unknown-service-id",
+                redirectUrl,
+                completionKey
+            );
+            expect("Code should not reach here").toEqual(result);
+        } catch (result) {
+            checkResult(result, false);
+        }
+    }, 30_000);
 }); // describe

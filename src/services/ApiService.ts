@@ -128,13 +128,19 @@ export default class ApiService {
         return new Headers(headersInit);
     }
 
-    getApiUrl(isPublic = false): string {
+    getApiUrl(isPublic = false, forceV7: boolean = false): string {
         const publicPart = isPublic ? "/public" : "";
         if (this.environment === SdkEnvironment.Prod) {
+            if (forceV7) {
+                return `https://rest.prod.bladewallet.io/openapi${publicPart}/v7`;
+            }
             throw new Error("Prod environment is not supported yet");
             // return `https://dapi.bld-dev.bladewallet.io/dapi${publicPart}/v8`;
         }
         // CI
+        if (forceV7) {
+            return `https://api.bld-dev.bladewallet.io/openapi${publicPart}/v7`;
+        }
         return `https://dapi.bld-dev.bladewallet.io/dapi${publicPart}/v8`;
     }
 
@@ -346,7 +352,7 @@ export default class ApiService {
     }
 
     async getCoins(params: any): Promise<CoinInfoRaw[]> {
-        const url = `${this.getApiUrl()}/prices/coins/list?include_platform=true`;
+        const url = `${this.getApiUrl(false, true)}/prices/coins/list?include_platform=true`;
         const options = {
             method: "GET",
             headers: new Headers({
@@ -364,7 +370,7 @@ export default class ApiService {
     }
 
     async getCoinInfo(coinId: string, params: any): Promise<CoinData> {
-        const url = `${this.getApiUrl()}/prices/coins/${coinId}?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false`;
+        const url = `${this.getApiUrl(false, true)}/prices/coins/${coinId}?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false`;
         const options = {
             method: "GET",
             headers: new Headers({
@@ -654,7 +660,7 @@ export default class ApiService {
         params: ICryptoFlowAssetsParams | ICryptoFlowQuoteParams | ICryptoFlowTransactionParams,
         strategy?: CryptoFlowServiceStrategy
     ): Promise<ICryptoFlowAssets | ICryptoFlowQuote[] | ICryptoFlowTransaction> {
-        const url = new URL(`${this.getApiUrl()}/exchange/v2/`);
+        const url = new URL(`${this.getApiUrl(false, true)}/exchange/v3/`);
         const searchParams = new URLSearchParams();
 
         for (const key in params) {

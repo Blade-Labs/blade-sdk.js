@@ -2,6 +2,7 @@ import {
     ContractCallQuery,
     ContractExecuteTransaction,
     ContractFunctionResult,
+    ContractId,
     Signer,
     Transaction,
     TransactionResponse
@@ -132,29 +133,16 @@ export default class ContractServiceHedera implements IContractService {
 
             const {contractFunctionResult, rawResult} = contractCallQueryJob.result;
 
-            // TODO improve, when backend will be fixed
-            console.log(contractFunctionResult, rawResult);
-
             response = new ContractFunctionResult({
-                _createResult: false,
-                // @ts-expect-error - should be a Long, but we don't have the type for it
-                contractId: contractFunctionResult?.contractId,
-                errorMessage: "",
-                bloom: Uint8Array.from([]),
-                // @ts-expect-error - should be a Long, but we don't have the type for it
-                gasUsed: contractFunctionResult?.gasUsed,
-                logs: [],
-                createdContractIds: [],
-                evmAddress: null,
+                contractId: ContractId.fromString(contractFunctionResult?.contractId),
                 bytes: Buffer.from(rawResult, "base64"),
                 // @ts-expect-error - should be a Long, but we don't have the type for it
                 gas: contractFunctionResult?.gasUsed,
                 // @ts-expect-error - should be a Long, but we don't have the type for it
                 amount: contractFunctionResult?.gasUsed,
-                functionParameters: Uint8Array.from([]),
-                senderAccountId: null,
-                stateChanges: [],
-                contractNonces: []
+                // @ts-expect-error - should be a Long, but we don't have the type for it
+                gasUsed: contractFunctionResult?.gasUsed,
+
             });
         } else {
             response = await new ContractCallQuery()
