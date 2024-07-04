@@ -8,7 +8,7 @@ import dotenv from "dotenv";
 import fetch from "node-fetch";
 import {TextDecoder, TextEncoder} from "util";
 import crypto from "crypto";
-import {AccountProvider} from "../../src/models/Common";
+import {AccountProvider, BalanceData, BridgeResponse} from "../../src/models/Common";
 import AccountServiceContext from "../../src/strategies/AccountServiceContext";
 import TokenServiceContext from "../../src/strategies/TokenServiceContext";
 import SignServiceContext from "../../src/strategies/SignServiceContext";
@@ -17,6 +17,7 @@ import TradeServiceContext from "../../src/strategies/TradeServiceContext";
 import {KnownChainIds} from "../../src/models/Chain";
 import SignService from "../../src/services/SignService";
 import AuthService from "../../src/services/AuthService";
+import BigNumber from 'bignumber.js';
 
 const {BladeSDK, ParametersBuilder} = require("../../src/webView");
 
@@ -61,6 +62,7 @@ describe("testing methods related to ETHEREUM network", () => {
     const ethereumPrivateKey = process.env.ETHEREUM_PRIVATE_KEY || "";
     const ethereumAddress2 = process.env.ETHEREUM_ADDRESS2 || "";
     const ethereumMnemonic = process.env.ETHEREUM_MNEMONIC || "";
+    const ethereumTokenAddress = (process.env.ETHEREUM_TOKEN_ADDRESS || "").toLowerCase();
 
     const chainId = KnownChainIds.ETHEREUM_SEPOLIA;
 
@@ -121,115 +123,124 @@ describe("testing methods related to ETHEREUM network", () => {
         }
     }, 20_000);
 
-    // test('bladeSdk-ethereum.transferBalance', async () => {
-    //     let result = await bladeSdk.getBalance(accountId, completionKey);
-    //     checkResult(result);
-    //     const hbars = result.data.balance;
-    //
-    //     try {
-    //         result = await bladeSdk.transferBalance(accountId2, "1.5", "custom memo text", completionKey);
-    //         expect("Code should not reach here").toEqual(result);
-    //     } catch (result) {
-    //         checkResult(result, false);
-    //     }
-    //     result = await bladeSdk.setUser(AccountProvider.PrivateKey, accountId, privateKey, completionKey);
-    //     checkResult(result);
-    //
-    //     result = await bladeSdk.transferBalance(accountId2, "1.5", "custom memo text", completionKey);
-    //     checkResult(result);
-    //
-    //     expect(result.data).toHaveProperty("transactionHash");
-    //     expect(result.data).toHaveProperty("transactionId");
-    //
+    test('bladeSdk-ethereum.transferBalance', async () => {
+        let result = await bladeSdk.getBalance(ethereumAddress, completionKey);
+        checkResult(result);
+        const hbars = result.data.balance;
+
+        try {
+            result = await bladeSdk.transferBalance(ethereumAddress2, "0.0001", "custom memo text", completionKey);
+            expect("Code should not reach here").toEqual(result);
+        } catch (result) {
+            checkResult(result, false);
+        }
+        result = await bladeSdk.setUser(AccountProvider.PrivateKey, ethereumAddress, ethereumPrivateKey, completionKey);
+        checkResult(result);
+
+        result = await bladeSdk.transferBalance(ethereumAddress2, "0.0001", "custom memo text", completionKey);
+        checkResult(result);
+
+        expect(result.data).toHaveProperty("transactionHash");
+        expect(result.data).toHaveProperty("transactionId");
+
     //     // wait for balance update
-    //     await sleep(20_000);
-    //
-    //     result = await bladeSdk.getBalance(accountId, completionKey);
-    //     checkResult(result);
-    //     expect(hbars).not.toEqual(result.data.balance);
-    //
-    //     try {
-    //         // parseFloat exception
-    //         result = await bladeSdk.transferBalance(accountId, "jhghjhgjghj", "custom memo text", completionKey);
-    //         expect("Code should not reach here").toEqual(result);
-    //     } catch (result) {
-    //         checkResult(result, false);
-    //     }
-    // }, 60_000);
-    //
-    // test('bladeSdk-ethereum.transferTokens', async () => {
-    //     const tokenName = "JEST Token Test";
-    //     let result = await bladeSdk.getBalance(accountId, completionKey);
-    //     checkResult(result);
-    //
-    //     let tokenId: string|null = null;
-    //     // for (let i = 0; i < result.data.tokens.length; i++) {
-    //     for (const token of result.data.tokens as TokenBalanceData[]) {
-    //         const tokenInfo = await apiService.requestTokenInfo(token.address);
-    //         if (tokenInfo.name === tokenName) {
-    //             tokenId = tokenInfo.token_id;
-    //             break;
-    //         }
-    //     }
-    //
-    //     if (!tokenId) {
-    //         // Create token
-    //         tokenId = await createToken(accountId, privateKey, tokenName);
-    //     } else {
-    //         // token exists
-    //     }
-    //
-    //     await associateToken(tokenId, accountId2, privateKey2);
-    //
-    //     let account1Balance: BridgeResponse<BalanceData> = await bladeSdk.getBalance(accountId, completionKey);
-    //     checkResult(account1Balance);
-    //     const account1TokenBalance = (account1Balance.data.tokens.find(token => token.address === tokenId))?.balance || 0;
-    //     let account2Balance: BridgeResponse<BalanceData> = await bladeSdk.getBalance(accountId2, completionKey);
-    //     checkResult(account2Balance);
-    //     const account2TokenBalance = (account2Balance.data.tokens.find(token => token.address === tokenId))?.balance || 0;
-    //
-    //     const amount = 1;
-    //
-    //     // invalid tokenId
-    //     try {
-    //         result = await bladeSdk.transferTokens("invalid token id", accountId2, amount.toString(), "transfer memo",false, completionKey);
-    //         expect("Code should not reach here").toEqual(result);
-    //     } catch (result) {
-    //         checkResult(result, false);
-    //     }
-    //
-    //     // no user
-    //     try {
-    //         result = await bladeSdk.transferTokens(tokenId.toString(), accountId2, amount.toString(), "transfer memo", false, completionKey);
-    //         expect("Code should not reach here").toEqual(result);
-    //     } catch (result) {
-    //         checkResult(result, false);
-    //     }
-    //
-    //     result = await bladeSdk.setUser(AccountProvider.PrivateKey, accountId, privateKey, completionKey);
-    //     checkResult(result);
-    //
-    //     result = await bladeSdk.transferTokens(tokenId.toString(), accountId2, amount.toString(), "transfer memo", true, completionKey);
-    //     checkResult(result);
-    //     expect(result.data).toHaveProperty("transactionHash");
-    //     expect(result.data).toHaveProperty("transactionId");
-    //
-    //     await sleep(20_000);
-    //
-    //     account1Balance = await bladeSdk.getBalance(accountId, completionKey);
-    //     checkResult(account1Balance);
-    //     const account1TokenBalanceNew = parseFloat((account1Balance.data.tokens.find(token => token.address === tokenId))?.balance) || 0;
-    //     account2Balance = await bladeSdk.getBalance(accountId2, completionKey);
-    //     checkResult(account2Balance);
-    //     const account2TokenBalanceNew = parseFloat((account2Balance.data.tokens.find(token => token.address === tokenId))?.balance) || 0;
-    //
-    //     expect(account1TokenBalance).toEqual((account1TokenBalanceNew + amount).toString());
-    //     expect(account2TokenBalance).toEqual((account2TokenBalanceNew - amount).toString());
-    //
-    //     result = await bladeSdk.transferTokens(tokenId.toString(), accountId2, amount.toString(), "transfer memo", true, completionKey);
-    //     checkResult(result);
-    // }, 120_000);
-    //
+        await sleep(20_000);
+
+        result = await bladeSdk.getBalance(ethereumAddress2, completionKey);
+        checkResult(result);
+        expect(hbars).not.toEqual(result.data.balance);
+
+        try {
+            // parseFloat exception
+            result = await bladeSdk.transferBalance(ethereumAddress2, "jhghjhgjghj", "custom memo text", completionKey);
+            expect("Code should not reach here").toEqual(result);
+        } catch (result) {
+            checkResult(result, false);
+        }
+    }, 60_000);
+
+    test("bladeSdk-ethereum.transferTokens", async () => {
+        let result;
+        let account1Balance: BridgeResponse<BalanceData> = await bladeSdk.getBalance(ethereumAddress, completionKey);
+        checkResult(account1Balance);
+        const account1TokenBalance = BigNumber(account1Balance.data.tokens.find(token => token.address === ethereumTokenAddress)?.balance || "0");
+        let account2Balance: BridgeResponse<BalanceData> = await bladeSdk.getBalance(ethereumAddress2, completionKey);
+        checkResult(account2Balance);
+        const account2TokenBalance = BigNumber(account2Balance.data.tokens.find(token => token.address === ethereumTokenAddress)?.balance || "0");
+
+        const amount = 0.0001;
+
+        // invalid tokenId
+        try {
+            result = await bladeSdk.transferTokens(
+                "invalid token id",
+                ethereumAddress2,
+                amount.toString(),
+                "transfer memo",
+                false,
+                completionKey
+            );
+            expect("Code should not reach here").toEqual(result);
+        } catch (result) {
+            checkResult(result, false);
+        }
+
+        // no user
+        try {
+            result = await bladeSdk.transferTokens(
+                ethereumTokenAddress,
+                ethereumAddress2,
+                amount.toString(),
+                "transfer memo",
+                false,
+                completionKey
+            );
+            expect("Code should not reach here").toEqual(result);
+        } catch (result) {
+            checkResult(result, false);
+        }
+
+        result = await bladeSdk.setUser(AccountProvider.PrivateKey, ethereumAddress, ethereumPrivateKey, completionKey);
+        checkResult(result);
+
+        result = await bladeSdk.transferTokens(
+            ethereumTokenAddress,
+            ethereumAddress2,
+            amount.toString(),
+            "transfer memo",
+            false,
+            completionKey
+        );
+        checkResult(result);
+        expect(result.data).toHaveProperty("transactionHash");
+        expect(result.data).toHaveProperty("transactionId");
+
+        await sleep(60_000);
+
+        account1Balance = await bladeSdk.getBalance(ethereumAddress, completionKey);
+        checkResult(account1Balance);
+        const account1TokenBalanceNew = BigNumber(account1Balance.data.tokens.find(token => token.address === ethereumTokenAddress)?.balance || "0");
+        account2Balance = await bladeSdk.getBalance(ethereumAddress2, completionKey);
+        checkResult(account2Balance);
+        const account2TokenBalanceNew = BigNumber(account2Balance.data.tokens.find(token => token.address === ethereumTokenAddress)?.balance || "0");
+
+        expect(account1TokenBalanceNew.plus(amount).isEqualTo(account1TokenBalance)).toEqual(true);
+        expect(account2TokenBalanceNew.minus(amount).isEqualTo(account2TokenBalance)).toEqual(true);
+
+        try {
+            result = await bladeSdk.transferTokens(
+                ethereumTokenAddress,
+                ethereumAddress2,
+                amount.toString(),
+                "transfer memo",
+                true,
+                completionKey
+            );
+            expect("Code should not reach here").toEqual(result);
+        } catch (result) {
+            checkResult(result, false);
+        }
+    }, 120_000);
 
     // test('bladeSdk-ethereum.getAccountInfo', async () => {
     //     let result;
@@ -239,7 +250,7 @@ describe("testing methods related to ETHEREUM network", () => {
     //
     //     await sleep(15_000);
     //
-    //     let accountInfo = await bladeSdk.getAccountInfo(newAccountId, completionKey);
+    //     let accountInfo = await bladeSdk.getAccountInfo(ethereumAddress, completionKey);
     //     checkResult(accountInfo);
     //
     //     expect(accountInfo.data.evmAddress).toEqual(`0x${AccountId.fromString(newAccountId).toSolidityAddress()}`);

@@ -80,6 +80,10 @@ export default class TokenServiceEthereum implements ITokenService {
         memo,
         usePaymaster
     }: TransferTokenInitData): Promise<TransactionResponseData> {
+        if (usePaymaster) {
+            throw new Error("Paymaster not supported on Ethereum now");
+        }
+
         await this.initAlchemy();
         const contract = new Contract(tokenAddress, ERC20ABI, this.signer!);
         const toAddress = StringHelpers.stripHexPrefix(to);

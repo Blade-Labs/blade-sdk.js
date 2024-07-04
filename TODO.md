@@ -6,12 +6,12 @@
 | ✅      | ✅        | setUser                           |                                       |
 | ✅      | ✅        | resetUser                         |                                       |
 | ✅      | ✅        | getBalance                        |                                       |
-| ✅      | ❓        | transferBalance                   | test eth                              |
-| ✅      | ❓        | transferTokens                    | test eth                              |
+| ✅      | ✅        | transferBalance                   |                                       |
+| ✅      | ✅*       | transferTokens                    | implement use payMaster               |
 | ✅      | ✅        | getCoinList                       |                                       |
 | ✅      | ✅        | getCoinPrice                      |                                       |
-| ✅      | ❓        | contractCallFunction              | test eth                              |
-| ✅      | ❓        | contractCallQueryFunction         | test eth                              |
+| ✅      | ✅        | contractCallFunction              | implement use payMaster               |
+| ✅      | ✅        | contractCallQueryFunction         | implement use payMaster               |
 | ✅      | ❌        | createScheduleTransaction         |                                       |
 | ✅      | ❌        | signScheduleId                    |                                       |
 | ✅      | ❓        | createAccount                     | implement for eth                     |
@@ -20,7 +20,7 @@
 | ✅      | ❓        | getAccountInfo                    | fix tests for eth                     |
 | ✅      | ❌        | getNodeList                       |                                       |
 | ✅      | ❌        | stakeToNode                       |                                       |
-| ❌      | ❌        | getKeysFromMnemonic               | removed in 0.8                        |
+| ❌      | ✅        | getKeysFromMnemonic               | TODO remove in 0.8                    |
 | ✅      | ❓        | searchAccounts                    | test for ETH                          |
 | ✅      | ❓        | dropTokens                        | check if we need this for ETH         |
 | ❓      | ✅        | sign                              | optionally sign with Ethers on Hedera |
