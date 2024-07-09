@@ -20,8 +20,6 @@ import {NodeInfo} from "../models/MirrorNode";
 
 export interface IAccountService {
     createAccount(privateKey?: string, deviceId?: string): Promise<CreateAccountData>;
-    // TODO remove everywhere
-    // getPendingAccount(transactionId: string, mnemonic: string): Promise<CreateAccountData>;
     deleteAccount(
         deleteAccountId: string,
         deletePrivateKey: string,
@@ -30,7 +28,6 @@ export interface IAccountService {
     getAccountInfo(accountId: string): Promise<AccountInfoData>;
     getNodeList(): Promise<{nodes: NodeInfo[]}>;
     stakeToNode(accountId: string, nodeId: number): Promise<TransactionReceiptData>;
-    getKeysFromMnemonic(mnemonicRaw: string): Promise<AccountPrivateData>;
     getTransactions(
         accountAddress: string,
         transactionType: string,
@@ -104,11 +101,6 @@ export default class AccountServiceContext implements IAccountService {
     stakeToNode(accountId: string, nodeId: number): Promise<TransactionReceiptData> {
         this.checkSigner();
         return this.strategy!.stakeToNode(accountId, nodeId);
-    }
-
-    getKeysFromMnemonic(mnemonicRaw: string): Promise<AccountPrivateData> {
-        this.checkInit();
-        return this.strategy!.getKeysFromMnemonic(mnemonicRaw);
     }
 
     getTransactions(

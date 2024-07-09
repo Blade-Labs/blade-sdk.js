@@ -637,24 +637,6 @@ export default class ApiService {
             .then(x => x.json()) as Promise<DropJob>;
     }
 
-    async getC14token() {
-        const url = `${this.getApiUrl()}/c14/data`;
-        const options = {
-            method: "GET",
-            headers: new Headers({
-                "X-NETWORK": this.network.toUpperCase(),
-                "X-VISITOR-ID": this.visitorId, // fingerprint (visitorId) (eg.: YoZoVL4XZspaCtLH4GoL)
-                "X-DAPP-CODE": this.dAppCode,
-                "X-SDK-TVTE-API": await this.getTvteHeader(),
-                "Content-Type": "application/json"
-            })
-        };
-
-        return fetch(url, options)
-            .then(statusCheck)
-            .then(x => x.json());
-    }
-
     async getCryptoFlowData(
         route: CryptoFlowRoutes,
         params: ICryptoFlowAssetsParams | ICryptoFlowQuoteParams | ICryptoFlowTransactionParams,

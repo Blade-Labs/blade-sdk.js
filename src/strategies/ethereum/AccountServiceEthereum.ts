@@ -63,28 +63,17 @@ export default class AccountServiceEthereum implements IAccountService {
         throw new Error("Method not supported for this chain");
     }
 
-    async getKeysFromMnemonic(mnemonicRaw: string): Promise<AccountPrivateData> {
-        const hdNode = ethers.utils.HDNode.fromMnemonic(mnemonicRaw);
-        const numAccounts = 10;
+    async searchAccounts(keyOrMnemonic: string): Promise<AccountPrivateData> {
         const accounts: AccountPrivateRecord[] = [];
-
-        // Loop to derive accounts
-        for (let i = 0; i < numAccounts; i++) {
-            // Derive the wallet at the specified index
-            const path = `m/44'/60'/0'/0/${i}`;
-            const wallet = hdNode.derivePath(path);
-            accounts.push({
-                privateKey: wallet.privateKey,
-                publicKey: wallet.publicKey,
-                evmAddress: wallet.address,
-                address: wallet.address,
-                path: wallet.path,
-                keyType: CryptoKeyType.ECDSA_SECP256K1
-            });
+        if (keyOrMnemonic.trim().split(" ").length > 1) {
+            // mnemonic
+            accounts.push(...this.getAccountsFromMnemonic(keyOrMnemonic));
+        } else {
+            accounts.push(...this.getAccountsFromPrivateKey(keyOrMnemonic));
         }
         return {
             accounts
-        };
+        }
     }
 
     async getTransactions(
@@ -93,6 +82,10 @@ export default class AccountServiceEthereum implements IAccountService {
         nextPage: string,
         transactionsLimit: string
     ): Promise<TransactionsHistoryData> {
+        if (transactionType && transactionType !== "CRYPTOTRANSFER") {
+            throw new Error("Transaction type not supported for this chain");
+        }
+
         await this.initAlchemy();
         const maxCount = Math.min(parseInt(transactionsLimit, 10), 1000);
         const params: AssetTransfersWithMetadataParams = {
@@ -204,10 +197,44 @@ export default class AccountServiceEthereum implements IAccountService {
         };
     }
 
+    private getAccountsFromMnemonic(
+        mnemonicRaw: string
+    ): AccountPrivateRecord[] {
+        const hdNode = ethers.utils.HDNode.fromMnemonic(mnemonicRaw);
+        const numAccounts = 10;
+        const accounts: AccountPrivateRecord[] = [];
 
-    searchAccounts(): Promise<AccountPrivateData> {
-        throw new Error("Method not supported for this chain");
+        // Loop to derive accounts
+        for (let i = 0; i < numAccounts; i++) {
+            // Derive the wallet at the specified index
+            const path = `m/44'/60'/0'/0/${i}`;
+            const wallet = hdNode.derivePath(path);
+            accounts.push({
+                privateKey: wallet.privateKey,
+                publicKey: wallet.publicKey,
+                evmAddress: wallet.address,
+                address: wallet.address,
+                path: wallet.path,
+                keyType: CryptoKeyType.ECDSA_SECP256K1
+            });
+        }
+        return accounts;
     }
+
+    private getAccountsFromPrivateKey(privateKey: string): AccountPrivateRecord[] {
+        const wallet = new ethers.Wallet(privateKey);
+        return [
+            {
+                privateKey: wallet.privateKey,
+                publicKey: wallet.publicKey,
+                evmAddress: wallet.address,
+                address: wallet.address,
+                path: ChainMap[this.chainId].defaultPath,
+                keyType: ChainMap[this.chainId].defaultCryptoKeyType
+            }
+        ]
+    }
+
 
     private async initAlchemy() {
         if (!this.alchemy) {

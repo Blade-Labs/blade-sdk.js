@@ -19,10 +19,6 @@ export default class TradeServiceEthereum implements ITradeService {
         this.configService = configService;
     }
 
-    getC14url(): Promise<IntegrationUrlData> {
-        throw new Error("Method not implemented.");
-    }
-
     exchangeGetQuotes(): Promise<SwapQuotesData> {
         throw new Error("Method not implemented.");
     }

@@ -17,11 +17,9 @@ import {
     AccountPrivateData,
     AccountPrivateRecord,
     CreateAccountData,
-    DAppConfig,
     TransactionReceiptData,
     TransactionsHistoryData
 } from "../../models/Common";
-import {Network} from "../../models/Networks";
 import {ChainMap, CryptoKeyType, KnownChainIds} from "../../models/Chain";
 import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
@@ -76,7 +74,7 @@ export default class AccountServiceHedera implements IAccountService {
         const client = this.getClient();
         if (transactionBytes) {
             await executeUpdateAccountTransactions(client, key, transactionBytes);
-            await this.apiService.createAccount(JobAction.CONFIRM, accountCreateJob.taskId).catch((e) => {
+            await this.apiService.createAccount(JobAction.CONFIRM, accountCreateJob.taskId).catch(() => {
                 // ignore this error, continue (no content)
             });
         }
@@ -102,7 +100,7 @@ export default class AccountServiceHedera implements IAccountService {
             const transaction = await Transaction.fromBytes(buffer).sign(key);
             await transaction.execute(client);
 
-            await this.apiService.tokenAssociation(JobAction.CONFIRM, tokenAssociationJob.taskId).catch((e) => {
+            await this.apiService.tokenAssociation(JobAction.CONFIRM, tokenAssociationJob.taskId).catch(() => {
                 // ignore this error, continue (no content)
             });
         } catch (error) {
@@ -197,82 +195,6 @@ export default class AccountServiceHedera implements IAccountService {
             .then(txResult => getReceipt(txResult, this.signer!));
     }
 
-    async getKeysFromMnemonic(mnemonicRaw: string): Promise<AccountPrivateData> {
-        const mnemonic = await Mnemonic.fromString(
-            mnemonicRaw
-                .toLowerCase()
-                .split(" ")
-                .filter(word => word)
-                .join(" ")
-        );
-
-        // derive to ECDSA Standard - find account
-        // derive to ECDSA Legacy - find account
-        // derive to ED25519 Standard - find account
-        // derive to ED25519 Legacy - find account
-        // return all records with account found. If no account show ECDSA Standard keys
-
-        const prepareAccountRecord = async (
-            privateKey: PrivateKey,
-            keyType: CryptoKeyType,
-            force: boolean = false
-        ): Promise<AccountPrivateRecord[]> => {
-            const accounts: Partial<AccountInfo>[] = await this.apiService.getAccountsFromPublicKey(
-                privateKey.publicKey
-            );
-
-            if (!accounts.length && force) {
-                accounts.push({});
-            }
-
-            return accounts.map(record => {
-                const evmAddress =
-                    keyType === CryptoKeyType.ECDSA_SECP256K1
-                        ? ethers.utils.computeAddress(`0x${privateKey.publicKey.toStringRaw()}`).toLowerCase()
-                        : record?.evm_address || "";
-                return {
-                    privateKey: privateKey.toStringDer(),
-                    publicKey: privateKey.publicKey.toStringDer(),
-                    evmAddress,
-                    address: record?.account || "",
-                    path: ChainMap[this.chainId].defaultPath,
-                    keyType
-                };
-            });
-        };
-
-        const records: AccountPrivateRecord[] = [];
-        let key: PrivateKey;
-        for (const keyType of Object.values(CryptoKeyType)) {
-            for (let standard = 1; standard >= 0; standard--) {
-                if (keyType === CryptoKeyType.ECDSA_SECP256K1) {
-                    if (standard) {
-                        key = await mnemonic.toStandardECDSAsecp256k1PrivateKey();
-                    } else {
-                        key = await mnemonic.toEcdsaPrivateKey();
-                    }
-                } else {
-                    if (standard) {
-                        key = await mnemonic.toStandardEd25519PrivateKey();
-                    } else {
-                        key = await mnemonic.toEd25519PrivateKey();
-                    }
-                }
-                records.push(...(await prepareAccountRecord(key, keyType)));
-            }
-        }
-
-        if (!records.length) {
-            // if no accounts found derive to ECDSA Standard, and return record with empty address
-            key = await mnemonic.toStandardECDSAsecp256k1PrivateKey();
-            records.push(...(await prepareAccountRecord(key, CryptoKeyType.ECDSA_SECP256K1, true)));
-        }
-
-        return {
-            accounts: records
-        };
-    }
-
     async getTransactions(
         accountAddress: string,
         transactionType: string,
@@ -292,7 +214,7 @@ export default class AccountServiceHedera implements IAccountService {
         }
 
         return {
-            accounts: accounts
+            accounts
         }
     }
 
@@ -370,6 +292,14 @@ export default class AccountServiceHedera implements IAccountService {
     
         const recordsArray = await Promise.all(promises);
         const records: AccountPrivateRecord[] = recordsArray.flat();
+
+        if (!records.length) {
+            // if no accounts found, return record with empty address
+            const keyType = privateKeys[0].type === "ED25519" ? CryptoKeyType.ED25519 : CryptoKeyType.ECDSA_SECP256K1;
+            const fallbackRecords = await this.prepareAccountRecord(privateKeys[0], keyType, true);
+            records.push(...fallbackRecords);
+        }
+
         return records;
     }
 
@@ -388,7 +318,7 @@ export default class AccountServiceHedera implements IAccountService {
             const evmAddress =
                 keyType === CryptoKeyType.ECDSA_SECP256K1
                     ? ethers.utils.computeAddress(`0x${privateKey.publicKey.toStringRaw()}`).toLowerCase()
-                    : record?.evm_address;
+                    : record?.evm_address || "";
             return {
                 privateKey: privateKey.toStringDer(),
                 publicKey: privateKey.publicKey.toStringDer(),

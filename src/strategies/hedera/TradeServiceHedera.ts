@@ -1,6 +1,6 @@
 import {Signer} from "@hashgraph/sdk";
 
-import {C14WidgetConfig, IntegrationUrlData, SwapQuotesData} from "../../models/Common";
+import {IntegrationUrlData, SwapQuotesData} from "../../models/Common";
 import {ChainMap, KnownChainIds} from "../../models/Chain";
 import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
@@ -37,63 +37,6 @@ export default class TradeServiceHedera implements ITradeService {
         this.apiService = apiService;
         this.configService = configService;
         this.cryptoFlowService = cryptoFlowService;
-    }
-
-    async getC14url(asset: string, account: string, amount: string): Promise<IntegrationUrlData> {
-        let clientId;
-
-        if (this.apiService.getDappCode().includes("karate")) {
-            clientId = "17af1a19-2729-4ecc-8683-324a52eca6fc";
-        } else {
-            const {token} = await this.apiService.getC14token();
-            clientId = token;
-        }
-
-        const url = new URL("https://pay.c14.money/");
-        const purchaseParams: C14WidgetConfig = {
-            clientId
-        };
-
-        switch (asset.toUpperCase()) {
-            case "USDC":
-                {
-                    purchaseParams.targetAssetId = "b0694345-1eb4-4bc4-b340-f389a58ee4f3";
-                    purchaseParams.targetAssetIdLock = true;
-                }
-                break;
-            case "HBAR":
-                {
-                    purchaseParams.targetAssetId = "d9b45743-e712-4088-8a31-65ee6f371022";
-                    purchaseParams.targetAssetIdLock = true;
-                }
-                break;
-            case "KARATE":
-                {
-                    purchaseParams.targetAssetId = "057d6b35-1af5-4827-bee2-c12842faa49e";
-                    purchaseParams.targetAssetIdLock = true;
-                }
-                break;
-            default:
-                {
-                    // check if asset is an uuid
-                    if (asset.split("-").length === 5) {
-                        purchaseParams.targetAssetId = asset;
-                        purchaseParams.targetAssetIdLock = true;
-                    }
-                }
-                break;
-        }
-        if (amount) {
-            purchaseParams.sourceAmount = amount;
-            purchaseParams.quoteAmountLock = true;
-        }
-        if (account) {
-            purchaseParams.targetAddress = account;
-            purchaseParams.targetAddressLock = true;
-        }
-
-        url.search = new URLSearchParams(purchaseParams as Record<keyof C14WidgetConfig, any>).toString();
-        return {url: url.toString()};
     }
 
     async exchangeGetQuotes(

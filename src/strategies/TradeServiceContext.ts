@@ -13,7 +13,6 @@ import {CryptoFlowServiceStrategy} from "../models/CryptoFlow";
 import CryptoFlowService from "../services/CryptoFlowService";
 
 export interface ITradeService {
-    getC14url(asset: string, account: string, amount: string): Promise<IntegrationUrlData>;
     exchangeGetQuotes(
         sourceCode: string,
         sourceAmount: number,
@@ -77,11 +76,6 @@ export default class TradeServiceContext implements ITradeService {
             default:
                 throw new Error(`Unsupported chain id: ${this.chainId}`);
         }
-    }
-
-    getC14url(asset: string, account: string, amount: string): Promise<IntegrationUrlData> {
-        this.checkInit();
-        return this.strategy!.getC14url(asset, account, amount);
     }
 
     exchangeGetQuotes(

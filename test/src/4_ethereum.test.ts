@@ -14,7 +14,7 @@ import TokenServiceContext from "../../src/strategies/TokenServiceContext";
 import SignServiceContext from "../../src/strategies/SignServiceContext";
 import ContractServiceContext from "../../src/strategies/ContractServiceContext";
 import TradeServiceContext from "../../src/strategies/TradeServiceContext";
-import {KnownChainIds} from "../../src/models/Chain";
+import { KnownChainIds} from "../../src/models/Chain";
 import SignService from "../../src/services/SignService";
 import AuthService from "../../src/services/AuthService";
 import BigNumber from 'bignumber.js';
@@ -275,10 +275,10 @@ describe("testing methods related to ETHEREUM network", () => {
     //     }
     // }, 60_000);
 
-    test("bladeSdk-ethereum.getKeysFromMnemonic", async () => {
+    test("bladeSdk-ethereum.searchAccounts", async () => {
         let result;
 
-        result = await bladeSdk.getKeysFromMnemonic(ethereumMnemonic, completionKey);
+        result = await bladeSdk.searchAccounts(ethereumMnemonic, completionKey);
         checkResult(result);
 
         expect(result.data).toHaveProperty("accounts");
@@ -294,80 +294,72 @@ describe("testing methods related to ETHEREUM network", () => {
         expect(result.data.accounts[0].keyType).toEqual("ECDSA_SECP256K1");
         expect(result.data.accounts[0].address).toEqual(result.data.accounts[0].evmAddress);
         expect(result.data.accounts[0].address).toEqual(ethereumAddress2);
+
+        result = await bladeSdk.searchAccounts(ethereumPrivateKey, completionKey);
+        checkResult(result);
+        result = await bladeSdk.searchAccounts(`0x${ethereumPrivateKey}`, completionKey);
+        checkResult(result);
     }, 60_000);
 
-    // test('bladeSdk-ethereum.getTransactions', async () => {
-    //     let result
-    //
-    //     // make transaction
-    //     try {
-    //         result = await bladeSdk.transferBalance(accountId2, "1.5", "some tx memo", completionKey);
-    //         expect("Code should not reach here").toEqual(result);
-    //     } catch (result) {
-    //         checkResult(result, false);
-    //     }
-    //
-    //     result = await bladeSdk.setUser(AccountProvider.PrivateKey, accountId, privateKey, completionKey);
-    //     checkResult(result);
-    //
-    //     result = await bladeSdk.transferBalance(accountId2, "1.5", "some tx memo", completionKey);
-    //     checkResult(result);
-    //
-    //     expect(result.data).toHaveProperty("transactionHash");
-    //     expect(result.data).toHaveProperty("transactionId");
-    //
-    //     // get expected transaction
-    //     result = await bladeSdk.getTransactions(accountId, "", "", "5", completionKey);
-    //     checkResult(result);
-    //
-    //     expect(result.data).toHaveProperty("nextPage");
-    //     expect(result.data).toHaveProperty("transactions");
-    //     expect(Array.isArray(result.data.transactions)).toEqual(true);
-    //
-    //     const txIdEqual = (txId1: string, txId2: string) => {
-    //         return isEqual(
-    //             txId1.split(".").map(num => parseInt(num, 10)),
-    //             txId2.split(".").map(num => parseInt(num, 10))
-    //         );
-    //     };
-    //
-    //     const nextPage = result.data.nextPage;
-    //
-    //     // next page
-    //     result = await bladeSdk.getTransactions(accountId, "", nextPage, "5", completionKey);
-    //     checkResult(result);
-    //
-    //     // filter by transactionType
-    //     result = await bladeSdk.getTransactions(accountId, "CRYPTOTRANSFER", "", "5", completionKey);
-    //     checkResult(result);
-    //
-    //     // filter by transactionType and add custom plainData in response
-    //     result = await bladeSdk.getTransactions(accountId, "CRYPTOTRANSFERTOKEN", "", "5", completionKey);
-    //     checkResult(result);
-    //
-    //     if (result.data.transactions.length) {
-    //         expect(result.data.transactions[0]).toHaveProperty("plainData");
-    //         expect(result.data.transactions[0].plainData).toHaveProperty("type");
-    //         expect(result.data.transactions[0].plainData).toHaveProperty("token_id");
-    //         expect(result.data.transactions[0].plainData).toHaveProperty("senders");
-    //         expect(result.data.transactions[0].plainData).toHaveProperty("receivers");
-    //         expect(result.data.transactions[0].plainData).toHaveProperty("amount");
-    //     }
-    //
-    //     // invalid accountId
-    //     try {
-    //         result = await bladeSdk.getTransactions('0.dgsgsdgdsgdsgdsg', "", "", "5", completionKey);
-    //         expect("Code should not reach here").toEqual(result);
-    //     } catch (result) {
-    //         checkResult(result, false);
-    //     }
-    //
-    //     // invalid tx
-    //     result = await apiService.getTransaction(Network.Testnet, "wrong tx id", accountId);
-    //     expect(Array.isArray(result));
-    //     expect(result.length).toEqual(0)
-    // }, 30_000);
-    //
+    test('bladeSdk-ethereum.getTransactions', async () => {
+        let result;
+
+        // make transaction
+        try {
+            result = await bladeSdk.transferBalance(ethereumAddress2, "0.00005", "some tx memo", completionKey);
+            expect("Code should not reach here").toEqual(result);
+        } catch (result) {
+            checkResult(result, false);
+        }
+
+        result = await bladeSdk.setUser(AccountProvider.PrivateKey, "", ethereumPrivateKey, completionKey);
+        checkResult(result);
+
+        result = await bladeSdk.transferBalance(ethereumAddress2, "0.00005", "some tx memo", completionKey);
+        checkResult(result);
+
+        expect(result.data).toHaveProperty("transactionHash");
+        expect(result.data).toHaveProperty("transactionId");
+
+        // get expected transaction
+        result = await bladeSdk.getTransactions(ethereumAddress, "", "", "5", completionKey);
+        checkResult(result);
+
+        expect(result.data).toHaveProperty("nextPage");
+        expect(result.data).toHaveProperty("transactions");
+        expect(Array.isArray(result.data.transactions)).toEqual(true);
+
+        const nextPage = result.data.nextPage;
+
+        // next page
+        result = await bladeSdk.getTransactions(ethereumAddress, "", nextPage, "5", completionKey);
+        checkResult(result);
+
+
+        // filter by transactionType
+        result = await bladeSdk.getTransactions(ethereumAddress, "CRYPTOTRANSFER", "", "5", completionKey);
+        checkResult(result);
+
+        // invalid accountId
+        try {
+            result = await bladeSdk.getTransactions("0.dgsgsdgdsgdsgdsg", "", "", "5", completionKey);
+            expect("Code should not reach here").toEqual(result);
+        } catch (result) {
+            checkResult(result, false);
+        }
+
+        // unknown transaction type
+        try {
+            // filter by transactionType
+            result = await bladeSdk.getTransactions(ethereumAddress, "unknown transaction type", "", "5", completionKey);
+            expect("Code should not reach here").toEqual(result);
+        } catch (result) {
+            checkResult(result, false);
+        }
+
+
+    }, 30_000);
+
     // test('bladeSdk-ethereum.createToken + nftMint + associateToken + transferTokens', async () => {
     //     const treasuryAccountId = accountId;
     //     const treasuryPrivateKey = privateKey;

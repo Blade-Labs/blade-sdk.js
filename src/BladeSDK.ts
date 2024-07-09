@@ -439,7 +439,6 @@ export class BladeSDK {
     /**
      * Create Hedera account (ECDSA). Only for configured dApps. Depending on dApp config Blade create account, associate tokens, etc.
      * In case of not using pre-created accounts pool and network high load, this method can return transactionId and no accountId.
-     * In that case account creation added to queue, and you should wait some time and call `getPendingAccount()` method.
      * @param privateKey optional field if you need specify account key (hex encoded privateKey with DER-prefix)
      * @param deviceId optional field for headers for backend check
      * @param completionKey optional field bridge between mobile webViews and native apps
@@ -523,25 +522,6 @@ export class BladeSDK {
     async stakeToNode(nodeId: number, completionKey?: string): Promise<TransactionReceiptData> {
         try {
             const result = await this.accountServiceContext.stakeToNode(this.getUser().accountId, nodeId);
-            return this.sendMessageToNative(completionKey, result);
-        } catch (error) {
-            throw this.sendMessageToNative(completionKey, null, error);
-        }
-    }
-
-    // TODO remove
-    /**
-     * @deprecated Will be removed in version 0.7, switch to `searchAccounts` method
-     * Get ECDSA private key from mnemonic. Also try to find accountIds based on public key if lookupNames is true.
-     * Returned keys with DER header.
-     * EvmAddress computed from Public key.
-     * @param mnemonicRaw BIP39 mnemonic
-     * @param completionKey optional field bridge between mobile webViews and native apps
-     * @returns {AccountPrivateData}
-     */
-    async getKeysFromMnemonic(mnemonicRaw: string, completionKey?: string): Promise<AccountPrivateData> {
-        try {
-            const result = await this.accountServiceContext.getKeysFromMnemonic(mnemonicRaw);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -698,29 +678,6 @@ export class BladeSDK {
                 nextPage,
                 transactionsLimit
             );
-            return this.sendMessageToNative(completionKey, result);
-        } catch (error) {
-            throw this.sendMessageToNative(completionKey, null, error);
-        }
-    }
-
-    // TODO remove
-    /**
-     * Get configured url for C14 integration (iframe or popup)
-     * @param asset name (USDC or HBAR)
-     * @param account receiver account id (0.0.xxxxx)
-     * @param amount preset amount. May be overwritten if out of range (min/max)
-     * @param completionKey optional field bridge between mobile webViews and native apps
-     * @returns {IntegrationUrlData}
-     */
-    async getC14url(
-        asset: string,
-        account: string,
-        amount: string,
-        completionKey?: string
-    ): Promise<IntegrationUrlData> {
-        try {
-            const result = await this.tradeServiceContext.getC14url(asset, account, amount);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
