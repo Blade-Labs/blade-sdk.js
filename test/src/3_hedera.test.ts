@@ -1,6 +1,6 @@
 import {associateToken, checkResult, completionKey, createToken, sleep} from "./helpers";
 import ApiService from "../../src/services/ApiService";
-import CryptoFlowService from "../../src/services/CryptoFlowService";
+import TradeService from "../../src/services/TradeService";
 import ConfigService from "../../src/services/ConfigService";
 import FeeService from "../../src/services/FeeService";
 import config from "../../src/config";
@@ -23,7 +23,6 @@ import AccountServiceContext from "../../src/strategies/AccountServiceContext";
 import TokenServiceContext from "../../src/strategies/TokenServiceContext";
 import SignServiceContext from "../../src/strategies/SignServiceContext";
 import ContractServiceContext from "../../src/strategies/ContractServiceContext";
-import TradeServiceContext from "../../src/strategies/TradeServiceContext";
 import {KnownChainIds, CryptoKeyType} from "../../src/models/Chain";
 import SignService from "../../src/services/SignService";
 import {ethers} from "ethers";
@@ -60,12 +59,11 @@ describe("testing methods related to HEDERA network", () => {
     const authService = new AuthService(apiService, configService);
     const feeService = new FeeService(configService);
     const signService = new SignService();
-    const cryptoFlowService = new CryptoFlowService(configService, feeService);
     const accountServiceContext = new AccountServiceContext(apiService, configService);
-    const tokenServiceContext = new TokenServiceContext(apiService, configService);
+    const tokenServiceContext = new TokenServiceContext(apiService, configService, feeService);
+    const tradeService = new TradeService(apiService, tokenServiceContext);
     const signServiceContext = new SignServiceContext(apiService, configService, signService);
     const contractServiceContext = new ContractServiceContext(apiService, configService);
-    const tradeServiceContext = new TradeServiceContext(apiService, configService, cryptoFlowService);
 
     const bladeSdk = new BladeSDK(
         configService,
@@ -75,8 +73,7 @@ describe("testing methods related to HEDERA network", () => {
         tokenServiceContext,
         signServiceContext,
         contractServiceContext,
-        tradeServiceContext,
-        cryptoFlowService,
+        tradeService,
         true
     );
 
@@ -1179,12 +1176,18 @@ describe("testing methods related to HEDERA network", () => {
 
         result = await bladeSdk.exchangeGetQuotes("EUR", 50, "HBAR", "Buy", completionKey);
         checkResult(result);
+        expect(Array.isArray(result.data.quotes)).toEqual(true);
+        expect(result.data.quotes.length).toBeGreaterThanOrEqual(1);
 
-        result = await bladeSdk.exchangeGetQuotes("HBAR", 30, "PHP", "Sell", completionKey);
+        result = await bladeSdk.exchangeGetQuotes("HBAR", 200, "USD", "Sell", completionKey);
         checkResult(result);
+        expect(Array.isArray(result.data.quotes)).toEqual(true);
+        expect(result.data.quotes.length).toBeGreaterThanOrEqual(1);
 
         result = await bladeSdk.exchangeGetQuotes("HBAR", 1500, "SAUCE", "Swap", completionKey);
         checkResult(result);
+        expect(Array.isArray(result.data.quotes)).toEqual(true);
+        expect(result.data.quotes.length).toBeGreaterThanOrEqual(1);
 
         try {
             result = await bladeSdk.exchangeGetQuotes("aaaaaaa", 0, "bbbbbb", "FFFF", completionKey);

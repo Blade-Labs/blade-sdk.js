@@ -1,7 +1,7 @@
 import {PrivateKey} from "@hashgraph/sdk";
 import {checkResult, completionKey} from "./helpers";
 import ApiService from "../../src/services/ApiService";
-import CryptoFlowService from "../../src/services/CryptoFlowService";
+import TradeService from "../../src/services/TradeService";
 import ConfigService from "../../src/services/ConfigService";
 import FeeService from "../../src/services/FeeService";
 import {Buffer} from "buffer";
@@ -16,7 +16,6 @@ import AccountServiceContext from "../../src/strategies/AccountServiceContext";
 import TokenServiceContext from "../../src/strategies/TokenServiceContext";
 import SignServiceContext from "../../src/strategies/SignServiceContext";
 import ContractServiceContext from "../../src/strategies/ContractServiceContext";
-import TradeServiceContext from "../../src/strategies/TradeServiceContext";
 import {KnownChainIds} from "../../src/models/Chain";
 import SignService from "../../src/services/SignService";
 import AuthService from "../../src/services/AuthService";
@@ -38,12 +37,11 @@ describe("test COMMON functionality", () => {
     const authService = new AuthService(apiService, configService);
     const feeService = new FeeService(configService);
     const signService = new SignService();
-    const cryptoFlowService = new CryptoFlowService(configService, feeService);
     const accountServiceContext = new AccountServiceContext(apiService, configService);
-    const tokenServiceContext = new TokenServiceContext(apiService, configService);
+    const tokenServiceContext = new TokenServiceContext(apiService, configService, feeService);
+    const tradeService = new TradeService(apiService, tokenServiceContext);
     const signServiceContext = new SignServiceContext(apiService, configService, signService);
     const contractServiceContext = new ContractServiceContext(apiService, configService);
-    const tradeServiceContext = new TradeServiceContext(apiService, configService, cryptoFlowService);
 
     const bladeSdk = new BladeSDK(
         configService,
@@ -53,8 +51,7 @@ describe("test COMMON functionality", () => {
         tokenServiceContext,
         signServiceContext,
         contractServiceContext,
-        tradeServiceContext,
-        cryptoFlowService,
+        tradeService,
         true
     );
 

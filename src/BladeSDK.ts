@@ -4,7 +4,6 @@ import {Buffer} from "buffer";
 import {Signer, TokenType} from "@hashgraph/sdk";
 import {ethers} from "ethers";
 import ApiService from "./services/ApiService";
-import CryptoFlowService from "./services/CryptoFlowService";
 import {HbarTokenId} from "./services/FeeService";
 import ConfigService from "./services/ConfigService";
 import AuthService from "./services/AuthService";
@@ -52,7 +51,7 @@ import TokenServiceContext from "./strategies/TokenServiceContext";
 import AccountServiceContext from "./strategies/AccountServiceContext";
 import SignServiceContext from "./strategies/SignServiceContext";
 import ContractServiceContext from "./strategies/ContractServiceContext";
-import TradeServiceContext from "./strategies/TradeServiceContext";
+import TradeService from "./services/TradeService";
 
 @injectable()
 export class BladeSDK {
@@ -76,8 +75,7 @@ export class BladeSDK {
      * @param tokenServiceContext - instance of TokenServiceContext
      * @param signServiceContext - instance of SignServiceContext
      * @param contractServiceContext - instance of ContractServiceContext
-     * @param tradeServiceContext - instance of TradeServiceContext
-     * @param cryptoFlowService - instance of CryptoFlowService
+     * @param TradeService - instance of TradeService
      * @param isWebView - true if you are using this SDK in webview of native app. It changes the way of communication with native app.
      */
     constructor(
@@ -88,8 +86,7 @@ export class BladeSDK {
         @inject("tokenServiceContext") private readonly tokenServiceContext: TokenServiceContext,
         @inject("signServiceContext") private readonly signServiceContext: SignServiceContext,
         @inject("contractServiceContext") private readonly contractServiceContext: ContractServiceContext,
-        @inject("tradeServiceContext") private readonly tradeServiceContext: TradeServiceContext,
-        @inject("cryptoFlowService") private readonly cryptoFlowService: CryptoFlowService,
+        @inject("tradeService") private readonly tradeService: TradeService,
         @inject("isWebView") private readonly isWebView: boolean
     ) {
         this.webView = isWebView;
@@ -128,7 +125,6 @@ export class BladeSDK {
         this.visitorId = await this.authService.getVisitorId(this.visitorId, this.apiKey, this.sdkEnvironment);
         this.accountServiceContext.init(this.chainId, null); // init without signer, to be able to create account
         this.tokenServiceContext.init(this.chainId, null); // init without signer, to be able to getBalance
-        this.tradeServiceContext.init(this.chainId, null); // init without signer, to be able to get14Url
 
         return this.sendMessageToNative(completionKey, this.getInfoData());
     }
@@ -154,7 +150,6 @@ export class BladeSDK {
             this.accountServiceContext.init(this.chainId, this.user.signer);
             this.signServiceContext.init(this.chainId, this.user.signer);
             this.contractServiceContext.init(this.chainId, this.user.signer);
-            this.tradeServiceContext.init(this.chainId, this.user.signer);
 
             return this.sendMessageToNative(completionKey, {
                 accountId: this.user.accountId,
@@ -701,7 +696,8 @@ export class BladeSDK {
         completionKey?: string
     ): Promise<SwapQuotesData> {
         try {
-            const result = await this.tradeServiceContext.exchangeGetQuotes(
+            const result = await this.tradeService.exchangeGetQuotes(
+                this.chainId,
                 sourceCode,
                 sourceAmount,
                 targetCode,
@@ -732,7 +728,8 @@ export class BladeSDK {
         completionKey?: string
     ): Promise<{success: boolean}> {
         try {
-            const result = await this.tradeServiceContext.swapTokens(
+            const result = await this.tradeService.swapTokens(
+                this.chainId,
                 this.getUser().accountId,
                 sourceCode,
                 sourceAmount,
@@ -771,7 +768,8 @@ export class BladeSDK {
         completionKey?: string
     ): Promise<IntegrationUrlData> {
         try {
-            const result = await this.tradeServiceContext.getTradeUrl(
+            const result = await this.tradeService.getTradeUrl(
+                this.chainId,
                 strategy,
                 accountId,
                 sourceCode,

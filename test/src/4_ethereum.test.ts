@@ -1,6 +1,6 @@
 import {checkResult, completionKey, sleep} from "./helpers";
 import ApiService from "../../src/services/ApiService";
-import CryptoFlowService from "../../src/services/CryptoFlowService";
+import TradeService from "../../src/services/TradeService";
 import ConfigService from "../../src/services/ConfigService";
 import FeeService from "../../src/services/FeeService";
 import config from "../../src/config";
@@ -13,7 +13,6 @@ import AccountServiceContext from "../../src/strategies/AccountServiceContext";
 import TokenServiceContext from "../../src/strategies/TokenServiceContext";
 import SignServiceContext from "../../src/strategies/SignServiceContext";
 import ContractServiceContext from "../../src/strategies/ContractServiceContext";
-import TradeServiceContext from "../../src/strategies/TradeServiceContext";
 import { KnownChainIds} from "../../src/models/Chain";
 import SignService from "../../src/services/SignService";
 import AuthService from "../../src/services/AuthService";
@@ -37,12 +36,11 @@ describe("testing methods related to ETHEREUM network", () => {
     const authService = new AuthService(apiService, configService);
     const feeService = new FeeService(configService);
     const signService = new SignService();
-    const cryptoFlowService = new CryptoFlowService(configService, feeService);
     const accountServiceContext = new AccountServiceContext(apiService, configService);
-    const tokenServiceContext = new TokenServiceContext(apiService, configService);
+    const tokenServiceContext = new TokenServiceContext(apiService, configService, feeService);
+    const tradeService = new TradeService(apiService, tokenServiceContext);
     const signServiceContext = new SignServiceContext(apiService, configService, signService);
     const contractServiceContext = new ContractServiceContext(apiService, configService);
-    const tradeServiceContext = new TradeServiceContext(apiService, configService, cryptoFlowService);
 
     const bladeSdk = new BladeSDK(
         configService,
@@ -52,8 +50,7 @@ describe("testing methods related to ETHEREUM network", () => {
         tokenServiceContext,
         signServiceContext,
         contractServiceContext,
-        tradeServiceContext,
-        cryptoFlowService,
+        tradeService,
         true
     );
 
@@ -680,4 +677,118 @@ describe("testing methods related to ETHEREUM network", () => {
         checkResult(validationResult);
         expect(validationResult.data.valid).toEqual(false);
     });
+
+    test("bladeSdk-ethereum.exchangeGetQuotes", async () => {
+        let result = await bladeSdk.init(
+            process.env.API_KEY_MAINNET,
+            KnownChainIds.ETHEREUM_MAINNET,
+            process.env.DAPP_CODE,
+            process.env.VISITOR_ID,
+            process.env.SDK_ENV,
+            sdkVersion,
+            completionKey
+        );
+        checkResult(result);
+
+        result = await bladeSdk.exchangeGetQuotes("USD", 50, "ETH", "Buy", completionKey);
+        checkResult(result);
+        expect(Array.isArray(result.data.quotes)).toEqual(true);
+        expect(result.data.quotes.length).toBeGreaterThanOrEqual(1);
+
+        result = await bladeSdk.exchangeGetQuotes("ETH", 1, "USD", "Sell", completionKey);
+        checkResult(result);
+        expect(Array.isArray(result.data.quotes)).toEqual(true);
+        expect(result.data.quotes.length).toBeGreaterThanOrEqual(1);
+
+        result = await bladeSdk.exchangeGetQuotes("ETH", 2, "1INCH", "Swap", completionKey);
+        checkResult(result);
+        console.log(JSON.stringify(result.data, null, 2));
+        expect(Array.isArray(result.data.quotes)).toEqual(true);
+        expect(result.data.quotes.length).toBeGreaterThanOrEqual(1);
+
+        try {
+            result = await bladeSdk.exchangeGetQuotes("aaaaaaa", 0, "bbbbbb", "FFFF", completionKey);
+            expect("Code should not reach here").toEqual(result);
+        } catch (result) {
+            checkResult(result, false);
+        }
+    }, 50_000);
+
+    test("bladeSdk-ethereum.getTradeUrl", async () => {
+        let result = await bladeSdk.init(
+            process.env.API_KEY_MAINNET,
+            KnownChainIds.ETHEREUM_MAINNET,
+            process.env.DAPP_CODE,
+            process.env.VISITOR_ID,
+            process.env.SDK_ENV,
+            sdkVersion,
+            completionKey
+        );
+        checkResult(result);
+
+        const redirectUrl = "some-redirect-url";
+
+        result = await bladeSdk.getTradeUrl("buy", ethereumAddress, "EUR", 50, "ETH", 0.5, "moonpay", redirectUrl, completionKey);
+        checkResult(result);
+        expect(result.data).toHaveProperty("url");
+
+        result = await bladeSdk.getTradeUrl("sell", ethereumAddress, "ETH", 2, "USD", 1, "transak", redirectUrl, completionKey);
+        checkResult(result);
+        expect(result.data).toHaveProperty("url");
+
+        try {
+            result = await bladeSdk.getTradeUrl(
+                "buy",
+                ethereumAddress,
+                "EUR",
+                50,
+                "ETH",
+                0.5,
+                "unknown-service-id",
+                redirectUrl,
+                completionKey
+            );
+            expect("Code should not reach here").toEqual(result);
+        } catch (result) {
+            checkResult(result, false);
+        }
+    }, 30_000);
+
+    // test("bladeSdk-ethereum.swapTokens", async () => {
+    //     let result = await bladeSdk.init(
+    //         process.env.API_KEY_MAINNET,
+    //         KnownChainIds.ETHEREUM_MAINNET,
+    //         process.env.DAPP_CODE,
+    //         process.env.VISITOR_ID,
+    //         process.env.SDK_ENV,
+    //         sdkVersion,
+    //         completionKey
+    //     );
+    //     checkResult(result);
+    //
+    //     try {
+    //         result = await bladeSdk.swapTokens("USDC", 0.00001, "ETH", 0.5, "saucerswap", completionKey);
+    //         expect("Code should not reach here").toEqual(result);
+    //     } catch (result) {
+    //         checkResult(result, false);
+    //     }
+    //
+    //     result = await bladeSdk.setUser(
+    //         AccountProvider.PrivateKey,
+    //         ethereumAddress,
+    //         ethereumPrivateKey,
+    //         completionKey
+    //     );
+    //     checkResult(result);
+    //
+    //     result = await bladeSdk.swapTokens("WETH", 0.05, "1INCH", 0.5, "saucerswapV2", completionKey);
+    //     checkResult(result);
+    //
+    //     try {
+    //         result = await bladeSdk.swapTokens("USDC", 0.00001, "HBAR", 0.5, "unknown-service-id", completionKey);
+    //         expect("Code should not reach here").toEqual(result);
+    //     } catch (result) {
+    //         checkResult(result, false);
+    //     }
+    // }, 60_000);
 }); // describe

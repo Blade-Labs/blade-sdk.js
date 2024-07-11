@@ -1,4 +1,5 @@
 import {
+    AccountAllowanceApproveTransaction,
     Hbar,
     HbarUnit,
     PrivateKey,
@@ -19,7 +20,6 @@ import {Buffer} from "buffer";
 import {ITokenService, TransferInitData, TransferTokenInitData} from "../TokenServiceContext";
 import {
     BalanceData,
-    DAppConfig,
     KeyRecord,
     KeyType,
     NFTStorageConfig,
@@ -36,18 +36,25 @@ import {NFTStorage} from "nft.storage";
 import {ChainMap, KnownChainIds} from "../../models/Chain";
 import {JobAction, JobStatus} from "../../models/BladeApi";
 import {sleep} from "../../helpers/ApiHelper";
+import {FeeManualOptions, FeeType, ICryptoFlowQuote, ICryptoFlowTransaction} from "../../models/CryptoFlow";
+import {Network} from "../../models/Networks";
+import BigNumber from "bignumber.js";
+import {flatArray} from "../../helpers/ArrayHelpers";
+import FeeService, {HbarTokenId} from "../../services/FeeService";
 
 export default class TokenServiceHedera implements ITokenService {
     private readonly chainId: KnownChainIds;
     private readonly signer: Signer | null;
     private readonly apiService: ApiService;
     private readonly configService: ConfigService;
+    private readonly feeService: FeeService;
 
-    constructor(chainId: KnownChainIds, signer: Signer | null, apiService: ApiService, configService: ConfigService) {
+    constructor(chainId: KnownChainIds, signer: Signer | null, apiService: ApiService, configService: ConfigService, feeService: FeeService) {
         this.chainId = chainId;
         this.signer = signer;
         this.apiService = apiService;
         this.configService = configService;
+        this.feeService = feeService;
     }
 
     async getBalance(address: string): Promise<BalanceData> {
@@ -119,7 +126,7 @@ export default class TokenServiceHedera implements ITokenService {
                 if (transferTokenJob.status === JobStatus.FAILED) {
                     throw new Error(transferTokenJob.errorMessage);
                 }
-                await sleep(await this.configService.getConfig("refreshTaskPeriodSeconds") * 1000);
+                await sleep((await this.configService.getConfig("refreshTaskPeriodSeconds")) * 1000);
                 transferTokenJob = await this.apiService.transferTokens(JobAction.CHECK, transferTokenJob.taskId);
             }
 
@@ -135,7 +142,6 @@ export default class TokenServiceHedera implements ITokenService {
                 .then(tx => tx.signWithSigner(this.signer!))
                 .then(tx => tx.executeWithSigner(this.signer!))
                 .then(async data => {
-
                     await this.apiService.transferTokens(JobAction.CONFIRM, transferTokenJob.taskId).catch(() => {
                         // ignore this error, continue (no content)
                     });
@@ -176,7 +182,10 @@ export default class TokenServiceHedera implements ITokenService {
         let result: TransactionResponseHedera;
         const tokensConfig = await this.configService.getConfig("tokens");
         if (tokensConfig.association.includes(tokenId) || !tokenId) {
-            let tokenAssociationJob = await this.apiService.tokenAssociation(JobAction.INIT, "", {accountId, tokenIds: [tokenId]});
+            let tokenAssociationJob = await this.apiService.tokenAssociation(JobAction.INIT, "", {
+                accountId,
+                tokenIds: [tokenId]
+            });
             while (true) {
                 if (tokenAssociationJob.status === JobStatus.SUCCESS) {
                     break;
@@ -184,8 +193,11 @@ export default class TokenServiceHedera implements ITokenService {
                 if (tokenAssociationJob.status === JobStatus.FAILED) {
                     throw new Error(tokenAssociationJob.errorMessage);
                 }
-                await sleep(await this.configService.getConfig("refreshTaskPeriodSeconds") * 1000);
-                tokenAssociationJob = await this.apiService.tokenAssociation(JobAction.CHECK, tokenAssociationJob.taskId);
+                await sleep((await this.configService.getConfig("refreshTaskPeriodSeconds")) * 1000);
+                tokenAssociationJob = await this.apiService.tokenAssociation(
+                    JobAction.CHECK,
+                    tokenAssociationJob.taskId
+                );
             }
 
             if (!tokenAssociationJob.result || !tokenAssociationJob.result.transactionBytes) {
@@ -193,9 +205,10 @@ export default class TokenServiceHedera implements ITokenService {
             }
 
             const buffer = Buffer.from(tokenAssociationJob.result.transactionBytes, "base64");
-            const transaction = Transaction.fromBytes(buffer)
+            const transaction = Transaction.fromBytes(buffer);
 
-            result = await transaction.signWithSigner(this.signer!)
+            result = await transaction
+                .signWithSigner(this.signer!)
                 .then(tx => tx.executeWithSigner(this.signer!))
                 .then(async result => {
                     await this.apiService.tokenAssociation(JobAction.CONFIRM, tokenAssociationJob.taskId).catch(() => {
@@ -380,7 +393,7 @@ export default class TokenServiceHedera implements ITokenService {
             if (dropJob.status === JobStatus.FAILED) {
                 throw new Error(dropJob.errorMessage);
             }
-            await sleep(await this.configService.getConfig("refreshTaskPeriodSeconds") * 1000);
+            await sleep((await this.configService.getConfig("refreshTaskPeriodSeconds")) * 1000);
             dropJob = await this.apiService.dropTokens(JobAction.CHECK, dropJob.taskId);
         }
 
@@ -391,5 +404,158 @@ export default class TokenServiceHedera implements ITokenService {
             dropStatuses: dropJob!.result!.dropStatuses,
             redirectUrl: "string"
         };
+    }
+
+    async swapTokens(
+        accountAddress: string,
+        selectedQuote: ICryptoFlowQuote,
+        txData: ICryptoFlowTransaction,
+    ): Promise<{success: boolean}> {
+        if (await this.validateMessage(txData)) {
+            await this.executeAllowanceApprove(
+                selectedQuote,
+                accountAddress,
+                this.chainId,
+                this.signer!,
+                true,
+                txData.allowanceTo
+            );
+            try {
+                await this.executeHederaSwapTx(txData.calldata, this.signer!);
+            } catch (e) {
+                await this.executeAllowanceApprove(
+                    selectedQuote,
+                    accountAddress,
+                    this.chainId,
+                    this.signer!,
+                    false,
+                    txData.allowanceTo
+                );
+                throw e;
+            }
+            await this.executeHederaBladeFeeTx(
+                selectedQuote,
+                accountAddress,
+                this.chainId,
+                this.signer!
+            );
+        } else {
+            throw new Error("Invalid signature of txData");
+        }
+        return {success: true};
+    }
+
+    private async validateMessage(tx: ICryptoFlowTransaction) {
+        try {
+            const pubKeyHex = await this.configService.getConfig("exchangeServiceSignerPubKey");
+            const decodedJsonString = Buffer.from(pubKeyHex, "hex").toString();
+            const publicKeyJwk = JSON.parse(decodedJsonString);
+
+            // Import the JWK formatted public key to WebCrypto API
+            const importedPublicKey = await global.crypto.subtle.importKey(
+                "jwk",
+                publicKeyJwk, // Parse the JWK from string format
+                {
+                    name: "ECDSA",
+                    namedCurve: "P-256"
+                },
+                true,
+                ["verify"]
+            );
+
+            // Verify the signature
+            return await global.crypto.subtle.verify(
+                {
+                    name: "ECDSA",
+                    hash: "SHA-256"
+                },
+                importedPublicKey,
+                Buffer.from(tx.signature, "hex"), // The signature in ArrayBuffer format
+                Buffer.from(tx.calldata) // The original message in ArrayBuffer format
+            );
+        } catch (e) {
+            return false;
+        }
+    }
+
+    private async executeAllowanceApprove(
+        selectedQuote: ICryptoFlowQuote,
+        activeAccount: string,
+        chainId: KnownChainIds,
+        signer: Signer,
+        approve: boolean = true,
+        allowanceToAddr?: string
+    ): Promise<void> {
+        const network = ChainMap[chainId].isTestnet ? Network.Testnet : Network.Mainnet;
+
+        const sourceToken = selectedQuote.source.asset;
+        if (!sourceToken.address) return;
+
+        const isTokenHbar = await this.isHbar(sourceToken.address);
+
+        if (!isTokenHbar) {
+            const swapContract = JSON.parse(await this.configService.getConfig("swapContract"));
+            const amount = approve
+                ? Math.ceil(
+                    Math.pow(10, sourceToken.decimals!) * (selectedQuote.source.amountExpected * 1.2) // with a little buffer
+                )
+                : 0;
+
+            const tx = new AccountAllowanceApproveTransaction()
+                .setMaxTransactionFee(100)
+                .approveTokenAllowance(sourceToken.address, activeAccount, allowanceToAddr || swapContract[network], amount);
+            const freezedTx = await tx.freezeWithSigner(signer);
+            const signedTx = await freezedTx.signWithSigner(signer);
+            const txResponse = await signedTx.executeWithSigner(signer);
+            const receipt = await txResponse.getReceiptWithSigner(signer);
+
+            if (receipt?.status !== Status.Success) {
+                throw new Error("Allowance giving failed");
+            }
+        }
+    }
+
+    private async executeHederaSwapTx(txHex: string, signer: Signer) {
+        const buffer: Buffer = Buffer.from(txHex, "hex");
+        const transaction = await Transaction.fromBytes(buffer).freezeWithSigner(signer);
+        const signedTx = await transaction.signWithSigner(signer);
+        const txResponse = await signedTx.executeWithSigner(signer);
+        const receipt = await txResponse.getReceiptWithSigner(signer);
+
+        if (receipt?.status !== Status.Success) {
+            throw new Error("Swap transaction failed");
+        }
+    }
+
+    private async executeHederaBladeFeeTx(
+        selectedQuote: ICryptoFlowQuote,
+        activeAccount: string,
+        chainId: KnownChainIds,
+        signer: Signer
+    ) {
+        const feeOptions: FeeManualOptions = {
+            type: FeeType.Swap,
+            amount: BigNumber(selectedQuote.source.amountExpected),
+            amountTokenId: selectedQuote.source.asset.address
+        };
+        let transaction = await this.feeService.createFeeTransaction(chainId, activeAccount, feeOptions);
+        if (!transaction) {
+            return;
+        }
+        transaction = await transaction.setTransactionMemo("Swap Blade Fee").freezeWithSigner(signer);
+        const signedTx = await transaction.signWithSigner(signer);
+        const response = await signedTx.executeWithSigner(signer);
+        const receiptFee = await response.getReceiptWithSigner(signer);
+
+        if (receiptFee?.status !== Status.Success) {
+            throw new Error("Fee transfer execution failed");
+        }
+    }
+
+    private async isHbar(tokenId: string): Promise<boolean> {
+        const WHBARs = JSON.parse(await this.configService.getConfig("swapWrapHbar"));
+        const arr: string[] = flatArray(Object.values(WHBARs));
+        arr.push(HbarTokenId);
+        return arr.includes(tokenId);
     }
 }

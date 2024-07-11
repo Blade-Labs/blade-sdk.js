@@ -15,24 +15,28 @@ import {Alchemy, Contract, Network as AlchemyNetwork} from "alchemy-sdk";
 import {Network} from "../../models/Networks";
 import StringHelpers from "../../helpers/StringHelpers";
 import ERC20ABI from "../../abi/erc20.abi";
+import FeeService from "../../services/FeeService";
 
 export default class TokenServiceEthereum implements ITokenService {
     private readonly chainId: KnownChainIds;
     private readonly signer: ethers.Signer | null;
     private readonly apiService: ApiService;
     private readonly configService: ConfigService;
+    private readonly feeService: FeeService;
     private alchemy: Alchemy | null = null;
 
     constructor(
         chainId: KnownChainIds,
         signer: ethers.Signer | null,
         apiService: ApiService,
-        configService: ConfigService
+        configService: ConfigService,
+        feeService: FeeService
     ) {
         this.chainId = chainId;
         this.signer = signer;
         this.apiService = apiService;
         this.configService = configService;
+        this.feeService = feeService;
     }
 
     async getBalance(address: string): Promise<BalanceData> {
@@ -141,5 +145,9 @@ export default class TokenServiceEthereum implements ITokenService {
             );
             this.alchemy = new Alchemy({apiKey, network: alchemyNetwork});
         }
+    }
+
+    swapTokens(): Promise<{success: boolean}> {
+        throw new Error("Method not implemented.");
     }
 }

@@ -7,7 +7,6 @@ import {FeeManualOptions, FeeType} from "../models/CryptoFlow";
 import {ChainMap, KnownChainIds} from "../models/Chain";
 import BigNumber from "bignumber.js";
 import ConfigService from "./ConfigService";
-import {DAppConfig, FeeConfig} from "../models/Common";
 
 export const HbarTokenId = "0.0.0";
 
