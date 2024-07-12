@@ -148,7 +148,7 @@ export class BladeSDK {
 
             this.tokenServiceContext.init(this.chainId, this.user.signer);
             this.accountServiceContext.init(this.chainId, this.user.signer);
-            this.signServiceContext.init(this.chainId, this.user.signer);
+            this.signServiceContext.init(this.chainId, this.user.signer, this.user.publicKey);
             this.contractServiceContext.init(this.chainId, this.user.signer);
 
             return this.sendMessageToNative(completionKey, {
@@ -563,15 +563,13 @@ export class BladeSDK {
      * Sign base64-encoded message with private key. Returns hex-encoded signature.
      * @param encodedMessage encoded message to sign
      * @param encoding one of the supported encodings (hex/base64/utf8)
+     * @param likeEthers to get signature in ethers format. Works only for ECDSA keys. Ignored on chains other than Hedera
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {SignMessageData}
      */
-    async sign(encodedMessage: string, encoding: SupportedEncoding, completionKey?: string): Promise<SignMessageData> {
-
-        // TODO sign with ethers on hedera
-
+    async sign(encodedMessage: string, encoding: SupportedEncoding, likeEthers: boolean, completionKey?: string): Promise<SignMessageData> {
         try {
-            const result = await this.signServiceContext.sign(encodedMessage, encoding);
+            const result = await this.signServiceContext.sign(encodedMessage, encoding, likeEthers);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);

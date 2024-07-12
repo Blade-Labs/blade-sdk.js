@@ -21,7 +21,7 @@ import {ParametersBuilder} from "../ParametersBuilder";
 import SignService from "../services/SignService";
 
 export interface ISignService {
-    sign(encodedMessage: string, encoding: SupportedEncoding): Promise<SignMessageData>;
+    sign(encodedMessage: string, encoding: SupportedEncoding, likeEthers: boolean, publicKey: string): Promise<SignMessageData>;
     verify(
         encodedMessage: string,
         encoding: SupportedEncoding,
@@ -45,6 +45,7 @@ export default class SignServiceContext implements ISignService {
     private chainId: KnownChainIds | null = null;
     private signer: Signer | ethers.Signer | null = null;
     private strategy: ISignService | null = null;
+    private publicKey: string = "";
 
     constructor(
         @inject("apiService") private readonly apiService: ApiService,
@@ -52,9 +53,10 @@ export default class SignServiceContext implements ISignService {
         @inject("signService") private readonly signService: SignService
     ) {}
 
-    init(chainId: KnownChainIds, signer: Signer | ethers.Signer) {
+    init(chainId: KnownChainIds, signer: Signer | ethers.Signer, publicKey: string) {
         this.chainId = chainId;
         this.signer = signer;
+        this.publicKey = publicKey;
 
         switch (ChainMap[this.chainId].serviceStrategy) {
             case ChainServiceStrategy.Hedera:
@@ -81,9 +83,9 @@ export default class SignServiceContext implements ISignService {
         return this.signService.getParamsSignature(paramsEncoded, privateKey);
     }
 
-    sign(encodedMessage: string, encoding: SupportedEncoding): Promise<SignMessageData> {
+    sign(encodedMessage: string, encoding: SupportedEncoding, likeEthers: boolean): Promise<SignMessageData> {
         this.checkInit();
-        return this.strategy!.sign(encodedMessage, encoding);
+        return this.strategy!.sign(encodedMessage, encoding, likeEthers, this.publicKey);
     }
 
     verify(

@@ -17,6 +17,8 @@ import { KnownChainIds} from "../../src/models/Chain";
 import SignService from "../../src/services/SignService";
 import AuthService from "../../src/services/AuthService";
 import BigNumber from 'bignumber.js';
+import {PrivateKey} from "@hashgraph/sdk";
+import {ethers} from "ethers";
 
 const {BladeSDK, ParametersBuilder} = require("../../src/webView");
 
@@ -119,6 +121,28 @@ describe("testing methods related to ETHEREUM network", () => {
             checkResult(result, false);
         }
     }, 20_000);
+
+    test("bladeSdk-ethereum.createAccount", async () => {
+        let result;
+
+        result = await bladeSdk.createAccount("", "device-id", completionKey);
+        checkResult(result);
+
+        expect(result.data).toHaveProperty("seedPhrase");
+        expect(result.data).toHaveProperty("publicKey");
+        expect(result.data).toHaveProperty("privateKey");
+        expect(result.data).toHaveProperty("accountId");
+        expect(result.data).toHaveProperty("evmAddress");
+
+        const publicKey = PrivateKey.fromStringECDSA(result.data.privateKey).publicKey.toStringRaw();
+        const evmAddress = ethers.utils.computeAddress(`0x${publicKey}`);
+
+        expect(result.data.evmAddress).toEqual(evmAddress);
+
+        result = await bladeSdk.createAccount(result.data.privateKey, "device-id", completionKey);
+        checkResult(result);
+        expect(result.data.evmAddress).toEqual(evmAddress);
+    }, 60_000);
 
     test('bladeSdk-ethereum.transferBalance', async () => {
         let result = await bladeSdk.getBalance(ethereumAddress, completionKey);

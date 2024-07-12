@@ -23,6 +23,7 @@ import {
     Network as AlchemyNetwork,
     SortingOrder
 } from "alchemy-sdk";
+import {JobStatus} from "../../models/BladeApi";
 
 export default class AccountServiceEthereum implements IAccountService {
     private readonly chainId: KnownChainIds;
@@ -43,8 +44,26 @@ export default class AccountServiceEthereum implements IAccountService {
         this.configService = configService;
     }
 
-    createAccount(): Promise<CreateAccountData> {
-        throw new Error("Method not implemented.");
+    async createAccount(privateKey: string): Promise<CreateAccountData> {
+        let wallet: ethers.Wallet;
+        let seedPhrase: string = "";
+
+
+        if (privateKey) {
+            wallet = new ethers.Wallet(privateKey)
+        } else {
+            wallet = ethers.Wallet.createRandom();
+            seedPhrase = wallet.mnemonic.phrase;
+        }
+
+        return {
+            seedPhrase,
+            publicKey: wallet.publicKey,
+            privateKey: wallet.privateKey,
+            accountId: wallet.address,
+            evmAddress: wallet.address,
+            status: JobStatus.SUCCESS
+        }
     }
 
     deleteAccount(): Promise<TransactionReceiptData> {

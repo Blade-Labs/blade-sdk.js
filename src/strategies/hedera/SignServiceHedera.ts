@@ -9,6 +9,7 @@ import {
     Transaction,
     TransferTransaction
 } from "@hashgraph/sdk";
+import secp256k1 from "secp256k1";
 
 import {ISignService} from "../SignServiceContext";
 import {
@@ -20,13 +21,14 @@ import {
     SupportedEncoding,
     TransactionReceiptData
 } from "../../models/Common";
-import {KnownChainIds} from "../../models/Chain";
+import {CryptoKeyType, KnownChainIds} from "../../models/Chain";
 import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
 import {formatReceipt} from "../../helpers/TransactionHelpers";
 import {Buffer} from "buffer";
 import {JobAction, JobStatus} from "../../models/BladeApi";
 import {sleep} from "../../helpers/ApiHelper";
+import {ethers} from "ethers";
 
 export default class SignServiceHedera implements ISignService {
     private readonly chainId: KnownChainIds;
@@ -41,10 +43,48 @@ export default class SignServiceHedera implements ISignService {
         this.configService = configService;
     }
 
-    async sign(encodedMessage: string, encoding: SupportedEncoding): Promise<SignMessageData> {
+    async sign(encodedMessage: string, encoding: SupportedEncoding, likeEthers: boolean, publicKeyDer: string): Promise<SignMessageData> {
         const message = Buffer.from(encodedMessage, encoding);
-        const signatures: SignerSignature[] = await this.signer.sign([message]);
-        const signedMessage = Buffer.from(signatures[0].signature).toString("hex");
+        let signedMessage: string = "";
+        if (likeEthers) {
+            // to sign like ethers, we need to prefix the message with the length of the message - "\x19Ethereum Signed Message:\n" + message.length
+            const prefix = Buffer.from("\x19Ethereum Signed Message:\n" + message.length);
+            const prefixedMessage = Buffer.concat([prefix, message]);
+            const messageBuffer = Buffer.from(prefixedMessage);
+            const signatures: SignerSignature[] = await this.signer.sign([messageBuffer]);
+
+            // also we need to add recovery id to the signature (27 or 28, last byte)
+            // we need to recover the public key from the signature and compare it with the provided public key
+            const publicKey = PublicKey.fromString(publicKeyDer);
+            if (publicKey._key._type === CryptoKeyType.ED25519.toString()) {
+                throw new Error("ED25519 public key is not supported for Ethereum signing.");
+            }
+            let recoveryId = -1;
+            const messageHash = ethers.utils.keccak256(messageBuffer);
+            for (let i = 0; i < 2; i++) {
+                const recoveredPubKey = secp256k1.ecdsaRecover(
+                    Uint8Array.from(signatures[0].signature),
+                    i, // recovery id
+                    Buffer.from(messageHash.slice(2), 'hex'), // message hash without 0x
+                    true
+                );
+
+                if (Buffer.from(recoveredPubKey).toString("hex") === publicKey.toStringRaw()) {
+                    recoveryId = i + 27; // Ethereum uses 27 and 28 for recovery id
+                    break;
+                }
+            }
+
+            if (recoveryId === -1) {
+                throw new Error("Failed to find a valid recovery id.");
+            }
+
+            // concat signature and recovery id
+            signedMessage = Buffer.concat([Buffer.from(signatures[0].signature), Uint8Array.from([recoveryId])] ).toString("hex");
+        } else {
+            const signatures: SignerSignature[] = await this.signer.sign([message]);
+            signedMessage = Buffer.from(signatures[0].signature).toString("hex");
+        }
 
         return {
             signedMessage
@@ -62,10 +102,10 @@ export default class SignServiceHedera implements ISignService {
         try {
             const accountId = AccountId.fromString(addressOrPublicKey).toString();
             const accountInfo = await this.apiService.getAccountInfo(accountId);
-            if (accountInfo.key._type === "ECDSA_SECP256K1") {
-                publicKey = PublicKey.fromStringECDSA(accountInfo.key.key);
-            } else {
+            if (accountInfo.key._type === CryptoKeyType.ED25519) {
                 publicKey = PublicKey.fromStringED25519(accountInfo.key.key);
+            } else {
+                publicKey = PublicKey.fromStringECDSA(accountInfo.key.key);
             }
         } catch (err) {
             publicKey = PublicKey.fromString(addressOrPublicKey);
@@ -80,11 +120,14 @@ export default class SignServiceHedera implements ISignService {
     async createScheduleTransaction(
         type: ScheduleTransactionType,
         transfers: ScheduleTransactionTransfer[],
-        usePaymaster: boolean = false,
+        usePaymaster: boolean = false
     ): Promise<{scheduleId: string}> {
-        usePaymaster = usePaymaster && await this.configService.getConfig("scheduleSign");
+        usePaymaster = usePaymaster && (await this.configService.getConfig("scheduleSign"));
         if (usePaymaster) {
-            let createScheduleRequestJob = await this.apiService.createScheduleRequestJob(JobAction.INIT, "", {type, transfers});
+            let createScheduleRequestJob = await this.apiService.createScheduleRequestJob(JobAction.INIT, "", {
+                type,
+                transfers
+            });
             while (true) {
                 if (createScheduleRequestJob.status === JobStatus.SUCCESS) {
                     break;
@@ -92,8 +135,11 @@ export default class SignServiceHedera implements ISignService {
                 if (createScheduleRequestJob.status === JobStatus.FAILED) {
                     throw new Error(createScheduleRequestJob.errorMessage);
                 }
-                await sleep(await this.configService.getConfig("refreshTaskPeriodSeconds") * 1000);
-                createScheduleRequestJob = await this.apiService.createScheduleRequestJob(JobAction.CHECK, createScheduleRequestJob.taskId);
+                await sleep((await this.configService.getConfig("refreshTaskPeriodSeconds")) * 1000);
+                createScheduleRequestJob = await this.apiService.createScheduleRequestJob(
+                    JobAction.CHECK,
+                    createScheduleRequestJob.taskId
+                );
             }
 
             if (!createScheduleRequestJob.result) {
@@ -160,15 +206,18 @@ export default class SignServiceHedera implements ISignService {
     async signScheduleId(
         scheduledTransactionId: string,
         receiverAccountId: string,
-        usePaymaster: boolean = false,
+        usePaymaster: boolean = false
     ): Promise<TransactionReceiptData> {
-        usePaymaster = usePaymaster && await this.configService.getConfig("scheduleSign");
+        usePaymaster = usePaymaster && (await this.configService.getConfig("scheduleSign"));
         if (usePaymaster) {
             if (!receiverAccountId) {
                 throw new Error("Receiver account id required for free schedule transaction");
             }
 
-            let signScheduleRequestJob = await this.apiService.signScheduleRequestJob(JobAction.INIT, "", {receiverAccountId, scheduledTransactionId});
+            let signScheduleRequestJob = await this.apiService.signScheduleRequestJob(JobAction.INIT, "", {
+                receiverAccountId,
+                scheduledTransactionId
+            });
             while (true) {
                 if (signScheduleRequestJob.status === JobStatus.SUCCESS) {
                     break;
@@ -176,8 +225,11 @@ export default class SignServiceHedera implements ISignService {
                 if (signScheduleRequestJob.status === JobStatus.FAILED) {
                     throw new Error(signScheduleRequestJob.errorMessage);
                 }
-                await sleep(await this.configService.getConfig("refreshTaskPeriodSeconds") * 1000);
-                signScheduleRequestJob = await this.apiService.signScheduleRequestJob(JobAction.CHECK, signScheduleRequestJob.taskId);
+                await sleep((await this.configService.getConfig("refreshTaskPeriodSeconds")) * 1000);
+                signScheduleRequestJob = await this.apiService.signScheduleRequestJob(
+                    JobAction.CHECK,
+                    signScheduleRequestJob.taskId
+                );
             }
             if (!signScheduleRequestJob.result) {
                 throw new Error("No result from backend");
@@ -188,7 +240,7 @@ export default class SignServiceHedera implements ISignService {
                 .signWithSigner(this.signer)
                 .then(signedTx => signedTx.executeWithSigner(this.signer))
                 .then(result => result.getReceiptWithSigner(this.signer));
-            await this.apiService.signScheduleRequestJob(JobAction.CONFIRM, signScheduleRequestJob.taskId).catch((e) => {
+            await this.apiService.signScheduleRequestJob(JobAction.CONFIRM, signScheduleRequestJob.taskId).catch(e => {
                 // ignore this error, continue (no content)
             });
             return formatReceipt(receipt);

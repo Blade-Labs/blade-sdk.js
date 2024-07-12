@@ -40,6 +40,7 @@ import BigNumber from "bignumber.js";
 import {TokenInfo} from "../../src/models/MirrorNode";
 import {ParametersBuilder} from "../../src/ParametersBuilder";
 import AuthService from "../../src/services/AuthService";
+import {Buffer} from "buffer";
 
 const {BladeSDK} = require("../../src/webView");
 
@@ -949,21 +950,21 @@ describe("testing methods related to HEDERA network", () => {
         result = await bladeSdk.setUser(AccountProvider.PrivateKey, accountId, privateKey, completionKey);
         checkResult(result);
 
-        result = await bladeSdk.sign(messageString, "base64", completionKey);
+        result = await bladeSdk.sign(messageString, "base64", false, completionKey);
         checkResult(result);
         expect(result.data).toHaveProperty("signedMessage");
         const signedMessage = result.data.signedMessage;
 
-        result = await bladeSdk.sign(Buffer.from(message).toString("hex"), "hex", completionKey);
+        result = await bladeSdk.sign(Buffer.from(message).toString("hex"), "hex", false, completionKey);
         checkResult(result);
         expect(result.data.signedMessage).toEqual(signedMessage);
 
-        result = await bladeSdk.sign(message, "utf8", completionKey);
+        result = await bladeSdk.sign(message, "utf8", false, completionKey);
         checkResult(result);
         expect(result.data.signedMessage).toEqual(signedMessage);
 
         expect(result.data.signedMessage).toEqual(
-            Buffer.from(PrivateKey.fromString(privateKey).sign(Buffer.from(message))).toString("hex")
+            Buffer.from(PrivateKey.fromStringDer(privateKey).sign(Buffer.from(message))).toString("hex")
         );
 
         let validationResult = await bladeSdk.verify(
@@ -980,7 +981,7 @@ describe("testing methods related to HEDERA network", () => {
             messageString,
             "base64",
             result.data.signedMessage,
-            PrivateKey.fromString(privateKey).publicKey.toStringRaw(),
+            PrivateKey.fromStringDer(privateKey).publicKey.toStringRaw(),
             completionKey
         );
         checkResult(validationResult);
@@ -1007,7 +1008,7 @@ describe("testing methods related to HEDERA network", () => {
         expect(validationResult.data.valid).toEqual(true);
 
         expect(
-            PrivateKey.fromString(privateKey).publicKey.verify(
+            PrivateKey.fromStringDer(privateKey).publicKey.verify(
                 Buffer.from(message),
                 Buffer.from(result.data.signedMessage, "hex")
             )
@@ -1021,6 +1022,24 @@ describe("testing methods related to HEDERA network", () => {
                 "invalid publicKey",
                 completionKey
             );
+            expect("Code should not reach here").toEqual(result);
+        } catch (result) {
+            checkResult(result, false);
+        }
+
+        // test likeEthers signature
+        let wallet = new ethers.Wallet(PrivateKey.fromStringDer(privateKey).toStringRaw());
+        const ethersSignature = (await wallet.signMessage(Buffer.from(message))).slice(2);
+
+        result = await bladeSdk.sign(message, "utf8", true, completionKey);
+        checkResult(result);
+        expect(result.data.signedMessage).toEqual(ethersSignature);
+
+        // test with ED25519 :)
+        try {
+            result = await bladeSdk.setUser(AccountProvider.PrivateKey, accountId4ED25519, privateKeyED25519, completionKey);
+            checkResult(result);
+            result = await bladeSdk.sign(message, "utf8", true, completionKey);
             expect("Code should not reach here").toEqual(result);
         } catch (result) {
             checkResult(result, false);

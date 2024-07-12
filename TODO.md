@@ -14,7 +14,7 @@
 | ✅      | ✅        | contractCallQueryFunction         | implement use payMaster                             |
 | ✅      | ❌        | createScheduleTransaction         |                                                     |
 | ✅      | ❌        | signScheduleId                    |                                                     |
-| ✅      | ❓        | createAccount                     | implement for eth                                   |
+| ✅      | ✅        | createAccount                     |                                                     |
 | ❌      | ❌        | getPendingAccount                 | removed in v8                                       |
 | ✅      | ❌        | deleteAccount                     |                                                     |
 | ✅      | ❓        | getAccountInfo                    | fix tests for eth                                   |
@@ -23,7 +23,7 @@
 | ❌      | ❌        | getKeysFromMnemonic               | removed in 0.8                                      |
 | ✅      | ✅        | searchAccounts                    |                                                     |
 | ✅      | ❓        | dropTokens                        | check if we need this for ETH                       |
-| ❓      | ✅        | sign                              | optionally sign with Ethers on Hedera               |
+| ✅      | ✅        | sign                              |                                                     |
 | ✅      | ✅        | verify                            |                                                     |
 | ❌      | ❌        | ethersSign                        |                                                     |
 | ✅      | ✅        | splitSignature                    |                                                     |
