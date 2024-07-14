@@ -18,6 +18,7 @@ import {
     ScheduleTransferType,
     SignMessageData,
     SignVerifyMessageData,
+    SplitSignatureData,
     SupportedEncoding,
     TransactionReceiptData
 } from "../../models/Common";
@@ -29,6 +30,8 @@ import {Buffer} from "buffer";
 import {JobAction, JobStatus} from "../../models/BladeApi";
 import {sleep} from "../../helpers/ApiHelper";
 import {ethers} from "ethers";
+import {ParametersBuilder} from "../../ParametersBuilder";
+import {parseContractFunctionParams} from "../../helpers/ContractHelpers";
 
 export default class SignServiceHedera implements ISignService {
     private readonly chainId: KnownChainIds;
@@ -44,6 +47,9 @@ export default class SignServiceHedera implements ISignService {
     }
 
     async sign(encodedMessage: string, encoding: SupportedEncoding, likeEthers: boolean, publicKeyDer: string): Promise<SignMessageData> {
+        if (encoding === SupportedEncoding.hex && encodedMessage.startsWith("0x")) {
+            encodedMessage = encodedMessage.slice(2);
+        }
         const message = Buffer.from(encodedMessage, encoding);
         let signedMessage: string = "";
         if (likeEthers) {
@@ -89,6 +95,17 @@ export default class SignServiceHedera implements ISignService {
         return {
             signedMessage
         };
+    }
+
+    async getParamsSignature(
+        paramsEncoded: string | ParametersBuilder,
+        publicKey: string
+    ): Promise<SplitSignatureData> {
+        const {types, values} = await parseContractFunctionParams(paramsEncoded);
+        const hash = ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(types, values));
+        const {signedMessage} = await this.sign(hash, SupportedEncoding.hex, true, publicKey);
+        const {v, r, s} = ethers.utils.splitSignature(`0x${signedMessage}`);
+        return {v, r, s};
     }
 
     async verify(

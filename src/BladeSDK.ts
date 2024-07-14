@@ -626,17 +626,15 @@ export class BladeSDK {
     /**
      * Get v-r-s signature of contract function params
      * @param paramsEncoded - data to sign. Can be string or ParametersBuilder
-     * @param privateKey - signer private key (hex-encoded with DER header)
      * @param completionKey - optional field bridge between mobile webViews and native apps
      * @returns {SplitSignatureData}
      */
     async getParamsSignature(
         paramsEncoded: string | ParametersBuilder,
-        privateKey: string,
         completionKey?: string
     ): Promise<SplitSignatureData> {
         try {
-            const result = await this.signServiceContext.getParamsSignature(paramsEncoded, privateKey);
+            const result = await this.signServiceContext.getParamsSignature(paramsEncoded);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);

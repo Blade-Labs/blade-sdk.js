@@ -11,7 +11,6 @@ import fetch from "node-fetch";
 import {ethers} from "ethers";
 import {TextDecoder, TextEncoder} from "util";
 import crypto from "crypto";
-import {AccountProvider} from "../../src/models/Common";
 import AccountServiceContext from "../../src/strategies/AccountServiceContext";
 import TokenServiceContext from "../../src/strategies/TokenServiceContext";
 import SignServiceContext from "../../src/strategies/SignServiceContext";
@@ -196,88 +195,4 @@ describe("test COMMON functionality", () => {
             checkResult(result, false);
         }
     });
-
-    test("bladeSdk-common.getParamsSignature", async () => {
-        const params = new ParametersBuilder()
-            .addAddress(accountId)
-            .addUInt64Array([300000, 300000])
-            .addUInt64Array([6])
-            .addUInt64Array([2]);
-
-        let result = await bladeSdk.getParamsSignature(params, privateKey, completionKey);
-        checkResult(result);
-
-        expect(result.data).toHaveProperty("v");
-        expect(result.data).toHaveProperty("r");
-        expect(result.data).toHaveProperty("s");
-
-        expect(result.data.v).toEqual(27);
-        expect(result.data.r).toEqual("0x0c6e8f0487709cfc1ebbc41e47ce56aee5cf5bc933a4cd6cb2695b098dbe4ee4");
-        expect(result.data.s).toEqual("0x22d0b6351670c37eb112ebd80123452237cb5c893767510a9356214189f6fe86");
-
-        try {
-            // invalid paramsEncoded
-            result = await bladeSdk.getParamsSignature('[{{{{{{{{{{{"]', privateKey, completionKey);
-            expect("Code should not reach here").toEqual(result);
-        } catch (result) {
-            checkResult(result, false);
-        }
-    });
-
-    test("bladeSdk-common.getC14url", async () => {
-        let result;
-        result = await bladeSdk.getC14url("hbar", "0.0.123456", "123", completionKey);
-        checkResult(result);
-        expect(result.data).toHaveProperty("url");
-
-        let url = result.data.url;
-        expect(url.includes("clientId")).toEqual(true);
-        expect(url.includes("targetAssetId")).toEqual(true);
-        expect(url.includes("targetAssetIdLock")).toEqual(true);
-        expect(url.includes("sourceAmount")).toEqual(true);
-        expect(url.includes("quoteAmountLock")).toEqual(true);
-        expect(url.includes("targetAddress")).toEqual(true);
-        expect(url.includes("targetAddressLock")).toEqual(true);
-
-        result = await bladeSdk.getC14url("usdc", "0.0.123456", "123", completionKey);
-        url = result.data.url;
-        expect(url.includes("clientId")).toEqual(true);
-        expect(url.includes("targetAssetId")).toEqual(true);
-        expect(url.includes("targetAssetIdLock")).toEqual(true);
-        expect(url.includes("sourceAmount")).toEqual(true);
-        expect(url.includes("quoteAmountLock")).toEqual(true);
-        expect(url.includes("targetAddress")).toEqual(true);
-        expect(url.includes("targetAddressLock")).toEqual(true);
-
-        result = await bladeSdk.getC14url("unknown-asset", "", "", completionKey);
-        url = result.data.url;
-        expect(url.includes("clientId")).toEqual(true);
-        expect(url.includes("targetAssetId")).toEqual(false);
-        expect(url.includes("targetAssetIdLock")).toEqual(false);
-        expect(url.includes("sourceAmount")).toEqual(false);
-        expect(url.includes("quoteAmountLock")).toEqual(false);
-        expect(url.includes("targetAddress")).toEqual(false);
-        expect(url.includes("targetAddressLock")).toEqual(false);
-
-        result = await bladeSdk.getC14url("1b487a96-a14a-47d1-a1e0-09c18d409671", "0.0.13421", "10", completionKey);
-        checkResult(result);
-
-        await bladeSdk.init(
-            process.env.API_KEY,
-            chainId,
-            process.env.DAPP_CODE,
-            process.env.VISITOR_ID,
-            "Prod",
-            sdkVersion,
-            completionKey
-        );
-
-        try {
-            result = await bladeSdk.getC14url("1b487a96-a14a-47d1-a1e0-09c18d409671", "0.0.13421", "10", completionKey);
-            expect("Code should not reach here").toEqual(result);
-        } catch (result) {
-            checkResult(result, false);
-        }
-    });
-
 }); // describe

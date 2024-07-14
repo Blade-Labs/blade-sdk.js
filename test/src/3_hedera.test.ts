@@ -23,7 +23,7 @@ import AccountServiceContext from "../../src/strategies/AccountServiceContext";
 import TokenServiceContext from "../../src/strategies/TokenServiceContext";
 import SignServiceContext from "../../src/strategies/SignServiceContext";
 import ContractServiceContext from "../../src/strategies/ContractServiceContext";
-import {KnownChainIds, CryptoKeyType} from "../../src/models/Chain";
+import {CryptoKeyType, KnownChainIds} from "../../src/models/Chain";
 import SignService from "../../src/services/SignService";
 import {ethers} from "ethers";
 import {
@@ -1040,6 +1040,36 @@ describe("testing methods related to HEDERA network", () => {
             result = await bladeSdk.setUser(AccountProvider.PrivateKey, accountId4ED25519, privateKeyED25519, completionKey);
             checkResult(result);
             result = await bladeSdk.sign(message, "utf8", true, completionKey);
+            expect("Code should not reach here").toEqual(result);
+        } catch (result) {
+            checkResult(result, false);
+        }
+    });
+
+    test("bladeSdk-hedera.getParamsSignature", async () => {
+        const params = new ParametersBuilder()
+            .addAddress(accountId)
+            .addUInt64Array([BigNumber(300000), BigNumber(300000)])
+            .addUInt64Array([BigNumber(6)])
+            .addUInt64Array([BigNumber(2)]);
+
+        let result = await bladeSdk.setUser(AccountProvider.PrivateKey, accountId, privateKey, completionKey);
+        checkResult(result);
+
+        result = await bladeSdk.getParamsSignature(params, completionKey);
+        checkResult(result);
+
+        expect(result.data).toHaveProperty("v");
+        expect(result.data).toHaveProperty("r");
+        expect(result.data).toHaveProperty("s");
+
+        expect(result.data.v).toEqual(27);
+        expect(result.data.r).toEqual("0x0c6e8f0487709cfc1ebbc41e47ce56aee5cf5bc933a4cd6cb2695b098dbe4ee4");
+        expect(result.data.s).toEqual("0x22d0b6351670c37eb112ebd80123452237cb5c893767510a9356214189f6fe86");
+
+        try {
+            // invalid paramsEncoded
+            result = await bladeSdk.getParamsSignature('[{{{{{{{{{{{"]', completionKey);
             expect("Code should not reach here").toEqual(result);
         } catch (result) {
             checkResult(result, false);

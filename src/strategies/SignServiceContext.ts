@@ -38,6 +38,7 @@ export interface ISignService {
         transfers: ScheduleTransactionTransfer[],
         usePaymaster: boolean,
     ): Promise<{scheduleId: string}>;
+    getParamsSignature(paramsEncoded: string | ParametersBuilder, publicKey: string): Promise<SplitSignatureData>;
 }
 
 @injectable()
@@ -79,8 +80,9 @@ export default class SignServiceContext implements ISignService {
         return this.signService.splitSignature(signature);
     }
 
-    getParamsSignature(paramsEncoded: string | ParametersBuilder, privateKey: string): Promise<SplitSignatureData> {
-        return this.signService.getParamsSignature(paramsEncoded, privateKey);
+    getParamsSignature(paramsEncoded: string | ParametersBuilder): Promise<SplitSignatureData> {
+        this.checkInit();
+        return this.strategy!.getParamsSignature(paramsEncoded, this.publicKey);
     }
 
     sign(encodedMessage: string, encoding: SupportedEncoding, likeEthers: boolean): Promise<SignMessageData> {
@@ -117,7 +119,7 @@ export default class SignServiceContext implements ISignService {
 
     private checkInit() {
         if (!this.strategy) {
-            throw new Error("SignService not initialized");
+            throw new Error("SignService not initialized (no signer, call setUser() first)");
         }
     }
 }

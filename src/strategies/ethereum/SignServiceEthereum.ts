@@ -1,10 +1,9 @@
 import {ethers} from "ethers";
 import {ISignService} from "../SignServiceContext";
 import {
-    ScheduleTransactionTransfer,
-    ScheduleTransactionType,
     SignMessageData,
     SignVerifyMessageData,
+    SplitSignatureData,
     SupportedEncoding,
     TransactionReceiptData
 } from "../../models/Common";
@@ -12,6 +11,9 @@ import {KnownChainIds} from "../../models/Chain";
 import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
 import StringHelpers from "../../helpers/StringHelpers";
+import {ParametersBuilder} from "../../ParametersBuilder";
+import {parseContractFunctionParams} from "../../helpers/ContractHelpers";
+import {Buffer} from "buffer";
 
 export default class SignServiceEthereum implements ISignService {
     private readonly chainId: KnownChainIds;
@@ -27,12 +29,26 @@ export default class SignServiceEthereum implements ISignService {
     }
 
     async sign(encodedMessage: string, encoding: SupportedEncoding): Promise<SignMessageData> {
+        if (encoding === SupportedEncoding.hex && encodedMessage.startsWith("0x")) {
+            encodedMessage = encodedMessage.slice(2);
+        }
         const message = Buffer.from(encodedMessage, encoding);
         const signedMessage = await this.signer.signMessage(message);
 
         return {
             signedMessage: StringHelpers.stripHexPrefix(signedMessage)
         };
+    }
+
+    async getParamsSignature(paramsEncoded: string | ParametersBuilder): Promise<SplitSignatureData> {
+        const {types, values} = await parseContractFunctionParams(paramsEncoded);
+        const hash = ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(types, values));
+        const messageHashBytes = ethers.utils.arrayify(hash);
+
+        const signedMessage = await this.signer.signMessage(messageHashBytes);
+
+        const {v, r, s} = ethers.utils.splitSignature(signedMessage);
+        return {v, r, s};
     }
 
     async verify(

@@ -27,7 +27,7 @@
 | ✅      | ✅        | verify                            |                                                     |
 | ❌      | ❌        | ethersSign                        |                                                     |
 | ✅      | ✅        | splitSignature                    |                                                     |
-| ❓      | ❓        | getParamsSignature                | implement with signer                               |
+| ✅      | ✅        | getParamsSignature                |                                                     |
 | ✅      | ✅        | getTransactions                   |                                                     |
 | ❌      | ❌        | getC14url                         | removed in 0.8.                                     |
 | ✅      | ✅        | exchangeGetQuotes                 | test for eth                                        |

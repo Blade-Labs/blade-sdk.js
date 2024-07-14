@@ -13,20 +13,4 @@ export default class SignService {
         const {v, r, s} = ethers.utils.splitSignature(signature);
         return {v, r, s};
     }
-
-    async getParamsSignature(
-        paramsEncoded: string | ParametersBuilder,
-        privateKey: string
-    ): Promise<SplitSignatureData> {
-        const {types, values} = await parseContractFunctionParams(paramsEncoded);
-        const hash = ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(types, values));
-        const messageHashBytes = ethers.utils.arrayify(hash);
-
-        const key = PrivateKey.fromString(privateKey);
-        const wallet = new ethers.Wallet(key.toStringRaw());
-        const signed = await wallet.signMessage(messageHashBytes);
-
-        const {v, r, s} = ethers.utils.splitSignature(signed);
-        return {v, r, s};
-    }
 }

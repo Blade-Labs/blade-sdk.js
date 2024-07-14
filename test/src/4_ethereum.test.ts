@@ -62,6 +62,7 @@ describe("testing methods related to ETHEREUM network", () => {
     const ethereumAddress2 = process.env.ETHEREUM_ADDRESS2 || "";
     const ethereumMnemonic = process.env.ETHEREUM_MNEMONIC || "";
     const ethereumTokenAddress = (process.env.ETHEREUM_TOKEN_ADDRESS || "").toLowerCase();
+    const hederaAccountId = process.env.ACCOUNT_ID || "";
 
     const chainId = KnownChainIds.ETHEREUM_SEPOLIA;
 
@@ -700,6 +701,36 @@ describe("testing methods related to ETHEREUM network", () => {
         );
         checkResult(validationResult);
         expect(validationResult.data.valid).toEqual(false);
+    });
+
+    test("bladeSdk-ethereum.getParamsSignature", async () => {
+        const params = new ParametersBuilder()
+            .addAddress(hederaAccountId)
+            .addUInt64Array([BigNumber(300000), BigNumber(300000)])
+            .addUInt64Array([BigNumber(6)])
+            .addUInt64Array([BigNumber(2)]);
+
+        let result = await bladeSdk.setUser(AccountProvider.PrivateKey, "", ethereumPrivateKey, completionKey);
+        checkResult(result);
+
+        result = await bladeSdk.getParamsSignature(params, completionKey);
+        checkResult(result);
+
+        expect(result.data).toHaveProperty("v");
+        expect(result.data).toHaveProperty("r");
+        expect(result.data).toHaveProperty("s");
+
+        expect(result.data.v).toEqual(27);
+        expect(result.data.r).toEqual("0x0c6e8f0487709cfc1ebbc41e47ce56aee5cf5bc933a4cd6cb2695b098dbe4ee4");
+        expect(result.data.s).toEqual("0x22d0b6351670c37eb112ebd80123452237cb5c893767510a9356214189f6fe86");
+
+        try {
+            // invalid paramsEncoded
+            result = await bladeSdk.getParamsSignature('[{{{{{{{{{{{"]', completionKey);
+            expect("Code should not reach here").toEqual(result);
+        } catch (result) {
+            checkResult(result, false);
+        }
     });
 
     test("bladeSdk-ethereum.exchangeGetQuotes", async () => {
