@@ -11,14 +11,12 @@ export const getContractFunctionBytecode = async (
 
     // get func identifier
     const functionSignature = `${functionName}(${types.join(",")})`;
-    const functionIdentifier = new ethers.utils.Interface([
-        ethers.utils.FunctionFragment.from(functionSignature),
-    ]).getSighash(functionName);
+    const functionIdentifier = ethers.id(functionSignature).substring(0, 10);
 
-    const abiCoder = new ethers.utils.AbiCoder();
+    const abiCoder = new ethers.AbiCoder();
     const encodedBytes = abiCoder.encode(types, values);
 
-    return Buffer.concat([ethers.utils.arrayify(functionIdentifier), ethers.utils.arrayify(encodedBytes)]);
+    return Buffer.concat([ethers.getBytes(functionIdentifier), ethers.getBytes(encodedBytes)]);
 };
 
 export const parseContractFunctionParams = async (paramsEncoded: string | ParametersBuilder) => {

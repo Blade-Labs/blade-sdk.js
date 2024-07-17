@@ -93,7 +93,7 @@ async function prepareAccountRecord(
     return accounts.map((record) => {
         const evmAddress =
             keyType === CryptoKeyType.ECDSA_SECP256K1
-                ? ethers.utils.computeAddress(`0x${privateKey.publicKey.toStringRaw()}`).toLowerCase()
+                ? ethers.computeAddress(`0x${privateKey.publicKey.toStringRaw()}`).toLowerCase()
                 : record?.evm_address;
         return {
             privateKey: privateKey.toStringDer(),
