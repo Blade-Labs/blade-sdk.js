@@ -685,7 +685,7 @@ test('bladeSdk.searchAccounts', async () => {
 
     result = await bladeSdk.searchAccounts(accountSample.seedPhrase, completionKey);
     checkResult(result);
-    await sleep(7000);
+    await sleep(10000);
 
     expect(result.data).toHaveProperty("accounts");
     expect(Array.isArray(result.data.accounts)).toEqual(true);
