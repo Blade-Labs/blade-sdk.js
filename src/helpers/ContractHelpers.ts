@@ -15,16 +15,14 @@ export const getContractFunctionBytecode = async (
 
     // get func identifier
     const functionSignature = `${functionName}(${types.join(",")})`;
-    const functionIdentifier = new ethers.utils.Interface([
-        ethers.utils.FunctionFragment.from(functionSignature)
-    ]).getSighash(functionName);
+    const functionIdentifier = ethers.id(functionSignature).substring(0, 10);
 
-    const abiCoder = new ethers.utils.AbiCoder();
+    const abiCoder = new ethers.AbiCoder();
     const encodedParams = abiCoder.encode(types, values);
 
     return {
         functionSignature,
-        bytecode: Buffer.concat([ethers.utils.arrayify(functionIdentifier), ethers.utils.arrayify(encodedParams)])
+        bytecode: Buffer.concat([ethers.getBytes(functionIdentifier), ethers.getBytes(encodedParams)])
     };
 };
 

@@ -8,7 +8,7 @@ import ConfigService from "./ConfigService";
 import {ChainMap, ChainServiceStrategy, KnownChainIds} from "../models/Chain";
 import {Client, PrivateKey, Signer} from "@hashgraph/sdk";
 import {HederaProvider, HederaSigner} from "../signers/hedera";
-import {ethers} from "ethers";
+import * as ethers from "ethers";
 import {MagicUserMetadata} from "@magic-sdk/types";
 import {MagicSigner} from "../signers/magic/MagicSigner";
 import {Magic, MagicSDKAdditionalConfiguration} from "magic-sdk";
@@ -105,13 +105,13 @@ export default class AuthService {
                         this.userPrivateKey = `0x${key.toStringRaw()}`;
                         this.userPublicKey = `0x${key.publicKey.toStringRaw()}`;
 
-                        this.userAccountId = ethers.utils.computeAddress(this.userPublicKey);
+                        this.userAccountId = ethers.computeAddress(this.userPublicKey);
                         const alchemyRpc = await this.configService.getConfig(`alchemy${network}RPC`);
                         const alchemyApiKey = await this.configService.getConfig(`alchemy${network}APIKey`);
                         if (!alchemyRpc || !alchemyApiKey) {
                             throw new Error("Alchemy config not found");
                         }
-                        const provider = new ethers.providers.JsonRpcProvider(alchemyRpc + alchemyApiKey);
+                        const provider = new ethers.JsonRpcProvider(alchemyRpc + alchemyApiKey);
                         this.signer = new ethers.Wallet(this.userPrivateKey, provider);
                     } else {
                         throw new Error("Unsupported chain");
@@ -146,9 +146,8 @@ export default class AuthService {
                         const magicSign = (message: Uint8Array) => this.magic!.hedera.sign(message);
                         this.signer = new MagicSigner(this.userAccountId, network, publicKeyDer, magicSign);
                     } else if (ChainMap[this.chainId].serviceStrategy === ChainServiceStrategy.Ethereum) {
-                        // @ts-ignore
-                        const provider = new ethers.providers.Web3Provider(this.magic!.rpcProvider);
-                        this.signer = provider.getSigner();
+                        const provider = new ethers.BrowserProvider(this.magic!.rpcProvider);
+                        this.signer = await provider.getSigner();
                         // TODO check how to get public key from magic
                         this.userPublicKey = "";
                     }

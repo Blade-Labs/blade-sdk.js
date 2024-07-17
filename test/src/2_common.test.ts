@@ -143,37 +143,6 @@ describe("test COMMON functionality", () => {
         }
     }, 10_000);
 
-    // TODO refactor
-    test("bladeSdk-common.ethersSign", async () => {
-        const message = "hello";
-        const messageString = Buffer.from(message).toString("base64");
-        const wallet = new ethers.Wallet(PrivateKey.fromString(privateKey).toStringRaw());
-
-        let result = await bladeSdk.ethersSign(messageString, privateKey, completionKey);
-        checkResult(result);
-
-        expect(result.data).toHaveProperty("signedMessage");
-        expect(result.data.signedMessage).toEqual(await wallet.signMessage(Buffer.from(message)));
-
-        const signerAddress = ethers.utils.verifyMessage(message, result.data.signedMessage);
-        expect(signerAddress).toEqual(ethers.utils.computeAddress(wallet.publicKey));
-
-        try {
-            // invalid calls
-            result = await bladeSdk.ethersSign(messageString, "invalid privateKey", completionKey);
-            expect("Code should not reach here").toEqual(result);
-        } catch (result) {
-            checkResult(result, false);
-        }
-
-        try {
-            result = await bladeSdk.ethersSign(123, privateKey, completionKey);
-            expect("Code should not reach here").toEqual(result);
-        } catch (result) {
-            checkResult(result, false);
-        }
-    });
-
     test("bladeSdk-common.splitSignature", async () => {
         const message = "hello";
         const wallet = new ethers.Wallet(PrivateKey.fromStringDer(privateKey).toStringRaw());
@@ -185,7 +154,9 @@ describe("test COMMON functionality", () => {
         const v: number = result.data.v;
         const r: string = result.data.r;
         const s: string = result.data.s;
-        expect(signature).toEqual(ethers.utils.joinSignature({v, r, s}));
+        expect(signature).toEqual(ethers.Signature.from({v, r, s}).serialized);
+
+
 
         // invalid signature
         try {

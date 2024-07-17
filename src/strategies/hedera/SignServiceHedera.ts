@@ -29,7 +29,7 @@ import {formatReceipt} from "../../helpers/TransactionHelpers";
 import {Buffer} from "buffer";
 import {JobAction, JobStatus} from "../../models/BladeApi";
 import {sleep} from "../../helpers/ApiHelper";
-import {ethers} from "ethers";
+import * as ethers from "ethers";
 import {ParametersBuilder} from "../../ParametersBuilder";
 import {parseContractFunctionParams} from "../../helpers/ContractHelpers";
 
@@ -66,7 +66,7 @@ export default class SignServiceHedera implements ISignService {
                 throw new Error("ED25519 public key is not supported for Ethereum signing.");
             }
             let recoveryId = -1;
-            const messageHash = ethers.utils.keccak256(messageBuffer);
+            const messageHash = ethers.keccak256(messageBuffer);
             for (let i = 0; i < 2; i++) {
                 const recoveredPubKey = secp256k1.ecdsaRecover(
                     Uint8Array.from(signatures[0].signature),
@@ -102,9 +102,9 @@ export default class SignServiceHedera implements ISignService {
         publicKey: string
     ): Promise<SplitSignatureData> {
         const {types, values} = await parseContractFunctionParams(paramsEncoded);
-        const hash = ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(types, values));
+        const hash = ethers.keccak256(ethers.AbiCoder.defaultAbiCoder().encode(types, values));
         const {signedMessage} = await this.sign(hash, SupportedEncoding.hex, true, publicKey);
-        const {v, r, s} = ethers.utils.splitSignature(`0x${signedMessage}`);
+        const {v, r, s} = ethers.Signature.from(`0x${signedMessage}`);
         return {v, r, s};
     }
 

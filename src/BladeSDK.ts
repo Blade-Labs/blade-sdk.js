@@ -607,8 +607,6 @@ export class BladeSDK {
         }
     }
 
-    // TODO check if method `ethersSign` is needed
-
     /**
      * Split signature to v-r-s format.
      * @param signature hex-encoded signature

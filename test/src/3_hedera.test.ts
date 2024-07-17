@@ -330,7 +330,7 @@ describe("testing methods related to HEDERA network", () => {
         await sleep(25_000);
 
         const publicKey = PrivateKey.fromString(result.data.privateKey).publicKey.toStringRaw();
-        const evmAddress = ethers.utils.computeAddress(`0x${publicKey}`);
+        const evmAddress = ethers.computeAddress(`0x${publicKey}`);
 
         expect(result.data.evmAddress).toEqual(evmAddress.toLowerCase());
 

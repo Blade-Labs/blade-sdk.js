@@ -31,9 +31,8 @@ export default class ContractServiceEthereum implements IContractService {
         // TODO implement bladePayFee
 
         const {functionSignature, bytecode} = await getContractFunctionBytecode(functionName, params);
-
-        const iface = new ethers.utils.Interface([ethers.utils.FunctionFragment.from(functionSignature)]);
-
+        const fragment = ethers.Fragment.from(`function ${functionSignature}`);
+        const iface = new ethers.Interface([fragment]);
         const contract = new ethers.Contract(contractAddress, iface, this.signer);
 
         const tx = await contract[functionName](...iface.decodeFunctionData(functionSignature, bytecode));
@@ -44,7 +43,7 @@ export default class ContractServiceEthereum implements IContractService {
             status: receipt.status === 1 ? "success" : "failure",
             contractAddress,
             serials: [],
-            transactionHash: receipt.transactionHash
+            transactionHash: receipt.hash
         };
     }
 
@@ -58,14 +57,14 @@ export default class ContractServiceEthereum implements IContractService {
     ): Promise<ContractCallQueryRecordsData> {
         const {functionSignature, bytecode} = await getContractFunctionBytecode(functionName, params);
 
-        const iface = new ethers.utils.Interface([
-            ethers.utils.FunctionFragment.from(`${functionSignature} view returns (${resultTypes.join(",")})`)
+        const iface = new ethers.Interface([
+            ethers.Fragment.from(`function ${functionSignature} view returns (${resultTypes.join(",")})`)
         ]);
 
         const contract = new ethers.Contract(contractAddress, iface, this.signer);
 
         // Call the Function
-        let result = await contract.callStatic[functionName](...iface.decodeFunctionData(functionSignature, bytecode));
+        let result = await contract[functionName](...iface.decodeFunctionData(`function ${functionSignature}`, bytecode));
 
         if (resultTypes.length <= 1) {
             result = [result];

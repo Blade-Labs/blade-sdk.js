@@ -122,7 +122,7 @@ export default class AccountServiceHedera implements IAccountService {
                 await this.apiService.kycGrant(JobAction.CHECK, kycGrantJob.taskId);
             }
         }
-        const evmAddress = ethers.utils.computeAddress(`0x${key.publicKey.toStringRaw()}`);
+        const evmAddress = ethers.computeAddress(`0x${key.publicKey.toStringRaw()}`);
         return {
             status: JobStatus.SUCCESS,
             seedPhrase,
@@ -160,7 +160,7 @@ export default class AccountServiceHedera implements IAccountService {
                 : PublicKey.fromStringED25519(account.key.key);
         const calculatedEvmAddress =
             account.key._type === CryptoKeyType.ECDSA_SECP256K1
-                ? ethers.utils.computeAddress(`0x${publicKey.toStringRaw()}`).toLowerCase()
+                ? ethers.computeAddress(`0x${publicKey.toStringRaw()}`).toLowerCase()
                 : "";
         return {
             accountId,
@@ -317,7 +317,7 @@ export default class AccountServiceHedera implements IAccountService {
         return accounts.map((record) => {
             const evmAddress =
                 keyType === CryptoKeyType.ECDSA_SECP256K1
-                    ? ethers.utils.computeAddress(`0x${privateKey.publicKey.toStringRaw()}`).toLowerCase()
+                    ? ethers.computeAddress(`0x${privateKey.publicKey.toStringRaw()}`).toLowerCase()
                     : record?.evm_address || "";
             return {
                 privateKey: privateKey.toStringDer(),

@@ -136,7 +136,7 @@ describe("testing methods related to ETHEREUM network", () => {
         expect(result.data).toHaveProperty("evmAddress");
 
         const publicKey = PrivateKey.fromStringECDSA(result.data.privateKey).publicKey.toStringRaw();
-        const evmAddress = ethers.utils.computeAddress(`0x${publicKey}`);
+        const evmAddress = ethers.computeAddress(`0x${publicKey}`);
 
         expect(result.data.evmAddress).toEqual(evmAddress);
 
@@ -653,17 +653,17 @@ describe("testing methods related to ETHEREUM network", () => {
         result = await bladeSdk.setUser(AccountProvider.PrivateKey, "", ethereumPrivateKey, completionKey);
         checkResult(result);
 
-        result = await bladeSdk.sign(message, "utf8", completionKey);
+        result = await bladeSdk.sign(message, "utf8", false, completionKey);
         checkResult(result);
         expect(result.data).toHaveProperty("signedMessage");
 
         const signedMessage = result.data.signedMessage;
 
-        result = await bladeSdk.sign(Buffer.from(message).toString("base64"), "base64", completionKey);
+        result = await bladeSdk.sign(Buffer.from(message).toString("base64"), "base64", false,  completionKey);
         checkResult(result);
         expect(result.data.signedMessage).toEqual(signedMessage);
 
-        result = await bladeSdk.sign(Buffer.from(message).toString("hex"), "hex", completionKey);
+        result = await bladeSdk.sign(Buffer.from(message).toString("hex"), "hex", false, completionKey);
         checkResult(result);
         expect(result.data.signedMessage).toEqual(signedMessage);
 

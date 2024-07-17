@@ -99,7 +99,7 @@ export default class ContractServiceContext implements IContractService {
 
     private checkInit() {
         if (!this.strategy) {
-            throw new Error("ContractService not initialized");
+            throw new Error("ContractService not initialized (no signer, call setUser() first)");
         }
     }
 }

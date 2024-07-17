@@ -10,7 +10,7 @@ import {PrivateKey} from "@hashgraph/sdk";
 @injectable()
 export default class SignService {
     async splitSignature(signature: string): Promise<SplitSignatureData> {
-        const {v, r, s} = ethers.utils.splitSignature(signature);
+        const {v, r, s} = ethers.Signature.from(signature);
         return {v, r, s};
     }
 }

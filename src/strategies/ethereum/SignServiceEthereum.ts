@@ -42,12 +42,10 @@ export default class SignServiceEthereum implements ISignService {
 
     async getParamsSignature(paramsEncoded: string | ParametersBuilder): Promise<SplitSignatureData> {
         const {types, values} = await parseContractFunctionParams(paramsEncoded);
-        const hash = ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(types, values));
-        const messageHashBytes = ethers.utils.arrayify(hash);
+        const hash = ethers.keccak256(ethers.AbiCoder.defaultAbiCoder().encode(types, values));
 
-        const signedMessage = await this.signer.signMessage(messageHashBytes);
-
-        const {v, r, s} = ethers.utils.splitSignature(signedMessage);
+        const signedMessage = await this.signer.signMessage(ethers.getBytes(hash));
+        const {v, r, s} = ethers.Signature.from(signedMessage);
         return {v, r, s};
     }
 
@@ -58,19 +56,22 @@ export default class SignServiceEthereum implements ISignService {
         addressOrPublicKey: string
     ): Promise<SignVerifyMessageData> {
         let valid;
+        if (!signature.startsWith("0x")) {
+            signature = "0x" + signature;
+        }
 
         // if public key - get address
-        if (ethers.utils.isAddress(addressOrPublicKey)) {
+        if (ethers.isAddress(addressOrPublicKey)) {
             // 0x + 20bytes hex address
-            addressOrPublicKey = ethers.utils.getAddress(addressOrPublicKey);
+            addressOrPublicKey = ethers.getAddress(addressOrPublicKey);
         } else {
-            addressOrPublicKey = ethers.utils.computeAddress(addressOrPublicKey);
+            addressOrPublicKey = ethers.computeAddress(addressOrPublicKey);
         }
 
         try {
-            const address = await ethers.utils.verifyMessage(
+            const address = await ethers.verifyMessage(
                 Buffer.from(encodedMessage, encoding),
-                Buffer.from(StringHelpers.stripHexPrefix(signature), "hex")
+                ethers.Signature.from(signature)
             );
             valid = address === addressOrPublicKey;
         } catch (err) {

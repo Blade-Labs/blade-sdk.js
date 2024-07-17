@@ -45,7 +45,7 @@ export default class AccountServiceEthereum implements IAccountService {
     }
 
     async createAccount(privateKey: string): Promise<CreateAccountData> {
-        let wallet: ethers.Wallet;
+        let wallet: ethers.Wallet | ethers.HDNodeWallet;
         let seedPhrase: string = "";
 
 
@@ -53,12 +53,12 @@ export default class AccountServiceEthereum implements IAccountService {
             wallet = new ethers.Wallet(privateKey)
         } else {
             wallet = ethers.Wallet.createRandom();
-            seedPhrase = wallet.mnemonic.phrase;
+            seedPhrase = wallet?.mnemonic?.phrase || "";
         }
 
         return {
             seedPhrase,
-            publicKey: wallet.publicKey,
+            publicKey: wallet.signingKey.publicKey,
             privateKey: wallet.privateKey,
             accountId: wallet.address,
             evmAddress: wallet.address,
@@ -219,21 +219,21 @@ export default class AccountServiceEthereum implements IAccountService {
     private getAccountsFromMnemonic(
         mnemonicRaw: string
     ): AccountPrivateRecord[] {
-        const hdNode = ethers.utils.HDNode.fromMnemonic(mnemonicRaw);
+        const mnemonic = ethers.Mnemonic.fromPhrase(mnemonicRaw);
+        const hdNode = ethers.HDNodeWallet.fromMnemonic(mnemonic, "m/44'/60'/0'/0");
         const numAccounts = 10;
         const accounts: AccountPrivateRecord[] = [];
 
         // Loop to derive accounts
         for (let i = 0; i < numAccounts; i++) {
             // Derive the wallet at the specified index
-            const path = `m/44'/60'/0'/0/${i}`;
-            const wallet = hdNode.derivePath(path);
+            const wallet = hdNode.derivePath(`${i}`);
             accounts.push({
                 privateKey: wallet.privateKey,
                 publicKey: wallet.publicKey,
                 evmAddress: wallet.address,
                 address: wallet.address,
-                path: wallet.path,
+                path: wallet.path!,
                 keyType: CryptoKeyType.ECDSA_SECP256K1
             });
         }
@@ -245,7 +245,7 @@ export default class AccountServiceEthereum implements IAccountService {
         return [
             {
                 privateKey: wallet.privateKey,
-                publicKey: wallet.publicKey,
+                publicKey: wallet.signingKey.publicKey,
                 evmAddress: wallet.address,
                 address: wallet.address,
                 path: ChainMap[this.chainId].defaultPath,

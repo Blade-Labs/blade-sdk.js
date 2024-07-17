@@ -16,6 +16,8 @@ import {Network} from "../../models/Networks";
 import StringHelpers from "../../helpers/StringHelpers";
 import ERC20ABI from "../../abi/erc20.abi";
 import FeeService from "../../services/FeeService";
+import BigNumber from "bignumber.js";
+import {Signer} from "@ethersproject/abstract-signer";
 
 export default class TokenServiceEthereum implements ITokenService {
     private readonly chainId: KnownChainIds;
@@ -42,8 +44,8 @@ export default class TokenServiceEthereum implements ITokenService {
     async getBalance(address: string): Promise<BalanceData> {
         await this.initAlchemy();
 
-        const wei = await this.alchemy!.core.getBalance(address);
-        const mainBalance = ethers.utils.formatEther(wei);
+        const wei = (await this.alchemy!.core.getBalance(address)).toBigInt();
+        const mainBalance = ethers.formatEther(wei);
         const tokenBalances = await this.alchemy!.core.getTokensForOwner(address);
 
         return {
@@ -67,7 +69,7 @@ export default class TokenServiceEthereum implements ITokenService {
         const transaction = {
             from,
             to,
-            value: ethers.utils.parseUnits(amount, "ether")
+            value: ethers.parseUnits(amount, "ether")
         };
         const result = await this.signer!.sendTransaction(transaction);
         return {
@@ -89,18 +91,53 @@ export default class TokenServiceEthereum implements ITokenService {
         }
 
         await this.initAlchemy();
-        const contract = new Contract(tokenAddress, ERC20ABI, this.signer!);
+
+        // TODO remove this dirty hack after alchemy starts supporting ethers@6
+        const newSigner = {
+            ...this.signer,
+            _isSigner: () => true,
+            getAddress: this.signer.getAddress,
+            call: tx => this.signer.call(tx),
+            estimateGas: async (tx: any) => {
+                return BigNumber((await this.signer.estimateGas(tx)).toString());
+            },
+            sendTransaction: tx => this.signer.sendTransaction(tx),
+        } as unknown as Signer
+
+        const contract = new Contract(tokenAddress, ERC20ABI, newSigner);
         const toAddress = StringHelpers.stripHexPrefix(to);
         const decimals = await contract.decimals();
-        const value = ethers.utils.parseUnits(amountOrSerial, decimals);
+        const value = ethers.parseUnits(amountOrSerial, decimals);
         const {baseFeePerGas} = await this.alchemy!.core.getBlock("pending");
         const maxPriorityFeePerGas = await this.alchemy!.transact.getMaxPriorityFeePerGas();
         const maxFeePerGas = baseFeePerGas?.add(maxPriorityFeePerGas);
         const gasLimit = await contract.estimateGas.transfer(toAddress, value);
-        const result = await contract.transfer(toAddress, value, {gasLimit, maxPriorityFeePerGas, maxFeePerGas});
+        const nonce = await this.alchemy.core.getTransactionCount(this.signer.getAddress())
+
+        const iface = new ethers.Interface(ERC20ABI);
+        const data = iface.encodeFunctionData("transfer", [
+            to,
+            value,
+        ]);
+
+        const transaction = {
+            to: tokenAddress,
+            data,
+            gasLimit: gasLimit.toString(),
+            maxPriorityFeePerGas: maxPriorityFeePerGas.toString(),
+            maxFeePerGas: maxFeePerGas.toString(),
+            nonce,
+            type: 2,
+            chainId: this.chainId,
+        };
+
+        const rawTransaction = await this.signer.signTransaction(transaction);
+        const responseTx = await this.alchemy.transact.sendTransaction(rawTransaction)
+        const result = await responseTx.wait();
+
         return {
-            transactionHash: result.hash,
-            transactionId: result.hash
+            transactionHash: result.transactionHash,
+            transactionId: result.transactionHash
         };
     }
 
