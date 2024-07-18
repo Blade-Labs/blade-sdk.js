@@ -543,8 +543,8 @@ test('bladeSdk.createAccount', async () => {
 
     await sleep(25_000);
 
-    const publicKey = PrivateKey.fromString(result.data.privateKey).publicKey.toStringRaw();
-    const evmAddress = ethers.utils.computeAddress(`0x${publicKey}`);
+    const publicKey = PrivateKey.fromStringDer(result.data.privateKey).publicKey.toStringRaw();
+    const evmAddress = ethers.computeAddress(`0x${publicKey}`);
 
     expect(result.data.evmAddress).toEqual(evmAddress.toLowerCase());
 
@@ -685,7 +685,7 @@ test('bladeSdk.searchAccounts', async () => {
 
     result = await bladeSdk.searchAccounts(accountSample.seedPhrase, completionKey);
     checkResult(result);
-    await sleep(7000);
+    await sleep(10000);
 
     expect(result.data).toHaveProperty("accounts");
     expect(Array.isArray(result.data.accounts)).toEqual(true);
@@ -824,7 +824,7 @@ test('bladeSdk.sign + signVerify', async () => {
 test('bladeSdk.ethersSign', async () => {
     const message = "hello";
     const messageString = Buffer.from(message).toString("base64");
-    const wallet = new ethers.Wallet(PrivateKey.fromString(privateKey).toStringRaw());
+    const wallet = new ethers.Wallet(PrivateKey.fromStringDer(privateKey).toStringRaw());
 
     let result = await bladeSdk.ethersSign(messageString, privateKey, completionKey);
     checkResult(result);
@@ -832,8 +832,8 @@ test('bladeSdk.ethersSign', async () => {
     expect(result.data).toHaveProperty("signedMessage");
     expect(result.data.signedMessage).toEqual(await wallet.signMessage(Buffer.from(message)));
 
-    const signerAddress = ethers.utils.verifyMessage(message, result.data.signedMessage);
-    expect(signerAddress).toEqual(ethers.utils.computeAddress(wallet.publicKey));
+    const signerAddress = ethers.verifyMessage(message, result.data.signedMessage);
+    expect(signerAddress).toEqual(ethers.computeAddress(wallet.signingKey.publicKey));
 
     try {
         // invalid calls
@@ -866,7 +866,8 @@ test('bladeSdk.splitSignature', async () => {
     const v: number = result.data.v;
     const r: string = result.data.r;
     const s: string = result.data.s;
-    expect(signature).toEqual(ethers.utils.joinSignature({v, r, s}));
+    expect(signature).toEqual(ethers.Signature.from({v, r, s}).serialized);
+
 
     try {
         // invalid signature

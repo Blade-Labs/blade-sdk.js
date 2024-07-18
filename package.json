@@ -62,7 +62,7 @@
     "@magic-ext/hedera": "^1.0.3",
     "@types/shelljs": "^0.8.15",
     "buffer": "6.0.3",
-    "ethers": "^5.7.2",
+    "ethers": "^6.13.1",
     "magic-sdk": "^21.5.0",
     "nft.storage": "^7.1.1"
   },
