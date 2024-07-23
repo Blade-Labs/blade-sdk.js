@@ -19,6 +19,7 @@ import {Buffer} from "buffer";
 
 import {ITokenService, TransferInitData, TransferTokenInitData} from "../TokenServiceContext";
 import {
+    AssociationAction,
     BalanceData,
     KeyRecord,
     KeyType,
@@ -83,7 +84,7 @@ export default class TokenServiceHedera implements ITokenService {
             .then((response: TransactionResponseHedera) => {
                 return {
                     transactionId: response.transactionId.toString(),
-                    transactionHash: response.transactionHash.toString()
+                    transactionHash: Buffer.from(response.transactionHash).toString("hex")
                 };
             });
     }
@@ -141,14 +142,14 @@ export default class TokenServiceHedera implements ITokenService {
                 .freezeWithSigner(this.signer!)
                 .then(tx => tx.signWithSigner(this.signer!))
                 .then(tx => tx.executeWithSigner(this.signer!))
-                .then(async data => {
+                .then(async response => {
                     await this.apiService.transferTokens(JobAction.CONFIRM, transferTokenJob.taskId).catch(() => {
                         // ignore this error, continue (no content)
                     });
 
                     return {
-                        transactionId: data.transactionId.toString(),
-                        transactionHash: data.transactionHash.toString()
+                        transactionId: response.transactionId.toString(),
+                        transactionHash: Buffer.from(response.transactionHash).toString("hex")
                     };
                 });
         } else {
@@ -169,23 +170,29 @@ export default class TokenServiceHedera implements ITokenService {
                 .freezeWithSigner(this.signer!)
                 .then(tx => tx.signWithSigner(this.signer!))
                 .then(tx => tx.executeWithSigner(this.signer!))
-                .then(data => {
+                .then(response => {
                     return {
-                        transactionId: data.transactionId.toString(),
-                        transactionHash: data.transactionHash.toString()
+                        transactionId: response.transactionId.toString(),
+                        transactionHash: Buffer.from(response.transactionHash).toString("hex")
                     };
                 });
         }
     }
 
-    async associateToken(tokenId: string, accountId: string): Promise<TransactionReceiptData> {
+    async associateToken(tokenIdOrCampaign: string, accountId: string): Promise<TransactionReceiptData> {
         let result: TransactionResponseHedera;
         const tokensConfig = await this.configService.getConfig("tokens");
-        if (tokensConfig.association.includes(tokenId) || !tokenId) {
-            let tokenAssociationJob = await this.apiService.tokenAssociation(JobAction.INIT, "", {
+        // if not valid tokenId provided, we assume that campaignName is provided, try to AssociateOnDemand
+        const associationAction = !/^\d+.\d+.\d+$/g.test(tokenIdOrCampaign) ? AssociationAction.DEMAND : AssociationAction.FREE;
+        if (associationAction === AssociationAction.DEMAND || tokensConfig.association.includes(tokenIdOrCampaign) || !tokenIdOrCampaign) {
+
+            const params = {
                 accountId,
-                tokenIds: [tokenId]
-            });
+                tokenIds: [tokenIdOrCampaign],
+                action: tokenIdOrCampaign,
+            }
+
+            let tokenAssociationJob = await this.apiService.tokenAssociation(JobAction.INIT, associationAction, "", params);
             while (true) {
                 if (tokenAssociationJob.status === JobStatus.SUCCESS) {
                     break;
@@ -196,6 +203,7 @@ export default class TokenServiceHedera implements ITokenService {
                 await sleep((await this.configService.getConfig("refreshTaskPeriodSeconds")) * 1000);
                 tokenAssociationJob = await this.apiService.tokenAssociation(
                     JobAction.CHECK,
+                    associationAction,
                     tokenAssociationJob.taskId
                 );
             }
@@ -211,7 +219,7 @@ export default class TokenServiceHedera implements ITokenService {
                 .signWithSigner(this.signer!)
                 .then(tx => tx.executeWithSigner(this.signer!))
                 .then(async result => {
-                    await this.apiService.tokenAssociation(JobAction.CONFIRM, tokenAssociationJob.taskId).catch(() => {
+                    await this.apiService.tokenAssociation(JobAction.CONFIRM, associationAction, tokenAssociationJob.taskId).catch(() => {
                         // ignore this error, continue (no content)
                     });
                     return result;
@@ -219,7 +227,7 @@ export default class TokenServiceHedera implements ITokenService {
         } else {
             const transaction = await new TokenAssociateTransaction()
                 .setAccountId(accountId)
-                .setTokenIds([tokenId])
+                .setTokenIds([tokenIdOrCampaign])
                 .freezeWithSigner(this.signer!);
             result = await transaction.signWithSigner(this.signer!).then(tx => tx.executeWithSigner(this.signer!));
         }

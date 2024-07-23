@@ -1,6 +1,6 @@
 {
   "name": "@bladelabs/blade-sdk.js",
-  "version": "0.8.0",
+  "version": "1.0.0",
   "type": "module",
   "description": "Hedera SDK wrapper with Blade features",
   "scripts": {

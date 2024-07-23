@@ -160,10 +160,10 @@ describe("testing methods related to HEDERA network", () => {
         const account: CreateAccountData = accountResult.data;
         checkResult(accountResult);
 
-        await bladeSdk.setUser(AccountProvider.PrivateKey, account.accountId, account.privateKey, completionKey);
+        await bladeSdk.setUser(AccountProvider.PrivateKey, account.accountAddress, account.privateKey, completionKey);
         await sleep(7000);
 
-        const successfulResult = await bladeSdk.dropTokens(account.accountId, process.env.NONCE, completionKey);
+        const successfulResult = await bladeSdk.dropTokens(account.accountAddress, process.env.NONCE, completionKey);
         checkResult(successfulResult);
 
         expect(successfulResult.data).toHaveProperty("status");

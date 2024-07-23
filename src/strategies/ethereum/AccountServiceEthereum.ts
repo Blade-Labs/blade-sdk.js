@@ -60,7 +60,7 @@ export default class AccountServiceEthereum implements IAccountService {
             seedPhrase,
             publicKey: wallet.signingKey.publicKey,
             privateKey: wallet.privateKey,
-            accountId: wallet.address,
+            accountAddress: wallet.address,
             evmAddress: wallet.address,
             status: JobStatus.SUCCESS
         }

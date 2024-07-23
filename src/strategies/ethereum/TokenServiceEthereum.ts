@@ -96,12 +96,12 @@ export default class TokenServiceEthereum implements ITokenService {
         const newSigner = {
             ...this.signer,
             _isSigner: () => true,
-            getAddress: this.signer.getAddress,
-            call: tx => this.signer.call(tx),
+            getAddress: this.signer!.getAddress,
+            call: (tx: any) => this.signer!.call(tx),
             estimateGas: async (tx: any) => {
-                return BigNumber((await this.signer.estimateGas(tx)).toString());
+                return BigNumber((await this.signer!.estimateGas(tx)).toString());
             },
-            sendTransaction: tx => this.signer.sendTransaction(tx),
+            sendTransaction: (tx: any) => this.signer!.sendTransaction(tx),
         } as unknown as Signer
 
         const contract = new Contract(tokenAddress, ERC20ABI, newSigner);
@@ -110,9 +110,9 @@ export default class TokenServiceEthereum implements ITokenService {
         const value = ethers.parseUnits(amountOrSerial, decimals);
         const {baseFeePerGas} = await this.alchemy!.core.getBlock("pending");
         const maxPriorityFeePerGas = await this.alchemy!.transact.getMaxPriorityFeePerGas();
-        const maxFeePerGas = baseFeePerGas?.add(maxPriorityFeePerGas);
+        const maxFeePerGas = baseFeePerGas?.add(maxPriorityFeePerGas).toString() || "0";
         const gasLimit = await contract.estimateGas.transfer(toAddress, value);
-        const nonce = await this.alchemy.core.getTransactionCount(this.signer.getAddress())
+        const nonce = await this.alchemy!.core.getTransactionCount(this.signer!.getAddress())
 
         const iface = new ethers.Interface(ERC20ABI);
         const data = iface.encodeFunctionData("transfer", [
@@ -125,14 +125,14 @@ export default class TokenServiceEthereum implements ITokenService {
             data,
             gasLimit: gasLimit.toString(),
             maxPriorityFeePerGas: maxPriorityFeePerGas.toString(),
-            maxFeePerGas: maxFeePerGas.toString(),
+            maxFeePerGas,
             nonce,
             type: 2,
             chainId: this.chainId,
         };
 
-        const rawTransaction = await this.signer.signTransaction(transaction);
-        const responseTx = await this.alchemy.transact.sendTransaction(rawTransaction)
+        const rawTransaction = await this.signer!.signTransaction(transaction);
+        const responseTx = await this.alchemy!.transact.sendTransaction(rawTransaction)
         const result = await responseTx.wait();
 
         return {

@@ -2,12 +2,12 @@ import {
     AccountDeleteTransaction,
     AccountUpdateTransaction,
     Client,
+    HEDERA_PATH,
     Mnemonic,
     PrivateKey,
     PublicKey,
     Signer,
-    Transaction,
-    HEDERA_PATH
+    Transaction
 } from "@hashgraph/sdk";
 
 import {IAccountService} from "../AccountServiceContext";
@@ -16,6 +16,7 @@ import {
     AccountInfoData,
     AccountPrivateData,
     AccountPrivateRecord,
+    AssociationAction,
     CreateAccountData,
     TransactionReceiptData,
     TransactionsHistoryData
@@ -56,7 +57,10 @@ export default class AccountServiceHedera implements IAccountService {
             key = await mnemonic.toStandardECDSAsecp256k1PrivateKey();
         }
 
-        let accountCreateJob= await this.apiService.createAccount(JobAction.INIT, "",{deviceId, publicKey: key.publicKey.toStringDer()});
+        let accountCreateJob = await this.apiService.createAccount(JobAction.INIT, "", {
+            deviceId,
+            publicKey: key.publicKey.toStringDer()
+        });
 
         while (true) {
             if (accountCreateJob.status === JobStatus.SUCCESS) {
@@ -65,7 +69,7 @@ export default class AccountServiceHedera implements IAccountService {
             if (accountCreateJob.status === JobStatus.FAILED) {
                 throw new Error(accountCreateJob.errorMessage);
             }
-            await sleep(await this.configService.getConfig("refreshTaskPeriodSeconds") * 1000)
+            await sleep((await this.configService.getConfig("refreshTaskPeriodSeconds")) * 1000);
             accountCreateJob = await this.apiService.createAccount(JobAction.CHECK, accountCreateJob.taskId);
         }
 
@@ -81,7 +85,12 @@ export default class AccountServiceHedera implements IAccountService {
 
         const tokensConfig = await this.configService.getConfig("tokens");
         try {
-            let tokenAssociationJob = await this.apiService.tokenAssociation(JobAction.INIT, "", {accountId, tokenIds: tokensConfig.association});
+            let tokenAssociationJob = await this.apiService.tokenAssociation(
+                JobAction.INIT,
+                AssociationAction.FREE,
+                "",
+                {accountId, tokenIds: tokensConfig.association}
+            );
             while (true) {
                 if (tokenAssociationJob.status === JobStatus.SUCCESS) {
                     break;
@@ -89,8 +98,12 @@ export default class AccountServiceHedera implements IAccountService {
                 if (tokenAssociationJob.status === JobStatus.FAILED) {
                     throw new Error(tokenAssociationJob.errorMessage);
                 }
-                await sleep(await this.configService.getConfig("refreshTaskPeriodSeconds") * 1000);
-                tokenAssociationJob = await this.apiService.tokenAssociation(JobAction.CHECK, tokenAssociationJob.taskId);
+                await sleep((await this.configService.getConfig("refreshTaskPeriodSeconds")) * 1000);
+                tokenAssociationJob = await this.apiService.tokenAssociation(
+                    JobAction.CHECK,
+                    AssociationAction.FREE,
+                    tokenAssociationJob.taskId
+                );
             }
 
             if (!tokenAssociationJob.result?.transactionBytes) {
@@ -100,7 +113,7 @@ export default class AccountServiceHedera implements IAccountService {
             const transaction = await Transaction.fromBytes(buffer).sign(key);
             await transaction.execute(client);
 
-            await this.apiService.tokenAssociation(JobAction.CONFIRM, tokenAssociationJob.taskId).catch(() => {
+            await this.apiService.tokenAssociation(JobAction.CONFIRM, AssociationAction.FREE, tokenAssociationJob.taskId).catch(() => {
                 // ignore this error, continue (no content)
             });
         } catch (error) {
@@ -110,7 +123,10 @@ export default class AccountServiceHedera implements IAccountService {
 
         // KYC
         if (tokensConfig.kycNeeded && tokensConfig.kycNeeded.length) {
-            const kycGrantJob = await this.apiService.kycGrant(JobAction.INIT, "", {accountId, tokenIds: tokensConfig.kycNeeded});
+            const kycGrantJob = await this.apiService.kycGrant(JobAction.INIT, "", {
+                accountId,
+                tokenIds: tokensConfig.kycNeeded
+            });
             while (true) {
                 if (kycGrantJob.status === JobStatus.SUCCESS) {
                     break;
@@ -118,7 +134,7 @@ export default class AccountServiceHedera implements IAccountService {
                 if (kycGrantJob.status === JobStatus.FAILED) {
                     throw new Error(kycGrantJob.errorMessage);
                 }
-                await sleep(await this.configService.getConfig("refreshTaskPeriodSeconds") * 1000);
+                await sleep((await this.configService.getConfig("refreshTaskPeriodSeconds")) * 1000);
                 await this.apiService.kycGrant(JobAction.CHECK, kycGrantJob.taskId);
             }
         }
@@ -128,7 +144,7 @@ export default class AccountServiceHedera implements IAccountService {
             seedPhrase,
             publicKey: key.publicKey.toStringDer(),
             privateKey: key.toStringDer(),
-            accountId: accountId.toString(),
+            accountAddress: accountId.toString(),
             evmAddress: evmAddress.toLowerCase()
         };
     }
@@ -152,8 +168,8 @@ export default class AccountServiceHedera implements IAccountService {
             .then(txResult => getReceipt(txResult, this.signer!));
     }
 
-    async getAccountInfo(accountId: string): Promise<AccountInfoData> {
-        const account = await this.apiService.getAccountInfo(accountId);
+    async getAccountInfo(accountAddress: string): Promise<AccountInfoData> {
+        const account = await this.apiService.getAccountInfo(accountAddress);
         const publicKey =
             account.key._type === CryptoKeyType.ECDSA_SECP256K1
                 ? PublicKey.fromStringECDSA(account.key.key)
@@ -163,7 +179,7 @@ export default class AccountServiceHedera implements IAccountService {
                 ? ethers.computeAddress(`0x${publicKey.toStringRaw()}`).toLowerCase()
                 : "";
         return {
-            accountId,
+            accountAddress,
             publicKey: publicKey.toStringDer(),
             evmAddress: account.evm_address,
             stakingInfo: {
@@ -215,18 +231,16 @@ export default class AccountServiceHedera implements IAccountService {
 
         return {
             accounts
-        }
+        };
     }
 
-    private async getAccountsFromMnemonic(
-        mnemonicRaw: string
-    ): Promise<AccountPrivateRecord[]> {
+    private async getAccountsFromMnemonic(mnemonicRaw: string): Promise<AccountPrivateRecord[]> {
         const mnemonic = await Mnemonic.fromString(
             mnemonicRaw
                 .toLowerCase()
                 .trim()
                 .split(" ")
-                .filter((word) => word)
+                .filter(word => word)
                 .join(" ")
         );
 
@@ -235,41 +249,39 @@ export default class AccountServiceHedera implements IAccountService {
         // derive to ED25519 Standard - find account
         // derive to ED25519 Legacy - find account
         // return all records with account found. If no account show ECDSA Standard keys
-    
+
         const promises: Promise<AccountPrivateRecord[]>[] = [];
         let key: PrivateKey;
-    
+
         for (const keyType of Object.values(CryptoKeyType)) {
             for (let standard = 1; standard >= 0; standard--) {
                 if (keyType === CryptoKeyType.ECDSA_SECP256K1) {
-                    key = standard 
-                        ? await mnemonic.toStandardECDSAsecp256k1PrivateKey() 
+                    key = standard
+                        ? await mnemonic.toStandardECDSAsecp256k1PrivateKey()
                         : await mnemonic.toEcdsaPrivateKey();
                 } else {
-                    key = standard 
-                        ? await mnemonic.toStandardEd25519PrivateKey() 
+                    key = standard
+                        ? await mnemonic.toStandardEd25519PrivateKey()
                         : await mnemonic.toEd25519PrivateKey();
                 }
                 promises.push(this.prepareAccountRecord(key, keyType));
             }
         }
-    
+
         const recordsArray = await Promise.all(promises);
         const records: AccountPrivateRecord[] = recordsArray.flat();
-    
+
         if (!records.length) {
             // if no accounts found, derive to ECDSA Standard, and return record with empty address
             const key = await mnemonic.toStandardECDSAsecp256k1PrivateKey();
             const fallbackRecords = await this.prepareAccountRecord(key, CryptoKeyType.ECDSA_SECP256K1, true);
             records.push(...fallbackRecords);
         }
-    
+
         return records;
     }
 
-    private async getAccountsFromPrivateKey(
-        privateKeyRaw: string
-    ): Promise<AccountPrivateRecord[]> {
+    private async getAccountsFromPrivateKey(privateKeyRaw: string): Promise<AccountPrivateRecord[]> {
         const privateKey = privateKeyRaw.toLowerCase().trim().replace("0x", "");
         const privateKeys: PrivateKey[] = [];
 
@@ -279,17 +291,14 @@ export default class AccountServiceHedera implements IAccountService {
             privateKeys.push(PrivateKey.fromStringDer(privateKey));
         } else {
             // try to parse as ECDSA and ED25519 private key, and find account by public key
-            privateKeys.push(
-                PrivateKey.fromStringECDSA(privateKey),
-                PrivateKey.fromStringED25519(privateKey)
-            );
+            privateKeys.push(PrivateKey.fromStringECDSA(privateKey), PrivateKey.fromStringED25519(privateKey));
         }
-    
-        const promises = privateKeys.map(async (key) => {
+
+        const promises = privateKeys.map(async key => {
             const keyType = key.type === "ED25519" ? CryptoKeyType.ED25519 : CryptoKeyType.ECDSA_SECP256K1;
             return this.prepareAccountRecord(key, keyType);
         });
-    
+
         const recordsArray = await Promise.all(promises);
         const records: AccountPrivateRecord[] = recordsArray.flat();
 
@@ -309,12 +318,12 @@ export default class AccountServiceHedera implements IAccountService {
         force: boolean = false
     ): Promise<AccountPrivateRecord[]> {
         const accounts: Partial<AccountInfo>[] = await this.apiService.getAccountsFromPublicKey(privateKey.publicKey);
-    
+
         if (!accounts.length && force) {
             accounts.push({});
         }
-    
-        return accounts.map((record) => {
+
+        return accounts.map(record => {
             const evmAddress =
                 keyType === CryptoKeyType.ECDSA_SECP256K1
                     ? ethers.computeAddress(`0x${privateKey.publicKey.toStringRaw()}`).toLowerCase()
@@ -325,7 +334,7 @@ export default class AccountServiceHedera implements IAccountService {
                 evmAddress: evmAddress || "",
                 address: record?.account || "",
                 path: StringHelpers.pathArrayToString(HEDERA_PATH),
-                keyType,
+                keyType
             };
         });
     }

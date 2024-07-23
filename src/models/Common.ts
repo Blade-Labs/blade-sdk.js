@@ -31,6 +31,11 @@ export enum NFTStorageProvider {
     nftStorage = "nftStorage"
 }
 
+export enum AssociationAction {
+    FREE = "FREE",
+    DEMAND = "DEMAND",
+}
+
 export enum SupportedEncoding {
     base64 = "base64",
     hex = "hex",
@@ -146,7 +151,7 @@ export interface BridgeResponse<T> {
 export interface InfoData {
     apiKey: string;
     dAppCode: string;
-    network: string;
+    isTestnet: boolean;
     chainId: KnownChainIds;
     visitorId: string;
     sdkEnvironment: SdkEnvironment;
@@ -192,13 +197,13 @@ export interface CreateAccountData {
     seedPhrase: string;
     publicKey: string;
     privateKey: string;
-    accountId: string;
+    accountAddress: string;
     evmAddress: string;
     status: JobStatus;
 }
 
 export interface AccountInfoData {
-    accountId: string;
+    accountAddress: string;
     publicKey: string;
     evmAddress: string;
     stakingInfo: {
@@ -256,6 +261,14 @@ export interface TransactionData {
 
 export interface IntegrationUrlData {
     url: string;
+}
+
+export interface ResultData {
+    success: boolean;
+}
+
+export interface CreateTokenData {
+    tokenId: string
 }
 
 export interface TransferData {

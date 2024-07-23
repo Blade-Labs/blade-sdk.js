@@ -8,17 +8,18 @@ import {
     AccountInfo,
     AccountInfoMirrorResponse,
     APIPagination,
-    NodeListMirrorResponse,
     NftInfo,
     NftMetadata,
     NftTransferDetail,
     NodeInfo,
+    NodeListMirrorResponse,
     TokenInfo,
     TokenRelationshipMirrorResponse,
     TransactionMirrorDetails,
     TransactionsMirrorResponse
 } from "../models/MirrorNode";
 import {
+    AssociationAction,
     BladeConfig,
     CoinData,
     CoinInfoRaw,
@@ -164,7 +165,9 @@ export default class ApiService {
             hederaMirrorNodeConfig = [
                 {
                     name: "Mirror Nodes",
-                    url: network === Network.Testnet ? "https://testnet.mirrornode.hedera.com/api/v1" : "https://mainnet-public.mirrornode.hedera.com/api/v1",
+                    url: network === Network.Testnet
+                        ? "https://testnet.mirrornode.hedera.com/api/v1"
+                        : "https://mainnet-public.mirrornode.hedera.com/api/v1",
                     priority: 1
                 }
             ];
@@ -218,7 +221,7 @@ export default class ApiService {
     async createAccount(
         requestMode: JobAction,
         taskId: string,
-        params?: { deviceId: string; publicKey: string }
+        params?: {deviceId: string; publicKey: string}
     ): Promise<AccountCreateJob> {
         let url: string;
         let options: RequestInit;
@@ -266,29 +269,40 @@ export default class ApiService {
 
     async tokenAssociation(
         requestMode: JobAction,
+        associationAction: AssociationAction,
         taskId: string,
-        params?: { tokenIds: string[]; accountId: string }
+        params?: {accountId: string; tokenIds: string[], action?: string}
     ): Promise<TokenAssociateJob> {
         let url: string;
         let options: RequestInit;
         let retryCount = 1;
         switch (requestMode) {
             case JobAction.INIT:
+                let body: string;
                 if (!params) {
                     throw new Error("Invalid params");
                 }
-                url = `${this.getApiUrl()}/tokens/associate`;
+                if (associationAction === AssociationAction.DEMAND) {
+                    url = `${this.getApiUrl()}/tokens/associate/demand`;
+                    body = JSON.stringify({
+                        accountId: params.accountId,
+                        action: params.action
+                    });
+                } else {
+                    url = `${this.getApiUrl()}/tokens/associate`;
+                    body = JSON.stringify({
+                        accountId: params.accountId,
+                        tokenIds: params.tokenIds
+                    });
+                }
                 options = {
                     method: "POST",
                     headers: await this.reqHeaders(),
-                    body: JSON.stringify({
-                        accountId: params.accountId,
-                        tokenIds: params.tokenIds
-                    })
+                    body
                 };
                 break;
             case JobAction.CHECK:
-                url = `${this.getApiUrl()}/tokens/associate/${taskId}`;
+                url = `${this.getApiUrl()}/tokens/associate/${associationAction === AssociationAction.DEMAND ? 'demand/' : ''}${taskId}`;
                 options = {
                     method: "GET",
                     headers: await this.reqHeaders()
@@ -296,7 +310,7 @@ export default class ApiService {
                 retryCount = 3;
                 break;
             case JobAction.CONFIRM:
-                url = `${this.getApiUrl()}/tokens/associate/${taskId}/confirm`;
+                url = `${this.getApiUrl()}/tokens/associate/${associationAction === AssociationAction.DEMAND ? 'demand/' : ''}${taskId}/confirm`;
                 options = {
                     method: "PATCH",
                     headers: await this.reqHeaders()
@@ -314,7 +328,7 @@ export default class ApiService {
     async kycGrant(
         requestMode: JobAction,
         taskId: string,
-        params?: { tokenIds: string[]; accountId: string }
+        params?: {tokenIds: string[]; accountId: string}
     ): Promise<KycGrandJob> {
         let url: string;
         let options: RequestInit;
@@ -400,7 +414,10 @@ export default class ApiService {
         const result: TokenBalanceData[] = [];
         let nextPage: string | null = `/accounts/${accountId}/tokens`;
         while (nextPage != null) {
-            const response: TokenRelationshipMirrorResponse = await this.GET<TokenRelationshipMirrorResponse>(this.network, nextPage);
+            const response: TokenRelationshipMirrorResponse = await this.GET<TokenRelationshipMirrorResponse>(
+                this.network,
+                nextPage
+            );
             nextPage = response.links.next ?? null;
 
             const tokenInfosReq: Promise<TokenInfo>[] = [];
@@ -601,7 +618,7 @@ export default class ApiService {
     async dropTokens(
         requestMode: JobAction,
         taskId: string,
-        params?: { accountId: string; signedNonce: string }
+        params?: {accountId: string; signedNonce: string}
     ): Promise<DropJob> {
         let url: string;
         let options: RequestInit;
@@ -702,7 +719,7 @@ export default class ApiService {
         transactionType: string = "",
         nextPage: string | null = null,
         transactionsLimit: string = "10"
-    ): Promise<{ nextPage: string | null; transactions: TransactionData[] }> {
+    ): Promise<{nextPage: string | null; transactions: TransactionData[]}> {
         const limit = parseInt(transactionsLimit, 10);
         let info: TransactionsMirrorResponse;
         const result: TransactionData[] = [];
@@ -716,14 +733,11 @@ export default class ApiService {
             }
             nextPage = info.links.next ?? null;
 
-            const groupedTransactions: { [key: string]: TransactionData[] } = {};
+            const groupedTransactions: {[key: string]: TransactionData[]} = {};
 
             await Promise.all(
                 info.transactions.map(async (t: TransactionMirrorDetails) => {
-                    groupedTransactions[t.transaction_id] = await this.getTransaction(
-                        this.network,
-                        t.transaction_id
-                    );
+                    groupedTransactions[t.transaction_id] = await this.getTransaction(this.network, t.transaction_id);
                 })
             );
 
@@ -779,7 +793,7 @@ export default class ApiService {
                         }) || [],
                     memo: global.atob(tx.memo_base64 || ""),
                     fee: tx.charged_tx_fee,
-                    consensusTimestamp: tx.consensus_timestamp,
+                    consensusTimestamp: tx.consensus_timestamp
                 };
             });
         } catch (e) {
@@ -796,11 +810,10 @@ export default class ApiService {
             .then(res => res.json()) as Promise<NftMetadata>
     }
 
-
     async createScheduleRequestJob(
         requestMode: JobAction,
         taskId: string,
-        params?: {type: ScheduleTransactionType, transfers: ScheduleTransactionTransfer[]}
+        params?: {type: ScheduleTransactionType; transfers: ScheduleTransactionTransfer[]}
     ): Promise<ScheduleRequestJob> {
         let url: string;
         let options: RequestInit;
@@ -816,9 +829,9 @@ export default class ApiService {
                     headers: await this.reqHeaders(),
                     body: JSON.stringify({
                         transaction: {
-                        type: params.type,
-                        transfers: params.transfers
-                            }
+                            type: params.type,
+                            transfers: params.transfers
+                        }
                     })
                 };
                 retryCount = 0;
@@ -842,8 +855,7 @@ export default class ApiService {
     async signScheduleRequestJob(
         requestMode: JobAction,
         taskId: string,
-        params?: {scheduledTransactionId: string, receiverAccountId: string}
-
+        params?: {scheduledTransactionId: string; receiverAccountId: string}
     ): Promise<SignScheduleRequestJob> {
         let url: string;
         let options: RequestInit;

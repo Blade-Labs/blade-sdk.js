@@ -34,6 +34,7 @@
             const bladeEnv = "CI";
 
             const apiKeyTestnet = "FG9dUBQcBaBAPgCHz7DqmNZzrJyhewAMJytjwp3VFIEMFTXQyVSIDq6wRvtPcSAt";
+            const chainId = "296";
 
             const bladeSdk = window.bladeSdk;
             const ParametersBuilder = window.ParametersBuilder;
@@ -46,7 +47,7 @@
                 },
                 // {
                 //     userProvider: "Magic",
-                //     accountIdOrEmail: "the.gary.du+sdk@gmail.com",
+                //     accountIdOrEmail: "the.gary.du+sdk2@gmail.com",
                 //     accountPrivateKey: ""
                 // },
                 // {
@@ -100,7 +101,7 @@
 
             addTest("getBalance", async (completionKey) => {
                 for await (const { userProvider, accountIdOrEmail, accountPrivateKey } of userProviders) {
-                    log(await bladeSdk.init(apiKeyTestnet, "Testnet", dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
+                    log(await bladeSdk.init(apiKeyTestnet, chainId, dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
                     const { accountId, privateKey } = await customSetUser(userProvider, accountIdOrEmail, accountPrivateKey, completionKey);
                     log(await bladeSdk.getBalance(accountId, completionKey));
                 }
@@ -108,7 +109,7 @@
 
             addTest("transferHbars", async (completionKey) => {
                 for await (const { userProvider, accountIdOrEmail, accountPrivateKey } of userProviders) {
-                    log(await bladeSdk.init(apiKeyTestnet, "Testnet", dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
+                    log(await bladeSdk.init(apiKeyTestnet, chainId, dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
                     const { accountId, privateKey } = await customSetUser(userProvider, accountIdOrEmail, accountPrivateKey, completionKey);
                     log(await bladeSdk.transferHbars(accountId, privateKey, accountId2, "0.000001", "test transfer hbars", completionKey));
                 }
@@ -116,7 +117,7 @@
 
             addTest("contractCallFunction", async (completionKey) => {
                 for await (const { userProvider, accountIdOrEmail, accountPrivateKey } of userProviders) {
-                    log(await bladeSdk.init(apiKeyTestnet, "Testnet", dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
+                    log(await bladeSdk.init(apiKeyTestnet, chainId, dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
                     const { accountId, privateKey } = await customSetUser(userProvider, accountIdOrEmail, accountPrivateKey, completionKey);
 
                     const message = `Hello test ${Math.random()}`;
@@ -128,7 +129,7 @@
 
             addTest("contractCallQueryFunction", async (completionKey) => {
                 for await (const { userProvider, accountIdOrEmail, accountPrivateKey } of userProviders) {
-                    log(await bladeSdk.init(apiKeyTestnet, "Testnet", dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
+                    log(await bladeSdk.init(apiKeyTestnet, chainId, dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
                     const { accountId, privateKey } = await customSetUser(userProvider, accountIdOrEmail, accountPrivateKey, completionKey);
 
                     const params = new ParametersBuilder();
@@ -138,7 +139,7 @@
 
             addTest("transferTokens", async (completionKey) => {
                 for await (const { userProvider, accountIdOrEmail, accountPrivateKey } of userProviders) {
-                    log(await bladeSdk.init(apiKeyTestnet, "Testnet", dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
+                    log(await bladeSdk.init(apiKeyTestnet, chainId, dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
                     const { accountId, privateKey } = await customSetUser(userProvider, accountIdOrEmail, accountPrivateKey, completionKey);
                     log(await bladeSdk.transferTokens(tokenId, accountId, privateKey, accountId2, "0.001", "transfer memo", false, completionKey));
                 }
@@ -146,7 +147,7 @@
 
             addTest("getAccountInfo", async (completionKey) => {
                 for await (const { userProvider, accountIdOrEmail, accountPrivateKey } of userProviders) {
-                    log(await bladeSdk.init(apiKeyTestnet, "Testnet", dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
+                    log(await bladeSdk.init(apiKeyTestnet, chainId, dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
                     const { accountId, privateKey } = await customSetUser(userProvider, accountIdOrEmail, accountPrivateKey, completionKey);
                     log(await bladeSdk.getAccountInfo(accountId, completionKey));
                 }
@@ -154,7 +155,7 @@
 
             addTest("getNodeList", async (completionKey) => {
                 for await (const { userProvider, accountIdOrEmail, accountPrivateKey } of userProviders) {
-                    log(await bladeSdk.init(apiKeyTestnet, "Testnet", dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
+                    log(await bladeSdk.init(apiKeyTestnet, chainId, dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
                     const { accountId, privateKey } = await customSetUser(userProvider, accountIdOrEmail, accountPrivateKey, completionKey);
                     log(await bladeSdk.getNodeList(completionKey));
                 }
@@ -162,7 +163,7 @@
 
             addTest("stakeToNode", async (completionKey) => {
                 for await (const { userProvider, accountIdOrEmail, accountPrivateKey } of userProviders) {
-                    log(await bladeSdk.init(apiKeyTestnet, "Testnet", dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
+                    log(await bladeSdk.init(apiKeyTestnet, chainId, dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
                     const { accountId, privateKey } = await customSetUser(userProvider, accountIdOrEmail, accountPrivateKey, completionKey);
                     log(await bladeSdk.stakeToNode(accountId, privateKey, null, completionKey));
                 }
@@ -170,7 +171,7 @@
 
             addTest("getTransactions", async (completionKey) => {
                 for await (const { userProvider, accountIdOrEmail, accountPrivateKey } of userProviders) {
-                    log(await bladeSdk.init(apiKeyTestnet, "Testnet", dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
+                    log(await bladeSdk.init(apiKeyTestnet, chainId, dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
                     const { accountId, privateKey } = await customSetUser(userProvider, accountIdOrEmail, accountPrivateKey, completionKey);
                     log(await bladeSdk.getTransactions(accountId, "", "", 5, completionKey));
                 }
@@ -178,7 +179,7 @@
 
             addTest("getC14url", async (completionKey) => {
                 for await (const { userProvider, accountIdOrEmail, accountPrivateKey } of userProviders) {
-                    log(await bladeSdk.init(apiKeyTestnet, "Testnet", dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
+                    log(await bladeSdk.init(apiKeyTestnet, chainId, dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
                     const { accountId, privateKey } = await customSetUser(userProvider, accountIdOrEmail, accountPrivateKey, completionKey);
                     log(await bladeSdk.getC14url("hbar", accountId, "123", completionKey));
                 }
@@ -186,7 +187,7 @@
 
             addTest("associateToken", async (completionKey) => {
                 for await (const { userProvider, accountIdOrEmail, accountPrivateKey } of userProviders) {
-                    log(await bladeSdk.init(apiKeyTestnet, "Testnet", dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
+                    log(await bladeSdk.init(apiKeyTestnet, chainId, dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
                     const { accountId, privateKey } = await customSetUser(userProvider, accountIdOrEmail, accountPrivateKey, completionKey);
                     log(await bladeSdk.associateToken(tokenId, accountId, privateKey, completionKey));
                 }
@@ -194,7 +195,7 @@
 
             addTest("swapTokens", async (completionKey) => {
                 for await (const { userProvider, accountIdOrEmail, accountPrivateKey } of userProviders) {
-                    log(await bladeSdk.init(apiKeyTestnet, "Testnet", dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
+                    log(await bladeSdk.init(apiKeyTestnet, chainId, dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
                     const { accountId, privateKey } = await customSetUser(userProvider, accountIdOrEmail, accountPrivateKey, completionKey);
                     log(await bladeSdk.swapTokens(accountId, privateKey, "USDC", 0.00001, "HBAR", 0.5, "saucerswap", completionKey));
                 }

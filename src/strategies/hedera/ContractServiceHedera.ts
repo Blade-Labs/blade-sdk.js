@@ -81,6 +81,9 @@ export default class ContractServiceHedera implements IContractService {
 
                     return res;
                 });
+
+            // TODO: catch CONTRACT_REVERT_EXECUTED reason: https://github.com/Blade-Labs/blade-sdk.js/blob/969c83ee39307875741a7bb1336b4d58d1716bd0/src/BladeSDK.ts#L590
+
         } else {
             response = new ContractExecuteTransaction()
                 .setContractId(contractAddress)

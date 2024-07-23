@@ -25,7 +25,7 @@ export default class ContractServiceEthereum implements IContractService {
         functionName: string,
         params: string | ParametersBuilder,
         gas: number,
-        bladePayFee: boolean
+        usePaymaster: boolean
     ): Promise<TransactionReceiptData> {
         // TODO add gas usage
         // TODO implement bladePayFee
