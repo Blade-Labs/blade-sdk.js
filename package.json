@@ -1,6 +1,6 @@
 {
   "name": "@bladelabs/blade-sdk.js",
-  "version": "0.6.28",
+  "version": "0.6.29",
   "description": "Hedera SDK wrapper with Blade features",
   "scripts": {
     "build": "cross-env SDK_VERSION=$npm_package_version NODE_ENV=production node utils/fixConfig.js && npm run clean && npm run build:esm && npm run build:cjs && npm run build:web-view",
@@ -57,7 +57,7 @@
   ],
   "license": "Apache-2.0",
   "dependencies": {
-    "@fingerprintjs/fingerprintjs-pro": "^3.8.6",
+    "@fingerprintjs/fingerprintjs-pro": "^3.9.8",
     "@hashgraph/sdk": "2.40.0",
     "@magic-ext/hedera": "^1.0.3",
     "@types/shelljs": "^0.8.15",
