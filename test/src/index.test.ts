@@ -683,9 +683,10 @@ test('bladeSdk.searchAccounts', async () => {
         evmAddress: result.data.evmAddress
     }
 
+    await sleep(15000);
     result = await bladeSdk.searchAccounts(accountSample.seedPhrase, completionKey);
     checkResult(result);
-    await sleep(15000);
+
 
     expect(result.data).toHaveProperty("accounts");
     expect(Array.isArray(result.data.accounts)).toEqual(true);
