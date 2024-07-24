@@ -142,7 +142,6 @@ export class BladeSDK {
     private sdkEnvironment: SdkEnvironment = SdkEnvironment.Prod;
     private sdkVersion: string = config.sdkVersion;
     private readonly webView: boolean = false;
-    private config: BladeConfig | null = null;
     private accountProvider: AccountProvider | null = null;
     private signer: Signer = null!;
     private magic: any;
@@ -207,9 +206,9 @@ export class BladeSDK {
         if (!this.visitorId) {
             try {
                 const fpConfig = {
-                    apiKey: "key", // the valid key is passed on the backend side, and ".get()" does not require the key as well
+                    apiKey: await getConfig("fpApiKey"),
                     scriptUrlPattern: `${getApiUrl(true)}/fpjs/<version>/<loaderVersion>`,
-                    endpoint: ["https://identity.bladewallet.io", FingerprintJS.defaultEndpoint],
+                    endpoint: [await getConfig("fpSubdomain"), FingerprintJS.defaultEndpoint],
                 };
 
                 const fpPromise = await FingerprintJS.load(fpConfig);
@@ -2230,21 +2229,14 @@ export class BladeSDK {
     }
 
     private async initMagic() {
-        await this.fetchBladeConfig();
         // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
-        this.magic = new Magic(this.config?.magicLinkPublicKey!, {
+        this.magic = new Magic(await getConfig("magicLinkPublicKey"), {
             extensions: [
                 new HederaExtension({
                     network: this.network.toLowerCase(),
                 }),
             ],
         });
-    }
-
-    private async fetchBladeConfig() {
-        if (!this.config) {
-            this.config = await getBladeConfig();
-        }
     }
 
     private getUser(): UserInfo {

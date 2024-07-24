@@ -1,4 +1,4 @@
-import shell from "shelljs";
+const shell = require("shelljs");
 
 const dir = "publish";
 const sourcePaths = ["dist/*", "assets/index.html"];
