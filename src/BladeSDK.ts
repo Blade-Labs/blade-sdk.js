@@ -593,14 +593,14 @@ export class BladeSDK {
                         const message = await getContractErrorMessage(this.network, `${transactionID}-${seconds}-${nanos}`, contractId);
 
                         if (message && message.startsWith('0x') && message.length > 2) {
-                            const reason = ethers.utils.defaultAbiCoder.decode(
+                            const reason = ethers.AbiCoder.defaultAbiCoder().decode(
                                 ['string'],
-                                ethers.utils.hexDataSlice(message, 4)
+                                ethers.dataSlice(message, 4)
                             )
 
-                            const error_message = error.message + ` (${reason[0]})`
+                            error.message += ` (${reason[0]})`
 
-                            throw this.sendMessageToNative(completionKey, null, error_message);
+                            throw this.sendMessageToNative(completionKey, null, error);
                         }
                     }
 
@@ -1044,7 +1044,7 @@ export class BladeSDK {
                 });
             }
 
-            const evmAddress = ethers.utils.computeAddress(`0x${key.publicKey.toStringRaw()}`);
+            const evmAddress = ethers.computeAddress(`0x${key.publicKey.toStringRaw()}`);
 
             const result = {
                 transactionId,
@@ -1085,7 +1085,7 @@ export class BladeSDK {
             const seedPhrase = await Mnemonic.fromString(mnemonic);
             const privateKey = await seedPhrase.toEcdsaPrivateKey();
             const publicKey = privateKey.publicKey.toStringDer();
-            let evmAddress = ethers.utils.computeAddress(`0x${privateKey.publicKey.toStringRaw()}`);
+            let evmAddress = ethers.computeAddress(`0x${privateKey.publicKey.toStringRaw()}`);
 
             const result = {
                 transactionId: transactionId || null,
@@ -1122,7 +1122,7 @@ export class BladeSDK {
                     dAppCode: this.dAppCode,
                 });
 
-                evmAddress = ethers.utils.computeAddress(
+                evmAddress = ethers.computeAddress(
                     `0x${originalPublicKey ? originalPublicKey.slice(-66) : privateKey.publicKey.toStringRaw()}`
                 );
 
@@ -1210,7 +1210,7 @@ export class BladeSDK {
                     stakedNodeId: account.staked_node_id,
                     stakePeriodStart: account.stake_period_start,
                 },
-                calculatedEvmAddress: ethers.utils.computeAddress(`0x${publicKey.toStringRaw()}`).toLowerCase(),
+                calculatedEvmAddress: ethers.computeAddress(`0x${publicKey.toStringRaw()}`).toLowerCase(),
             } as AccountInfoData);
         } catch (error: any) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -1459,7 +1459,7 @@ export class BladeSDK {
      */
     splitSignature(signature: string, completionKey?: string): SplitSignatureData {
         try {
-            const { v, r, s } = ethers.utils.splitSignature(signature);
+            const { v, r, s } = ethers.Signature.from(signature);
             return this.sendMessageToNative(completionKey, { v, r, s });
         } catch (error: any) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -1483,14 +1483,11 @@ export class BladeSDK {
     ): Promise<SplitSignatureData> {
         try {
             const { types, values } = await parseContractFunctionParams(paramsEncoded);
-            const hash = ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(types, values));
-            const messageHashBytes = ethers.utils.arrayify(hash);
-
-            const key = PrivateKey.fromString(privateKey);
+            const hash = ethers.keccak256(ethers.AbiCoder.defaultAbiCoder().encode(types, values));
+            const key = PrivateKey.fromStringDer(privateKey);
             const wallet = new ethers.Wallet(key.toStringRaw());
-            const signed = await wallet.signMessage(messageHashBytes);
-
-            const { v, r, s } = ethers.utils.splitSignature(signed);
+            const signature = await wallet.signMessage(ethers.getBytes(hash));
+            const { v, r, s } = ethers.Signature.from(signature);
             return this.sendMessageToNative(completionKey, { v, r, s });
         } catch (error: any) {
             throw this.sendMessageToNative(completionKey, null, error);
