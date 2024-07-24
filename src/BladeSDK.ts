@@ -996,15 +996,20 @@ export class BladeSDK {
         try {
             let seedPhrase = "";
             let key: PrivateKey;
-            let valid = false;
-            do {
-                const mnemonic = await Mnemonic.generate12();
-                key = await mnemonic.toStandardECDSAsecp256k1PrivateKey();
-                const privateKeyString = key.toStringDer();
-                const restoredPublicKeyString = PrivateKey.fromStringDer(privateKeyString).publicKey.toStringRaw();
-                valid = key.publicKey.toStringRaw() === restoredPublicKeyString;
-                seedPhrase = mnemonic.toString();
-            } while (!valid);
+            if (privateKey) {
+                key = PrivateKey.fromStringDer(privateKey);
+            } else {
+                // https://github.com/hashgraph/hedera-sdk-js/issues/1396
+                let valid = false;
+                do {
+                    const mnemonic = await Mnemonic.generate12();
+                    key = await mnemonic.toStandardECDSAsecp256k1PrivateKey();
+                    const privateKeyString = key.toStringDer();
+                    const restoredPublicKeyString = PrivateKey.fromStringDer(privateKeyString).publicKey.toStringRaw();
+                    valid = key.publicKey.toStringRaw() === restoredPublicKeyString;
+                    seedPhrase = mnemonic.toString();
+                } while (!valid);
+            }
 
             const options = {
                 visitorId: this.visitorId,
