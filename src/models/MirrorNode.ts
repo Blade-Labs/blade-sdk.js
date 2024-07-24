@@ -22,6 +22,41 @@ export type APIPagination = {
     };
 };
 
+export type ContractResponseMirrorResponse = {
+    address: string;
+    amount: number | null;
+    bloom: string | null;
+    call_result: string | null;
+    contract_id: string;
+    created_contract_ids: string[] | null;
+    error_message: string | null;
+    from: string;
+    function_parameters: string | null;
+    gas_consumed: number | null;
+    gas_limit: number;
+    gas_used: number | null;
+    timestamp: string;
+    to: string;
+    hash: string;
+    block_hash: string | null;
+    block_number: number | null;
+    result: string;
+    transaction_index: number | null;
+    status: string;
+    failed_initcode: string | null;
+    access_list: string | null;
+    block_gas_used: number | null;
+    chain_id: string | null;
+    gas_price: string | null;
+    max_fee_per_gas: string | null;
+    max_priority_fee_per_gas: string | null;
+    r: string | null;
+    s: string | null;
+    type: number | null;
+    v: number | null;
+    nonce: number | null;
+}
+
 export type TokenRelationship = {
     automatic_association: boolean;
     balance: number;

@@ -4,6 +4,7 @@ import {
     ContractFunctionResult,
     ContractId,
     Signer,
+    StatusError,
     Transaction,
     TransactionResponse
 } from "@hashgraph/sdk";
@@ -19,6 +20,7 @@ import {getContractFunctionBytecode, parseContractQueryResponse} from "../../hel
 import {getReceipt} from "../../helpers/TransactionHelpers";
 import {JobAction, JobStatus} from "../../models/BladeApi";
 import {sleep} from "../../helpers/ApiHelper";
+import {ethers} from "ethers";
 
 export default class ContractServiceHedera implements IContractService {
     private readonly chainId: KnownChainIds;
@@ -96,7 +98,20 @@ export default class ContractServiceHedera implements IContractService {
                 .then(tx => tx.executeWithSigner(this.signer!));
         }
 
-        return response.then(txResult => getReceipt(txResult, this.signer!));
+        return response
+            .then(txResult => getReceipt(txResult, this.signer!))
+            .catch(async(error: StatusError) => {
+                if (error.message.includes("CONTRACT_REVERT_EXECUTED") && error.transactionId) {
+                    const transactionId = `${error.transactionId.accountId?.toString()}-${error.transactionId.validStart?.toString().replace('.', '-')}`;
+                    const message = await this.apiService.getContractErrorMessage(transactionId, contractAddress);
+
+                    if (message && message.length > 2) {
+                        const reason = ethers.AbiCoder.defaultAbiCoder().decode(['string'], ethers.dataSlice(message, 4))
+                        error.message += ` (${reason[0]})`
+                    }
+                }
+                throw error;
+            });
     }
 
     async contractCallQueryFunction(

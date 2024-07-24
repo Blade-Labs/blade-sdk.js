@@ -819,6 +819,32 @@ describe("testing methods related to HEDERA network", () => {
 
         try {
             // fail on wrong function params (CONTRACT_REVERT_EXECUTED)
+            params = new ParametersBuilder().addString(message).addAddress("0x65f17cac69fb3df1328a5c239761d32e8b346da0").addAddressArray([accountId, accountId2]).addTuple(new ParametersBuilder().addUInt64(BigNumber(20)).addUInt64(BigNumber(22)));
+            result = await bladeSdk.contractCallFunction(contractId, "set_numbers", params.encode(), 1000000, false, completionKey);
+            expect("Code should not reach here").toBeNull();
+        } catch (result) {
+            checkResult(result, false);
+            expect(result.error.reason.includes("CONTRACT_REVERT_EXECUTED")).toEqual(true);
+        }
+
+        try {
+            // fail on wrong function params (CONTRACT_REVERT_EXECUTED) with error_message
+            params = new ParametersBuilder()
+            result = await bladeSdk.contractCallFunction(contractId, "revert_fnc", params, 1000000, true, completionKey);
+            expect("Code should not reach here").toBeNull();
+        } catch (result) {
+            checkResult(result, false);
+
+            const reason = result.error.reason;
+            const regex = /\(([^)]+)\)/;
+            const match = reason.match(regex);
+
+            expect(result.error.reason.includes("CONTRACT_REVERT_EXECUTED") && match[1].length > 0).toEqual(true);
+            expect(match[1]).toEqual("Return revert");
+        }
+
+        try {
+            // fail on wrong function params (CONTRACT_REVERT_EXECUTED)
             params = new ParametersBuilder()
                 .addString(message)
                 .addAddress("0x65f17cac69fb3df1328a5c239761d32e8b346da0")

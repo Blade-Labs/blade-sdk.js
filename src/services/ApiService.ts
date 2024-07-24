@@ -8,6 +8,7 @@ import {
     AccountInfo,
     AccountInfoMirrorResponse,
     APIPagination,
+    ContractResponseMirrorResponse,
     NftInfo,
     NftMetadata,
     NftTransferDetail,
@@ -33,7 +34,7 @@ import {
 } from "../models/Common";
 import {ChainMap, KnownChainIds} from "../models/Chain";
 import {flatArray} from "../helpers/ArrayHelpers";
-import {fetchWithRetry, statusCheck} from "../helpers/ApiHelper";
+import {fetchWithRetry, sleep, statusCheck} from "../helpers/ApiHelper";
 import {filterAndFormatTransactions} from "../helpers/TransactionHelpers";
 import {encrypt} from "../helpers/SecurityHelper";
 import {
@@ -899,4 +900,28 @@ export default class ApiService {
             .then(statusCheck)
             .then(x => x.json()) as Promise<SignScheduleRequestJob>;
     }
+
+    async getContractErrorMessage(transactionId: string, contractId: string) {
+        const MAX_ATTEMPTS = 5;
+        const INTERVAL_MS = 1500;
+
+        for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            await sleep(INTERVAL_MS);
+            try {
+                const response = await this.GET<TransactionsMirrorResponse>(this.network, `/transactions/${transactionId}`)
+                if (response && response.transactions && response.transactions.length > 0) {
+                    const consensusTimestamp = response.transactions[0].consensus_timestamp;
+                    const contractResponse = await this.GET<ContractResponseMirrorResponse>(this.network, `/contracts/${contractId}/results/${consensusTimestamp}`)
+                    return contractResponse?.error_message;
+                } else {
+                    return null
+                }
+            } catch (error) {
+                if (attempt >= MAX_ATTEMPTS) {
+                    return null
+                }
+            }
+        }
+        return null
+    };
 }
