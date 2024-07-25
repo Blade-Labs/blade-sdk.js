@@ -50,11 +50,18 @@ export default class AccountServiceHedera implements IAccountService {
         let key: PrivateKey;
         let seedPhrase = "";
         if (privateKey) {
-            key = PrivateKey.fromString(privateKey);
+            key = PrivateKey.fromStringDer(privateKey);
         } else {
-            const mnemonic = await Mnemonic.generate12();
-            seedPhrase = mnemonic.toString();
-            key = await mnemonic.toStandardECDSAsecp256k1PrivateKey();
+            // https://github.com/hashgraph/hedera-sdk-js/issues/1396
+            let valid = false;
+            do {
+                const mnemonic = await Mnemonic.generate12();
+                key = await mnemonic.toStandardECDSAsecp256k1PrivateKey();
+                const privateKeyString = key.toStringDer();
+                const restoredPublicKeyString = PrivateKey.fromStringDer(privateKeyString).publicKey.toStringRaw();
+                valid = key.publicKey.toStringRaw() === restoredPublicKeyString;
+                seedPhrase = mnemonic.toString();
+            } while (!valid);
         }
 
         let accountCreateJob = await this.apiService.createAccount(JobAction.INIT, "", {
