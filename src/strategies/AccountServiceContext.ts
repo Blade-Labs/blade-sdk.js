@@ -80,12 +80,12 @@ export default class AccountServiceContext implements IAccountService {
     }
 
     deleteAccount(
-        deleteAccountId: string,
+        deleteAccountAddress: string,
         deletePrivateKey: string,
-        transferAccountId: string
+        transferAccountAddress: string
     ): Promise<TransactionReceiptData> {
         this.checkSigner();
-        return this.strategy!.deleteAccount(deleteAccountId, deletePrivateKey, transferAccountId);
+        return this.strategy!.deleteAccount(deleteAccountAddress, deletePrivateKey, transferAccountAddress);
     }
 
     getAccountInfo(accountId: string): Promise<AccountInfoData> {

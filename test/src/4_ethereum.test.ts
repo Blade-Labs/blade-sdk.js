@@ -706,6 +706,7 @@ describe("testing methods related to ETHEREUM network", () => {
     test("bladeSdk-ethereum.getParamsSignature", async () => {
         const params = new ParametersBuilder()
             .addAddress(hederaAccountId)
+            // .addAddress("0x11f8D856FF2aF6700CCda4999845B2ed4502d8fB")
             .addUInt64Array([BigNumber(300000), BigNumber(300000)])
             .addUInt64Array([BigNumber(6)])
             .addUInt64Array([BigNumber(2)]);

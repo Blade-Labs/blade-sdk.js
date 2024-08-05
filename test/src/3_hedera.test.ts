@@ -92,6 +92,7 @@ describe("testing methods related to HEDERA network", () => {
     const accountId4 = process.env.ACCOUNT_ID_ED25519 || "";
     const tokenId0 = process.env.TOKEN_ID0 || "";
     const tokenId1 = process.env.TOKEN_ID1 || "";
+    const associateOnDemandCampaignName = process.env.ASSOCIATE_ON_DEMAND_CAMPAIGN_NAME || "";
     const nftId = process.env.NFT_ID || "";
     const privateKeyED25519 = process.env.PRIVATE_KEY_ED25519 || "";
     const accountId4ED25519 = process.env.ACCOUNT_ID_ED25519 || "";
@@ -574,6 +575,8 @@ describe("testing methods related to HEDERA network", () => {
         result = await bladeSdk.setUser(AccountProvider.PrivateKey, receipt.accountId.toString(), key.toStringDer(), completionKey);
         checkResult(result);
         result = await bladeSdk.associateToken(tokenId0, completionKey);
+        checkResult(result);
+        result = await bladeSdk.associateToken(associateOnDemandCampaignName, completionKey);
         checkResult(result);
         try {
             result = await bladeSdk.associateToken(tokenId0, completionKey);
@@ -1075,6 +1078,7 @@ describe("testing methods related to HEDERA network", () => {
     test("bladeSdk-hedera.getParamsSignature", async () => {
         const params = new ParametersBuilder()
             .addAddress(accountId)
+            // .addAddress("0x11f8D856FF2aF6700CCda4999845B2ed4502d8fB")
             .addUInt64Array([BigNumber(300000), BigNumber(300000)])
             .addUInt64Array([BigNumber(6)])
             .addUInt64Array([BigNumber(2)]);
@@ -1254,7 +1258,7 @@ describe("testing methods related to HEDERA network", () => {
         expect(Array.isArray(result.data.quotes)).toEqual(true);
         expect(result.data.quotes.length).toBeGreaterThanOrEqual(1);
 
-        result = await bladeSdk.exchangeGetQuotes("HBAR", 200, "USD", "Sell", completionKey);
+        result = await bladeSdk.exchangeGetQuotes("HBAR", 2000, "USD", "Sell", completionKey);
         checkResult(result);
         expect(Array.isArray(result.data.quotes)).toEqual(true);
         expect(result.data.quotes.length).toBeGreaterThanOrEqual(1);

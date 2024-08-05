@@ -408,7 +408,7 @@ export default class TokenServiceHedera implements ITokenService {
         // TODO to implement
         return {
             status: dropJob.status,
-            accountId: dropJob.result!.accountId,
+            accountAddress: dropJob.result!.accountId,
             dropStatuses: dropJob!.result!.dropStatuses,
             redirectUrl: "string"
         };

@@ -227,6 +227,10 @@ export interface AccountPrivateRecord {
     keyType: CryptoKeyType;
 }
 
+export interface CreateScheduleData {
+    scheduleId: string
+}
+
 export interface SignMessageData {
     signedMessage: string;
 }
@@ -254,7 +258,6 @@ export interface TransactionData {
     nftTransfers: NftTransferData[];
     memo?: string;
     fee?: number;
-    showDetailed?: boolean;
     plainData?: any;
     consensusTimestamp: string;
 }
@@ -272,8 +275,8 @@ export interface CreateTokenData {
 }
 
 export interface TransferData {
-    amount: number;
     account: string;
+    amount: number;
     tokenAddress?: string;
     asset: string;
 }
@@ -374,7 +377,7 @@ export interface TransactionResponseData {
 
 export interface TokenDropData {
     status: string;
-    accountId: string;
+    accountAddress: string;
     dropStatuses: {
        [key: string]: DropStatus;
     };

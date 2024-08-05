@@ -333,7 +333,7 @@ export default class AccountServiceHedera implements IAccountService {
         return accounts.map(record => {
             const evmAddress =
                 keyType === CryptoKeyType.ECDSA_SECP256K1
-                    ? ethers.computeAddress(`0x${privateKey.publicKey.toStringRaw()}`).toLowerCase()
+                    ? ethers.computeAddress(`0x${privateKey.publicKey.toStringRaw()}`)
                     : record?.evm_address || "";
             return {
                 privateKey: privateKey.toStringDer(),

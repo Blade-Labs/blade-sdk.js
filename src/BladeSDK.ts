@@ -22,6 +22,7 @@ import {
     CoinListData,
     ContractCallQueryRecordsData,
     CreateAccountData,
+    CreateScheduleData,
     CreateTokenData,
     InfoData,
     IntegrationUrlData,
@@ -343,7 +344,7 @@ export class BladeSDK {
      * @param gas - gas limit for the transaction
      * @param usePaymaster - if true, fee will be paid by Paymaster account (note: msg.sender inside the contract will be Paymaster account)
      * @param completionKey - optional field bridge between mobile webViews and native apps
-     * @returns {Partial<TransactionReceipt>}
+     * @returns {Partial<TransactionReceiptData>}
      */
     async contractCallFunction(
         contractAddress: string,
@@ -414,7 +415,7 @@ export class BladeSDK {
         transfers: ScheduleTransactionTransfer[],
         usePaymaster: boolean = false,
         completionKey?: string
-    ): Promise<{scheduleId: string}> {
+    ): Promise<CreateScheduleData> {
         try {
             const result = await this.signServiceContext.createScheduleTransaction(type, transfers, usePaymaster);
             return this.sendMessageToNative(completionKey, result);
@@ -446,8 +447,7 @@ export class BladeSDK {
     }
 
     /**
-     * Create Hedera account (ECDSA). Only for configured dApps. Depending on dApp config Blade create account, associate tokens, etc.
-     * In case of not using pre-created accounts pool and network high load, this method can return transactionId and no accountId.
+     * Create new account (ECDSA by default). Depending on dApp config Blade will create an account, associate tokens, etc.
      * @param privateKey optional field if you need specify account key (hex encoded privateKey with DER-prefix)
      * @param deviceId optional field for headers for backend check
      * @param completionKey optional field bridge between mobile webViews and native apps
@@ -464,23 +464,23 @@ export class BladeSDK {
 
     /**
      * Delete Hedera account
-     * @param deleteAccountId account id of account to delete (0.0.xxxxx)
+     * @param deleteAccountAddress account address to delete (0.0.xxxxx)
      * @param deletePrivateKey account private key (DER encoded hex string)
-     * @param transferAccountId if any funds left on account, they will be transferred to this account (0.0.xxxxx)
+     * @param transferAccountAddress if any funds left on account, they will be transferred to this account address (0.0.xxxxx)
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {TransactionReceiptData}
      */
     async deleteAccount(
-        deleteAccountId: string,
+        deleteAccountAddress: string,
         deletePrivateKey: string,
-        transferAccountId: string,
+        transferAccountAddress: string,
         completionKey?: string
     ): Promise<TransactionReceiptData> {
         try {
             const result = await this.accountServiceContext.deleteAccount(
-                deleteAccountId,
+                deleteAccountAddress,
                 deletePrivateKey,
-                transferAccountId
+                transferAccountAddress
             );
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
@@ -492,15 +492,15 @@ export class BladeSDK {
      * Get account info.
      * EvmAddress is address of Hedera account if exists. Else accountId will be converted to solidity address.
      * CalculatedEvmAddress is calculated from account public key. May be different from evmAddress.
-     * @param accountId Hedera account id (0.0.xxxxx)
+     * @param accountAddress account address (0.0.xxxxx)
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {AccountInfoData}
      */
-    async getAccountInfo(accountId: string, completionKey?: string): Promise<AccountInfoData> {
+    async getAccountInfo(accountAddress: string, completionKey?: string): Promise<AccountInfoData> {
         try {
-            accountId = accountId || this.getUser().accountId;
+            accountAddress = accountAddress || this.getUser().accountId;
 
-            const result = await this.accountServiceContext.getAccountInfo(accountId);
+            const result = await this.accountServiceContext.getAccountInfo(accountAddress);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);

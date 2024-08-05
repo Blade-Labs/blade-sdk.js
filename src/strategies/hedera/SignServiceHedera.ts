@@ -56,8 +56,18 @@ export default class SignServiceHedera implements ISignService {
             // to sign like ethers, we need to prefix the message with the length of the message - "\x19Ethereum Signed Message:\n" + message.length
             const prefix = Buffer.from("\x19Ethereum Signed Message:\n" + message.length);
             const prefixedMessage = Buffer.concat([prefix, message]);
-            const messageBuffer = Buffer.from(prefixedMessage);
-            const signatures: SignerSignature[] = await this.signer.sign([messageBuffer]);
+
+            const signatures: SignerSignature[] = await this.signer.sign([prefixedMessage]);
+            let signature = signatures[0].signature;
+
+            const r = signature.slice(0, 32);
+            let s = BigInt(`0x${Buffer.from(signature.slice(32, 64)).toString("hex")}`);
+            // сheck if S is canonical (if the `s` value is lower or equal than `n / 2`)
+            if (s > ethers.N / BigInt(2)) {
+                // If so, we need to convert the signature to its canonical form
+                s = ethers.N - s;
+                signature = Buffer.concat([Buffer.from(r), Buffer.from(s.toString(16), "hex")]);
+            }
 
             // also we need to add recovery id to the signature (27 or 28, last byte)
             // we need to recover the public key from the signature and compare it with the provided public key
@@ -65,13 +75,13 @@ export default class SignServiceHedera implements ISignService {
             if (publicKey._key._type === CryptoKeyType.ED25519.toString()) {
                 throw new Error("ED25519 public key is not supported for Ethereum signing.");
             }
+            const messageHash = Buffer.from(ethers.keccak256(prefixedMessage).slice(2), 'hex');
             let recoveryId = -1;
-            const messageHash = ethers.keccak256(messageBuffer);
             for (let i = 0; i < 2; i++) {
                 const recoveredPubKey = secp256k1.ecdsaRecover(
-                    Uint8Array.from(signatures[0].signature),
+                    signature,
                     i, // recovery id
-                    Buffer.from(messageHash.slice(2), 'hex'), // message hash without 0x
+                    messageHash,
                     true
                 );
 
@@ -85,13 +95,13 @@ export default class SignServiceHedera implements ISignService {
                 throw new Error("Failed to find a valid recovery id.");
             }
 
+
             // concat signature and recovery id
-            signedMessage = Buffer.concat([Buffer.from(signatures[0].signature), Uint8Array.from([recoveryId])] ).toString("hex");
+            signedMessage = Buffer.concat([signature, Uint8Array.from([recoveryId])] ).toString("hex");
         } else {
             const signatures: SignerSignature[] = await this.signer.sign([message]);
             signedMessage = Buffer.from(signatures[0].signature).toString("hex");
         }
-
         return {
             signedMessage
         };

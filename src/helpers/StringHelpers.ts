@@ -26,6 +26,10 @@ export default class StringHelpers {
         return StringHelpers.isHexPrefixed(value) ? value.slice(2) : value;
     }
 
+    static addHexPrefix(value: string): string {
+        return StringHelpers.isHexPrefixed(value) ? value : `0x${value}`;
+    }
+
     static isHexPrefixed(str: string): boolean {
         if (typeof str !== "string") {
             throw new Error(`[isHexPrefixed] input must be type "string", received type ${typeof str}`);
