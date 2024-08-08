@@ -423,8 +423,6 @@ export default class TokenServiceHedera implements ITokenService {
             await this.executeAllowanceApprove(
                 selectedQuote,
                 accountAddress,
-                this.chainId,
-                this.signer!,
                 true,
                 txData.allowanceTo
             );
@@ -434,8 +432,6 @@ export default class TokenServiceHedera implements ITokenService {
                 await this.executeAllowanceApprove(
                     selectedQuote,
                     accountAddress,
-                    this.chainId,
-                    this.signer!,
                     false,
                     txData.allowanceTo
                 );
@@ -445,7 +441,6 @@ export default class TokenServiceHedera implements ITokenService {
                 selectedQuote,
                 accountAddress,
                 this.chainId,
-                this.signer!
             );
         } else {
             throw new Error("Invalid signature of txData");
@@ -489,12 +484,10 @@ export default class TokenServiceHedera implements ITokenService {
     private async executeAllowanceApprove(
         selectedQuote: ICryptoFlowQuote,
         activeAccount: string,
-        chainId: KnownChainIds,
-        signer: Signer,
         approve: boolean = true,
         allowanceToAddr?: string
     ): Promise<void> {
-        const network = ChainMap[chainId].isTestnet ? Network.Testnet : Network.Mainnet;
+        const network = ChainMap[this.chainId].isTestnet ? Network.Testnet : Network.Mainnet;
 
         const sourceToken = selectedQuote.source.asset;
         if (!sourceToken.address) return;
@@ -512,10 +505,10 @@ export default class TokenServiceHedera implements ITokenService {
             const tx = new AccountAllowanceApproveTransaction()
                 .setMaxTransactionFee(100)
                 .approveTokenAllowance(sourceToken.address, activeAccount, allowanceToAddr || swapContract[network], amount);
-            const freezedTx = await tx.freezeWithSigner(signer);
-            const signedTx = await freezedTx.signWithSigner(signer);
-            const txResponse = await signedTx.executeWithSigner(signer);
-            const receipt = await txResponse.getReceiptWithSigner(signer);
+            const freezedTx = await tx.freezeWithSigner(this.signer!);
+            const signedTx = await freezedTx.signWithSigner(this.signer!);
+            const txResponse = await signedTx.executeWithSigner(this.signer!);
+            const receipt = await txResponse.getReceiptWithSigner(this.signer!);
 
             if (receipt?.status !== Status.Success) {
                 throw new Error("Allowance giving failed");
@@ -538,8 +531,7 @@ export default class TokenServiceHedera implements ITokenService {
     private async executeHederaBladeFeeTx(
         selectedQuote: ICryptoFlowQuote,
         activeAccount: string,
-        chainId: KnownChainIds,
-        signer: Signer
+        chainId: KnownChainIds
     ) {
         const feeOptions: FeeManualOptions = {
             type: FeeType.Swap,
@@ -550,10 +542,10 @@ export default class TokenServiceHedera implements ITokenService {
         if (!transaction) {
             return;
         }
-        transaction = await transaction.setTransactionMemo("Swap Blade Fee").freezeWithSigner(signer);
-        const signedTx = await transaction.signWithSigner(signer);
-        const response = await signedTx.executeWithSigner(signer);
-        const receiptFee = await response.getReceiptWithSigner(signer);
+        transaction = await transaction.setTransactionMemo("Swap Blade Fee").freezeWithSigner(this.signer!);
+        const signedTx = await transaction.signWithSigner(this.signer!);
+        const response = await signedTx.executeWithSigner(this.signer!);
+        const receiptFee = await response.getReceiptWithSigner(this.signer!);
 
         if (receiptFee?.status !== Status.Success) {
             throw new Error("Fee transfer execution failed");

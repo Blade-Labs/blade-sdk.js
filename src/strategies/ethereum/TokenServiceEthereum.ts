@@ -18,6 +18,7 @@ import ERC20ABI from "../../abi/erc20.abi";
 import FeeService from "../../services/FeeService";
 import BigNumber from "bignumber.js";
 import {Signer} from "@ethersproject/abstract-signer";
+import {ICryptoFlowQuote, ICryptoFlowTransaction} from "../../models/CryptoFlow";
 
 export default class TokenServiceEthereum implements ITokenService {
     private readonly chainId: KnownChainIds;
@@ -141,36 +142,82 @@ export default class TokenServiceEthereum implements ITokenService {
         };
     }
 
-    associateToken(tokenId: string, accountId: string): Promise<TransactionReceiptData> {
+    associateToken(): Promise<TransactionReceiptData> {
         throw new Error("Method not implemented.");
     }
 
-    createToken(
-        tokenName: string,
-        tokenSymbol: string,
-        isNft: boolean,
-        treasuryAccountId: string,
-        supplyPublicKey: string,
-        keys: KeyRecord[] | string,
-        decimals: number,
-        initialSupply: number,
-        maxSupply: number
-    ): Promise<{tokenId: string}> {
+    createToken(): Promise<{tokenId: string}> {
         throw new Error("Method not implemented.");
     }
 
-    nftMint(
-        tokenId: string,
-        file: File | string,
-        metadata: {},
-        storageConfig: NFTStorageConfig
-    ): Promise<TransactionReceiptData> {
+    nftMint(): Promise<TransactionReceiptData> {
         throw new Error("Method not implemented.");
     }
 
-    dropTokens(accountId: string, secretNonce: string): Promise<TokenDropData> {
+    dropTokens(): Promise<TokenDropData> {
         throw new Error("Method not implemented.");
     }
+
+    private isNativeToken(tokenAddress: string): boolean {
+        return tokenAddress === "0x"; // TODO: check if it's native token
+    }
+
+    async swapTokens(
+        accountAddress: string,
+        selectedQuote: ICryptoFlowQuote,
+        txData: ICryptoFlowTransaction,
+    ): Promise<{success: boolean}> {
+        await this.initAlchemy();
+
+        const deserializedTx = ethers.Transaction.from(txData.calldata);
+
+        const isNativeToken = this.isNativeToken(selectedQuote.source.asset.address!);
+        if (!isNativeToken && txData.allowanceTo) {
+            await this.executeAllowanceApprove(selectedQuote, accountAddress, true, txData.allowanceTo);
+        }
+
+
+
+        deserializedTx.nonce = await this.alchemy!.core.getTransactionCount(accountAddress, "latest");
+        // add chainId to tx, because it's not present in deserialized tx
+        // can't add on backend side, because of bug with serialization
+        // strange behaviour with ethers.js and serialization, it adds chainId and validation signature fields (v,s,r) to tx,
+        // so it's not possible to sign tx with this fields
+        deserializedTx.chainId = this.chainId;
+
+        const res = await this.signer!.sendTransaction(deserializedTx);
+        return res?.hash ? {success: true} : {success: false};
+    }
+
+    private async executeAllowanceApprove(
+            selectedQuote: ICryptoFlowQuote,
+            activeAccount: string,
+            approve: boolean = true,
+            allowanceToAddr?: string
+    ): Promise<void> {
+        const approveAmount = ethers.parseUnits(selectedQuote.source.amountExpected.toString(), selectedQuote.source!.asset.decimals);
+        const tokenAddr = selectedQuote.source.asset.address!;
+
+        // TODO remove this dirty hack after alchemy starts supporting ethers@6
+        const newSigner = {
+            ...this.signer,
+            _isSigner: () => true,
+            getAddress: this.signer!.getAddress,
+            call: (tx: any) => this.signer!.call(tx),
+            estimateGas: async (tx: any) => {
+                return BigNumber((await this.signer!.estimateGas(tx)).toString());
+            },
+            sendTransaction: (tx: any) => this.signer!.sendTransaction(tx),
+        } as unknown as Signer
+
+        const tokenContract = new Contract(tokenAddr, ERC20ABI, newSigner);
+        const tx = await tokenContract.approve(allowanceToAddr, approveAmount);
+        const receipt = await tx.wait();
+        if (receipt.status !== 1) {
+            throw new Error("Token approval failed");
+        }
+    }
+
 
     private async initAlchemy() {
         if (!this.alchemy) {
@@ -182,9 +229,5 @@ export default class TokenServiceEthereum implements ITokenService {
             );
             this.alchemy = new Alchemy({apiKey, network: alchemyNetwork});
         }
-    }
-
-    swapTokens(): Promise<{success: boolean}> {
-        throw new Error("Method not implemented.");
     }
 }

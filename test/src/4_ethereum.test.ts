@@ -810,41 +810,41 @@ describe("testing methods related to ETHEREUM network", () => {
         }
     }, 30_000);
 
-    // test("bladeSdk-ethereum.swapTokens", async () => {
-    //     let result = await bladeSdk.init(
-    //         process.env.API_KEY_MAINNET,
-    //         KnownChainIds.ETHEREUM_MAINNET,
-    //         process.env.DAPP_CODE,
-    //         process.env.VISITOR_ID,
-    //         process.env.SDK_ENV,
-    //         sdkVersion,
-    //         completionKey
-    //     );
-    //     checkResult(result);
-    //
-    //     try {
-    //         result = await bladeSdk.swapTokens("USDC", 0.00001, "ETH", 0.5, "saucerswap", completionKey);
-    //         expect("Code should not reach here").toEqual(result);
-    //     } catch (result) {
-    //         checkResult(result, false);
-    //     }
-    //
-    //     result = await bladeSdk.setUser(
-    //         AccountProvider.PrivateKey,
-    //         ethereumAddress,
-    //         ethereumPrivateKey,
-    //         completionKey
-    //     );
-    //     checkResult(result);
-    //
-    //     result = await bladeSdk.swapTokens("WETH", 0.05, "1INCH", 0.5, "saucerswapV2", completionKey);
-    //     checkResult(result);
-    //
-    //     try {
-    //         result = await bladeSdk.swapTokens("USDC", 0.00001, "HBAR", 0.5, "unknown-service-id", completionKey);
-    //         expect("Code should not reach here").toEqual(result);
-    //     } catch (result) {
-    //         checkResult(result, false);
-    //     }
-    // }, 60_000);
+    test("bladeSdk-ethereum.swapTokens", async () => {
+        let result = await bladeSdk.init(
+            process.env.API_KEY,
+            KnownChainIds.ETHEREUM_SEPOLIA,
+            process.env.DAPP_CODE,
+            process.env.VISITOR_ID,
+            process.env.SDK_ENV,
+            sdkVersion,
+            completionKey
+        );
+        checkResult(result);
+
+        try {
+            result = await bladeSdk.swapTokens("ETH", 0.00001, "USDC", 0.5, "uniswap", completionKey);
+            expect("Code should not reach here").toEqual(result);
+        } catch (result) {
+            checkResult(result, false);
+        }
+
+        result = await bladeSdk.setUser(
+            AccountProvider.PrivateKey,
+            ethereumAddress,
+            ethereumPrivateKey,
+            completionKey
+        );
+        checkResult(result);
+
+        result = await bladeSdk.swapTokens("USDC", 0.05, "EURC", 0.5, "uniswap", completionKey);
+        checkResult(result);
+
+        try {
+            result = await bladeSdk.swapTokens("USDC", 0.00001, "HBAR", 0.5, "unknown-service-id", completionKey);
+            expect("Code should not reach here").toEqual(result);
+        } catch (result) {
+            checkResult(result, false);
+        }
+    }, 60_000);
 }); // describe
