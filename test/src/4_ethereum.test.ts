@@ -811,17 +811,7 @@ describe("testing methods related to ETHEREUM network", () => {
     }, 30_000);
 
     test("bladeSdk-ethereum.swapTokens", async () => {
-        let result = await bladeSdk.init(
-            process.env.API_KEY,
-            KnownChainIds.ETHEREUM_SEPOLIA,
-            process.env.DAPP_CODE,
-            process.env.VISITOR_ID,
-            process.env.SDK_ENV,
-            sdkVersion,
-            completionKey
-        );
-        checkResult(result);
-
+        let result;
         try {
             result = await bladeSdk.swapTokens("ETH", 0.00001, "USDC", 0.5, "uniswap", completionKey);
             expect("Code should not reach here").toEqual(result);
