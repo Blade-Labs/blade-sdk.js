@@ -12,7 +12,8 @@ import {CustomError} from "./models/Errors";
 import {
     AccountInfoData,
     AccountPrivateData,
-    AccountProvider, ActiveUser,
+    AccountProvider,
+    ActiveUser,
     BalanceData,
     BridgeResponse,
     CoinData,
@@ -42,13 +43,14 @@ import {
     TransactionReceiptData,
     TransactionResponseData,
     TransactionsHistoryData,
-    UserInfoData, WebViewWindow
+    UserInfoData,
+    WebViewWindow
 } from "./models/Common";
 import {ChainMap, KnownChainIds} from "./models/Chain";
 import config from "./config";
 import {ParametersBuilder} from "./ParametersBuilder";
 import {CryptoFlowServiceStrategy} from "./models/CryptoFlow";
-import {NftInfo, NftMetadata, NodeInfo} from "./models/MirrorNode";
+import {NftInfo, NftMetadata} from "./models/MirrorNode";
 import {File} from "nft.storage";
 import TokenServiceContext from "./strategies/TokenServiceContext";
 import AccountServiceContext from "./strategies/AccountServiceContext";
@@ -94,12 +96,12 @@ export class BladeSDK {
     }
 
     /**
-     * Inits instance of BladeSDK for correct work with Blade API and other endpoints.
+     * Init instance of BladeSDK for correct work with Blade API and other endpoints.
      * @param apiKey Unique key for API provided by Blade team.
-     * @param chainId One of the supported by BladeSDK chainId. Check KnownChainIds enum.
-     * @param dAppCode your dAppCode - request specific one by contacting us
+     * @param chainId one of supported chains from KnownChainIds
+     * @param dAppCode your dAppCode - request specific one by contacting BladeLabs team
      * @param visitorId client unique id. If not provided, SDK will try to get it using fingerprintjs-pro library
-     * @param sdkEnvironment environment to choose BladeAPI server (Prod, CI)
+     * @param sdkEnvironment environment to choose BladeAPI server (Prod, CI). Prod used by default.
      * @param sdkVersion used for header X-SDK-VERSION
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {InfoData} status: "success" or "error"
@@ -226,8 +228,8 @@ export class BladeSDK {
     /**
      * Send account balance (HBAR/ETH) to specific account.
      * @param receiverAddress receiver address (0.0.xxxxx, 0x123456789abcdef...)
-     * @param amount Amount of currency to send, as a string representing a decimal number (e.g., "211.3424324")
-     * @param memo transaction memo
+     * @param amount amount of currency to send, as a string representing a decimal number (e.g., "211.3424324")
+     * @param memo transaction memo (limited to 100 characters)
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {TransactionResponseData}
      * @example
@@ -258,7 +260,7 @@ export class BladeSDK {
      * @param tokenAddress token address to send (0.0.xxxxx or 0x123456789abcdef...)
      * @param receiverAddress receiver account address (0.0.xxxxx or 0x123456789abcdef...)
      * @param amountOrSerial amount of fungible tokens to send (with token-decimals correction) or NFT serial number. (e.g. amount "0.01337" when token decimals 8 will send 1337000 units of token)
-     * @param memo transaction memo
+     * @param memo transaction memo (limited to 100 characters)
      * @param usePaymaster if true, Paymaster account will pay fee transaction. Only for single dApp configured fungible-token. In that case tokenId not used
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {TransactionResponseData}
@@ -323,8 +325,9 @@ export class BladeSDK {
     }
 
     /**
-     * Retrieve coin price from CoinGecko by coin alias
-     * @param search coin alias (e.g. "hbar", "hedera-hashgraph"). You can get valid one using .getCoinList() method
+     * Get coin price and coin info from CoinGecko. Search can be coin id or address in one of the coin platforms.
+     * In addition to the price in USD, the price in the currency you specified is returned
+     * @param search coinId (e.g. "hbar", "hedera-hashgraph"). You can get valid one using .getCoinList() method
      * @param currency currency to get price in (e.g. "uah", "pln", "usd")
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {CoinInfoData}
@@ -803,7 +806,7 @@ export class BladeSDK {
     }
 
     /**
-     * Get swap quotes from different services
+     * Get quotes from different services for buy, sell or swap
      * @param sourceCode name (HBAR, KARATE, other token code)
      * @param sourceAmount amount to swap, buy or sell
      * @param targetCode name (HBAR, KARATE, USDC, other token code)
@@ -973,8 +976,8 @@ export class BladeSDK {
     }
 
     /**
-     * Associate token to hedera account
-     * @param tokenIdOrCampaign token id or campaign name to associate token
+     * Associate token to hedera account. Association fee will be covered by PayMaster, if tokenId configured in dApp
+     * @param tokenIdOrCampaign token id to associate. Empty to associate all tokens configured in dApp. Campaign name to associate on demand
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {TransactionReceiptData}
      * @example
