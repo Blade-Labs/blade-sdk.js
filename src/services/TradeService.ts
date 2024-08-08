@@ -93,7 +93,7 @@ export default class TradeService {
     async getTradeUrl(
         chainId: KnownChainIds,
         strategy: CryptoFlowServiceStrategy,
-        accountId: string,
+        accountAddress: string,
         sourceCode: string,
         sourceAmount: number,
         targetCode: string,
@@ -108,7 +108,7 @@ export default class TradeService {
             sourceAmount,
             targetCode,
             useTestnet,
-            walletAddress: accountId,
+            walletAddress: accountAddress,
             slippage
         };
 

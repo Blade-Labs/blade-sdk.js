@@ -1,6 +1,6 @@
 import {ICryptoFlowQuote} from "./CryptoFlow";
 import {CryptoKeyType, KnownChainIds} from "./Chain";
-import {NftInfo, NftMetadata, TokenInfo, MirrorNodeTransactionType} from "./MirrorNode";
+import {NftInfo, NftMetadata, TokenInfo, MirrorNodeTransactionType, NodeInfo} from "./MirrorNode";
 import {DropStatus, JobStatus} from "./BladeApi";
 import {Magic} from "magic-sdk";
 import {HederaExtension} from "@magic-ext/hedera";
@@ -181,6 +181,10 @@ export interface TokenBalanceData {
     symbol: string;
     address: string;
     rawBalance: string;
+}
+
+export interface NodeListData {
+    nodes: NodeInfo[];
 }
 
 export interface ContractCallQueryRecord {

@@ -14,8 +14,9 @@ declare const window: CustomWindow;
 if (window) window.bladeSdk = bladeContainer.get<BladeSDK>(BladeSDK);
 if (window) window.ParametersBuilder = ParametersBuilder;
 
+export * from "./models/Common";
+export * from "./models/Chain";
+export * from "./models/CryptoFlow";
 export {ParametersBuilder} from "./ParametersBuilder";
-export {SdkEnvironment} from "./models/Common";
-export {KnownChainIds} from "./models/Chain";
 export {BladeSDK} from "./BladeSDK";
 export {bladeContainer};

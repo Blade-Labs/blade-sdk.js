@@ -136,8 +136,7 @@ export default class ApiService {
             if (forceV7) {
                 return `https://rest.prod.bladewallet.io/openapi${publicPart}/v7`;
             }
-            throw new Error("Prod environment is not supported yet");
-            // return `https://dapi.bld-dev.bladewallet.io/dapi${publicPart}/v8`;
+            return `https://dapi.prod.bladewallet.io/dapi${publicPart}/v8`;
         }
         // CI
         if (forceV7) {
