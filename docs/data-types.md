@@ -1,187 +1,360 @@
-# Data types
+# ENUMs
 
+
+### AccountProvider
+
+```typescript
+export enum AccountProvider {
+    PrivateKey = "PrivateKey",
+    Magic = "Magic"
+}
 ```
-export interface InitData {
-    status: string
-}
 
-export interface BalanceData {
-    hbars: number,
-    tokens: [{
-        tokenId: string,
-        balance: number
-    }]
-}
 
-export interface CreateAccountData {
-    seedPhrase: string,
-    publicKey: string,
-    privateKey: string,
-    accountId?: string,
-    evmAddress: string,
-    transactionId?: string,
-    status: string,
-    queueNumber?: number
-}
+### CryptoFlowServiceStrategy
 
-export interface AccountInfoData {
-    accountId: string,
-    evmAddress: string,
-    calculatedEvmAddress: string
-}
-
-export interface PrivateKeyData {
-    privateKey: string,
-    publicKey: string,
-    accounts: [string],
-    evmAddress: string
-}
-
-export interface TransactionsHistoryData {
-    transactions: TransactionData[],
-    nextPage?: string
-}
-
-export interface TransactionData {
-    transactionId: string,
-    type: MirrorNodeTransactionType,
-    time: Date,
-    transfers: TransferData[],
-    nftTransfers?: [],
-    memo?: string,
-    fee?: number,
-    showDetailed?: boolean,
-    plainData?: any,
-    consensusTimestamp: string
-}
-
-export interface TransferData {
-    amount: number,
-    account: string,
-    token_id?: string
-}
-
-export interface ContractCallQueryRecord {
-    type: string,
-    value: string | number | boolean
-}
-
-export interface SplitSignatureData {
-    v: number,
-    r: string,
-    s: string
-}
-
-export interface SignMessageData {
-    signedMessage: string
-}
-
-export interface SignVerifyMessageData {
-    valid: boolean
-}
-
-export interface IntegrationUrlData {
-    url: string
-}
-
-export interface ContractFunctionParameter {
-    type: string,
-    value: string[]
-}
-
-export interface BridgeResponse {
-    completionKey: string,
-    data: any,
-    error?: any
-}
-
-export interface CustomError extends Error {
-    name: string;
-    reason: string;
-}
-
-export interface SwapQuotesData {
-    quotes: ICryptoFlowQuote[]
-}
-
-export enum ICryptoFlowNetworkType {
-    ETHEREUM = "Ethereum",
-    HEDERA = "Hedera",
-}
-
-export interface ICryptoFlowTransaction {
-    network: ICryptoFlowNetworkType; // string
-    calldata: string; // base64 - actual transaction
-    signature: string; // base64 - signature of transaction bytes
-    trackUrl?: string; // url to redirect user to (status page)
-}
-
-export enum CryptoFlowRoutes {
-    ASSETS = "assets",
-    QUOTES = "quotes",
-    TRANSACTION = "transaction",
-}
-
+```typescript
 export enum CryptoFlowServiceStrategy {
     BUY = "Buy",
     SELL = "Sell",
-    SWAP = "Swap",
+    SWAP = "Swap"
 }
+```
 
-export interface ICryptoFlowAssetsParams {
-    sourceCode?: string;
-    sourceChainId?: number;
-    targetCode?: string;
-    targetChainId?: number;
-    countryCode?: string;
-    useTestnet?: boolean;
-    limitedByChain?: number; // chain id number
+
+### CryptoKeyType
+
+```typescript
+export enum CryptoKeyType {
+    ECDSA_SECP256K1 = "ECDSA_SECP256K1",
+    ED25519 = "ED25519"
 }
+```
 
-export interface ICryptoFlowQuoteParams {
-    sourceCode: string;
-    sourceAddress?: string;
-    sourceChainId?: number;
-    sourceAmount?: number;
 
-    targetCode: string;
-    targetAddress?: string;
-    targetChainId?: number;
-    targetAmount?: number;
+### JobStatus
 
-    slippage?: string;
-    countryCode?: string;
-    walletAddress: string;
-
-    useTestnet?: boolean;
+```typescript
+export enum JobStatus {
+    PENDING = "PENDING",
+    SUCCESS = "SUCCESS",
+    PROCESSING = "PROCESSING",
+    RETRY = "RETRY",
+    FAILED = "FAILED"
 }
+```
 
-export interface ICryptoFlowTransactionParams {
-    serviceId: string; // service id
 
-    sourceCode: string;
-    sourceChainId: number;
-    sourceAddress?: string;
-    sourceAmount: number;
+### KeyType
 
-    targetCode: string;
-    targetChainId: number;
-    targetAddress?: string;
-
-    walletAddress: string;
-    walletAddressTo?: string;
-
-    slippage?: string;
-    useTestnet?: boolean;
+```typescript
+export enum KeyType {
+    admin = "admin",
+    kyc = "kyc",
+    freeze = "freeze",
+    wipe = "wipe",
+    pause = "pause",
+    feeSchedule = "feeSchedule"
 }
+```
 
-export interface ICryptoFlowAssets {
-    source: ICryptoFlowAsset[];
-    target: ICryptoFlowAsset[];
-    countries?: ICryptoFlowCountry[];
-    limits?: IAssetTransactionLimits;
+
+### KnownChainIds
+
+```typescript
+export enum KnownChainIds {
+    ETHEREUM_MAINNET = "1",
+    ETHEREUM_SEPOLIA = "11155111",
+    HEDERA_MAINNET = "295",
+    HEDERA_TESTNET = "296"
 }
+```
 
+
+### MirrorNodeTransactionType
+
+```typescript
+export enum MirrorNodeTransactionType {
+    CONSENSUSCREATETOPIC = "CONSENSUSCREATETOPIC",
+    CONSENSUSDELETETOPIC = "CONSENSUSDELETETOPIC",
+    CONSENSUSSUBMITMESSAGE = "CONSENSUSSUBMITMESSAGE",
+    CONSENSUSUPDATETOPIC = "CONSENSUSUPDATETOPIC",
+    CONTRACTCALL = "CONTRACTCALL",
+    CONTRACTCREATEINSTANCE = "CONTRACTCREATEINSTANCE",
+    CONTRACTDELETEINSTANCE = "CONTRACTDELETEINSTANCE",
+    CONTRACTUPDATEINSTANCE = "CONTRACTUPDATEINSTANCE",
+    CRYPTOADDLIVEHASH = "CRYPTOADDLIVEHASH",
+    CRYPTOCREATEACCOUNT = "CRYPTOCREATEACCOUNT",
+    CRYPTODELETE = "CRYPTODELETE",
+    CRYPTODELETELIVEHASH = "CRYPTODELETELIVEHASH",
+    CRYPTOTRANSFER = "CRYPTOTRANSFER",
+    CRYPTOUPDATEACCOUNT = "CRYPTOUPDATEACCOUNT",
+    FILEAPPEND = "FILEAPPEND",
+    FILECREATE = "FILECREATE",
+    FILEDELETE = "FILEDELETE",
+    FILEUPDATE = "FILEUPDATE",
+    FREEZE = "FREEZE",
+    SCHEDULECREATE = "SCHEDULECREATE",
+    SCHEDULEDELETE = "SCHEDULEDELETE",
+    SCHEDULESIGN = "SCHEDULESIGN",
+    SYSTEMDELETE = "SYSTEMDELETE",
+    SYSTEMUNDELETE = "SYSTEMUNDELETE",
+    TOKENASSOCIATE = "TOKENASSOCIATE",
+    TOKENBURN = "TOKENBURN",
+    TOKENCREATION = "TOKENCREATION",
+    TOKENDELETION = "TOKENDELETION",
+    TOKENDISSOCIATE = "TOKENDISSOCIATE",
+    TOKENFEESCHEDULEUPDATE = "TOKENFEESCHEDULEUPDATE",
+    TOKENFREEZE = "TOKENFREEZE",
+    TOKENGRANTKYC = "TOKENGRANTKYC",
+    TOKENMINT = "TOKENMINT",
+    TOKENPAUSE = "TOKENPAUSE",
+    TOKENREVOKEKYC = "TOKENREVOKEKYC",
+    TOKENUNFREEZE = "TOKENUNFREEZE",
+    TOKENUNPAUSE = "TOKENUNPAUSE",
+    TOKENUPDATE = "TOKENUPDATE",
+    TOKENWIPE = "TOKENWIPE",
+    UNCHECKEDSUBMIT = "UNCHECKEDSUBMIT"
+}
+```
+
+
+### NFTStorageProvider
+
+```typescript
+export enum NFTStorageProvider {
+    nftStorage = "nftStorage"
+}
+```
+
+
+### ScheduleTransactionType
+
+```typescript
+export enum ScheduleTransactionType {
+    TRANSFER = "TRANSFER",
+    SUBMIT_MESSAGE = "SUBMIT_MESSAGE",
+    APPROVE_ALLOWANCE = "APPROVE_ALLOWANCE",
+    TOKEN_MINT = "TOKEN_MINT",
+    TOKEN_BURN = "TOKEN_BURN"
+}
+```
+
+
+### ScheduleTransferType
+
+```typescript
+export enum ScheduleTransferType {
+    HBAR = "HBAR",
+    FT = "FT",
+    NFT = "NFT"
+}
+```
+
+
+### SdkEnvironment
+
+```typescript
+export enum SdkEnvironment {
+    Prod = "Prod",
+    CI = "CI",
+    Test = "Test"
+}
+```
+
+
+### SupportedEncoding
+
+```typescript
+export enum SupportedEncoding {
+    base64 = "base64",
+    hex = "hex",
+    utf8 = "utf8"
+}
+```
+
+
+
+# Data types
+
+
+### AccountInfoData
+
+```typescript
+export interface AccountInfoData {
+    accountAddress: string;
+    publicKey: string;
+    evmAddress: string;
+    stakingInfo: {
+        pendingReward: number;
+        stakedNodeId: number | null;
+        stakePeriodStart: string | null;
+    };
+    calculatedEvmAddress?: string;
+}
+```
+
+
+### AccountPrivateData
+
+```typescript
+export interface AccountPrivateData {
+    accounts: AccountPrivateRecord[];
+}
+```
+
+
+### AccountPrivateRecord
+
+```typescript
+export interface AccountPrivateRecord {
+    privateKey: string;
+    publicKey: string;
+    evmAddress: string;
+    address: string;
+    path: string;
+    keyType: CryptoKeyType;
+}
+```
+
+
+### BalanceData
+
+```typescript
+export interface BalanceData {
+    balance: string;
+    rawBalance: string;
+    decimals: number;
+    tokens: TokenBalanceData[];
+}
+```
+
+
+### CoinData
+
+```typescript
+export interface CoinData {
+    // partial
+    id: string;
+    symbol: string;
+    name: string;
+    web_slug: string;
+    description: {
+        en: string;
+    };
+    image: {
+        thumb: string;
+        small: string;
+        large: string;
+    };
+    platforms: {
+        name: string;
+        address: string;
+    }[];
+    market_data: {
+        current_price: {
+            [key: string]: number;
+        };
+    };
+}
+```
+
+
+### CoinInfoData
+
+```typescript
+export interface CoinInfoData {
+    coin: CoinData;
+    priceUsd: number;
+    price: number | null;
+    currency: string;
+}
+```
+
+
+### CoinListData
+
+```typescript
+export interface CoinListData {
+    coins: {
+        id: string;
+        symbol: string;
+        name: string;
+        platforms: {
+            name: string;
+            address: string;
+        }[];
+    }[];
+}
+```
+
+
+### ContractCallQueryRecord
+
+```typescript
+export interface ContractCallQueryRecord {
+    type: string;
+    value: string | number | boolean;
+}
+```
+
+
+### ContractCallQueryRecordsData
+
+```typescript
+export interface ContractCallQueryRecordsData {
+    values: ContractCallQueryRecord[];
+    gasUsed: number;
+}
+```
+
+
+### CreateAccountData
+
+```typescript
+export interface CreateAccountData {
+    seedPhrase: string;
+    publicKey: string;
+    privateKey: string;
+    accountAddress: string;
+    evmAddress: string;
+    status: JobStatus;
+}
+```
+
+
+### CreateScheduleData
+
+```typescript
+export interface CreateScheduleData {
+    scheduleId: string
+}
+```
+
+
+### CreateTokenData
+
+```typescript
+export interface CreateTokenData {
+    tokenId: string
+}
+```
+
+
+### IAssetQuote
+
+```typescript
+export interface IAssetQuote {
+    asset: ICryptoFlowAsset;
+    amountExpected: number;
+    totalFee: number | null;
+}
+```
+
+
+### ICryptoFlowAsset
+
+```typescript
 export interface ICryptoFlowAsset {
     name: string;
     code: string;
@@ -197,25 +370,12 @@ export interface ICryptoFlowAsset {
     // both
     imageUrl?: string;
 }
+```
 
-export interface ICryptoFlowCountry {
-    code: string; // ISO Country Code
-    name: string;
-}
 
-export interface IAssetLimits {
-    code: string;
-    min: number;
-    max: number;
-}
+### ICryptoFlowQuote
 
-export interface IAssetTransactionLimits {
-    source: IAssetLimits;
-    target: IAssetLimits;
-    rate?: number; // 1 crypto unit equals fiat
-    rates?: number[];
-}
-
+```typescript
 export interface ICryptoFlowQuote {
     service: {
         id: string;
@@ -228,117 +388,254 @@ export interface ICryptoFlowQuote {
     rate: number | null;
     widgetUrl?: string;
     paymentMethods?: string[];
-}
-
-export interface IAssetQuote {
-    asset: ICryptoFlowAsset;
-    amountExpected: number;
-    totalFee: number | null;
-}
-
-export type FeeManualOptions = {
-    type: FeeType,
-    amount: BigNumber,
-    amountTokenId: string
-}
-
-export enum FeeType {
-    TradeNFT = "TradeNFT",
-    TransferHBAR = "TransferHBAR",
-    TransferToken = "TransferToken",
-    TransferNFT = "TransferNFT",
-    ScheduledTransferHBAR = "ScheduledTransferHBAR",
-    ScheduledTransferToken = "ScheduledTransferToken",
-    StakingClaim = "StakingClaim",
-    Swap = "Swap",
-    AccountCreate = "AccountCreate",
-    Default = "Default"
-}
-
-export interface CoinInfoRaw {
-    id: string,
-    symbol: string,
-    name: string,
-    platforms: {[key: string]: string}
-}
-
-export interface CoinListData {
-    coins: {
-        id: string,
-        symbol: string,
-        name: string,
-        platforms: {
-            name: string,
-            address: string
-        }[],
-    }[]
-}
-
-export interface CoinData { // partial
-    id: string,
-    symbol: string,
-    name: string,
-    web_slug: string,
-    description: {
-        en: string
-    },
-    image: {
-        thumb: string,
-        small: string,
-        large: string
-    },
-    market_data: {
-        current_price: {
-            [key: string]: number
-        },
-    },
-}
-
-export interface CoinInfoData {
-    coin: CoinData,
-    priceUsd: number,
-    price: number | null,
-    currency: string
-}
-
-export enum KeyType {
-    admin = "admin",
-    kyc = "kyc",
-    freeze = "freeze",
-    wipe = "wipe",
-    pause = "pause",
-    feeSchedule = "feeSchedule",
-}
-
-export enum NFTStorageProvider {
-    nftStorage = "nftStorage"
-}
-
-export interface KeyRecord {
-    privateKey: string,
-    type: KeyType
-}
-
-export interface NFTStorageConfig {
-    provider: NFTStorageProvider,
-    apiKey: string
-}
-
-export interface TransactionReceiptData {
-    status: string,
-    contractId?: string,
-    topicSequenceNumber?: string,
-    totalSupply?: string,
-    serials: string[],
-}
-
-export interface TokenDropData {
-    status: string,
-    statusCode: number,
-    timestamp: string,
-    executionStatus: string,
-    requestId: string,
-    accountId: string,
-    redirectUrl: string
+    path?: {
+        tokenId: string;
+        fee?: number;
+    }[];
 }
 ```
+
+
+### InfoData
+
+```typescript
+export interface InfoData {
+    apiKey: string;
+    dAppCode: string;
+    isTestnet: boolean;
+    chainId: KnownChainIds;
+    visitorId: string;
+    sdkEnvironment: SdkEnvironment;
+    sdkVersion: string;
+    nonce: number;
+    user: UserInfoData;
+}
+```
+
+
+### IntegrationUrlData
+
+```typescript
+export interface IntegrationUrlData {
+    url: string;
+}
+```
+
+
+### KeyRecord
+
+```typescript
+export interface KeyRecord {
+    privateKey: string;
+    type: KeyType;
+}
+```
+
+
+### NFTStorageConfig
+
+```typescript
+export interface NFTStorageConfig {
+    provider: NFTStorageProvider;
+    apiKey: string;
+}
+```
+
+
+### NftTransferData
+
+```typescript
+export interface NftTransferData {
+    receiverAddress: string;
+    senderAddress: string;
+    serial: string;
+    tokenAddress: string;
+}
+```
+
+
+### NodeListData
+
+```typescript
+export interface NodeListData {
+    nodes: NodeInfo[];
+}
+```
+
+
+### ResultData
+
+```typescript
+export interface ResultData {
+    success: boolean;
+}
+```
+
+
+### ScheduleTransactionTransfer
+
+```typescript
+export interface ScheduleTransactionTransfer {
+    type: ScheduleTransferType;
+    sender: string;
+    receiver: string;
+    value?: number;
+    tokenId?: string;
+    serial?: number;
+}
+```
+
+
+### SignMessageData
+
+```typescript
+export interface SignMessageData {
+    signedMessage: string;
+}
+```
+
+
+### SignVerifyMessageData
+
+```typescript
+export interface SignVerifyMessageData {
+    valid: boolean;
+}
+```
+
+
+### SplitSignatureData
+
+```typescript
+export interface SplitSignatureData {
+    v: number;
+    r: string;
+    s: string;
+}
+```
+
+
+### SwapQuotesData
+
+```typescript
+export interface SwapQuotesData {
+    quotes: ICryptoFlowQuote[];
+}
+```
+
+
+### TokenBalanceData
+
+```typescript
+export interface TokenBalanceData {
+    balance: string;
+    decimals: number;
+    name: string;
+    symbol: string;
+    address: string;
+    rawBalance: string;
+}
+```
+
+
+### TokenDropData
+
+```typescript
+export interface TokenDropData {
+    status: string;
+    accountAddress: string;
+    dropStatuses: {
+       [key: string]: DropStatus;
+    };
+    redirectUrl: string;
+}
+```
+
+
+### TokenInfoData
+
+```typescript
+export interface TokenInfoData {
+    token: TokenInfo;
+    nft: NftInfo | null;
+    metadata: NftMetadata | null;
+}
+```
+
+
+### TransactionData
+
+```typescript
+export interface TransactionData {
+    transactionId: string;
+    type: MirrorNodeTransactionType;
+    time: Date;
+    transfers: TransferData[];
+    nftTransfers: NftTransferData[];
+    memo?: string;
+    fee?: number;
+    plainData?: any;
+    consensusTimestamp: string;
+}
+```
+
+
+### TransactionReceiptData
+
+```typescript
+export interface TransactionReceiptData {
+    status: string;
+    contractAddress?: string;
+    topicSequenceNumber?: string;
+    totalSupply?: string;
+    serials: string[];
+    transactionHash: string;
+}
+```
+
+
+### TransactionResponseData
+
+```typescript
+export interface TransactionResponseData {
+    transactionHash: string;
+    transactionId: string;
+}
+```
+
+
+### TransactionsHistoryData
+
+```typescript
+export interface TransactionsHistoryData {
+    transactions: TransactionData[];
+    nextPage: string | null;
+}
+```
+
+
+### TransferData
+
+```typescript
+export interface TransferData {
+    account: string;
+    amount: number;
+    tokenAddress?: string;
+    asset: string;
+}
+```
+
+
+### UserInfoData
+
+```typescript
+export interface UserInfoData {
+    accountId: string;
+    accountProvider: AccountProvider | null;
+    userPrivateKey: string;
+    userPublicKey: string;
+}
+```
+
+
+
