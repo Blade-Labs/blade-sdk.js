@@ -2231,6 +2231,25 @@ export class BladeSDK {
         }
     }
 
+    /**
+     * Emergency balance transfer from broken mnemonic account to new account
+     * Accounts with broken mnemonic sometimes were created because of hedera-sdk issue
+     * To transfer funds from broken mnemonic account to new account a couple of steps required:
+     * 1. Create new account
+     * 2. Associate all tokens with new account that you want to transfer
+     * 3. Call this method to transfer funds to new account
+     * 4. Send some HBAR to broken mnemonic account to cover fees if needed
+     *
+     * @param seedPhrase mnemonic from account
+     * @param accountId account id (broken)
+     * @param receiverId new account id
+     * @param hbarAmount amount of HBAR to resque. Can be 0
+     * @param tokenList list of token ids to transfer all tokens. Can be empty
+     * @param completionKey optional field bridge between mobile webViews and native apps
+     * @returns {TransactionReceiptData}
+     * @example
+     * const receipt = await bladeSdk.brokenMnemonicEmergencyTransfer(brokenSeed, resqueAccountId, newAccountId, "0.5", ["0.0.1337"]);
+     */
     async brokenMnemonicEmergencyTransfer(seedPhrase: string, accountId: string, receiverId: string, hbarAmount: string, tokenList: string[], completionKey?: string): Promise<TransactionReceiptData> {
         try {
             const mnemonic = await Mnemonic.fromString(seedPhrase);
@@ -2245,10 +2264,12 @@ export class BladeSDK {
             const client = this.getClient();
             client.setOperator(accountId, key);
             const parsedAmount = parseFloat(hbarAmount);
-            const tx = new TransferTransaction()
-                .addHbarTransfer(accountId, -1 * parsedAmount)
-                .addHbarTransfer(receiverId, parsedAmount)
-                .setTransactionMemo("Resque funds from broken mnemonic account using BladeSDK")
+            const tx = new TransferTransaction().setTransactionMemo("Resque funds from broken mnemonic account using BladeSDK");
+
+            if (parsedAmount > 0) {
+                tx.addHbarTransfer(accountId, -1 * parsedAmount)
+                    .addHbarTransfer(receiverId, parsedAmount)
+            }
 
             if (tokenList.length > 0) {
                 const accountBalance = await getAccountBalance(accountId)
