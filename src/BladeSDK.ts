@@ -53,7 +53,7 @@ import {
     getContractErrorMessage,
     getTokenAssociateTransaction
 } from "./services/ApiService";
-import { getAccountsFromMnemonic, getAccountsFromPrivateKey } from "./services/AccountService";
+import {checkSeedPhrase, getAccountsFromMnemonic, getAccountsFromPrivateKey} from "./services/AccountService";
 import CryptoFlowService from "./services/CryptoFlowService";
 import { HbarTokenId } from "./services/FeeService";
 import { Network } from "./models/Networks";
@@ -1004,10 +1004,8 @@ export class BladeSDK {
                 do {
                     const mnemonic = await Mnemonic.generate12();
                     key = await mnemonic.toStandardECDSAsecp256k1PrivateKey();
-                    const privateKeyString = key.toStringDer();
-                    const restoredPublicKeyString = PrivateKey.fromStringDer(privateKeyString).publicKey.toStringRaw();
-                    valid = key.publicKey.toStringRaw() === restoredPublicKeyString;
                     seedPhrase = mnemonic.toString();
+                    valid = await checkSeedPhrase(mnemonic);
                 } while (!valid);
             }
 
@@ -2231,6 +2229,52 @@ export class BladeSDK {
         } catch (error: any) {
             throw this.sendMessageToNative(completionKey, null, error);
         }
+    }
+
+    async brokenMnemonicEmergencyTransfer(seedPhrase: string, accountId: string, receiverId: string, hbarAmount: string, tokenList: string[], completionKey?: string): Promise<TransactionReceiptData> {
+        try {
+            const mnemonic = await Mnemonic.fromString(seedPhrase);
+            // check if mnemonic is actually broken
+            const isValid = await checkSeedPhrase(mnemonic);
+            if (isValid) {
+                throw new Error("Account mnemonic is valid. No need for emergency transfer");
+            }
+            const key = await mnemonic.toStandardECDSAsecp256k1PrivateKey();
+
+            // send funds to receiverId
+            const client = this.getClient();
+            client.setOperator(accountId, key);
+            const parsedAmount = parseFloat(hbarAmount);
+            const tx = new TransferTransaction()
+                .addHbarTransfer(accountId, -1 * parsedAmount)
+                .addHbarTransfer(receiverId, parsedAmount)
+                .setTransactionMemo("Resque funds from broken mnemonic account using BladeSDK")
+
+            if (tokenList.length > 0) {
+                const accountBalance = await getAccountBalance(accountId)
+                for (const tokenId of tokenList) {
+                    const tokenBalance = accountBalance.tokens.find((t) => t.tokenId === tokenId)
+                    if (tokenBalance) {
+                        tx.addTokenTransfer(tokenId, accountId, -1 * tokenBalance.balance)
+                        tx.addTokenTransfer(tokenId, receiverId, tokenBalance.balance)
+                    }
+                }
+            }
+
+            return tx.freezeWith(client)
+                .execute(client)
+                // .then((tx) => tx.execute(client))
+                .then((result) => result.getReceipt(client))
+                .then((data) => {
+                    return this.sendMessageToNative(completionKey, formatReceipt(data));
+                })
+                .catch((error) => {
+                    throw this.sendMessageToNative(completionKey, null, error);
+                });
+        } catch (error: any) {
+            throw this.sendMessageToNative(completionKey, null, error);
+        }
+
     }
 
     private async initMagic() {
