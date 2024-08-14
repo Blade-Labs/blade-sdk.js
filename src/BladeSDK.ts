@@ -83,6 +83,7 @@ import {
     CreateAccountData,
     CreateTokenResult,
     CryptoKeyType,
+    EmergencyTransferResult,
     InfoData,
     IntegrationUrlData,
     KeyRecord,
@@ -2245,19 +2246,25 @@ export class BladeSDK {
      * @param receiverId new account id
      * @param hbarAmount amount of HBAR to resque. Can be 0
      * @param tokenList list of token ids to transfer all tokens. Can be empty
+     * @param checkOnly if true, will only check if mnemonic is broken. No transfer will be made
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {TransactionReceiptData}
      * @example
-     * const receipt = await bladeSdk.brokenMnemonicEmergencyTransfer(brokenSeed, resqueAccountId, newAccountId, "0.5", ["0.0.1337"]);
+     * const receipt = await bladeSdk.brokenMnemonicEmergencyTransfer(brokenSeed, resqueAccountId, newAccountId, "0.5", ["0.0.1337"], false);
      */
-    async brokenMnemonicEmergencyTransfer(seedPhrase: string, accountId: string, receiverId: string, hbarAmount: string, tokenList: string[], completionKey?: string): Promise<TransactionReceiptData> {
+    async brokenMnemonicEmergencyTransfer(seedPhrase: string, accountId: string, receiverId: string, hbarAmount: string, tokenList: string[], checkOnly: boolean, completionKey?: string): Promise<EmergencyTransferResult> {
         try {
             const mnemonic = await Mnemonic.fromString(seedPhrase);
-            // check if mnemonic is actually broken
-            const isValid = await checkSeedPhrase(mnemonic);
-            if (isValid) {
-                throw new Error("Account mnemonic is valid. No need for emergency transfer");
+            const result = {
+                isValid: await checkSeedPhrase(mnemonic),
+                transferStatus: ""
             }
+
+            // skip if mnemonic is actually broken
+            if (checkOnly || result.isValid) {
+                return this.sendMessageToNative(completionKey, result);
+            }
+
             const key = await mnemonic.toStandardECDSAsecp256k1PrivateKey();
 
             // send funds to receiverId
@@ -2287,7 +2294,8 @@ export class BladeSDK {
                 // .then((tx) => tx.execute(client))
                 .then((result) => result.getReceipt(client))
                 .then((data) => {
-                    return this.sendMessageToNative(completionKey, formatReceipt(data));
+                    result.transferStatus = data.status.toString()
+                    return this.sendMessageToNative(completionKey, result);
                 })
                 .catch((error) => {
                     throw this.sendMessageToNative(completionKey, null, error);

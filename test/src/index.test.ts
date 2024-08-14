@@ -1362,17 +1362,20 @@ test("bladeSdk.brokenMnemonicEmergencyTransfer", async () => {
         expect(result.error.reason.includes("INVALID_SIGNATURE")).toEqual(true);
     }
 
-    result = await bladeSdk.brokenMnemonicEmergencyTransfer(brokenSeed, accountToResque.accountId, accountId, "0.123", [tokenId0], completionKey);
+    result = await bladeSdk.brokenMnemonicEmergencyTransfer(brokenSeed, accountToResque.accountId, accountId, "0.123", [tokenId0], true, completionKey);
     checkResult(result);
+    expect(result.data.isValid).toEqual(false);
+    expect(result.data.transferStatus).toEqual("");
+    result = await bladeSdk.brokenMnemonicEmergencyTransfer(brokenSeed, accountToResque.accountId, accountId, "0.123", [tokenId0], false, completionKey);
+    checkResult(result);
+    expect(result.data.isValid).toEqual(false);
+    expect(result.data.transferStatus).toEqual("SUCCESS");
 
-    try {
-        const mnemonic = await Mnemonic.generate12();
-        result = await bladeSdk.brokenMnemonicEmergencyTransfer(mnemonic.toString(), "0.0.000001", accountId, "0", [],completionKey);
-        expect("Code should not reach here").toEqual(result);
-    } catch (result) {
-        checkResult(result, false);
-        expect(result.error.reason.includes("Account mnemonic is valid. No need for emergency transfer")).toEqual(true);
-    }
+    const mnemonic = await Mnemonic.generate12();
+    result = await bladeSdk.brokenMnemonicEmergencyTransfer(mnemonic.toString(), "0.0.000001", accountId, "0", [], false, completionKey);
+    expect(result.data.isValid).toEqual(true);
+    expect(result.data.transferStatus).toEqual("");
+
 }, 60_000);
 
 test('ParametersBuilder.defined', async () => {
