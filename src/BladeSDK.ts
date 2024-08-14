@@ -2248,7 +2248,7 @@ export class BladeSDK {
      * @param tokenList list of token ids to transfer all tokens. Can be empty
      * @param checkOnly if true, will only check if mnemonic is broken. No transfer will be made
      * @param completionKey optional field bridge between mobile webViews and native apps
-     * @returns {TransactionReceiptData}
+     * @returns {EmergencyTransferResult}
      * @example
      * const receipt = await bladeSdk.brokenMnemonicEmergencyTransfer(brokenSeed, resqueAccountId, newAccountId, "0.5", ["0.0.1337"], false);
      */
