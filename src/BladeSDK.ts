@@ -83,7 +83,7 @@ import {
     CreateAccountData,
     CreateTokenResult,
     CryptoKeyType,
-    EmergencyTransferResult,
+    EmergencyTransferData,
     InfoData,
     IntegrationUrlData,
     KeyRecord,
@@ -2248,11 +2248,11 @@ export class BladeSDK {
      * @param tokenList list of token ids to transfer all tokens. Can be empty
      * @param checkOnly if true, will only check if mnemonic is broken. No transfer will be made
      * @param completionKey optional field bridge between mobile webViews and native apps
-     * @returns {EmergencyTransferResult}
+     * @returns {EmergencyTransferData}
      * @example
      * const receipt = await bladeSdk.brokenMnemonicEmergencyTransfer(brokenSeed, resqueAccountId, newAccountId, "0.5", ["0.0.1337"], false);
      */
-    async brokenMnemonicEmergencyTransfer(seedPhrase: string, accountId: string, receiverId: string, hbarAmount: string, tokenList: string[], checkOnly: boolean, completionKey?: string): Promise<EmergencyTransferResult> {
+    async brokenMnemonicEmergencyTransfer(seedPhrase: string, accountId: string, receiverId: string, hbarAmount: string, tokenList: string[], checkOnly: boolean, completionKey?: string): Promise<EmergencyTransferData> {
         try {
             const mnemonic = await Mnemonic.fromString(seedPhrase);
             const result = {

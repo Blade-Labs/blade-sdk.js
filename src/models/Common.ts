@@ -426,7 +426,7 @@ export interface UserInfo {
     publicKey: string;
 }
 
-export interface EmergencyTransferResult {
+export interface EmergencyTransferData {
     isValid: boolean,
     transferStatus: string
 }
