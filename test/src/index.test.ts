@@ -1351,7 +1351,7 @@ test("bladeSdk.brokenMnemonicEmergencyTransfer", async () => {
 
     console.log("accountToResque", accountToResque);
 
-    result = await bladeSdk.transferTokens(tokenId0, accountId, privateKey, accountToResque.accountId, "5", "transfer tokens to broken account", true, completionKey);
+    result = await bladeSdk.transferTokens(tokenId0, accountId, privateKey, accountToResque.accountId, "5", "transfer tokens to broken account", false, completionKey);
     checkResult(result);
 
     try {

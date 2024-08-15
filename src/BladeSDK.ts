@@ -2245,7 +2245,7 @@ export class BladeSDK {
      * @param accountId account id (broken)
      * @param receiverId new account id
      * @param hbarAmount amount of HBAR to resque. Can be 0
-     * @param tokenList list of token ids to transfer all tokens. Can be empty
+     * @param tokenList list of token ids to transfer all tokens. Up to 9 at once. Can be empty
      * @param checkOnly if true, will only check if mnemonic is broken. No transfer will be made
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {EmergencyTransferData}
@@ -2280,7 +2280,7 @@ export class BladeSDK {
 
             if (tokenList.length > 0) {
                 const accountBalance = await getAccountBalance(accountId)
-                for (const tokenId of tokenList) {
+                for (const tokenId of tokenList.slice(0, 9)) {
                     const tokenBalance = accountBalance.tokens.find((t) => t.tokenId === tokenId)
                     if (tokenBalance) {
                         tx.addTokenTransfer(tokenId, accountId, -1 * tokenBalance.balance)
