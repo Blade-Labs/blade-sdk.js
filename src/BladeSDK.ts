@@ -2291,7 +2291,6 @@ export class BladeSDK {
 
             return tx.freezeWith(client)
                 .execute(client)
-                // .then((tx) => tx.execute(client))
                 .then((result) => result.getReceipt(client))
                 .then((data) => {
                     result.transferStatus = data.status.toString()
