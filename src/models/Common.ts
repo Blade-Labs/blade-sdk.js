@@ -125,7 +125,7 @@ export interface IMirrorNodeServiceConfig {
 }
 
 export interface ActiveUser {
-    accountId: string,
+    accountAddress: string,
     privateKey: string,
     publicKey: string,
     provider: AccountProvider,
@@ -161,10 +161,10 @@ export interface InfoData {
 }
 
 export interface UserInfoData {
-    accountId: string;
+    address: string;
     accountProvider: AccountProvider | null;
-    userPrivateKey: string;
-    userPublicKey: string;
+    privateKey: string;
+    publicKey: string;
 }
 
 export interface BalanceData {

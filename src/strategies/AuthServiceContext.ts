@@ -3,21 +3,28 @@ import "reflect-metadata";
 import {decrypt, encrypt} from "../helpers/SecurityHelper";
 import {AccountProvider, ActiveUser, MagicWithHedera, SdkEnvironment} from "../models/Common";
 import * as FingerprintJS from "@fingerprintjs/fingerprintjs-pro";
-import ApiService from "./ApiService";
-import ConfigService from "./ConfigService";
+import ApiService from "../services/ApiService";
+import ConfigService from "../services/ConfigService";
 import {ChainMap, ChainServiceStrategy, KnownChainIds} from "../models/Chain";
-import {Client, PrivateKey, Signer} from "@hashgraph/sdk";
-import {HederaProvider, HederaSigner} from "../signers/hedera";
+import {Signer} from "@hashgraph/sdk";
 import * as ethers from "ethers";
 import {MagicUserMetadata} from "@magic-sdk/types";
-import {MagicSigner} from "../signers/magic/MagicSigner";
 import {Magic, MagicSDKAdditionalConfiguration} from "magic-sdk";
 import {HederaExtension} from "@magic-ext/hedera";
 import StringHelpers from "../helpers/StringHelpers";
 import {Network} from "../models/Networks";
+import AuthServiceHedera from "./hedera/AuthServiceHedera";
+import AuthServiceEthereum from "./ethereum/AuthServiceEthereum";
+
+export interface IAuthService {
+    setUserPrivateKey(accountAddress: string, privateKey: string): Promise<ActiveUser>;
+    setUserMagic(magic: MagicWithHedera, accountAddress: string): Promise<ActiveUser>;
+}
 
 @injectable()
-export default class AuthService {
+export default class AuthServiceContext {
+    private strategy: IAuthService | null = null;
+
     private visitorId: string = "";
     private apiKey: string = "";
     private sdkEnvironment: SdkEnvironment = SdkEnvironment.Prod;
@@ -26,7 +33,7 @@ export default class AuthService {
     private accountProvider: AccountProvider | null = null;
     private signer: Signer | ethers.Signer | null = null;
     private magic: MagicWithHedera | null = null;
-    private userAccountId: string = "";
+    private userAccountAddress: string = "";
     private userPublicKey: string = "";
     private userPrivateKey: string = "";
 
@@ -34,6 +41,29 @@ export default class AuthService {
         @inject("apiService") private readonly apiService: ApiService,
         @inject("configService") private readonly configService: ConfigService
     ) {}
+
+    init(chainId: KnownChainIds) {
+        this.chainId = chainId;
+
+        switch (ChainMap[this.chainId].serviceStrategy as ChainServiceStrategy) {
+            case ChainServiceStrategy.Hedera:
+                this.strategy = new AuthServiceHedera(
+                    chainId,
+                    this.apiService,
+                    this.configService
+                );
+                break;
+            case ChainServiceStrategy.Ethereum:
+                this.strategy = new AuthServiceEthereum(
+                    chainId,
+                    this.apiService,
+                    this.configService
+                );
+                break;
+            default:
+                throw new Error(`Unsupported chain id: ${this.chainId}`);
+        }
+    }
 
     async getVisitorId(visitorId: string, apiKey: string, sdkEnvironment: SdkEnvironment): Promise<string> {
         this.visitorId = visitorId;
@@ -83,41 +113,26 @@ export default class AuthService {
         chainId: KnownChainIds,
         accountProvider: AccountProvider,
         accountIdOrEmail: string,
-        privateKey?: string
+        privateKeyDer?: string
     ): Promise<ActiveUser> {
         this.chainId = chainId;
         this.accountProvider = accountProvider;
-        const network = ChainMap[this.chainId].isTestnet ? Network.Testnet : Network.Mainnet;
+
+        if (!this.strategy) {
+            this.init(chainId);
+        }
 
         try {
             switch (accountProvider) {
-                case AccountProvider.PrivateKey:
-                    if (ChainMap[this.chainId].serviceStrategy === ChainServiceStrategy.Hedera) {
-                        const key = PrivateKey.fromStringDer(privateKey!);
-                        const client = ChainMap[this.chainId].isTestnet ? Client.forTestnet() : Client.forMainnet();
-                        this.userAccountId = accountIdOrEmail;
-                        this.userPrivateKey = privateKey!;
-                        this.userPublicKey = key.publicKey.toStringDer();
-                        const provider = new HederaProvider({client});
-                        this.signer = new HederaSigner(this.userAccountId, key, provider);
-                    } else if (ChainMap[this.chainId].serviceStrategy === ChainServiceStrategy.Ethereum) {
-                        const key = PrivateKey.fromStringECDSA(privateKey!);
-                        this.userPrivateKey = `0x${key.toStringRaw()}`;
-                        this.userPublicKey = `0x${key.publicKey.toStringRaw()}`;
+                case AccountProvider.PrivateKey: {
+                    const {signer, accountAddress, publicKey, privateKey} = await this.strategy!.setUserPrivateKey(accountIdOrEmail, privateKeyDer!);
 
-                        this.userAccountId = ethers.computeAddress(this.userPublicKey);
-                        const alchemyRpc = await this.configService.getConfig(`alchemy${network}RPC`);
-                        const alchemyApiKey = await this.configService.getConfig(`alchemy${network}APIKey`);
-                        if (!alchemyRpc || !alchemyApiKey) {
-                            throw new Error("Alchemy config not found");
-                        }
-                        const provider = new ethers.JsonRpcProvider(alchemyRpc + alchemyApiKey);
-                        this.signer = new ethers.Wallet(this.userPrivateKey, provider);
-                    } else {
-                        throw new Error("Unsupported chain");
-                    }
-                    break;
-                case AccountProvider.Magic:
+                    this.userAccountAddress = accountAddress;
+                    this.userPrivateKey = privateKey;
+                    this.userPublicKey = publicKey;
+                    this.signer = signer;
+                }  break;
+                case AccountProvider.Magic: {
                     let userInfo: MagicUserMetadata | undefined;
                     if (!this.magic) {
                         await this.initMagic(this.chainId);
@@ -139,32 +154,25 @@ export default class AuthService {
                         throw new Error("Not logged in Magic. Please call magicLogin() first");
                     }
 
-                    this.userAccountId = userInfo?.publicAddress || "";
-                    if (ChainMap[this.chainId].serviceStrategy === ChainServiceStrategy.Hedera) {
-                        const {publicKeyDer} = (await this.magic!.hedera.getPublicKey()) as {publicKeyDer: string};
-                        this.userPublicKey = publicKeyDer;
-                        const magicSign = (message: Uint8Array) => this.magic!.hedera.sign(message);
-                        this.signer = new MagicSigner(this.userAccountId, network, publicKeyDer, magicSign);
-                    } else if (ChainMap[this.chainId].serviceStrategy === ChainServiceStrategy.Ethereum) {
-                        const provider = new ethers.BrowserProvider(this.magic!.rpcProvider);
-                        this.signer = await provider.getSigner();
-                        // TODO check how to get public key from magic
-                        this.userPublicKey = "";
-                    }
-                    break;
+                    this.userAccountAddress = userInfo?.publicAddress || "";
+
+                    const {signer, publicKey} = await this.strategy!.setUserMagic(this.magic!, this.userAccountAddress);
+                    this.signer = signer;
+                    this.userPublicKey = publicKey;
+                } break;
                 default:
                     break;
             }
 
             return {
-                accountId: this.userAccountId,
+                accountAddress: this.userAccountAddress,
                 privateKey: this.userPrivateKey,
                 publicKey: this.userPublicKey,
                 provider: this.accountProvider,
                 signer: this.signer!
             }
         } catch (error: any) {
-            this.userAccountId = "";
+            this.userAccountAddress = "";
             this.userPrivateKey = "";
             this.userPublicKey = "";
             this.signer = null;
@@ -176,7 +184,7 @@ export default class AuthService {
     async resetUser(): Promise<null> {
         this.userPublicKey = "";
         this.userPrivateKey = "";
-        this.userAccountId = "";
+        this.userAccountAddress = "";
         this.signer = null;
         if (this.accountProvider === AccountProvider.Magic) {
             if (!this.magic) {

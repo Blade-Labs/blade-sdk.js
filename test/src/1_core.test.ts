@@ -1,10 +1,5 @@
 import {AccountId} from "@hashgraph/sdk";
 import {checkResult, completionKey} from "./helpers";
-import ApiService from "../../src/services/ApiService";
-import TradeService from "../../src/services/TradeService";
-import ConfigService from "../../src/services/ConfigService";
-import FeeService from "../../src/services/FeeService";
-import {Network} from "../../src/models/Networks";
 import config from "../../src/config";
 import dotenv from "dotenv";
 import fetch from "node-fetch";
@@ -14,14 +9,7 @@ import {flatArray} from "../../src/helpers/ArrayHelpers";
 import {parseContractFunctionParams} from "../../src/helpers/ContractHelpers";
 import {decrypt, encrypt} from "../../src/helpers/SecurityHelper";
 import {AccountProvider, SdkEnvironment} from "../../src/models/Common";
-import AccountServiceContext from "../../src/strategies/AccountServiceContext";
-import TokenServiceContext from "../../src/strategies/TokenServiceContext";
-import SignServiceContext from "../../src/strategies/SignServiceContext";
-import ContractServiceContext from "../../src/strategies/ContractServiceContext";
 import {KnownChainIds} from "../../src/models/Chain";
-import SignService from "../../src/services/SignService";
-import AuthService from "../../src/services/AuthService";
-import {AccountInfo} from "../../src/models/MirrorNode";
 const {BladeSDK, ParametersBuilder} = require("../../src/webView");
 
 Object.defineProperty(global.self, "crypto", {
@@ -35,28 +23,7 @@ Object.assign(global, {TextDecoder, TextEncoder, fetch});
 dotenv.config();
 
 describe("testing sdk CORE functionality", () => {
-    const apiService = new ApiService();
-    const configService = new ConfigService(apiService);
-    const authService = new AuthService(apiService, configService);
-    const feeService = new FeeService(configService);
-    const signService = new SignService();
-    const accountServiceContext = new AccountServiceContext(apiService, configService);
-    const tokenServiceContext = new TokenServiceContext(apiService, configService, feeService);
-    const tradeService = new TradeService(apiService, tokenServiceContext);
-    const signServiceContext = new SignServiceContext(apiService, configService, signService);
-    const contractServiceContext = new ContractServiceContext(apiService, configService);
-
-    const bladeSdk = new BladeSDK(
-        configService,
-        apiService,
-        authService,
-        accountServiceContext,
-        tokenServiceContext,
-        signServiceContext,
-        contractServiceContext,
-        tradeService,
-        true
-    );
+    const bladeSdk = BladeSDK();
 
     const sdkVersion = `Kotlin@${config.numberVersion}`;
     const privateKey = process.env.PRIVATE_KEY || ""; // ECDSA
@@ -93,7 +60,7 @@ describe("testing sdk CORE functionality", () => {
         checkResult(result);
         expect(result.data).toHaveProperty("apiKey");
         expect(result.data).toHaveProperty("dAppCode");
-        expect(result.data).toHaveProperty("network");
+        expect(result.data).toHaveProperty("chainId");
         expect(result.data).toHaveProperty("visitorId");
         expect(result.data).toHaveProperty("sdkEnvironment");
         expect(result.data).toHaveProperty("sdkVersion");
@@ -127,17 +94,16 @@ describe("testing sdk CORE functionality", () => {
         checkResult(result);
         expect(result.data).toHaveProperty("apiKey");
         expect(result.data).toHaveProperty("dAppCode");
-        expect(result.data).toHaveProperty("network");
         expect(result.data).toHaveProperty("chainId");
         expect(result.data).toHaveProperty("visitorId");
         expect(result.data).toHaveProperty("sdkEnvironment");
         expect(result.data).toHaveProperty("sdkVersion");
         expect(result.data).toHaveProperty("nonce");
         expect(result.data).toHaveProperty("user");
-        expect(result.data.user).toHaveProperty("accountId");
+        expect(result.data.user).toHaveProperty("address");
         expect(result.data.user).toHaveProperty("accountProvider");
-        expect(result.data.user).toHaveProperty("userPrivateKey");
-        expect(result.data.user).toHaveProperty("userPublicKey");
+        expect(result.data.user).toHaveProperty("privateKey");
+        expect(result.data.user).toHaveProperty("publicKey");
     });
 
     test("bladeSdk-core.ParametersBuilder.defined", async () => {
@@ -250,7 +216,5 @@ describe("testing sdk CORE functionality", () => {
         const originalString = "hello";
         const encrypted = await encrypt(originalString, process.env.API_KEY || "");
         expect(await decrypt(encrypted, process.env.API_KEY || "")).toEqual(originalString);
-
-        expect((await apiService.GET<AccountInfo>(Network.Testnet, `/accounts/${accountId}`)).account).toEqual(accountId);
     });
 }); // describe

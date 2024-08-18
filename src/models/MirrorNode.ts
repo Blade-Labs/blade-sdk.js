@@ -266,8 +266,3 @@ export enum MirrorNodeTransactionType {
     TOKENWIPE = "TOKENWIPE",
     UNCHECKEDSUBMIT = "UNCHECKEDSUBMIT"
 }
-
-
-export type Trans11actionDetailsResponse = {
-    transactions: TransactionMirrorDetails[];
-};

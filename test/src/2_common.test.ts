@@ -1,9 +1,5 @@
 import {PrivateKey} from "@hashgraph/sdk";
 import {checkResult, completionKey} from "./helpers";
-import ApiService from "../../src/services/ApiService";
-import TradeService from "../../src/services/TradeService";
-import ConfigService from "../../src/services/ConfigService";
-import FeeService from "../../src/services/FeeService";
 import {Buffer} from "buffer";
 import config from "../../src/config";
 import dotenv from "dotenv";
@@ -11,13 +7,7 @@ import fetch from "node-fetch";
 import {ethers} from "ethers";
 import {TextDecoder, TextEncoder} from "util";
 import crypto from "crypto";
-import AccountServiceContext from "../../src/strategies/AccountServiceContext";
-import TokenServiceContext from "../../src/strategies/TokenServiceContext";
-import SignServiceContext from "../../src/strategies/SignServiceContext";
-import ContractServiceContext from "../../src/strategies/ContractServiceContext";
 import {KnownChainIds} from "../../src/models/Chain";
-import SignService from "../../src/services/SignService";
-import AuthService from "../../src/services/AuthService";
 const {BladeSDK, ParametersBuilder} = require("../../src/webView");
 
 Object.defineProperty(global.self, "crypto", {
@@ -31,28 +21,7 @@ Object.assign(global, {TextDecoder, TextEncoder, fetch});
 dotenv.config();
 
 describe("test COMMON functionality", () => {
-    const apiService = new ApiService();
-    const configService = new ConfigService(apiService);
-    const authService = new AuthService(apiService, configService);
-    const feeService = new FeeService(configService);
-    const signService = new SignService();
-    const accountServiceContext = new AccountServiceContext(apiService, configService);
-    const tokenServiceContext = new TokenServiceContext(apiService, configService, feeService);
-    const tradeService = new TradeService(apiService, tokenServiceContext);
-    const signServiceContext = new SignServiceContext(apiService, configService, signService);
-    const contractServiceContext = new ContractServiceContext(apiService, configService);
-
-    const bladeSdk = new BladeSDK(
-        configService,
-        apiService,
-        authService,
-        accountServiceContext,
-        tokenServiceContext,
-        signServiceContext,
-        contractServiceContext,
-        tradeService,
-        true
-    );
+    const bladeSdk = BladeSDK();
 
     const sdkVersion = `Kotlin@${config.numberVersion}`;
 
@@ -141,7 +110,7 @@ describe("test COMMON functionality", () => {
         } catch (result) {
             checkResult(result, false);
         }
-    }, 10_000);
+    }, 60_000);
 
     test("bladeSdk-common.splitSignature", async () => {
         const message = "hello";

@@ -13,17 +13,16 @@ import ConfigService from "../../services/ConfigService";
 import {NodeInfo, MirrorNodeTransactionType} from "../../models/MirrorNode";
 import {ethers} from "ethers";
 import {ChainMap, CryptoKeyType, KnownChainIds} from "../../models/Chain";
-import {Network} from "../../models/Networks";
 import {
     Alchemy,
     AssetTransfersCategory,
     AssetTransfersWithMetadataParams,
     AssetTransfersWithMetadataResponse,
     AssetTransfersWithMetadataResult,
-    Network as AlchemyNetwork,
     SortingOrder
 } from "alchemy-sdk";
 import {JobStatus} from "../../models/BladeApi";
+import {getAlchemyInstance} from "../../helpers/InitHelpers";
 
 export default class AccountServiceEthereum implements IAccountService {
     private readonly chainId: KnownChainIds;
@@ -254,16 +253,9 @@ export default class AccountServiceEthereum implements IAccountService {
         ]
     }
 
-
     private async initAlchemy() {
         if (!this.alchemy) {
-            const alchemyNetwork = ChainMap[this.chainId].isTestnet
-                ? AlchemyNetwork.ETH_SEPOLIA
-                : AlchemyNetwork.ETH_MAINNET;
-            const apiKey = await this.configService.getConfig(
-                `alchemy${ChainMap[this.chainId].isTestnet ? Network.Testnet : Network.Mainnet}APIKey`
-            );
-            this.alchemy = new Alchemy({apiKey, network: alchemyNetwork});
+            this.alchemy = await getAlchemyInstance(this.chainId, this.configService);
         }
     }
 }

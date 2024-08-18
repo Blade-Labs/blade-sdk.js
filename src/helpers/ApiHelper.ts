@@ -1,7 +1,22 @@
 import {CustomError} from "../models/Errors";
 
+const attemptCounters: {[key: string]: number} = {};
+
 export function sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+export function limitAttempts(taskId: string, maxAttempts: number = 20, message: string = ""): boolean {
+    if (!attemptCounters.hasOwnProperty(taskId)) {
+        attemptCounters[taskId] = maxAttempts;
+    }
+
+    if (attemptCounters[taskId]-- > 0) {
+        return true;
+    }
+
+    delete attemptCounters[taskId];
+    throw new Error(`Task ${taskId} failed after ${maxAttempts} attempts. ${message}`);
 }
 
 export async function statusCheck(res: Response): Promise<Response> {

@@ -36,7 +36,7 @@ import {dataURLtoFile} from "../../helpers/FileHelper";
 import {NFTStorage} from "nft.storage";
 import {ChainMap, KnownChainIds} from "../../models/Chain";
 import {JobAction, JobStatus} from "../../models/BladeApi";
-import {sleep} from "../../helpers/ApiHelper";
+import {limitAttempts, sleep} from "../../helpers/ApiHelper";
 import {FeeManualOptions, FeeType, ICryptoFlowQuote, ICryptoFlowTransaction} from "../../models/CryptoFlow";
 import {Network} from "../../models/Networks";
 import BigNumber from "bignumber.js";
@@ -127,6 +127,7 @@ export default class TokenServiceHedera implements ITokenService {
                 if (transferTokenJob.status === JobStatus.FAILED) {
                     throw new Error(transferTokenJob.errorMessage);
                 }
+                limitAttempts(transferTokenJob.taskId, 20, "Failed to fetch transaction bytes from backend");
                 await sleep((await this.configService.getConfig("refreshTaskPeriodSeconds")) * 1000);
                 transferTokenJob = await this.apiService.transferTokens(JobAction.CHECK, transferTokenJob.taskId);
             }
@@ -200,6 +201,7 @@ export default class TokenServiceHedera implements ITokenService {
                 if (tokenAssociationJob.status === JobStatus.FAILED) {
                     throw new Error(tokenAssociationJob.errorMessage);
                 }
+                limitAttempts(tokenAssociationJob.taskId, 20, "Failed to fetch transaction bytes from backend");
                 await sleep((await this.configService.getConfig("refreshTaskPeriodSeconds")) * 1000);
                 tokenAssociationJob = await this.apiService.tokenAssociation(
                     JobAction.CHECK,
@@ -401,6 +403,7 @@ export default class TokenServiceHedera implements ITokenService {
             if (dropJob.status === JobStatus.FAILED) {
                 throw new Error(dropJob.errorMessage);
             }
+            limitAttempts(dropJob.taskId, 20, "Failed to drop tokens on backend");
             await sleep((await this.configService.getConfig("refreshTaskPeriodSeconds")) * 1000);
             dropJob = await this.apiService.dropTokens(JobAction.CHECK, dropJob.taskId);
         }

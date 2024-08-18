@@ -1,10 +1,10 @@
 import {getContainer} from "./container";
-
-const bladeContainer = getContainer(false);
+import {BladeSDK as Blade} from "./BladeSDK";
 
 export * from "./models/Common";
 export * from "./models/Chain";
 export * from "./models/CryptoFlow";
 export {ParametersBuilder} from "./ParametersBuilder";
-export {BladeSDK} from "./BladeSDK";
-export {bladeContainer};
+export const BladeSDK = () => {
+    return getContainer(false).get<Blade>(Blade);
+}

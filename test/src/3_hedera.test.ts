@@ -1,8 +1,5 @@
 import {associateToken, checkResult, completionKey, createToken, sleep} from "./helpers";
 import ApiService from "../../src/services/ApiService";
-import TradeService from "../../src/services/TradeService";
-import ConfigService from "../../src/services/ConfigService";
-import FeeService from "../../src/services/FeeService";
 import config from "../../src/config";
 import dotenv from "dotenv";
 import fetch from "node-fetch";
@@ -19,12 +16,7 @@ import {
     TokenBalanceData
 } from "../../src/models/Common";
 import {Network} from "../../src/models/Networks";
-import AccountServiceContext from "../../src/strategies/AccountServiceContext";
-import TokenServiceContext from "../../src/strategies/TokenServiceContext";
-import SignServiceContext from "../../src/strategies/SignServiceContext";
-import ContractServiceContext from "../../src/strategies/ContractServiceContext";
 import {CryptoKeyType, KnownChainIds} from "../../src/models/Chain";
-import SignService from "../../src/services/SignService";
 import {ethers} from "ethers";
 import {
     AccountCreateTransaction,
@@ -39,7 +31,6 @@ import {isEqual} from "lodash";
 import BigNumber from "bignumber.js";
 import {TokenInfo} from "../../src/models/MirrorNode";
 import {ParametersBuilder} from "../../src/ParametersBuilder";
-import AuthService from "../../src/services/AuthService";
 import {Buffer} from "buffer";
 
 const {BladeSDK} = require("../../src/webView");
@@ -54,29 +45,11 @@ Object.assign(global, {TextDecoder, TextEncoder, fetch});
 
 dotenv.config();
 
-describe("testing methods related to HEDERA network", () => {
+describe("testing methods related to HEDERA", () => {
+    // TODO remove
     const apiService = new ApiService();
-    const configService = new ConfigService(apiService);
-    const authService = new AuthService(apiService, configService);
-    const feeService = new FeeService(configService);
-    const signService = new SignService();
-    const accountServiceContext = new AccountServiceContext(apiService, configService);
-    const tokenServiceContext = new TokenServiceContext(apiService, configService, feeService);
-    const tradeService = new TradeService(apiService, tokenServiceContext);
-    const signServiceContext = new SignServiceContext(apiService, configService, signService);
-    const contractServiceContext = new ContractServiceContext(apiService, configService);
 
-    const bladeSdk = new BladeSDK(
-        configService,
-        apiService,
-        authService,
-        accountServiceContext,
-        tokenServiceContext,
-        signServiceContext,
-        contractServiceContext,
-        tradeService,
-        true
-    );
+    const bladeSdk = BladeSDK();
 
     const sdkVersion = `Kotlin@${config.numberVersion}`;
     const accountId = process.env.ACCOUNT_ID || "";
@@ -164,18 +137,22 @@ describe("testing methods related to HEDERA network", () => {
         await bladeSdk.setUser(AccountProvider.PrivateKey, account.accountAddress, account.privateKey, completionKey);
         await sleep(7000);
 
-        const successfulResult = await bladeSdk.dropTokens(account.accountAddress, process.env.NONCE, completionKey);
+        const successfulResult = await bladeSdk.dropTokens(process.env.NONCE, completionKey);
         checkResult(successfulResult);
 
         expect(successfulResult.data).toHaveProperty("status");
-        expect(successfulResult.data).toHaveProperty("accountId");
+        expect(successfulResult.data).toHaveProperty("accountAddress");
         expect(successfulResult.data).toHaveProperty("redirectUrl");
         expect(successfulResult.data).toHaveProperty("dropStatuses");
         expect(Object.keys(successfulResult.data.dropStatuses).length).toBeGreaterThan(0);
 
-        // const failedResult = await bladeSdk.dropTokens(account.accountId, process.env.NONCE, completionKey);
-        // checkResult(failedResult, false);
-    }, 60_000);
+        try {
+            const result = await bladeSdk.dropTokens(process.env.NONCE, completionKey);
+            expect("Code should not reach here").toEqual(result);
+        } catch (result) {
+            checkResult(result, false);
+        }
+    }, 150_000);
 
     test("bladeSdk-hedera.transferBalance", async () => {
         let result = await bladeSdk.getBalance(accountId, completionKey);
@@ -325,12 +302,12 @@ describe("testing methods related to HEDERA network", () => {
         expect(result.data).toHaveProperty("seedPhrase");
         expect(result.data).toHaveProperty("publicKey");
         expect(result.data).toHaveProperty("privateKey");
-        expect(result.data).toHaveProperty("accountId");
+        expect(result.data).toHaveProperty("accountAddress");
         expect(result.data).toHaveProperty("evmAddress");
 
         await sleep(25_000);
 
-        const publicKey = PrivateKey.fromString(result.data.privateKey).publicKey.toStringRaw();
+        const publicKey = PrivateKey.fromStringDer(result.data.privateKey).publicKey.toStringRaw();
         const evmAddress = ethers.computeAddress(`0x${publicKey}`);
 
         expect(result.data.evmAddress).toEqual(evmAddress.toLowerCase());
@@ -353,7 +330,7 @@ describe("testing methods related to HEDERA network", () => {
         } catch (result) {
             checkResult(result, false);
         }
-    }, 60_000);
+    }, 100_000);
 
     test("bladeSdk-hedera.getAccountInfo", async () => {
         let result;

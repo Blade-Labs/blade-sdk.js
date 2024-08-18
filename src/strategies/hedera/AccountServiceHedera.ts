@@ -29,7 +29,7 @@ import {ethers} from "ethers";
 import StringHelpers from "../../helpers/StringHelpers";
 import {executeUpdateAccountTransactions} from "../../helpers/AccountHelpers";
 import {getReceipt} from "../../helpers/TransactionHelpers";
-import {sleep} from "../../helpers/ApiHelper";
+import {limitAttempts, sleep} from "../../helpers/ApiHelper";
 import {JobAction, JobStatus} from "../../models/BladeApi";
 import {Buffer} from "buffer";
 
@@ -76,6 +76,7 @@ export default class AccountServiceHedera implements IAccountService {
             if (accountCreateJob.status === JobStatus.FAILED) {
                 throw new Error(accountCreateJob.errorMessage);
             }
+            limitAttempts(accountCreateJob.taskId, 20, "Account creation failed");
             await sleep((await this.configService.getConfig("refreshTaskPeriodSeconds")) * 1000);
             accountCreateJob = await this.apiService.createAccount(JobAction.CHECK, accountCreateJob.taskId);
         }
@@ -105,6 +106,7 @@ export default class AccountServiceHedera implements IAccountService {
                 if (tokenAssociationJob.status === JobStatus.FAILED) {
                     throw new Error(tokenAssociationJob.errorMessage);
                 }
+                limitAttempts(accountCreateJob.taskId, 20, "Token association failed");
                 await sleep((await this.configService.getConfig("refreshTaskPeriodSeconds")) * 1000);
                 tokenAssociationJob = await this.apiService.tokenAssociation(
                     JobAction.CHECK,
@@ -141,6 +143,7 @@ export default class AccountServiceHedera implements IAccountService {
                 if (kycGrantJob.status === JobStatus.FAILED) {
                     throw new Error(kycGrantJob.errorMessage);
                 }
+                limitAttempts(accountCreateJob.taskId, 20, "KYC grant failed");
                 await sleep((await this.configService.getConfig("refreshTaskPeriodSeconds")) * 1000);
                 await this.apiService.kycGrant(JobAction.CHECK, kycGrantJob.taskId);
             }

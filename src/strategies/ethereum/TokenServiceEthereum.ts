@@ -2,23 +2,21 @@ import {ethers} from "ethers";
 import {ITokenService, TransferInitData, TransferTokenInitData} from "../TokenServiceContext";
 import {
     BalanceData,
-    KeyRecord,
-    NFTStorageConfig,
     TokenDropData,
     TransactionReceiptData,
     TransactionResponseData
 } from "../../models/Common";
-import {ChainMap, KnownChainIds} from "../../models/Chain";
+import {KnownChainIds} from "../../models/Chain";
 import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
-import {Alchemy, Contract, Network as AlchemyNetwork} from "alchemy-sdk";
-import {Network} from "../../models/Networks";
+import {Alchemy, Contract} from "alchemy-sdk";
 import StringHelpers from "../../helpers/StringHelpers";
 import ERC20ABI from "../../abi/erc20.abi";
 import FeeService from "../../services/FeeService";
 import BigNumber from "bignumber.js";
 import {Signer} from "@ethersproject/abstract-signer";
 import {ICryptoFlowQuote, ICryptoFlowTransaction} from "../../models/CryptoFlow";
+import {getAlchemyInstance} from "../../helpers/InitHelpers";
 
 export default class TokenServiceEthereum implements ITokenService {
     private readonly chainId: KnownChainIds;
@@ -221,13 +219,7 @@ export default class TokenServiceEthereum implements ITokenService {
 
     private async initAlchemy() {
         if (!this.alchemy) {
-            const alchemyNetwork = ChainMap[this.chainId].isTestnet
-                ? AlchemyNetwork.ETH_SEPOLIA
-                : AlchemyNetwork.ETH_MAINNET;
-            const apiKey = await this.configService.getConfig(
-                `alchemy${ChainMap[this.chainId].isTestnet ? Network.Testnet : Network.Mainnet}APIKey`
-            );
-            this.alchemy = new Alchemy({apiKey, network: alchemyNetwork});
+            this.alchemy = await getAlchemyInstance(this.chainId, this.configService);
         }
     }
 }

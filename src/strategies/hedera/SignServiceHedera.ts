@@ -28,7 +28,7 @@ import ConfigService from "../../services/ConfigService";
 import {formatReceipt} from "../../helpers/TransactionHelpers";
 import {Buffer} from "buffer";
 import {JobAction, JobStatus} from "../../models/BladeApi";
-import {sleep} from "../../helpers/ApiHelper";
+import {limitAttempts, sleep} from "../../helpers/ApiHelper";
 import * as ethers from "ethers";
 import {ParametersBuilder} from "../../ParametersBuilder";
 import {parseContractFunctionParams} from "../../helpers/ContractHelpers";
@@ -162,6 +162,7 @@ export default class SignServiceHedera implements ISignService {
                 if (createScheduleRequestJob.status === JobStatus.FAILED) {
                     throw new Error(createScheduleRequestJob.errorMessage);
                 }
+                limitAttempts(createScheduleRequestJob.taskId, 20, "Create schedule transaction failed");
                 await sleep((await this.configService.getConfig("refreshTaskPeriodSeconds")) * 1000);
                 createScheduleRequestJob = await this.apiService.createScheduleRequestJob(
                     JobAction.CHECK,
@@ -252,6 +253,7 @@ export default class SignServiceHedera implements ISignService {
                 if (signScheduleRequestJob.status === JobStatus.FAILED) {
                     throw new Error(signScheduleRequestJob.errorMessage);
                 }
+                limitAttempts(signScheduleRequestJob.taskId, 20, "Sign schedule transaction failed");
                 await sleep((await this.configService.getConfig("refreshTaskPeriodSeconds")) * 1000);
                 signScheduleRequestJob = await this.apiService.signScheduleRequestJob(
                     JobAction.CHECK,

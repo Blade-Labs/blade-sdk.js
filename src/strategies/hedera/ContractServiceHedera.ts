@@ -19,7 +19,7 @@ import {ParametersBuilder} from "../../ParametersBuilder";
 import {getContractFunctionBytecode, parseContractQueryResponse} from "../../helpers/ContractHelpers";
 import {getReceipt} from "../../helpers/TransactionHelpers";
 import {JobAction, JobStatus} from "../../models/BladeApi";
-import {sleep} from "../../helpers/ApiHelper";
+import {limitAttempts, sleep} from "../../helpers/ApiHelper";
 import {ethers} from "ethers";
 
 export default class ContractServiceHedera implements IContractService {
@@ -63,6 +63,7 @@ export default class ContractServiceHedera implements IContractService {
                 if (contractCallJob.status === JobStatus.FAILED) {
                     throw new Error(contractCallJob.errorMessage);
                 }
+                limitAttempts(contractCallJob.taskId, 20, "Failed to fetch transaction bytes from backend");
                 await sleep(await this.configService.getConfig("refreshTaskPeriodSeconds") * 1000);
                 contractCallJob = await this.apiService.signContractCallTx(JobAction.CHECK, contractCallJob.taskId);
             }
@@ -141,6 +142,7 @@ export default class ContractServiceHedera implements IContractService {
                 if (contractCallQueryJob.status === JobStatus.FAILED) {
                     throw new Error(contractCallQueryJob.errorMessage);
                 }
+                limitAttempts(contractCallQueryJob.taskId, 20, "Failed to fetch transaction bytes from backend");
                 await sleep(await this.configService.getConfig("refreshTaskPeriodSeconds") * 1000);
                 contractCallQueryJob = await this.apiService.apiCallContractQuery(JobAction.CHECK, contractCallQueryJob.taskId);
             }

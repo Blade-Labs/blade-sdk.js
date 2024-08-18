@@ -1,12 +1,10 @@
 import {inject, injectable} from "inversify";
 import "reflect-metadata";
 import {Buffer} from "buffer";
-import {Signer, TokenType} from "@hashgraph/sdk";
-import {ethers} from "ethers";
+import {TokenType} from "@hashgraph/sdk";
 import ApiService from "./services/ApiService";
 import {HbarTokenId} from "./services/FeeService";
 import ConfigService from "./services/ConfigService";
-import AuthService from "./services/AuthService";
 import StringHelpers from "./helpers/StringHelpers";
 import {CustomError} from "./models/Errors";
 import {
@@ -57,6 +55,7 @@ import AccountServiceContext from "./strategies/AccountServiceContext";
 import SignServiceContext from "./strategies/SignServiceContext";
 import ContractServiceContext from "./strategies/ContractServiceContext";
 import TradeService from "./services/TradeService";
+import AuthServiceContext from "./strategies/AuthServiceContext";
 
 @injectable()
 export class BladeSDK {
@@ -73,7 +72,7 @@ export class BladeSDK {
      * BladeSDK constructor.
      * @param configService - instance of ConfigService
      * @param apiService - instance of ApiService
-     * @param authService - instance of AuthService
+     * @param authServiceContext - instance of AuthServiceContext
      * @param accountServiceContext - instance of AccountServiceContext
      * @param tokenServiceContext - instance of TokenServiceContext
      * @param signServiceContext - instance of SignServiceContext
@@ -84,7 +83,7 @@ export class BladeSDK {
     constructor(
         @inject("configService") private readonly configService: ConfigService,
         @inject("apiService") private readonly apiService: ApiService,
-        @inject("authService") private readonly authService: AuthService,
+        @inject("authServiceContext") private readonly authServiceContext: AuthServiceContext,
         @inject("accountServiceContext") private readonly accountServiceContext: AccountServiceContext,
         @inject("tokenServiceContext") private readonly tokenServiceContext: TokenServiceContext,
         @inject("signServiceContext") private readonly signServiceContext: SignServiceContext,
@@ -128,7 +127,7 @@ export class BladeSDK {
         }
 
         this.apiService.initApiService(apiKey, dAppCode, sdkEnvironment, sdkVersion, this.chainId, visitorId);
-        this.visitorId = await this.authService.getVisitorId(this.visitorId, this.apiKey, this.sdkEnvironment);
+        this.visitorId = await this.authServiceContext.getVisitorId(this.visitorId, this.apiKey, this.sdkEnvironment);
         this.accountServiceContext.init(this.chainId, null); // init without signer, to be able to create account
         this.tokenServiceContext.init(this.chainId, null); // init without signer, to be able to getBalance
         return this.sendMessageToNative(completionKey, this.getInfoData());
@@ -165,7 +164,7 @@ export class BladeSDK {
         completionKey?: string
     ): Promise<UserInfoData> {
         try {
-            this.user = await this.authService.setUser(this.chainId, accountProvider, accountIdOrEmail, privateKey);
+            this.user = await this.authServiceContext.setUser(this.chainId, accountProvider, accountIdOrEmail, privateKey);
 
             this.tokenServiceContext.init(this.chainId, this.user.signer);
             this.accountServiceContext.init(this.chainId, this.user.signer);
@@ -173,10 +172,10 @@ export class BladeSDK {
             this.contractServiceContext.init(this.chainId, this.user.signer);
 
             return this.sendMessageToNative(completionKey, {
-                accountId: this.user.accountId,
+                address: this.user.accountAddress,
                 accountProvider: this.user.provider,
-                userPrivateKey: this.user.privateKey,
-                userPublicKey: this.user.publicKey
+                privateKey: this.user.privateKey,
+                publicKey: this.user.publicKey
             });
         } catch (error: any) {
             this.user = null;
@@ -193,13 +192,13 @@ export class BladeSDK {
      */
     async resetUser(completionKey?: string): Promise<UserInfoData> {
         try {
-            this.user = await this.authService.resetUser();
+            this.user = await this.authServiceContext.resetUser();
 
             return this.sendMessageToNative(completionKey, {
-                accountId: "",
+                address: "",
                 accountProvider: null,
-                userPrivateKey: "",
-                userPublicKey: ""
+                privateKey: "",
+                publicKey: ""
             });
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -217,7 +216,7 @@ export class BladeSDK {
     async getBalance(accountAddress: string, completionKey?: string): Promise<BalanceData> {
         try {
             if (!accountAddress) {
-                accountAddress = this.getUser().accountId;
+                accountAddress = this.getUser().accountAddress;
             }
             return this.sendMessageToNative(completionKey, await this.tokenServiceContext.getBalance(accountAddress));
         } catch (error) {
@@ -243,7 +242,7 @@ export class BladeSDK {
     ): Promise<TransactionResponseData> {
         try {
             const result = await this.tokenServiceContext.transferBalance({
-                from: this.getUser().accountId,
+                from: this.getUser().accountAddress,
                 to: receiverAddress,
                 amount,
                 memo
@@ -278,7 +277,7 @@ export class BladeSDK {
         try {
             // TODO send NFT for Ethereum tokens
             const result = await this.tokenServiceContext.transferToken({
-                from: this.getUser().accountId,
+                from: this.getUser().accountAddress,
                 to: receiverAddress,
                 amountOrSerial,
                 tokenAddress,
@@ -593,7 +592,7 @@ export class BladeSDK {
      */
     async getAccountInfo(accountAddress: string, completionKey?: string): Promise<AccountInfoData> {
         try {
-            accountAddress = accountAddress || this.getUser().accountId;
+            accountAddress = accountAddress || this.getUser().accountAddress;
 
             const result = await this.accountServiceContext.getAccountInfo(accountAddress);
             return this.sendMessageToNative(completionKey, result);
@@ -628,7 +627,7 @@ export class BladeSDK {
      */
     async stakeToNode(nodeId: number, completionKey?: string): Promise<TransactionReceiptData> {
         try {
-            const result = await this.accountServiceContext.stakeToNode(this.getUser().accountId, nodeId);
+            const result = await this.accountServiceContext.stakeToNode(this.getUser().accountAddress, nodeId);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -666,7 +665,7 @@ export class BladeSDK {
      */
     async dropTokens(secretNonce: string, completionKey?: string): Promise<TokenDropData> {
         try {
-            const result = await this.tokenServiceContext.dropTokens(this.getUser().accountId, secretNonce);
+            const result = await this.tokenServiceContext.dropTokens(this.getUser().accountAddress, secretNonce);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -791,7 +790,7 @@ export class BladeSDK {
         completionKey?: string
     ): Promise<TransactionsHistoryData> {
         try {
-            accountAddress = accountAddress || this.getUser().accountId;
+            accountAddress = accountAddress || this.getUser().accountAddress;
 
             const result = await this.accountServiceContext.getTransactions(
                 accountAddress,
@@ -864,7 +863,7 @@ export class BladeSDK {
         completionKey?: string
     ): Promise<IntegrationUrlData> {
         try {
-            accountAddress = accountAddress || this.getUser().accountId;
+            accountAddress = accountAddress || this.getUser().accountAddress;
             const result = await this.tradeService.getTradeUrl(
                 this.chainId,
                 strategy,
@@ -905,7 +904,7 @@ export class BladeSDK {
         try {
             const result = await this.tradeService.swapTokens(
                 this.chainId,
-                this.getUser().accountId,
+                this.getUser().accountAddress,
                 sourceCode,
                 sourceAmount,
                 targetCode,
@@ -956,13 +955,13 @@ export class BladeSDK {
         completionKey?: string
     ): Promise<CreateTokenData> {
         try {
-            const {accountId, publicKey} = this.getUser();
+            const {accountAddress, publicKey} = this.getUser();
 
             const result = await this.tokenServiceContext.createToken(
                 tokenName,
                 tokenSymbol,
                 isNft,
-                accountId,
+                accountAddress,
                 publicKey,
                 keys,
                 decimals,
@@ -986,7 +985,7 @@ export class BladeSDK {
      */
     async associateToken(tokenIdOrCampaign: string, completionKey?: string): Promise<TransactionReceiptData> {
         try {
-            const result = await this.tokenServiceContext.associateToken(tokenIdOrCampaign, this.getUser().accountId);
+            const result = await this.tokenServiceContext.associateToken(tokenIdOrCampaign, this.getUser().accountAddress);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -1068,13 +1067,14 @@ export class BladeSDK {
         }
     }
 
-    private getUser(): {signer: Signer | ethers.Signer; accountId: string; privateKey: string; publicKey: string} {
+    private getUser(): ActiveUser {
         if (!this.user || !this.user.signer) {
             throw new Error("No user, please call setUser() first");
         }
         return {
             signer: this.user.signer,
-            accountId: this.user.accountId,
+            accountAddress: this.user.accountAddress,
+            provider: this.user.provider,
             privateKey: this.user.privateKey,
             publicKey: this.user.publicKey
         };
@@ -1091,10 +1091,10 @@ export class BladeSDK {
             sdkVersion: this.sdkVersion,
             nonce: Math.round(Math.random() * 1000000000),
             user: {
-                accountId: this.user?.accountId || "",
+                address: this.user?.accountAddress || "",
                 accountProvider: this.user?.provider || null,
-                userPrivateKey: this.user?.privateKey || "",
-                userPublicKey: this.user?.publicKey || ""
+                privateKey: this.user?.privateKey || "",
+                publicKey: this.user?.publicKey || ""
             }
         };
     }
