@@ -78,6 +78,15 @@ export const getAccountsFromPrivateKey = async (
     return records;
 };
 
+export const checkSeedPhrase = async (seedPhrase: Mnemonic): Promise<boolean> => {
+    const privateKey = await seedPhrase.toStandardECDSAsecp256k1PrivateKey();
+    const privateKeyString = privateKey.toStringDer();
+    const publicKeyString = privateKey.publicKey.toStringRaw();
+    const restoredPrivateKey = PrivateKey.fromStringDer(privateKeyString);
+    const restoredPublicKeyString = restoredPrivateKey.publicKey.toStringRaw();
+    return publicKeyString === restoredPublicKeyString;
+}
+
 async function prepareAccountRecord(
     privateKey: PrivateKey,
     keyType: CryptoKeyType,

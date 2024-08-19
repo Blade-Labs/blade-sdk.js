@@ -426,6 +426,11 @@ export interface UserInfo {
     publicKey: string;
 }
 
+export interface EmergencyTransferData {
+    isValid: boolean,
+    transferStatus: string
+}
+
 export enum ScheduleTransactionType {
     TRANSFER = "TRANSFER",
     SUBMIT_MESSAGE = "SUBMIT_MESSAGE",

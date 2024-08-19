@@ -53,7 +53,7 @@ import {
     getContractErrorMessage,
     getTokenAssociateTransaction
 } from "./services/ApiService";
-import { getAccountsFromMnemonic, getAccountsFromPrivateKey } from "./services/AccountService";
+import {checkSeedPhrase, getAccountsFromMnemonic, getAccountsFromPrivateKey} from "./services/AccountService";
 import CryptoFlowService from "./services/CryptoFlowService";
 import { HbarTokenId } from "./services/FeeService";
 import { Network } from "./models/Networks";
@@ -83,6 +83,7 @@ import {
     CreateAccountData,
     CreateTokenResult,
     CryptoKeyType,
+    EmergencyTransferData,
     InfoData,
     IntegrationUrlData,
     KeyRecord,
@@ -1004,10 +1005,8 @@ export class BladeSDK {
                 do {
                     const mnemonic = await Mnemonic.generate12();
                     key = await mnemonic.toStandardECDSAsecp256k1PrivateKey();
-                    const privateKeyString = key.toStringDer();
-                    const restoredPublicKeyString = PrivateKey.fromStringDer(privateKeyString).publicKey.toStringRaw();
-                    valid = key.publicKey.toStringRaw() === restoredPublicKeyString;
                     seedPhrase = mnemonic.toString();
+                    valid = await checkSeedPhrase(mnemonic);
                 } while (!valid);
             }
 
@@ -2231,6 +2230,79 @@ export class BladeSDK {
         } catch (error: any) {
             throw this.sendMessageToNative(completionKey, null, error);
         }
+    }
+
+    /**
+     * Emergency balance transfer from broken mnemonic account to new account
+     * Accounts with broken mnemonic sometimes were created because of hedera-sdk issue
+     * To transfer funds from broken mnemonic account to new account a couple of steps required:
+     * 1. Create new account
+     * 2. Associate all tokens with new account that you want to transfer
+     * 3. Call this method to transfer funds to new account
+     * 4. Send some HBAR to broken mnemonic account to cover fees if needed
+     *
+     * @param seedPhrase mnemonic from account
+     * @param accountId account id (broken)
+     * @param receiverId new account id
+     * @param hbarAmount amount of HBAR to resque. Can be 0
+     * @param tokenList list of token ids to transfer all tokens. Up to 9 at once. Can be empty
+     * @param checkOnly if true, will only check if mnemonic is broken. No transfer will be made
+     * @param completionKey optional field bridge between mobile webViews and native apps
+     * @returns {EmergencyTransferData}
+     * @example
+     * const receipt = await bladeSdk.brokenMnemonicEmergencyTransfer(brokenSeed, resqueAccountId, newAccountId, "0.5", ["0.0.1337"], false);
+     */
+    async brokenMnemonicEmergencyTransfer(seedPhrase: string, accountId: string, receiverId: string, hbarAmount: string, tokenList: string[], checkOnly: boolean, completionKey?: string): Promise<EmergencyTransferData> {
+        try {
+            const mnemonic = await Mnemonic.fromString(seedPhrase);
+            const result = {
+                isValid: await checkSeedPhrase(mnemonic),
+                transferStatus: ""
+            }
+
+            // skip if mnemonic is actually broken
+            if (checkOnly || result.isValid) {
+                return this.sendMessageToNative(completionKey, result);
+            }
+
+            const key = await mnemonic.toStandardECDSAsecp256k1PrivateKey();
+
+            // send funds to receiverId
+            const client = this.getClient();
+            client.setOperator(accountId, key);
+            const parsedAmount = parseFloat(hbarAmount);
+            const tx = new TransferTransaction().setTransactionMemo("Resque funds from broken mnemonic account using BladeSDK");
+
+            if (parsedAmount > 0) {
+                tx.addHbarTransfer(accountId, -1 * parsedAmount)
+                    .addHbarTransfer(receiverId, parsedAmount)
+            }
+
+            if (tokenList.length > 0) {
+                const accountBalance = await getAccountBalance(accountId)
+                for (const tokenId of tokenList.slice(0, 9)) {
+                    const tokenBalance = accountBalance.tokens.find((t) => t.tokenId === tokenId)
+                    if (tokenBalance) {
+                        tx.addTokenTransfer(tokenId, accountId, -1 * tokenBalance.balance)
+                        tx.addTokenTransfer(tokenId, receiverId, tokenBalance.balance)
+                    }
+                }
+            }
+
+            return tx.freezeWith(client)
+                .execute(client)
+                .then((result) => result.getReceipt(client))
+                .then((data) => {
+                    result.transferStatus = data.status.toString()
+                    return this.sendMessageToNative(completionKey, result);
+                })
+                .catch((error) => {
+                    throw this.sendMessageToNative(completionKey, null, error);
+                });
+        } catch (error: any) {
+            throw this.sendMessageToNative(completionKey, null, error);
+        }
+
     }
 
     private async initMagic() {
