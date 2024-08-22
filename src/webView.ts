@@ -16,7 +16,7 @@ if (window) window.ParametersBuilder = ParametersBuilder;
 
 export * from "./models/Common";
 export * from "./models/Chain";
-export * from "./models/CryptoFlow";
+export * from "./models/Exchange";
 export {ParametersBuilder} from "./ParametersBuilder";
 export const BladeSDK = () => {
     return bladeContainer.get<Blade>(Blade);

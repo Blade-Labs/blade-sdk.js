@@ -12,7 +12,7 @@ import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
 import {NodeInfo, MirrorNodeTransactionType} from "../../models/MirrorNode";
 import {ethers} from "ethers";
-import {ChainMap, CryptoKeyType, KnownChainIds} from "../../models/Chain";
+import {ChainMap, CryptoKeyType, KnownChains} from "../../models/Chain";
 import {
     Alchemy,
     AssetTransfersCategory,
@@ -25,19 +25,19 @@ import {JobStatus} from "../../models/BladeApi";
 import {getAlchemyInstance} from "../../helpers/InitHelpers";
 
 export default class AccountServiceEthereum implements IAccountService {
-    private readonly chainId: KnownChainIds;
+    private readonly chain: KnownChains;
     private readonly signer: ethers.Signer | null = null;
     private readonly apiService: ApiService;
     private readonly configService: ConfigService;
     private alchemy: Alchemy | null = null;
 
     constructor(
-        chainId: KnownChainIds,
+        chain: KnownChains,
         signer: ethers.Signer | null,
         apiService: ApiService,
         configService: ConfigService
     ) {
-        this.chainId = chainId;
+        this.chain = chain;
         this.signer = signer;
         this.apiService = apiService;
         this.configService = configService;
@@ -247,15 +247,15 @@ export default class AccountServiceEthereum implements IAccountService {
                 publicKey: wallet.signingKey.publicKey,
                 evmAddress: wallet.address,
                 address: wallet.address,
-                path: ChainMap[this.chainId].defaultPath,
-                keyType: ChainMap[this.chainId].defaultCryptoKeyType
+                path: ChainMap[this.chain].defaultPath,
+                keyType: ChainMap[this.chain].defaultCryptoKeyType
             }
         ]
     }
 
     private async initAlchemy() {
         if (!this.alchemy) {
-            this.alchemy = await getAlchemyInstance(this.chainId, this.configService);
+            this.alchemy = await getAlchemyInstance(this.chain, this.configService);
         }
     }
 }

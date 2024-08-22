@@ -1,4 +1,4 @@
-import {ChainMap, KnownChainIds} from "../../models/Chain";
+import {ChainMap, KnownChains} from "../../models/Chain";
 import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
 import {IAuthService} from "../../strategies/AuthServiceContext";
@@ -9,19 +9,19 @@ import {HederaProvider, HederaSigner} from "../../signers/hedera";
 import {MagicSigner} from "../../signers/magic/MagicSigner";
 
 export default class AuthServiceHedera implements IAuthService {
-    private readonly chainId: KnownChainIds;
+    private readonly chain: KnownChains;
     private readonly apiService: ApiService;
     private readonly configService: ConfigService;
 
-    constructor(chainId: KnownChainIds, apiService: ApiService, configService: ConfigService) {
-        this.chainId = chainId;
+    constructor(chain: KnownChains, apiService: ApiService, configService: ConfigService) {
+        this.chain = chain;
         this.apiService = apiService;
         this.configService = configService;
     }
 
     async setUserPrivateKey(accountAddress: string, privateKey: string): Promise<ActiveUser> {
         const key = PrivateKey.fromStringDer(privateKey!);
-        const client = ChainMap[this.chainId].isTestnet ? Client.forTestnet() : Client.forMainnet();
+        const client = ChainMap[this.chain].isTestnet ? Client.forTestnet() : Client.forMainnet();
 
 
         const publicKey = key.publicKey.toStringDer();
@@ -38,7 +38,7 @@ export default class AuthServiceHedera implements IAuthService {
     }
 
     async setUserMagic(magic: MagicWithHedera, accountAddress: string): Promise<ActiveUser> {
-        const network = ChainMap[this.chainId].isTestnet ? Network.Testnet : Network.Mainnet;
+        const network = ChainMap[this.chain].isTestnet ? Network.Testnet : Network.Mainnet;
 
         const {publicKeyDer} = (await magic.hedera.getPublicKey()) as {publicKeyDer: string};
         const publicKey = publicKeyDer;

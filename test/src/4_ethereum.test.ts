@@ -5,7 +5,7 @@ import fetch from "node-fetch";
 import {TextDecoder, TextEncoder} from "util";
 import crypto from "crypto";
 import {AccountProvider, BalanceData, BridgeResponse} from "../../src/models/Common";
-import { KnownChainIds} from "../../src/models/Chain";
+import {KnownChains} from "../../src/models/Chain";
 import BigNumber from 'bignumber.js';
 import {PrivateKey} from "@hashgraph/sdk";
 import {ethers} from "ethers";
@@ -33,7 +33,7 @@ describe("testing methods related to ETHEREUM", () => {
     const ethereumTokenAddress = (process.env.ETHEREUM_TOKEN_ADDRESS || "").toLowerCase();
     const hederaAccountId = process.env.ACCOUNT_ID || "";
 
-    const chainId = KnownChainIds.ETHEREUM_SEPOLIA;
+    const chainId = KnownChains.ETHEREUM_SEPOLIA;
 
     beforeEach(async () => {
         const result = await bladeSdk.init(
@@ -706,7 +706,7 @@ describe("testing methods related to ETHEREUM", () => {
     test("bladeSdk-ethereum.exchangeGetQuotes", async () => {
         let result = await bladeSdk.init(
             process.env.API_KEY_MAINNET,
-            KnownChainIds.ETHEREUM_MAINNET,
+            KnownChains.ETHEREUM_MAINNET,
             process.env.DAPP_CODE,
             process.env.VISITOR_ID,
             process.env.SDK_ENV,
@@ -742,7 +742,7 @@ describe("testing methods related to ETHEREUM", () => {
     test("bladeSdk-ethereum.getTradeUrl", async () => {
         let result = await bladeSdk.init(
             process.env.API_KEY_MAINNET,
-            KnownChainIds.ETHEREUM_MAINNET,
+            KnownChains.ETHEREUM_MAINNET,
             process.env.DAPP_CODE,
             process.env.VISITOR_ID,
             process.env.SDK_ENV,

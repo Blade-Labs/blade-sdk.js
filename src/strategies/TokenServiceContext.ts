@@ -10,14 +10,14 @@ import {
     TransactionReceiptData,
     TransactionResponseData
 } from "../models/Common";
-import {ChainMap, ChainServiceStrategy, KnownChainIds} from "../models/Chain";
+import {ChainMap, ChainServiceStrategy, KnownChains} from "../models/Chain";
 import TokenServiceHedera from "./hedera/TokenServiceHedera";
 import TokenServiceEthereum from "./ethereum/TokenServiceEthereum";
 import {ethers} from "ethers";
 import ApiService from "../services/ApiService";
 import ConfigService from "../services/ConfigService";
-import {ICryptoFlowQuote, ICryptoFlowTransaction} from "../models/CryptoFlow";
-import FeeService from "../services/FeeService";
+import {ExchangeQuote, ExchangeTransaction} from "../models/Exchange";
+import FeeServiceContext from "./FeeServiceContext";
 
 export interface ITokenService {
     getBalance(address: string): Promise<BalanceData>;
@@ -44,8 +44,8 @@ export interface ITokenService {
     dropTokens(accountId: string, secretNonce: string): Promise<TokenDropData>;
     swapTokens(
         accountAddress: string,
-        selectedQuote: ICryptoFlowQuote,
-        txData: ICryptoFlowTransaction
+        selectedQuote: ExchangeQuote,
+        txData: ExchangeTransaction
     ): Promise<{success: boolean}>;
 }
 
@@ -67,41 +67,42 @@ export type TransferTokenInitData = {
 
 @injectable()
 export default class TokenServiceContext implements ITokenService {
-    private chainId: KnownChainIds | null = null;
+    private chain: KnownChains | null = null;
     private signer: Signer | ethers.Signer | null = null;
     private strategy: ITokenService | null = null;
 
     constructor(
         @inject("apiService") private readonly apiService: ApiService,
         @inject("configService") private readonly configService: ConfigService,
-        @inject("feeService") private readonly feeService: FeeService
+        @inject("feeServiceContext") private readonly feeServiceContext: FeeServiceContext
     ) {}
 
-    init(chainId: KnownChainIds, signer: Signer | ethers.Signer | null) {
-        this.chainId = chainId;
+    init(chain: KnownChains, signer: Signer | ethers.Signer | null) {
+        this.chain = chain;
         this.signer = signer;
+        this.feeServiceContext.init(chain);
 
-        switch (ChainMap[this.chainId].serviceStrategy) {
+        switch (ChainMap[this.chain].serviceStrategy) {
             case ChainServiceStrategy.Hedera:
                 this.strategy = new TokenServiceHedera(
-                    chainId,
+                    chain,
                     signer as Signer,
                     this.apiService,
                     this.configService,
-                    this.feeService
+                    this.feeServiceContext
                 );
                 break;
             case ChainServiceStrategy.Ethereum:
                 this.strategy = new TokenServiceEthereum(
-                    chainId,
+                    chain,
                     signer as ethers.Signer,
                     this.apiService,
                     this.configService,
-                    this.feeService
+                    this.feeServiceContext
                 );
                 break;
             default:
-                throw new Error(`Unsupported chain id: ${this.chainId}`);
+                throw new Error(`Unsupported chain id: ${this.chain}`);
         }
     }
 
@@ -167,8 +168,8 @@ export default class TokenServiceContext implements ITokenService {
 
     swapTokens(
         accountAddress: string,
-        selectedQuote: ICryptoFlowQuote,
-        txData: ICryptoFlowTransaction
+        selectedQuote: ExchangeQuote,
+        txData: ExchangeTransaction
     ): Promise<{success: boolean}> {
         this.checkSigner();
         return this.strategy!.swapTokens(accountAddress, selectedQuote, txData);

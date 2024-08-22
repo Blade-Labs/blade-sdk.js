@@ -6,38 +6,38 @@ import {
     TransactionReceiptData,
     TransactionResponseData
 } from "../../models/Common";
-import {KnownChainIds} from "../../models/Chain";
+import {KnownChains} from "../../models/Chain";
 import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
 import {Alchemy, Contract} from "alchemy-sdk";
 import StringHelpers from "../../helpers/StringHelpers";
 import ERC20ABI from "../../abi/erc20.abi";
-import FeeService from "../../services/FeeService";
 import BigNumber from "bignumber.js";
 import {Signer} from "@ethersproject/abstract-signer";
-import {ICryptoFlowQuote, ICryptoFlowTransaction} from "../../models/CryptoFlow";
+import {ExchangeQuote, ExchangeTransaction} from "../../models/Exchange";
 import {getAlchemyInstance} from "../../helpers/InitHelpers";
+import FeeServiceContext from "../../strategies/FeeServiceContext";
 
 export default class TokenServiceEthereum implements ITokenService {
-    private readonly chainId: KnownChainIds;
+    private readonly chain: KnownChains;
     private readonly signer: ethers.Signer | null;
     private readonly apiService: ApiService;
     private readonly configService: ConfigService;
-    private readonly feeService: FeeService;
+    private readonly feeServiceContext: FeeServiceContext;
     private alchemy: Alchemy | null = null;
 
     constructor(
-        chainId: KnownChainIds,
+        chain: KnownChains,
         signer: ethers.Signer | null,
         apiService: ApiService,
         configService: ConfigService,
-        feeService: FeeService
+        feeServiceContext: FeeServiceContext
     ) {
-        this.chainId = chainId;
+        this.chain = chain;
         this.signer = signer;
         this.apiService = apiService;
         this.configService = configService;
-        this.feeService = feeService;
+        this.feeServiceContext = feeServiceContext;
     }
 
     async getBalance(address: string): Promise<BalanceData> {
@@ -127,7 +127,7 @@ export default class TokenServiceEthereum implements ITokenService {
             maxFeePerGas,
             nonce,
             type: 2,
-            chainId: this.chainId,
+            chainId: StringHelpers.getChainId(this.chain),
         };
 
         const rawTransaction = await this.signer!.signTransaction(transaction);
@@ -162,8 +162,8 @@ export default class TokenServiceEthereum implements ITokenService {
 
     async swapTokens(
         accountAddress: string,
-        selectedQuote: ICryptoFlowQuote,
-        txData: ICryptoFlowTransaction,
+        selectedQuote: ExchangeQuote,
+        txData: ExchangeTransaction,
     ): Promise<{success: boolean}> {
         await this.initAlchemy();
 
@@ -181,14 +181,14 @@ export default class TokenServiceEthereum implements ITokenService {
         // can't add on backend side, because of bug with serialization
         // strange behaviour with ethers.js and serialization, it adds chainId and validation signature fields (v,s,r) to tx,
         // so it's not possible to sign tx with this fields
-        deserializedTx.chainId = this.chainId;
+        deserializedTx.chainId = StringHelpers.getChainId(this.chain);
 
         const res = await this.signer!.sendTransaction(deserializedTx);
         return res?.hash ? {success: true} : {success: false};
     }
 
     private async executeAllowanceApprove(
-            selectedQuote: ICryptoFlowQuote,
+            selectedQuote: ExchangeQuote,
             activeAccount: string,
             approve: boolean = true,
             allowanceToAddr?: string
@@ -219,7 +219,7 @@ export default class TokenServiceEthereum implements ITokenService {
 
     private async initAlchemy() {
         if (!this.alchemy) {
-            this.alchemy = await getAlchemyInstance(this.chainId, this.configService);
+            this.alchemy = await getAlchemyInstance(this.chain, this.configService);
         }
     }
 }

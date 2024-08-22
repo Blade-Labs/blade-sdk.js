@@ -3,7 +3,7 @@ import "reflect-metadata";
 import {Buffer} from "buffer";
 import {TokenType} from "@hashgraph/sdk";
 import ApiService from "./services/ApiService";
-import {HbarTokenId} from "./services/FeeService";
+import {HbarTokenId} from "./strategies/hedera/FeeServiceHedera";
 import ConfigService from "./services/ConfigService";
 import StringHelpers from "./helpers/StringHelpers";
 import {CustomError} from "./models/Errors";
@@ -44,23 +44,23 @@ import {
     UserInfoData,
     WebViewWindow
 } from "./models/Common";
-import {ChainMap, KnownChainIds} from "./models/Chain";
+import {ChainMap, KnownChains} from "./models/Chain";
 import config from "./config";
 import {ParametersBuilder} from "./ParametersBuilder";
-import {CryptoFlowServiceStrategy} from "./models/CryptoFlow";
+import {ExchangeStrategy} from "./models/Exchange";
 import {NftInfo, NftMetadata} from "./models/MirrorNode";
 import {File} from "nft.storage";
 import TokenServiceContext from "./strategies/TokenServiceContext";
 import AccountServiceContext from "./strategies/AccountServiceContext";
 import SignServiceContext from "./strategies/SignServiceContext";
 import ContractServiceContext from "./strategies/ContractServiceContext";
-import TradeService from "./services/TradeService";
+import ExchangeService from "./services/ExchangeService";
 import AuthServiceContext from "./strategies/AuthServiceContext";
 
 @injectable()
 export class BladeSDK {
     private apiKey: string = "";
-    private chainId: KnownChainIds = KnownChainIds.HEDERA_TESTNET;
+    private chain: KnownChains = KnownChains.HEDERA_TESTNET;
     private dAppCode: string = "";
     private visitorId: string = "";
     private sdkEnvironment: SdkEnvironment = SdkEnvironment.Prod;
@@ -77,7 +77,7 @@ export class BladeSDK {
      * @param tokenServiceContext - instance of TokenServiceContext
      * @param signServiceContext - instance of SignServiceContext
      * @param contractServiceContext - instance of ContractServiceContext
-     * @param tradeService - instance of TradeService
+     * @param exchangeService - instance of ExchangeService
      * @param isWebView - true if you are using this SDK in webview of native app. It changes the way of communication with native app.
      */
     constructor(
@@ -88,7 +88,7 @@ export class BladeSDK {
         @inject("tokenServiceContext") private readonly tokenServiceContext: TokenServiceContext,
         @inject("signServiceContext") private readonly signServiceContext: SignServiceContext,
         @inject("contractServiceContext") private readonly contractServiceContext: ContractServiceContext,
-        @inject("tradeService") private readonly tradeService: TradeService,
+        @inject("exchangeService") private readonly exchangeService: ExchangeService,
         @inject("isWebView") private readonly isWebView: boolean
     ) {
         this.webView = isWebView;
@@ -97,7 +97,7 @@ export class BladeSDK {
     /**
      * Init instance of BladeSDK for correct work with Blade API and other endpoints.
      * @param apiKey Unique key for API provided by Blade team.
-     * @param chainId one of supported chains from KnownChainIds
+     * @param chain one of supported chains from KnownChains
      * @param dAppCode your dAppCode - request specific one by contacting BladeLabs team
      * @param visitorId client unique id. If not provided, SDK will try to get it using fingerprintjs-pro library
      * @param sdkEnvironment environment to choose BladeAPI server (Prod, CI). Prod used by default.
@@ -105,11 +105,11 @@ export class BladeSDK {
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {InfoData} status: "success" or "error"
      * @example
-     * const info = await bladeSdk.init("apiKey", KnownChainIds.HEDERA_MAINNET, "dAppCode");
+     * const info = await bladeSdk.init("apiKey", KnownChains.HEDERA_MAINNET, "dAppCode");
      */
     async init(
         apiKey: string,
-        chainId: string | KnownChainIds,
+        chain: string | KnownChains,
         dAppCode: string,
         visitorId: string,
         sdkEnvironment: SdkEnvironment = SdkEnvironment.Prod,
@@ -117,7 +117,7 @@ export class BladeSDK {
         completionKey?: string
     ): Promise<InfoData> {
         this.apiKey = apiKey;
-        this.chainId = StringHelpers.stringToChainId(chainId);
+        this.chain = StringHelpers.stringToChain(chain);
         this.dAppCode = dAppCode;
         this.sdkEnvironment = sdkEnvironment;
         this.sdkVersion = sdkVersion;
@@ -126,10 +126,10 @@ export class BladeSDK {
             await this.resetUser();
         }
 
-        this.apiService.initApiService(apiKey, dAppCode, sdkEnvironment, sdkVersion, this.chainId, visitorId);
+        this.apiService.initApiService(apiKey, dAppCode, sdkEnvironment, sdkVersion, this.chain, visitorId);
         this.visitorId = await this.authServiceContext.getVisitorId(this.visitorId, this.apiKey, this.sdkEnvironment);
-        this.accountServiceContext.init(this.chainId, null); // init without signer, to be able to create account
-        this.tokenServiceContext.init(this.chainId, null); // init without signer, to be able to getBalance
+        this.accountServiceContext.init(this.chain, null); // init without signer, to be able to create account
+        this.tokenServiceContext.init(this.chain, null); // init without signer, to be able to getBalance
         return this.sendMessageToNative(completionKey, this.getInfoData());
     }
 
@@ -147,7 +147,7 @@ export class BladeSDK {
     /**
      * Set active user for further operations.
      * @param accountProvider one of supported providers: PrivateKey or Magic
-     * @param accountIdOrEmail account id (0.0.xxxxx, 0xABCDEF..., EMAIL) or empty string for some ChainId
+     * @param accountIdOrEmail account id (0.0.xxxxx, 0xABCDEF..., EMAIL) or empty string for some chains
      * @param privateKey private key for account (hex encoded privateKey with DER-prefix or 0xABCDEF...) In case of Magic provider - empty string
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {UserInfoData}
@@ -164,12 +164,12 @@ export class BladeSDK {
         completionKey?: string
     ): Promise<UserInfoData> {
         try {
-            this.user = await this.authServiceContext.setUser(this.chainId, accountProvider, accountIdOrEmail, privateKey);
+            this.user = await this.authServiceContext.setUser(this.chain, accountProvider, accountIdOrEmail, privateKey);
 
-            this.tokenServiceContext.init(this.chainId, this.user.signer);
-            this.accountServiceContext.init(this.chainId, this.user.signer);
-            this.signServiceContext.init(this.chainId, this.user.signer, this.user.publicKey);
-            this.contractServiceContext.init(this.chainId, this.user.signer);
+            this.tokenServiceContext.init(this.chain, this.user.signer);
+            this.accountServiceContext.init(this.chain, this.user.signer);
+            this.signServiceContext.init(this.chain, this.user.signer, this.user.publicKey);
+            this.contractServiceContext.init(this.chain, this.user.signer);
 
             return this.sendMessageToNative(completionKey, {
                 address: this.user.accountAddress,
@@ -809,22 +809,22 @@ export class BladeSDK {
      * @param sourceCode name (HBAR, KARATE, other token code)
      * @param sourceAmount amount to swap, buy or sell
      * @param targetCode name (HBAR, KARATE, USDC, other token code)
-     * @param strategy one of enum CryptoFlowServiceStrategy (Buy, Sell, Swap)
+     * @param strategy one of enum ExchangeStrategy (Buy, Sell, Swap)
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {SwapQuotesData}
      * @example
-     * const quotes = await bladeSdk.exchangeGetQuotes("EUR", 100, "HBAR", CryptoFlowServiceStrategy.BUY);
+     * const quotes = await bladeSdk.exchangeGetQuotes("EUR", 100, "HBAR", ExchangeStrategy.BUY);
      */
     async exchangeGetQuotes(
         sourceCode: string,
         sourceAmount: number,
         targetCode: string,
-        strategy: CryptoFlowServiceStrategy,
+        strategy: ExchangeStrategy,
         completionKey?: string
     ): Promise<SwapQuotesData> {
         try {
-            const result = await this.tradeService.exchangeGetQuotes(
-                this.chainId,
+            const result = await this.exchangeService.exchangeGetQuotes(
+                this.chain,
                 sourceCode,
                 sourceAmount,
                 targetCode,
@@ -849,10 +849,10 @@ export class BladeSDK {
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {IntegrationUrlData}
      * @example
-     * const {url} = await bladeSdk.getTradeUrl(CryptoFlowServiceStrategy.BUY, "0.0.10001", "EUR", 50, "HBAR", 0.5, "saucerswapV2", redirectUrl);
+     * const {url} = await bladeSdk.getTradeUrl(ExchangeStrategy.BUY, "0.0.10001", "EUR", 50, "HBAR", 0.5, "saucerswapV2", redirectUrl);
      */
     async getTradeUrl(
-        strategy: CryptoFlowServiceStrategy,
+        strategy: ExchangeStrategy,
         accountAddress: string,
         sourceCode: string,
         sourceAmount: number,
@@ -864,8 +864,8 @@ export class BladeSDK {
     ): Promise<IntegrationUrlData> {
         try {
             accountAddress = accountAddress || this.getUser().accountAddress;
-            const result = await this.tradeService.getTradeUrl(
-                this.chainId,
+            const result = await this.exchangeService.getTradeUrl(
+                this.chain,
                 strategy,
                 accountAddress,
                 sourceCode,
@@ -902,8 +902,8 @@ export class BladeSDK {
         completionKey?: string
     ): Promise<ResultData> {
         try {
-            const result = await this.tradeService.swapTokens(
-                this.chainId,
+            const result = await this.exchangeService.swapTokens(
+                this.chain,
                 this.getUser().accountAddress,
                 sourceCode,
                 sourceAmount,
@@ -1084,8 +1084,8 @@ export class BladeSDK {
         return {
             apiKey: this.apiKey,
             dAppCode: this.dAppCode,
-            isTestnet: ChainMap[this.chainId].isTestnet,
-            chainId: this.chainId,
+            isTestnet: ChainMap[this.chain].isTestnet,
+            chain: this.chain,
             visitorId: this.visitorId,
             sdkEnvironment: this.sdkEnvironment,
             sdkVersion: this.sdkVersion,

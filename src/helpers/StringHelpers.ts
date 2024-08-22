@@ -1,5 +1,5 @@
 import {Network} from "../models/Networks";
-import {KnownChainIds} from "../models/Chain";
+import {KnownChains} from "../models/Chain";
 import {EthNetworkConfiguration} from "magic-sdk";
 
 export default class StringHelpers {
@@ -11,11 +11,16 @@ export default class StringHelpers {
         return network;
     }
 
-    static stringToChainId(chainId: string): KnownChainIds {
-        if (!Object.values(KnownChainIds).includes(chainId as KnownChainIds)) {
-            throw new Error(`Invalid chain id: ${chainId}`);
+    static stringToChain(chain: string): KnownChains {
+        if (!Object.values(KnownChains).includes(chain as KnownChains)) {
+            throw new Error(`Invalid chain id: ${chain}`);
         }
-        return chainId as KnownChainIds;
+        return chain as KnownChains;
+    }
+
+    static getChainId(chain: KnownChains): number {
+        const [/* namespace */, chainId] = chain.split(":");
+        return parseInt(chainId, 10);
     }
 
     static networkToEthereum(network: Network): EthNetworkConfiguration {

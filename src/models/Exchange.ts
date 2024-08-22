@@ -1,31 +1,32 @@
 import BigNumber from "bignumber.js";
+import {FeeType} from "./Common";
 
-export enum ICryptoFlowNetworkType {
+export enum ExchangeNetworkType {
     ETHEREUM = "Ethereum",
     HEDERA = "Hedera"
 }
 
-export interface ICryptoFlowTransaction {
-    network: ICryptoFlowNetworkType; // string
+export interface ExchangeTransaction {
+    network: ExchangeNetworkType; // string
     calldata: string; // base64 - actual transaction
     signature: string; // base64 - signature of transaction bytes
     trackUrl?: string; // url to redirect user to (status page)
     allowanceTo?: string; // address to give allowance to, hedera case
 }
 
-export enum CryptoFlowRoutes {
+export enum ExchangeRoutes {
     ASSETS = "assets",
     QUOTES = "quotes",
     TRANSACTION = "transaction"
 }
 
-export enum CryptoFlowServiceStrategy {
+export enum ExchangeStrategy {
     BUY = "Buy",
     SELL = "Sell",
     SWAP = "Swap"
 }
 
-export interface ICryptoFlowAssetsParams {
+export interface ExchangeAssetsParams {
     sourceCode?: string;
     sourceChainId?: number;
     targetCode?: string;
@@ -35,7 +36,7 @@ export interface ICryptoFlowAssetsParams {
     limitedByChain?: number; // chain id number
 }
 
-export interface ICryptoFlowQuoteParams {
+export interface ExchangeQuoteParams {
     sourceCode: string;
     sourceAddress?: string;
     sourceChainId?: number;
@@ -54,7 +55,7 @@ export interface ICryptoFlowQuoteParams {
     redirectUrl?: string; // redirect user to this url after action
 }
 
-export interface ICryptoFlowTransactionParams {
+export interface ExchangeTransactionParams {
     serviceId: string; // service id
 
     sourceCode: string;
@@ -73,14 +74,14 @@ export interface ICryptoFlowTransactionParams {
     useTestnet?: boolean;
 }
 
-export interface ICryptoFlowAssets {
-    source: ICryptoFlowAsset[];
-    target: ICryptoFlowAsset[];
-    countries?: ICryptoFlowCountry[];
+export interface ExchangeAssets {
+    source: ExchangeAsset[];
+    target: ExchangeAsset[];
+    countries?: ExchangeCountry[];
     limits?: IAssetTransactionLimits;
 }
 
-export interface ICryptoFlowAsset {
+export interface ExchangeAsset {
     name: string;
     code: string;
     type: string;
@@ -96,7 +97,7 @@ export interface ICryptoFlowAsset {
     imageUrl?: string;
 }
 
-export interface ICryptoFlowCountry {
+export interface ExchangeCountry {
     code: string; // ISO Country Code
     name: string;
 }
@@ -114,7 +115,7 @@ export interface IAssetTransactionLimits {
     rates?: number[];
 }
 
-export interface ICryptoFlowQuote {
+export interface ExchangeQuote {
     service: {
         id: string;
         name: string;
@@ -133,7 +134,7 @@ export interface ICryptoFlowQuote {
 }
 
 export interface IAssetQuote {
-    asset: ICryptoFlowAsset;
+    asset: ExchangeAsset;
     amountExpected: number;
     totalFee: number | null;
 }
@@ -141,18 +142,7 @@ export interface IAssetQuote {
 export type FeeManualOptions = {
     type: FeeType;
     amount: BigNumber;
-    amountTokenId: string | undefined;
+    amountTokenId: string;
 };
 
-export enum FeeType {
-    TradeNFT = "TradeNFT",
-    TransferHBAR = "TransferHBAR",
-    TransferToken = "TransferToken",
-    TransferNFT = "TransferNFT",
-    ScheduledTransferHBAR = "ScheduledTransferHBAR",
-    ScheduledTransferToken = "ScheduledTransferToken",
-    StakingClaim = "StakingClaim",
-    Swap = "Swap",
-    AccountCreate = "AccountCreate",
-    Default = "Default"
-}
+

@@ -1,6 +1,6 @@
 import {ethers} from "ethers";
 import {ContractCallQueryRecordsData, TransactionReceiptData} from "../../models/Common";
-import {KnownChainIds} from "../../models/Chain";
+import {KnownChains} from "../../models/Chain";
 import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
 import {IContractService} from "../ContractServiceContext";
@@ -8,13 +8,13 @@ import {ParametersBuilder} from "../../ParametersBuilder";
 import {getContractFunctionBytecode} from "../../helpers/ContractHelpers";
 
 export default class ContractServiceEthereum implements IContractService {
-    private readonly chainId: KnownChainIds;
+    private readonly chain: KnownChains;
     private readonly signer: ethers.Signer;
     private readonly apiService: ApiService;
     private readonly configService: ConfigService;
 
-    constructor(chainId: KnownChainIds, signer: ethers.Signer, apiService: ApiService, configService: ConfigService) {
-        this.chainId = chainId;
+    constructor(chain: KnownChains, signer: ethers.Signer, apiService: ApiService, configService: ConfigService) {
+        this.chain = chain;
         this.signer = signer;
         this.apiService = apiService;
         this.configService = configService;

@@ -11,11 +11,11 @@ export enum CryptoKeyType {
     ED25519 = "ED25519"
 }
 
-export enum KnownChainIds {
-    ETHEREUM_MAINNET = "1",
-    ETHEREUM_SEPOLIA = "11155111",
-    HEDERA_MAINNET = "295",
-    HEDERA_TESTNET = "296"
+export enum KnownChains { // namespace : chainId
+    ETHEREUM_MAINNET = "eip155:1",
+    ETHEREUM_SEPOLIA = "eip155:11155111",
+    HEDERA_MAINNET = "hedera:295",
+    HEDERA_TESTNET = "hedera:296"
 }
 
 export type ChainConfig = {
@@ -34,8 +34,8 @@ export type ChainConfig = {
     explorerUrl: string;
 };
 
-export const ChainMap: Record<KnownChainIds, ChainConfig> = {
-    [KnownChainIds.HEDERA_MAINNET]: {
+export const ChainMap: Record<KnownChains, ChainConfig> = {
+    [KnownChains.HEDERA_MAINNET]: {
         name: "Hedera Mainnet",
         isTestnet: false,
         currency: "HBAR",
@@ -50,7 +50,7 @@ export const ChainMap: Record<KnownChainIds, ChainConfig> = {
         },
         explorerUrl: "https://hashscan.io/mainnet/transaction/"
     },
-    [KnownChainIds.HEDERA_TESTNET]: {
+    [KnownChains.HEDERA_TESTNET]: {
         name: "Hedera Testnet",
         isTestnet: true,
         currency: "HBAR",
@@ -65,7 +65,7 @@ export const ChainMap: Record<KnownChainIds, ChainConfig> = {
         },
         explorerUrl: "https://hashscan.io/testnet/transaction/"
     },
-    [KnownChainIds.ETHEREUM_MAINNET]: {
+    [KnownChains.ETHEREUM_MAINNET]: {
         name: "Ethereum Mainnet",
         isTestnet: false,
         currency: "ETH",
@@ -77,7 +77,7 @@ export const ChainMap: Record<KnownChainIds, ChainConfig> = {
         supportsHardware: true,
         explorerUrl: "https://etherscan.io/tx/"
     },
-    [KnownChainIds.ETHEREUM_SEPOLIA]: {
+    [KnownChains.ETHEREUM_SEPOLIA]: {
         name: "Ethereum Sepolia",
         isTestnet: true,
         currency: "ETH",

@@ -19,7 +19,6 @@ export default class ConfigService {
         saucerswapApi: "", // '{"Testnet":"https://test-api.saucerswap.finance/","Mainnet":"https://api.saucerswap.finance/"}',
         magicLinkPublicKey: "",
         refreshTaskPeriodSeconds: 1,
-        feesConfig: "", // '{"Mainnet":{"AccountCreate":{"collector":"0.0.123","min":0.01,"amount":0,"max":0.5,"limitsCurrency":"usd"},"TradeNFT":{...}, ...}}',
 
         // TODO add alchemy keys in backend config
         alchemyTestnetRPC: 'https://eth-sepolia.g.alchemy.com/v2/',
@@ -28,6 +27,7 @@ export default class ConfigService {
         alchemyMainnetAPIKey: '',
         ipfsGateway: 'https://blade.mypinata.cloud/ipfs/'
     };
+    // TODO add fees in dapp backend config
     private dAppConfig: Partial<DAppConfig> = {};
 
     constructor(@inject("apiService") private readonly apiService: ApiService) {}

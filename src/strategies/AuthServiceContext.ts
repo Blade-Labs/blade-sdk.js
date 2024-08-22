@@ -5,7 +5,7 @@ import {AccountProvider, ActiveUser, MagicWithHedera, SdkEnvironment} from "../m
 import * as FingerprintJS from "@fingerprintjs/fingerprintjs-pro";
 import ApiService from "../services/ApiService";
 import ConfigService from "../services/ConfigService";
-import {ChainMap, ChainServiceStrategy, KnownChainIds} from "../models/Chain";
+import {ChainMap, ChainServiceStrategy, KnownChains} from "../models/Chain";
 import {Signer} from "@hashgraph/sdk";
 import * as ethers from "ethers";
 import {MagicUserMetadata} from "@magic-sdk/types";
@@ -29,7 +29,7 @@ export default class AuthServiceContext {
     private apiKey: string = "";
     private sdkEnvironment: SdkEnvironment = SdkEnvironment.Prod;
 
-    private chainId: KnownChainIds = KnownChainIds.HEDERA_TESTNET;
+    private chain: KnownChains = KnownChains.HEDERA_TESTNET;
     private accountProvider: AccountProvider | null = null;
     private signer: Signer | ethers.Signer | null = null;
     private magic: MagicWithHedera | null = null;
@@ -42,26 +42,26 @@ export default class AuthServiceContext {
         @inject("configService") private readonly configService: ConfigService
     ) {}
 
-    init(chainId: KnownChainIds) {
-        this.chainId = chainId;
+    init(chain: KnownChains) {
+        this.chain = chain;
 
-        switch (ChainMap[this.chainId].serviceStrategy as ChainServiceStrategy) {
+        switch (ChainMap[this.chain].serviceStrategy as ChainServiceStrategy) {
             case ChainServiceStrategy.Hedera:
                 this.strategy = new AuthServiceHedera(
-                    chainId,
+                    chain,
                     this.apiService,
                     this.configService
                 );
                 break;
             case ChainServiceStrategy.Ethereum:
                 this.strategy = new AuthServiceEthereum(
-                    chainId,
+                    chain,
                     this.apiService,
                     this.configService
                 );
                 break;
             default:
-                throw new Error(`Unsupported chain id: ${this.chainId}`);
+                throw new Error(`Unsupported chain: ${this.chain}`);
         }
     }
 
@@ -110,16 +110,16 @@ export default class AuthServiceContext {
     }
 
     async setUser(
-        chainId: KnownChainIds,
+        chain: KnownChains,
         accountProvider: AccountProvider,
         accountIdOrEmail: string,
         privateKeyDer?: string
     ): Promise<ActiveUser> {
-        this.chainId = chainId;
+        this.chain = chain;
         this.accountProvider = accountProvider;
 
         if (!this.strategy) {
-            this.init(chainId);
+            this.init(chain);
         }
 
         try {
@@ -135,7 +135,7 @@ export default class AuthServiceContext {
                 case AccountProvider.Magic: {
                     let userInfo: MagicUserMetadata | undefined;
                     if (!this.magic) {
-                        await this.initMagic(this.chainId);
+                        await this.initMagic(this.chain);
                     }
 
                     if (await this.magic?.user.isLoggedIn()) {
@@ -188,7 +188,7 @@ export default class AuthServiceContext {
         this.signer = null;
         if (this.accountProvider === AccountProvider.Magic) {
             if (!this.magic) {
-                await this.initMagic(this.chainId);
+                await this.initMagic(this.chain);
             }
             await this.magic!.user.logout();
         }
@@ -197,16 +197,16 @@ export default class AuthServiceContext {
         return null;
     }
 
-    private async initMagic(chainId: KnownChainIds) {
-        const network = ChainMap[this.chainId].isTestnet ? Network.Testnet : Network.Mainnet;
+    private async initMagic(chain: KnownChains) {
+        const network = ChainMap[this.chain].isTestnet ? Network.Testnet : Network.Mainnet;
         const options: MagicSDKAdditionalConfiguration = {};
-        if (ChainMap[chainId].serviceStrategy === ChainServiceStrategy.Hedera) {
+        if (ChainMap[chain].serviceStrategy === ChainServiceStrategy.Hedera) {
             options.extensions = [
                 new HederaExtension({
                     network: network.toLowerCase()
                 })
             ];
-        } else if (ChainMap[chainId].serviceStrategy === ChainServiceStrategy.Ethereum) {
+        } else if (ChainMap[chain].serviceStrategy === ChainServiceStrategy.Ethereum) {
             options.network = StringHelpers.networkToEthereum(network);
         }
         this.magic = new Magic(await this.configService.getConfig(`magicLinkPublicKey`), options) as unknown as MagicWithHedera;

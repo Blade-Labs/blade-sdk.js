@@ -21,6 +21,7 @@ import {ITokenService, TransferInitData, TransferTokenInitData} from "../TokenSe
 import {
     AssociationAction,
     BalanceData,
+    FeeType,
     KeyRecord,
     KeyType,
     NFTStorageConfig,
@@ -34,28 +35,29 @@ import ConfigService from "../../services/ConfigService";
 import {formatReceipt} from "../../helpers/TransactionHelpers";
 import {dataURLtoFile} from "../../helpers/FileHelper";
 import {NFTStorage} from "nft.storage";
-import {ChainMap, KnownChainIds} from "../../models/Chain";
+import {ChainMap, KnownChains} from "../../models/Chain";
 import {JobAction, JobStatus} from "../../models/BladeApi";
 import {limitAttempts, sleep} from "../../helpers/ApiHelper";
-import {FeeManualOptions, FeeType, ICryptoFlowQuote, ICryptoFlowTransaction} from "../../models/CryptoFlow";
+import {FeeManualOptions, ExchangeQuote, ExchangeTransaction} from "../../models/Exchange";
 import {Network} from "../../models/Networks";
 import BigNumber from "bignumber.js";
 import {flatArray} from "../../helpers/ArrayHelpers";
-import FeeService, {HbarTokenId} from "../../services/FeeService";
+import {HbarTokenId} from "./FeeServiceHedera";
+import FeeServiceContext from "../FeeServiceContext";
 
 export default class TokenServiceHedera implements ITokenService {
-    private readonly chainId: KnownChainIds;
+    private readonly chain: KnownChains;
     private readonly signer: Signer | null;
     private readonly apiService: ApiService;
     private readonly configService: ConfigService;
-    private readonly feeService: FeeService;
+    private readonly feeServiceContext: FeeServiceContext;
 
-    constructor(chainId: KnownChainIds, signer: Signer | null, apiService: ApiService, configService: ConfigService, feeService: FeeService) {
-        this.chainId = chainId;
+    constructor(chain: KnownChains, signer: Signer | null, apiService: ApiService, configService: ConfigService, feeServiceContext: FeeServiceContext) {
+        this.chain = chain;
         this.signer = signer;
         this.apiService = apiService;
         this.configService = configService;
-        this.feeService = feeService;
+        this.feeServiceContext = feeServiceContext;
     }
 
     async getBalance(address: string): Promise<BalanceData> {
@@ -419,8 +421,8 @@ export default class TokenServiceHedera implements ITokenService {
 
     async swapTokens(
         accountAddress: string,
-        selectedQuote: ICryptoFlowQuote,
-        txData: ICryptoFlowTransaction,
+        selectedQuote: ExchangeQuote,
+        txData: ExchangeTransaction,
     ): Promise<{success: boolean}> {
         if (await this.validateMessage(txData)) {
             await this.executeAllowanceApprove(
@@ -443,7 +445,7 @@ export default class TokenServiceHedera implements ITokenService {
             await this.executeHederaBladeFeeTx(
                 selectedQuote,
                 accountAddress,
-                this.chainId,
+                this.chain,
             );
         } else {
             throw new Error("Invalid signature of txData");
@@ -451,7 +453,7 @@ export default class TokenServiceHedera implements ITokenService {
         return {success: true};
     }
 
-    private async validateMessage(tx: ICryptoFlowTransaction) {
+    private async validateMessage(tx: ExchangeTransaction) {
         try {
             const pubKeyHex = await this.configService.getConfig("exchangeServiceSignerPubKey");
             const decodedJsonString = Buffer.from(pubKeyHex, "hex").toString();
@@ -485,12 +487,12 @@ export default class TokenServiceHedera implements ITokenService {
     }
 
     private async executeAllowanceApprove(
-        selectedQuote: ICryptoFlowQuote,
+        selectedQuote: ExchangeQuote,
         activeAccount: string,
         approve: boolean = true,
         allowanceToAddr?: string
     ): Promise<void> {
-        const network = ChainMap[this.chainId].isTestnet ? Network.Testnet : Network.Mainnet;
+        const network = ChainMap[this.chain].isTestnet ? Network.Testnet : Network.Mainnet;
 
         const sourceToken = selectedQuote.source.asset;
         if (!sourceToken.address) return;
@@ -532,16 +534,16 @@ export default class TokenServiceHedera implements ITokenService {
     }
 
     private async executeHederaBladeFeeTx(
-        selectedQuote: ICryptoFlowQuote,
+        selectedQuote: ExchangeQuote,
         activeAccount: string,
-        chainId: KnownChainIds
+        chain: KnownChains
     ) {
         const feeOptions: FeeManualOptions = {
             type: FeeType.Swap,
             amount: BigNumber(selectedQuote.source.amountExpected),
-            amountTokenId: selectedQuote.source.asset.address
+            amountTokenId: selectedQuote.source.asset.address || ""
         };
-        let transaction = await this.feeService.createFeeTransaction(chainId, activeAccount, feeOptions);
+        let transaction = await this.feeServiceContext.createFeeTransaction<TransferTransaction>(chain, activeAccount, feeOptions);
         if (!transaction) {
             return;
         }

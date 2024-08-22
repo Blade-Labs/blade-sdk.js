@@ -10,7 +10,7 @@ import {
     TransactionReceiptData,
     TransactionsHistoryData,
 } from "../models/Common";
-import {ChainMap, ChainServiceStrategy, KnownChainIds} from "../models/Chain";
+import {ChainMap, ChainServiceStrategy, KnownChains} from "../models/Chain";
 import AccountServiceHedera from "./hedera/AccountServiceHedera";
 import AccountServiceEthereum from "./ethereum/AccountServiceEthereum";
 import {ethers} from "ethers";
@@ -39,7 +39,7 @@ export interface IAccountService {
 
 @injectable()
 export default class AccountServiceContext implements IAccountService {
-    private chainId: KnownChainIds | null = null;
+    private chain: KnownChains | null = null;
     private signer: Signer | ethers.Signer | null = null;
     private strategy: IAccountService | null = null;
 
@@ -48,14 +48,14 @@ export default class AccountServiceContext implements IAccountService {
         @inject("configService") private readonly configService: ConfigService
     ) {}
 
-    init(chainId: KnownChainIds, signer: Signer | ethers.Signer | null) {
-        this.chainId = chainId;
+    init(chain: KnownChains, signer: Signer | ethers.Signer | null) {
+        this.chain = chain;
         this.signer = signer; // may be null if BladeSDK.setUser() not called. Useful for createAccount() for example
 
-        switch (ChainMap[this.chainId].serviceStrategy as ChainServiceStrategy) {
+        switch (ChainMap[this.chain].serviceStrategy as ChainServiceStrategy) {
             case ChainServiceStrategy.Hedera:
                 this.strategy = new AccountServiceHedera(
-                    chainId,
+                    chain,
                     signer as Signer | null,
                     this.apiService,
                     this.configService
@@ -63,14 +63,14 @@ export default class AccountServiceContext implements IAccountService {
                 break;
             case ChainServiceStrategy.Ethereum:
                 this.strategy = new AccountServiceEthereum(
-                    chainId,
+                    chain,
                     signer as ethers.Signer | null,
                     this.apiService,
                     this.configService
                 );
                 break;
             default:
-                throw new Error(`Unsupported chain id: ${this.chainId}`);
+                throw new Error(`Unsupported chain id: ${this.chain}`);
         }
     }
 

@@ -21,7 +21,7 @@ import {
     TransactionReceiptData,
     TransactionsHistoryData
 } from "../../models/Common";
-import {ChainMap, CryptoKeyType, KnownChainIds} from "../../models/Chain";
+import {ChainMap, CryptoKeyType, KnownChains} from "../../models/Chain";
 import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
 import {AccountInfo, NodeInfo} from "../../models/MirrorNode";
@@ -34,13 +34,13 @@ import {JobAction, JobStatus} from "../../models/BladeApi";
 import {Buffer} from "buffer";
 
 export default class AccountServiceHedera implements IAccountService {
-    private readonly chainId: KnownChainIds;
+    private readonly chain: KnownChains;
     private readonly signer: Signer | null = null;
     private readonly apiService: ApiService;
     private readonly configService: ConfigService;
 
-    constructor(chainId: KnownChainIds, signer: Signer | null, apiService: ApiService, configService: ConfigService) {
-        this.chainId = chainId;
+    constructor(chain: KnownChains, signer: Signer | null, apiService: ApiService, configService: ConfigService) {
+        this.chain = chain;
         this.signer = signer;
         this.apiService = apiService;
         this.configService = configService;
@@ -350,6 +350,6 @@ export default class AccountServiceHedera implements IAccountService {
     }
 
     private getClient() {
-        return ChainMap[this.chainId].isTestnet ? Client.forTestnet() : Client.forMainnet();
+        return ChainMap[this.chain].isTestnet ? Client.forTestnet() : Client.forMainnet();
     }
 }

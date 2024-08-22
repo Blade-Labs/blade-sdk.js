@@ -11,7 +11,7 @@ import {
     SupportedEncoding,
     TransactionReceiptData
 } from "../models/Common";
-import {ChainMap, ChainServiceStrategy, KnownChainIds} from "../models/Chain";
+import {ChainMap, ChainServiceStrategy, KnownChains} from "../models/Chain";
 import SignServiceHedera from "./hedera/SignServiceHedera";
 import SignServiceEthereum from "./ethereum/SignServiceEthereum";
 import {ethers} from "ethers";
@@ -43,7 +43,7 @@ export interface ISignService {
 
 @injectable()
 export default class SignServiceContext implements ISignService {
-    private chainId: KnownChainIds | null = null;
+    private chain: KnownChains | null = null;
     private signer: Signer | ethers.Signer | null = null;
     private strategy: ISignService | null = null;
     private publicKey: string = "";
@@ -54,25 +54,25 @@ export default class SignServiceContext implements ISignService {
         @inject("signService") private readonly signService: SignService
     ) {}
 
-    init(chainId: KnownChainIds, signer: Signer | ethers.Signer, publicKey: string) {
-        this.chainId = chainId;
+    init(chain: KnownChains, signer: Signer | ethers.Signer, publicKey: string) {
+        this.chain = chain;
         this.signer = signer;
         this.publicKey = publicKey;
 
-        switch (ChainMap[this.chainId].serviceStrategy) {
+        switch (ChainMap[this.chain].serviceStrategy) {
             case ChainServiceStrategy.Hedera:
-                this.strategy = new SignServiceHedera(chainId, signer as Signer, this.apiService, this.configService);
+                this.strategy = new SignServiceHedera(chain, signer as Signer, this.apiService, this.configService);
                 break;
             case ChainServiceStrategy.Ethereum:
                 this.strategy = new SignServiceEthereum(
-                    chainId,
+                    chain,
                     signer as ethers.Signer,
                     this.apiService,
                     this.configService
                 );
                 break;
             default:
-                throw new Error(`Unsupported chain id: ${this.chainId}`);
+                throw new Error(`Unsupported chain id: ${this.chain}`);
         }
     }
 

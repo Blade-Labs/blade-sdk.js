@@ -3,7 +3,7 @@ import "reflect-metadata";
 
 import {Signer} from "@hashgraph/sdk";
 import {ContractCallQueryRecordsData, TransactionReceiptData} from "../models/Common";
-import {ChainMap, ChainServiceStrategy, KnownChainIds} from "../models/Chain";
+import {ChainMap, ChainServiceStrategy, KnownChains} from "../models/Chain";
 import ContractServiceHedera from "./hedera/ContractServiceHedera";
 import ContractServiceEthereum from "./ethereum/ContractServiceEthereum";
 import {ethers} from "ethers";
@@ -32,7 +32,7 @@ export interface IContractService {
 
 @injectable()
 export default class ContractServiceContext implements IContractService {
-    private chainId: KnownChainIds | null = null;
+    private chain: KnownChains | null = null;
     private signer: Signer | ethers.Signer | null = null;
     private strategy: IContractService | null = null;
 
@@ -41,14 +41,14 @@ export default class ContractServiceContext implements IContractService {
         @inject("configService") private readonly configService: ConfigService
     ) {}
 
-    init(chainId: KnownChainIds, signer: Signer | ethers.Signer) {
-        this.chainId = chainId;
+    init(chain: KnownChains, signer: Signer | ethers.Signer) {
+        this.chain = chain;
         this.signer = signer;
 
-        switch (ChainMap[this.chainId].serviceStrategy) {
+        switch (ChainMap[this.chain].serviceStrategy) {
             case ChainServiceStrategy.Hedera:
                 this.strategy = new ContractServiceHedera(
-                    chainId,
+                    chain,
                     signer as Signer,
                     this.apiService,
                     this.configService
@@ -56,14 +56,14 @@ export default class ContractServiceContext implements IContractService {
                 break;
             case ChainServiceStrategy.Ethereum:
                 this.strategy = new ContractServiceEthereum(
-                    chainId,
+                    chain,
                     signer as ethers.Signer,
                     this.apiService,
                     this.configService
                 );
                 break;
             default:
-                throw new Error(`Unsupported chain id: ${this.chainId}`);
+                throw new Error(`Unsupported chain id: ${this.chain}`);
         }
     }
 

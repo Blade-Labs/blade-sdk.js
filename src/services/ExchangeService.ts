@@ -1,98 +1,99 @@
 import {injectable, inject} from "inversify";
 import "reflect-metadata";
 import {
-    CryptoFlowRoutes,
-    CryptoFlowServiceStrategy,
-    ICryptoFlowAssets,
-    ICryptoFlowQuote,
-    ICryptoFlowQuoteParams,
-    ICryptoFlowTransaction
-} from "../models/CryptoFlow";
-import {HbarTokenId} from "./FeeService";
-import {ChainMap, KnownChainIds} from "../models/Chain";
+    ExchangeRoutes,
+    ExchangeStrategy,
+    ExchangeAssets,
+    ExchangeQuote,
+    ExchangeQuoteParams,
+    ExchangeTransaction
+} from "../models/Exchange";
+import {ChainMap, ChainServiceStrategy, KnownChains} from "../models/Chain";
 import {IntegrationUrlData, SwapQuotesData} from "../models/Common";
 import ApiService from "../services/ApiService";
 import TokenServiceContext from "../strategies/TokenServiceContext";
+import StringHelpers from "../helpers/StringHelpers";
 
 @injectable()
-export default class TradeService {
+export default class ExchangeService {
     constructor(
         @inject("apiService") private readonly apiService: ApiService,
         @inject("tokenServiceContext") private readonly tokenServiceContext: TokenServiceContext,
     ) {}
 
     async exchangeGetQuotes(
-        chainId: KnownChainIds,
+        chain: KnownChains,
         sourceCode: string,
         sourceAmount: number,
         targetCode: string,
-        strategy: CryptoFlowServiceStrategy
+        strategy: ExchangeStrategy
     ): Promise<SwapQuotesData> {
-        const useTestnet = ChainMap[chainId].isTestnet;
-        const chainIdNumeric = parseInt(chainId, 10);
-        const assets = (await this.apiService.getCryptoFlowData(
-            CryptoFlowRoutes.ASSETS,
+        const useTestnet = ChainMap[chain].isTestnet;
+        const chainId = StringHelpers.getChainId(chain);
+        const assets = (await this.apiService.getExchangeServiceData(
+            ExchangeRoutes.ASSETS,
             {
                 sourceCode,
                 targetCode,
                 useTestnet,
-                targetChainId: chainIdNumeric,
-                sourceChainId: chainIdNumeric,
+                targetChainId: chainId,
+                sourceChainId: chainId,
             },
             strategy
-        )) as ICryptoFlowAssets;
+        )) as ExchangeAssets;
 
         const sourceAddress = assets.source.find((asset) => asset.code === sourceCode)?.address;
         const targetAddress = assets.target.find((asset) => asset.code === targetCode)?.address;
 
+        const walletAddress = ChainMap[chain].serviceStrategy === ChainServiceStrategy.Hedera ? "0.0.0" : "0x0000000000000000000000000000000000000000";
 
-        const params: ICryptoFlowQuoteParams = {
+        const params: ExchangeQuoteParams = {
             sourceCode,
             sourceAmount,
             targetCode,
             useTestnet,
-            walletAddress: HbarTokenId,
+            walletAddress,
             slippage: "0.5",
             sourceAddress,
             targetAddress,
         };
 
         switch (strategy.toLowerCase()) {
-            case CryptoFlowServiceStrategy.BUY.toLowerCase(): {
-                params.targetChainId = chainIdNumeric;
+            case ExchangeStrategy.BUY.toLowerCase(): {
+                params.targetChainId = chainId;
                 break;
             }
-            case CryptoFlowServiceStrategy.SELL.toLowerCase(): {
-                params.sourceChainId = chainIdNumeric;
-                const assets = (await this.apiService.getCryptoFlowData(
-                    CryptoFlowRoutes.ASSETS,
+            case ExchangeStrategy.SELL.toLowerCase(): {
+                params.sourceChainId = chainId;
+                const assets = (await this.apiService.getExchangeServiceData(
+                    ExchangeRoutes.ASSETS,
                     params,
                     strategy
-                )) as ICryptoFlowAssets;
+                )) as ExchangeAssets;
 
                 if (assets?.limits?.rates && assets.limits.rates.length > 0) {
                     params.targetAmount = assets.limits.rates[0] * sourceAmount;
                 }
                 break;
             }
-            case CryptoFlowServiceStrategy.SWAP.toLowerCase(): {
-                params.sourceChainId = chainIdNumeric;
-                params.targetChainId = chainIdNumeric;
+            case ExchangeStrategy.SWAP.toLowerCase(): {
+                params.sourceChainId = chainId;
+                params.targetChainId = chainId;
                 break;
             }
         }
 
-        const quotes = (await this.apiService.getCryptoFlowData(
-            CryptoFlowRoutes.QUOTES,
+        const quotes = (await this.apiService.getExchangeServiceData(
+            ExchangeRoutes.QUOTES,
             params,
             strategy
-        )) as ICryptoFlowQuote[];
+        )) as ExchangeQuote[];
         return {quotes};
     }
 
     async getTradeUrl(
-        chainId: KnownChainIds,
-        strategy: CryptoFlowServiceStrategy,
+        chain: KnownChains,
+        strategy: ExchangeStrategy,
         accountAddress: string,
         sourceCode: string,
         sourceAmount: number,
@@ -101,9 +102,9 @@ export default class TradeService {
         serviceId: string,
         redirectUrl: string
     ): Promise<IntegrationUrlData> {
-        const useTestnet = ChainMap[chainId].isTestnet;
-        const chainIdNumeric = parseInt(chainId, 10);
-        const params: ICryptoFlowQuoteParams = {
+        const useTestnet = ChainMap[chain].isTestnet;
+        const chainId = StringHelpers.getChainId(chain);
+        const params: ExchangeQuoteParams = {
             sourceCode,
             sourceAmount,
             targetCode,
@@ -113,17 +114,17 @@ export default class TradeService {
         };
 
         switch (strategy.toLowerCase()) {
-            case CryptoFlowServiceStrategy.BUY.toLowerCase(): {
-                params.targetChainId = chainIdNumeric;
+            case ExchangeStrategy.BUY.toLowerCase(): {
+                params.targetChainId = chainId;
                 break;
             }
-            case CryptoFlowServiceStrategy.SELL.toLowerCase(): {
-                params.sourceChainId = chainIdNumeric;
-                const assets = (await this.apiService.getCryptoFlowData(
-                    CryptoFlowRoutes.ASSETS,
+            case ExchangeStrategy.SELL.toLowerCase(): {
+                params.sourceChainId = chainId;
+                const assets = (await this.apiService.getExchangeServiceData(
+                    ExchangeRoutes.ASSETS,
                     params,
                     strategy
-                )) as ICryptoFlowAssets;
+                )) as ExchangeAssets;
 
                 if (assets?.limits?.rates && assets.limits.rates.length > 0) {
                     params.targetAmount = assets.limits.rates[0] * sourceAmount;
@@ -133,11 +134,11 @@ export default class TradeService {
         }
         params.redirectUrl = redirectUrl;
 
-        const quotes = (await this.apiService.getCryptoFlowData(
-            CryptoFlowRoutes.QUOTES,
+        const quotes = (await this.apiService.getExchangeServiceData(
+            ExchangeRoutes.QUOTES,
             params,
             strategy
-        )) as ICryptoFlowQuote[];
+        )) as ExchangeQuote[];
         const selectedQuote = quotes.find(quote => quote.service.id === serviceId);
         if (!selectedQuote) {
             throw new Error("Quote not found");
@@ -147,7 +148,7 @@ export default class TradeService {
     }
 
     async swapTokens(
-        chainId: KnownChainIds,
+        chain: KnownChains,
         accountAddress: string,
         sourceCode: string,
         sourceAmount: number,
@@ -155,55 +156,55 @@ export default class TradeService {
         slippage: string,
         serviceId: string
     ): Promise<{success: boolean}> {
-        const useTestnet = ChainMap[chainId].isTestnet;
-        const chainIdNumeric = parseInt(chainId, 10);
-        const assets = (await this.apiService.getCryptoFlowData(
-            CryptoFlowRoutes.ASSETS,
+        const useTestnet = ChainMap[chain].isTestnet;
+        const chainId = StringHelpers.getChainId(chain);
+        const assets = (await this.apiService.getExchangeServiceData(
+            ExchangeRoutes.ASSETS,
             {
                 sourceCode,
                 targetCode,
                 useTestnet,
-                targetChainId: chainIdNumeric,
-                sourceChainId: chainIdNumeric,
+                targetChainId: chainId,
+                sourceChainId: chainId,
             },
-            CryptoFlowServiceStrategy.SWAP
-        )) as ICryptoFlowAssets;
+            ExchangeStrategy.SWAP
+        )) as ExchangeAssets;
 
         const sourceAddress = assets.source.find((asset) => asset.code === sourceCode)?.address;
         const targetAddress = assets.target.find((asset) => asset.code === targetCode)?.address;
 
-        const quotes = (await this.apiService.getCryptoFlowData(
-            CryptoFlowRoutes.QUOTES,
+        const quotes = (await this.apiService.getExchangeServiceData(
+            ExchangeRoutes.QUOTES,
             {
                 sourceCode,
-                sourceChainId: chainIdNumeric,
+                sourceChainId: chainId,
                 sourceAmount,
                 targetCode,
-                targetChainId: chainIdNumeric,
+                targetChainId: chainId,
                 useTestnet,
                 sourceAddress,
                 targetAddress
             },
-            CryptoFlowServiceStrategy.SWAP
-        )) as ICryptoFlowQuote[];
+            ExchangeStrategy.SWAP
+        )) as ExchangeQuote[];
         const selectedQuote = quotes.find(quote => quote.service.id === serviceId);
         if (!selectedQuote) {
             throw new Error("Quote not found");
         }
 
-        const txData: ICryptoFlowTransaction = (await this.apiService.getCryptoFlowData(CryptoFlowRoutes.TRANSACTION, {
+        const txData: ExchangeTransaction = (await this.apiService.getExchangeServiceData(ExchangeRoutes.TRANSACTION, {
             serviceId,
             sourceCode,
-            sourceChainId: chainIdNumeric,
+            sourceChainId: chainId,
             sourceAddress: selectedQuote.source.asset.address,
             sourceAmount,
             targetCode,
-            targetChainId: chainIdNumeric,
+            targetChainId: chainId,
             targetAddress: selectedQuote.target.asset.address,
             walletAddress: accountAddress,
             slippage,
             useTestnet
-        })) as ICryptoFlowTransaction;
+        })) as ExchangeTransaction;
 
 
         return this.tokenServiceContext.swapTokens(accountAddress, selectedQuote, txData);

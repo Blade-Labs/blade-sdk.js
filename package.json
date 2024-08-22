@@ -59,7 +59,7 @@
   "license": "Apache-2.0",
   "dependencies": {
     "@fingerprintjs/fingerprintjs-pro": "^3.8.6",
-    "@hashgraph/sdk": "2.40.0",
+    "@hashgraph/sdk": "^2.48.1",
     "@magic-ext/hedera": "^1.0.3",
     "@types/inversify": "^2.0.33",
     "@types/shelljs": "^0.8.15",

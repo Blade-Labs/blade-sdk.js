@@ -9,7 +9,7 @@ import {flatArray} from "../../src/helpers/ArrayHelpers";
 import {parseContractFunctionParams} from "../../src/helpers/ContractHelpers";
 import {decrypt, encrypt} from "../../src/helpers/SecurityHelper";
 import {AccountProvider, SdkEnvironment} from "../../src/models/Common";
-import {KnownChainIds} from "../../src/models/Chain";
+import {KnownChains} from "../../src/models/Chain";
 const {BladeSDK, ParametersBuilder} = require("../../src/webView");
 
 Object.defineProperty(global.self, "crypto", {
@@ -28,7 +28,7 @@ describe("testing sdk CORE functionality", () => {
     const sdkVersion = `Kotlin@${config.numberVersion}`;
     const privateKey = process.env.PRIVATE_KEY || ""; // ECDSA
     const accountId = process.env.ACCOUNT_ID || "";
-    const chainId = KnownChainIds.HEDERA_TESTNET; // KnownChainIds.ETHEREUM_SEPOLIA
+    const chainId = KnownChains.HEDERA_TESTNET; // KnownChainIds.ETHEREUM_SEPOLIA
 
     beforeEach(async () => {
         const result = await bladeSdk.init(

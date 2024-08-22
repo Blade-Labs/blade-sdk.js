@@ -16,7 +16,7 @@ import {
     TokenBalanceData
 } from "../../src/models/Common";
 import {Network} from "../../src/models/Networks";
-import {CryptoKeyType, KnownChainIds} from "../../src/models/Chain";
+import {CryptoKeyType, KnownChains} from "../../src/models/Chain";
 import {ethers} from "ethers";
 import {
     AccountCreateTransaction,
@@ -70,7 +70,7 @@ describe("testing methods related to HEDERA", () => {
     const privateKeyED25519 = process.env.PRIVATE_KEY_ED25519 || "";
     const accountId4ED25519 = process.env.ACCOUNT_ID_ED25519 || "";
 
-    const chainId = KnownChainIds.HEDERA_TESTNET; // KnownChainIds.ETHEREUM_SEPOLIA
+    const chainId = KnownChains.HEDERA_TESTNET; // KnownChainIds.ETHEREUM_SEPOLIA
 
     beforeEach(async () => {
         const result = await bladeSdk.init(
@@ -1221,7 +1221,7 @@ describe("testing methods related to HEDERA", () => {
     test("bladeSdk-hedera.exchangeGetQuotes", async () => {
         let result = await bladeSdk.init(
             process.env.API_KEY_MAINNET,
-            KnownChainIds.HEDERA_MAINNET,
+            KnownChains.HEDERA_MAINNET,
             process.env.DAPP_CODE,
             process.env.VISITOR_ID,
             process.env.SDK_ENV,
@@ -1256,7 +1256,7 @@ describe("testing methods related to HEDERA", () => {
     test("bladeSdk-hedera.getTradeUrl", async () => {
         let result = await bladeSdk.init(
             process.env.API_KEY_MAINNET,
-            KnownChainIds.HEDERA_MAINNET,
+            KnownChains.HEDERA_MAINNET,
             process.env.DAPP_CODE,
             process.env.VISITOR_ID,
             process.env.SDK_ENV,

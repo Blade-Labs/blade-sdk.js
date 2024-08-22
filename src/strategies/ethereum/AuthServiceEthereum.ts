@@ -1,6 +1,6 @@
 import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
-import {ChainMap, KnownChainIds} from "../../models/Chain";
+import {ChainMap, KnownChains} from "../../models/Chain";
 import {IAuthService} from "../../strategies/AuthServiceContext";
 import {AccountProvider, ActiveUser, MagicWithHedera} from "../../models/Common";
 import {Network} from "../../models/Networks";
@@ -8,22 +8,22 @@ import {PrivateKey} from "@hashgraph/sdk";
 import * as ethers from "ethers";
 
 export default class AuthServiceEthereum implements IAuthService {
-    private readonly chainId: KnownChainIds;
+    private readonly chain: KnownChains;
     private readonly apiService: ApiService;
     private readonly configService: ConfigService;
 
     constructor(
-        chainId: KnownChainIds,
+        chain: KnownChains,
         apiService: ApiService,
         configService: ConfigService
     ) {
-        this.chainId = chainId;
+        this.chain = chain;
         this.apiService = apiService;
         this.configService = configService;
     }
 
     async setUserPrivateKey(accountAddress: string, privateKey: string): Promise<ActiveUser> {
-        const network = ChainMap[this.chainId].isTestnet ? Network.Testnet : Network.Mainnet;
+        const network = ChainMap[this.chain].isTestnet ? Network.Testnet : Network.Mainnet;
         const key = PrivateKey.fromStringECDSA(privateKey);
         privateKey = `0x${key.toStringRaw()}`;
         const publicKey = `0x${key.publicKey.toStringRaw()}`;

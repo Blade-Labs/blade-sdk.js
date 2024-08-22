@@ -7,7 +7,7 @@ import fetch from "node-fetch";
 import {ethers} from "ethers";
 import {TextDecoder, TextEncoder} from "util";
 import crypto from "crypto";
-import {KnownChainIds} from "../../src/models/Chain";
+import {KnownChains} from "../../src/models/Chain";
 const {BladeSDK, ParametersBuilder} = require("../../src/webView");
 
 Object.defineProperty(global.self, "crypto", {
@@ -27,7 +27,7 @@ describe("test COMMON functionality", () => {
 
     const privateKey = process.env.PRIVATE_KEY || ""; // ECDSA
     const accountId = process.env.ACCOUNT_ID || "";
-    const chainId = KnownChainIds.HEDERA_TESTNET; // KnownChainIds.ETHEREUM_SEPOLIA
+    const chainId = KnownChains.HEDERA_TESTNET; // KnownChainIds.ETHEREUM_SEPOLIA
 
     beforeEach(async () => {
         const result = await bladeSdk.init(

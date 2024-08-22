@@ -32,21 +32,21 @@ import {
     TokenBalanceData,
     TransactionData
 } from "../models/Common";
-import {ChainMap, KnownChainIds} from "../models/Chain";
+import {ChainMap, KnownChains} from "../models/Chain";
 import {flatArray} from "../helpers/ArrayHelpers";
 import {fetchWithRetry, sleep, statusCheck} from "../helpers/ApiHelper";
 import {filterAndFormatTransactions} from "../helpers/TransactionHelpers";
 import {encrypt} from "../helpers/SecurityHelper";
 import {
-    CryptoFlowRoutes,
-    CryptoFlowServiceStrategy,
-    ICryptoFlowAssets,
-    ICryptoFlowAssetsParams,
-    ICryptoFlowQuote,
-    ICryptoFlowQuoteParams,
-    ICryptoFlowTransaction,
-    ICryptoFlowTransactionParams
-} from "../models/CryptoFlow";
+    ExchangeRoutes,
+    ExchangeStrategy,
+    ExchangeAssets,
+    ExchangeAssetsParams,
+    ExchangeQuote,
+    ExchangeQuoteParams,
+    ExchangeTransaction,
+    ExchangeTransactionParams
+} from "../models/Exchange";
 import {
     AccountCreateJob,
     ContractCallJob,
@@ -68,7 +68,7 @@ export default class ApiService {
     private visitorId = ``;
     private environment: SdkEnvironment = SdkEnvironment.Prod;
     private network: Network = Network.Testnet;
-    private chainId: KnownChainIds = KnownChainIds.HEDERA_TESTNET;
+    private chain: KnownChains = KnownChains.HEDERA_TESTNET;
     private tokenInfoCache: {[key in Network]: {[key: string]: TokenInfo}} = {
         [Network.Mainnet]: {},
         [Network.Testnet]: {}
@@ -80,15 +80,15 @@ export default class ApiService {
         dAppCode: string,
         environment: SdkEnvironment,
         sdkVersion: string,
-        chainId: KnownChainIds,
+        chain: KnownChains,
         visitorId: string
     ) {
         this.apiKey = apiKey;
         this.dAppCode = dAppCode;
         this.environment = environment;
         this.sdkVersion = sdkVersion;
-        this.chainId = chainId;
-        this.network = ChainMap[this.chainId].isTestnet ? Network.Testnet : Network.Mainnet;
+        this.chain = chain;
+        this.network = ChainMap[this.chain].isTestnet ? Network.Testnet : Network.Mainnet;
         this.visitorId = visitorId;
         this.dAppConfigCached = null;
     }
@@ -654,11 +654,11 @@ export default class ApiService {
             .then(x => x.json()) as Promise<DropJob>;
     }
 
-    async getCryptoFlowData(
-        route: CryptoFlowRoutes,
-        params: ICryptoFlowAssetsParams | ICryptoFlowQuoteParams | ICryptoFlowTransactionParams,
-        strategy?: CryptoFlowServiceStrategy
-    ): Promise<ICryptoFlowAssets | ICryptoFlowQuote[] | ICryptoFlowTransaction> {
+    async getExchangeServiceData(
+        route: ExchangeRoutes,
+        params: ExchangeAssetsParams | ExchangeQuoteParams | ExchangeTransactionParams,
+        strategy?: ExchangeStrategy
+    ): Promise<ExchangeAssets | ExchangeQuote[] | ExchangeTransaction> {
         const url = new URL(`${this.getApiUrl(false, true)}/exchange/v3/`);
         const searchParams = new URLSearchParams();
 
@@ -686,7 +686,7 @@ export default class ApiService {
 
         return fetch(url, options)
             .then(statusCheck)
-            .then(x => x.json()) as Promise<ICryptoFlowAssets | ICryptoFlowQuote[] | ICryptoFlowTransaction>;
+            .then(x => x.json()) as Promise<ExchangeAssets | ExchangeQuote[] | ExchangeTransaction>;
     }
 
     async getAccountsFromPublicKey(publicKey: PublicKey): Promise<Partial<AccountInfo>[]> {

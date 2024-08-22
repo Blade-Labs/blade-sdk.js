@@ -1,5 +1,5 @@
-import {ICryptoFlowQuote} from "./CryptoFlow";
-import {CryptoKeyType, KnownChainIds} from "./Chain";
+import {ExchangeQuote} from "./Exchange";
+import {CryptoKeyType, KnownChains} from "./Chain";
 import {NftInfo, NftMetadata, TokenInfo, MirrorNodeTransactionType, NodeInfo} from "./MirrorNode";
 import {DropStatus, JobStatus} from "./BladeApi";
 import {Magic} from "magic-sdk";
@@ -51,7 +51,6 @@ export interface BladeConfig {
     saucerswapApi: string; // '{"Testnet":"https://test-api.saucerswap.finance/","Mainnet":"https://api.saucerswap.finance/"}',
     magicLinkPublicKey: string;
     refreshTaskPeriodSeconds: number;
-    feesConfig: string; // '{"Mainnet":{"AccountCreate":{"collector":"0.0.123","min":0.01,"amount":0,"max":0.5,"limitsCurrency":"usd"},"TradeNFT":{...}, ...}}',
 
     // // TODO add alchemy keys in backend config
     alchemyTestnetRPC: string;
@@ -63,25 +62,32 @@ export interface BladeConfig {
     [key: string]: string | number | undefined; // Index signature
 }
 
-export interface FeeFeatureConfig {
-    collector: string; // "0.0.1753455"
-    min: number; // 0.44
-    amount: number; // 0
-    max: number; // 0.44,
-    limitsCurrency: string; // "usd"
+
+export type FeesConfig = {
+    [chain in KnownChains]: {
+        [feature in FeeType]: FeatureFeeConfig
+    }
+};
+
+export enum FeeType {
+    TradeNFT = "TradeNFT",
+    TransferHBAR = "TransferHBAR",
+    TransferToken = "TransferToken",
+    TransferNFT = "TransferNFT",
+    ScheduledTransferHBAR = "ScheduledTransferHBAR",
+    ScheduledTransferToken = "ScheduledTransferToken",
+    StakingClaim = "StakingClaim",
+    Swap = "Swap",
+    AccountCreate = "AccountCreate",
+    Default = "Default"
 }
 
-export interface FeeConfig {
-    AccountCreate: FeeFeatureConfig;
-    TradeNFT: FeeFeatureConfig;
-    TransferHBAR: FeeFeatureConfig;
-    TransferToken: FeeFeatureConfig;
-    TransferNFT: FeeFeatureConfig;
-    ScheduledTransferHBAR: FeeFeatureConfig;
-    ScheduledTransferToken: FeeFeatureConfig;
-    StakingClaim: FeeFeatureConfig;
-    Swap: FeeFeatureConfig;
-    Default: FeeFeatureConfig;
+export type FeatureFeeConfig = {
+    collector: string, // "0.0.1753455"
+    min: number,
+    amount: number, // Percentage value
+    max: number,
+    limitsCurrency: string // "usd"
 }
 
 export interface TokensConfig {
@@ -104,7 +110,7 @@ export interface DAppConfig {
     createAccountWithAlias: boolean;
     urlEncodeParams: boolean;
     activeDrop: boolean;
-    fees: FeeConfig;
+    fees: FeesConfig;
     tokens: TokensConfig;
     mirrorNode: IMirrorNodeServiceConfig[];
     [key: string]: unknown; // Index signature
@@ -152,7 +158,7 @@ export interface InfoData {
     apiKey: string;
     dAppCode: string;
     isTestnet: boolean;
-    chainId: KnownChainIds;
+    chain: KnownChains;
     visitorId: string;
     sdkEnvironment: SdkEnvironment;
     sdkVersion: string;
@@ -311,7 +317,7 @@ export interface ContractFunctionParameter {
 }
 
 export interface SwapQuotesData {
-    quotes: ICryptoFlowQuote[];
+    quotes: ExchangeQuote[];
 }
 
 export interface CoinInfoRaw {
