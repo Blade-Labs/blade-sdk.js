@@ -18,7 +18,7 @@ export default class ConfigService {
         swapWrapHbar: "", // '{ "Testnet": ["0.0.1337"], "Mainnet": ["0.0.1337"] }'
         saucerswapApi: "", // '{"Testnet":"https://test-api.saucerswap.finance/","Mainnet":"https://api.saucerswap.finance/"}',
         magicLinkPublicKey: "",
-        refreshTaskPeriodSeconds: 1,
+        refreshTaskPeriodSeconds: 2,
 
         // TODO add alchemy keys in backend config
         alchemyTestnetRPC: 'https://eth-sepolia.g.alchemy.com/v2/',

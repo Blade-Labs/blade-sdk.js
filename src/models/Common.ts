@@ -64,9 +64,7 @@ export interface BladeConfig {
 
 
 export type FeesConfig = {
-    [chain in KnownChains]: {
-        [feature in FeeType]: FeatureFeeConfig
-    }
+    [feature in FeeType]: FeatureFeeConfig
 };
 
 export enum FeeType {
@@ -108,9 +106,17 @@ export interface DAppConfig {
     contractExecute: boolean;
     maxAutoTokenAssociation: number;
     createAccountWithAlias: boolean;
+    evmChainId: number;
+    evmPaymaster: boolean;
+    redirectUrl: {
+        success: string;
+        fail: string;
+    };
+    redirectSameWindow: boolean,
+    closeAfterSuccess: boolean
+    fees: FeesConfig;
     urlEncodeParams: boolean;
     activeDrop: boolean;
-    fees: FeesConfig;
     tokens: TokensConfig;
     mirrorNode: IMirrorNodeServiceConfig[];
     [key: string]: unknown; // Index signature

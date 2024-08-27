@@ -68,7 +68,7 @@ export default class FeeServiceHedera implements IFeeService {
 
             const feesConfig = await this.configService.getConfig("fees");
             const feature: FeeType = manualOptions.type;
-            const featureConfig = feesConfig[chain][feature];
+            const featureConfig = feesConfig[feature];
             const feeAmount = await this.calculateFeeAmount(tx, chain, featureConfig, manualOptions);
             this.modifyTransactionWithFee(tx, payerAccount, featureConfig.collector, feeAmount);
 

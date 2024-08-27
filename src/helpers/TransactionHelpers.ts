@@ -56,6 +56,7 @@ export const filterAndFormatTransactions = (
     return transactions;
 };
 
+// todo refactor for multichain
 export const formatReceipt = (txReceipt: TransactionReceipt, transactionHash?: string): TransactionReceiptData => {
     return {
         status: txReceipt.status?.toString(),
@@ -67,6 +68,7 @@ export const formatReceipt = (txReceipt: TransactionReceipt, transactionHash?: s
     };
 };
 
+// todo refactor for multichain
 export const getReceipt = async (txResult: TransactionResponse, signer: Signer) => {
     const receipt = await txResult.getReceiptWithSigner(signer);
     return formatReceipt(receipt, txResult.transactionId.toString());
