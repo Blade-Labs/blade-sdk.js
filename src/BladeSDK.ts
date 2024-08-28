@@ -72,7 +72,6 @@ import {
     AccountStatus,
     AssociationAction,
     BalanceData,
-    BladeConfig,
     BridgeResponse,
     C14WidgetConfig,
     CoinData,
@@ -90,8 +89,8 @@ import {
     KeyType,
     KnownChain,
     KnownChainIds,
-    NFTStorageConfig,
-    NFTStorageProvider,
+    IPFSProviderConfig,
+    IPFSProvider,
     NodeListData,
     PrivateKeyData,
     ScheduleResult,
@@ -126,7 +125,7 @@ import {
     ICryptoFlowTransactionParams,
 } from "./models/CryptoFlow";
 import * as FingerprintJS from "@fingerprintjs/fingerprintjs-pro";
-import { File, NFTStorage } from "nft.storage";
+import { PinataSDK } from "pinata";
 import { decrypt, encrypt } from "./helpers/SecurityHelper";
 import { formatReceipt } from "./helpers/TransactionHelpers";
 import { Magic } from "magic-sdk";
@@ -264,7 +263,7 @@ export class BladeSDK {
      * Magic: pass email to accountIdOrEmail and empty string as privateKey. SDK will handle Magic authentication, and finish after user click on confirmation link in email.
      * After successful authentication, SDK will store public and private keys in memory and use them for further operations.
      * After that in each method call provide empty strings to accountId and accountPrivateKey. Otherwise, SDK will override current user with provided credentials as Hedera provider.
-     * In case of calling method with `accountId` and `accountPrivateKey` arguments, SDK will override current user with this credentials.
+     * In case of calling method with `accountId` and `accountPrivateKey` arguments, SDK will override current user with that credentials.
      * It's optional method, you can pass accountId and accountPrivateKey in each method call. In further releases this method will be mandatory.
      *
      * @param accountProvider Account provider (Hedera or Magic)
@@ -2103,6 +2102,30 @@ export class BladeSDK {
             throw this.sendMessageToNative(completionKey, null, error);
         }
     }
+    
+    async testPinata(completionKey?: string) {
+        try {
+            const JWT = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiIwYzJiMGM2Yi0zNzI2LTQ5YmMtYjgxZi0yOGIxMjViM2EzMTYiLCJlbWFpbCI6InRoZS5nYXJ5LmR1QGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJwaW5fcG9saWN5Ijp7InJlZ2lvbnMiOlt7ImRlc2lyZWRSZXBsaWNhdGlvbkNvdW50IjoxLCJpZCI6IkZSQTEifSx7ImRlc2lyZWRSZXBsaWNhdGlvbkNvdW50IjoxLCJpZCI6Ik5ZQzEifV0sInZlcnNpb24iOjF9LCJtZmFfZW5hYmxlZCI6ZmFsc2UsInN0YXR1cyI6IkFDVElWRSJ9LCJhdXRoZW50aWNhdGlvblR5cGUiOiJzY29wZWRLZXkiLCJzY29wZWRLZXlLZXkiOiI0NjZjZDlkMDUwNWUzNDAyYjk2YSIsInNjb3BlZEtleVNlY3JldCI6IjY0ODM1MDhlM2Q3OTgzNDlkYzUzNWJiMDRkYWViMWFlZmU4NjdlZjJiMDhhNjhhNzlkNWYwZDRlOTU5YTUxZTciLCJleHAiOjE3NTYzMTQ5MjJ9.yK8QpXW4aVIwCGOfVwbSlNM4GVHcGdH1W8YD3adGua4`
+
+            const pinata = new PinataSDK({
+                pinataJwt: JWT,
+                pinataGateway: "crimson-rare-dragon-21.mypinata.cloud"
+            })
+
+            const file = new File(["hello world!"], "hello.txt", { type: "text/plain" })
+            const upload = await pinata.upload.file(file)
+                .addMetadata({
+                    name: "hello.txt",
+                    keyValues: {
+                        whimsey: 100
+                    }
+                })
+            console.log(upload);
+            this.sendMessageToNative(completionKey, { response: JSON.stringify(upload) });
+        } catch (error: any) {
+            throw this.sendMessageToNative(completionKey, null, error);
+        }
+    }
 
     /**
      * Mint one NFT
@@ -2112,7 +2135,7 @@ export class BladeSDK {
      * @param accountPrivateKey token supply private key
      * @param file image to mint (File or base64 DataUrl image, eg.: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAA...)
      * @param metadata NFT metadata (JSON object)
-     * @param storageConfig {NFTStorageConfig} IPFS provider config
+     * @param ipfsProviderConfig {IPFSProviderConfig} IPFS provider config
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {TransactionReceiptData}
      * @example
@@ -2138,67 +2161,143 @@ export class BladeSDK {
         accountPrivateKey: string,
         file: File | string,
         metadata: object,
-        storageConfig: NFTStorageConfig,
+        ipfsProviderConfig: IPFSProviderConfig,
         completionKey?: string
-    ): Promise<TransactionReceiptData> {
+    ): Promise<TransactionReceiptData | void> {
         try {
-            if (typeof file === "string") {
-                file = dataURLtoFile(file, "filename");
-            }
-            if (typeof metadata === "string") {
-                metadata = JSON.parse(metadata);
-            }
+            // if (typeof file === "string") {
+            //     file = dataURLtoFile(file, "filename");
+            // }
+            // if (typeof metadata === "string") {
+            //     metadata = JSON.parse(metadata);
+            // }
+            //
+            // const groupSize = 1;
+            // const amount = 1;
+            //
+            // if (accountId && accountPrivateKey) {
+            //     await this.setUser(AccountProvider.Hedera, accountId, accountPrivateKey);
+            // }
+            //
+            // if (ipfsProviderConfig.provider === IPFSProvider.pinata) {
+            //     // TODO implement through interfaces
+            //     // storageClient = new NFTStorage({ token: ipfsProviderConfig.apiKey });
+            // } else {
+            //     throw new Error("Unknown nft storage provider");
+            // }
+            //
+            //
+            // const fileName = file.name;
+            // const dirCID = await storageClient.storeDirectory([file]);
 
-            const groupSize = 1;
-            const amount = 1;
+            // const JWT = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiIwYzJiMGM2Yi0zNzI2LTQ5YmMtYjgxZi0yOGIxMjViM2EzMTYiLCJlbWFpbCI6InRoZS5nYXJ5LmR1QGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJwaW5fcG9saWN5Ijp7InJlZ2lvbnMiOlt7ImRlc2lyZWRSZXBsaWNhdGlvbkNvdW50IjoxLCJpZCI6IkZSQTEifSx7ImRlc2lyZWRSZXBsaWNhdGlvbkNvdW50IjoxLCJpZCI6Ik5ZQzEifV0sInZlcnNpb24iOjF9LCJtZmFfZW5hYmxlZCI6ZmFsc2UsInN0YXR1cyI6IkFDVElWRSJ9LCJhdXRoZW50aWNhdGlvblR5cGUiOiJzY29wZWRLZXkiLCJzY29wZWRLZXlLZXkiOiI0NjZjZDlkMDUwNWUzNDAyYjk2YSIsInNjb3BlZEtleVNlY3JldCI6IjY0ODM1MDhlM2Q3OTgzNDlkYzUzNWJiMDRkYWViMWFlZmU4NjdlZjJiMDhhNjhhNzlkNWYwZDRlOTU5YTUxZTciLCJleHAiOjE3NTYzMTQ5MjJ9.yK8QpXW4aVIwCGOfVwbSlNM4GVHcGdH1W8YD3adGua4`
+            //
+            // try {
+            //
+            //     const pinata = new PinataSDK({
+            //         pinataJwt: JWT,
+            //         pinataGateway: "crimson-rare-dragon-21.mypinata.cloud"
+            //     })
 
-            if (accountId && accountPrivateKey) {
-                await this.setUser(AccountProvider.Hedera, accountId, accountPrivateKey);
-            }
+                // try {
+                //     const file = new File(["hello world!"], "hello.txt", { type: "text/plain" })
+                //     const upload = await pinata.upload.file(file)
+                //         .addMetadata({
+                //             name: "hello.txt",
+                //             keyValues: {
+                //                 whimsey: 100
+                //             }
+                //         })
 
-            let storageClient: NFTStorage;
-            if (storageConfig.provider === NFTStorageProvider.nftStorage) {
-                // TODO implement through interfaces
-                storageClient = new NFTStorage({ token: storageConfig.apiKey });
-            } else {
-                throw new Error("Unknown nft storage provider");
-            }
+                //
+                //     console.log(upload);
+                // } catch (error) {
+                //     console.log(error);
+                // }
 
-            const fileName = file.name;
-            const dirCID = await storageClient.storeDirectory([file]);
+                //
+                // const blob = new Blob(["hello world!"], { type: "application/json" })
+                // const file = new File([blob], "hello.txt", { type: "application/json" })
+                // const upload = await pinata.upload.file(file)
+                // console.log(upload)
 
-            metadata = {
-                name: fileName,
-                type: file.type,
-                creator: "Blade Labs",
-                ...metadata,
-                image: `ipfs://${dirCID}/${encodeURIComponent(fileName)}`,
-            };
-            const metadataCID = await storageClient.storeBlob(
-                new File([JSON.stringify(metadata)], "metadata.json", { type: "application/json" })
-            );
+                        // const text = JSON.stringify("Hello World!");
+                        // const blob = new Blob([text], { type: "application/json" });
+                        // const data = new FormData();
+                        // data.append("file", blob);
+                        //
+                        // const res = await fetch("https://api.pinata.cloud/pinning/pinFileToIPFS", {
+                        //     method: "POST",
+                        //     headers: {
+                        //         Authorization: `Bearer ${JWT}`,
+                        //     },
+                        //     body: data,
+                        // });
+                        // const resData = await res.json();
+                        // console.log(resData);
 
-            const CIDs = [metadataCID];
-            const mdArray = new Array(amount).fill(0).map((el, index) => Buffer.from(CIDs[index % CIDs.length]));
-            const mdGroup = mdArray.splice(0, groupSize);
 
-            return new TokenMintTransaction()
-                .setTokenId(tokenId)
-                .setMetadata(mdGroup)
-                .setMaxTransactionFee(Hbar.from(2 * groupSize, HbarUnit.Hbar))
-                .freezeWithSigner(this.signer)
-                .then((tx) => tx.signWithSigner(this.signer))
-                .then((tx) => tx.executeWithSigner(this.signer))
-                .then((result) => result.getReceiptWithSigner(this.signer))
-                .then((txReceipt) => {
-                    if (txReceipt.status !== Status.Success) {
-                        throw new Error(`Mint failed`);
-                    }
-                    return this.sendMessageToNative(completionKey, formatReceipt(txReceipt));
-                })
-                .catch((error) => {
-                    throw this.sendMessageToNative(completionKey, null, error);
-                });
+                // const formData = new FormData();
+                //
+                // const file = new File(["hello"], "Testing.txt", { type: "text/plain" });
+                // formData.append("file", file);
+                //
+                // const pinataMetadata = JSON.stringify({
+                //     name: "File name",
+                // });
+                // formData.append("pinataMetadata", pinataMetadata);
+                //
+                // const pinataOptions = JSON.stringify({
+                //     cidVersion: 1,
+                // });
+                // formData.append("pinataOptions", pinataOptions);
+                //
+                // const request = await fetch("https://api.pinata.cloud/pinning/pinFileToIPFS", {
+                //     method: "POST",
+                //     headers: {
+                //         Authorization: `Bearer ${JWT}`
+                //     },
+                //     body: formData,
+                // });
+                // const response = await request.json();
+                // console.log(response);
+            // } catch (error) {
+            //     console.log(error);
+            // }
+
+            //
+            // metadata = {
+            //     name: fileName,
+            //     type: file.type,
+            //     creator: "Blade Labs",
+            //     ...metadata,
+            //     image: `ipfs://${dirCID}/${encodeURIComponent(fileName)}`,
+            // };
+            // const metadataCID = await storageClient.storeBlob(
+            //     new File([JSON.stringify(metadata)], "metadata.json", { type: "application/json" })
+            // );
+            //
+            // const CIDs = [metadataCID];
+            // const mdArray = new Array(amount).fill(0).map((el, index) => Buffer.from(CIDs[index % CIDs.length]));
+            // const mdGroup = mdArray.splice(0, groupSize);
+            //
+            // return new TokenMintTransaction()
+            //     .setTokenId(tokenId)
+            //     .setMetadata(mdGroup)
+            //     .setMaxTransactionFee(Hbar.from(2 * groupSize, HbarUnit.Hbar))
+            //     .freezeWithSigner(this.signer)
+            //     .then((tx) => tx.signWithSigner(this.signer))
+            //     .then((tx) => tx.executeWithSigner(this.signer))
+            //     .then((result) => result.getReceiptWithSigner(this.signer))
+            //     .then((txReceipt) => {
+            //         if (txReceipt.status !== Status.Success) {
+            //             throw new Error(`Mint failed`);
+            //         }
+            //         return this.sendMessageToNative(completionKey, formatReceipt(txReceipt));
+            //     })
+            //     .catch((error) => {
+            //         throw this.sendMessageToNative(completionKey, null, error);
+            //     });
         } catch (error: any) {
             throw this.sendMessageToNative(completionKey, null, error);
         }

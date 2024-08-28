@@ -27,7 +27,7 @@ import {
     CryptoKeyType,
     KeyRecord,
     KeyType,
-    NFTStorageProvider,
+    IPFSProvider,
     SdkEnvironment
 } from "../../src/models/Common";
 import {BladeSDK, ParametersBuilder} from "../../src/webView";
@@ -222,6 +222,12 @@ test('bladeSdk.getCoinPrice', async () => {
         checkResult(result, false);
     }
 }, 10_000);
+
+test('bladeSdk.testPinata', async () => {
+    let result = await bladeSdk.testPinata(completionKey);
+    checkResult(result);
+    console.log(result.data);
+}, 100_000);
 
 test('bladeSdk.transferHbars', async () => {
     let result = await bladeSdk.getBalance(accountId, completionKey);
@@ -775,7 +781,7 @@ test('bladeSdk.getTokenInfo', async () => {
     expect(result.data.metadata.description).toEqual("description 2");
 
 
-    result = await bladeSdk.getTokenInfo("0.0.2216053", "", completionKey);
+    result = await bladeSdk.getTokenInfo(tokenId0, "", completionKey);
     checkResult(result);
     expect(result.data.nft).toEqual(null);
     expect(result.data.metadata).toEqual(null);
@@ -1220,7 +1226,7 @@ test('bladeSdk.createToken', async () => {
             author: "GaryDu",
         },
         {
-            provider: NFTStorageProvider.nftStorage,
+            provider: IPFSProvider.pinata,
             apiKey: process.env.NFT_STORAGE_TOKEN,
         },
         completionKey
