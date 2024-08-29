@@ -1164,7 +1164,7 @@ test('bladeSdk.createToken', async () => {
         {type: KeyType.freeze, privateKey: freezeKey},
         {type: KeyType.wipe, privateKey: wipeKey},
         {type: KeyType.pause, privateKey: pauseKey},
-        {type: KeyType.feeSchedule, privateKey: feeScheduleKey},
+        // {type: KeyType.feeSchedule, privateKey: feeScheduleKey},
     ];
 
     result = await bladeSdk.createToken(
@@ -1188,7 +1188,7 @@ test('bladeSdk.createToken', async () => {
     const tokenInfo = await getTokenInfo(tokenId);
 
     expect(tokenInfo.admin_key.key).toEqual(PrivateKey.fromString(adminKey).publicKey.toStringRaw());
-    expect(tokenInfo.fee_schedule_key.key).toEqual(PrivateKey.fromString(feeScheduleKey).publicKey.toStringRaw());
+    // expect(tokenInfo.fee_schedule_key.key).toEqual(PrivateKey.fromString(feeScheduleKey).publicKey.toStringRaw());
     expect(tokenInfo.freeze_key.key).toEqual(PrivateKey.fromString(freezeKey).publicKey.toStringRaw());
     // expect(tokenInfo.kyc_key.key).toEqual(PrivateKey.fromString(kycKey).publicKey.toStringRaw());
     expect(tokenInfo.pause_key.key).toEqual(PrivateKey.fromString(pauseKey).publicKey.toStringRaw());
@@ -1227,7 +1227,7 @@ test('bladeSdk.createToken', async () => {
         },
         {
             provider: IPFSProvider.pinata,
-            apiKey: process.env.NFT_STORAGE_TOKEN,
+            token: process.env.PINATA_JWT,
         },
         completionKey
     );

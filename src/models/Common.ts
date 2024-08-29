@@ -154,7 +154,7 @@ export interface KeyRecord {
 
 export interface IPFSProviderConfig {
     provider: IPFSProvider;
-    apiKey: string;
+    token: string;
 }
 
 export interface BridgeResponse<T> {

@@ -1,4 +1,5 @@
 import type { Config } from "@jest/types";
+import { FormData, File, Blob } from 'formdata-node';
 // Sync object
 const config: Config.InitialOptions = {
     verbose: true,
@@ -12,6 +13,8 @@ const config: Config.InitialOptions = {
     globals: {
         Uint8Array,
         ArrayBuffer,
+        Request,
+        FormData, File, Blob
     },
 };
 export default config;

@@ -72,6 +72,7 @@
     "@jest/types": "^29.3.1",
     "@types/jest": "^29.2.3",
     "@types/node-fetch": "^2.6.2",
+    "formdata-node": "^6.0.3",
     "core-js": "^3.35.0",
     "cross-env": "^7.0.3",
     "dotenv": "^16.0.3",
