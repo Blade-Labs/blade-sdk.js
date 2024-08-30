@@ -75,7 +75,6 @@
                 // "associateToken", // ok
                 // "getTokenInfo", // ok
                 // "mintNFT",
-                // "testPinata"
             ]);
 
             function addTest(name, test) {
@@ -299,15 +298,6 @@
                         const { accountId, privateKey } = await customSetUser(userProvider, accountIdOrEmail, accountPrivateKey, completionKey);
 
                         log(await bladeSdk.getTokenInfo('0.0.4779517', 1));
-                    }
-                });
-
-                addTest("testPinata", async (completionKey) => {
-                    for await (const { userProvider, accountIdOrEmail, accountPrivateKey } of userProviders) {
-                        log(await bladeSdk.init(apiKeyTestnet, "Testnet", dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
-                        const { accountId, privateKey } = await customSetUser(userProvider, accountIdOrEmail, accountPrivateKey, completionKey);
-
-                        log(await bladeSdk.testPinata(completionKey));
                     }
                 });
 

@@ -15,7 +15,7 @@ import {Network} from "../../src/models/Networks";
 import {Buffer} from "buffer";
 import config from "../../src/config";
 import dotenv from "dotenv";
-import fetch from "node-fetch";
+import fetch from "node-fetch-cjs";
 import {ethers} from "ethers";
 import {TextDecoder, TextEncoder} from 'util';
 import crypto from "crypto";
@@ -222,12 +222,6 @@ test('bladeSdk.getCoinPrice', async () => {
         checkResult(result, false);
     }
 }, 10_000);
-
-test('bladeSdk.testPinata', async () => {
-    let result = await bladeSdk.testPinata(completionKey);
-    checkResult(result);
-    console.log(result.data);
-}, 100_000);
 
 test('bladeSdk.transferHbars', async () => {
     let result = await bladeSdk.getBalance(accountId, completionKey);

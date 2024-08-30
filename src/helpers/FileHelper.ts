@@ -15,7 +15,7 @@ export const dataURLtoFile = (dataURL: string, fileName: string): File => {
 
 
 function getFileExtensionFromMimeType(mimeType: string): string {
-    const mimeToExt = {
+    const mimeToExt: {[key: string]: string} = {
         'text/plain': 'txt',
         'text/html': 'html',
         'text/css': 'css',
