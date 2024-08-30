@@ -2126,8 +2126,8 @@ export class BladeSDK {
      *         some: "more properties"
      *     },
      *     {
-     *         provider: NFTStorageProvider.nftStorage,
-     *         apiKey: nftStorageApiKey,
+     *         provider: IPFSProvider.pinata,
+     *         token: Pinata_JWT,
      *     }
      * );
      */
@@ -2139,7 +2139,7 @@ export class BladeSDK {
         metadata: object,
         ipfsProviderConfig: IPFSProviderConfig,
         completionKey?: string
-    ): Promise<TransactionReceiptData | void> {
+    ): Promise<TransactionReceiptData> {
         try {
             if (typeof file === "string") {
                 file = dataURLtoFile(file, "filename");
@@ -2159,8 +2159,6 @@ export class BladeSDK {
             const pinata = new PinataSDK({
                 pinataJwt: ipfsProviderConfig.token
             });
-
-
 
             const fileUpload = await pinata.upload.file(file)
                 .addMetadata({
