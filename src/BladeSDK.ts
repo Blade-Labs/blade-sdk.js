@@ -2102,30 +2102,6 @@ export class BladeSDK {
             throw this.sendMessageToNative(completionKey, null, error);
         }
     }
-    
-    async testPinata(completionKey?: string) {
-        try {
-            const JWT = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiIwYzJiMGM2Yi0zNzI2LTQ5YmMtYjgxZi0yOGIxMjViM2EzMTYiLCJlbWFpbCI6InRoZS5nYXJ5LmR1QGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJwaW5fcG9saWN5Ijp7InJlZ2lvbnMiOlt7ImRlc2lyZWRSZXBsaWNhdGlvbkNvdW50IjoxLCJpZCI6IkZSQTEifSx7ImRlc2lyZWRSZXBsaWNhdGlvbkNvdW50IjoxLCJpZCI6Ik5ZQzEifV0sInZlcnNpb24iOjF9LCJtZmFfZW5hYmxlZCI6ZmFsc2UsInN0YXR1cyI6IkFDVElWRSJ9LCJhdXRoZW50aWNhdGlvblR5cGUiOiJzY29wZWRLZXkiLCJzY29wZWRLZXlLZXkiOiI0NjZjZDlkMDUwNWUzNDAyYjk2YSIsInNjb3BlZEtleVNlY3JldCI6IjY0ODM1MDhlM2Q3OTgzNDlkYzUzNWJiMDRkYWViMWFlZmU4NjdlZjJiMDhhNjhhNzlkNWYwZDRlOTU5YTUxZTciLCJleHAiOjE3NTYzMTQ5MjJ9.yK8QpXW4aVIwCGOfVwbSlNM4GVHcGdH1W8YD3adGua4`
-
-            const pinata = new PinataSDK({
-                pinataJwt: JWT,
-                pinataGateway: "crimson-rare-dragon-21.mypinata.cloud"
-            })
-
-            const file = new File(["hello world!"], "hello.txt", { type: "text/plain" })
-            const upload = await pinata.upload.file(file)
-                .addMetadata({
-                    name: "hello.txt",
-                    keyValues: {
-                        whimsey: 100
-                    }
-                })
-            console.log(upload);
-            this.sendMessageToNative(completionKey, { response: JSON.stringify(upload) });
-        } catch (error: any) {
-            throw this.sendMessageToNative(completionKey, null, error);
-        }
-    }
 
     /**
      * Mint one NFT
