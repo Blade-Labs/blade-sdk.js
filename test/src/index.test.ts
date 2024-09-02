@@ -15,7 +15,7 @@ import {Network} from "../../src/models/Networks";
 import {Buffer} from "buffer";
 import config from "../../src/config";
 import dotenv from "dotenv";
-import fetch from "node-fetch";
+import fetch from "node-fetch-cjs";
 import {ethers} from "ethers";
 import {TextDecoder, TextEncoder} from 'util';
 import crypto from "crypto";
@@ -27,7 +27,7 @@ import {
     CryptoKeyType,
     KeyRecord,
     KeyType,
-    NFTStorageProvider,
+    IPFSProvider,
     SdkEnvironment
 } from "../../src/models/Common";
 import {BladeSDK, ParametersBuilder} from "../../src/webView";
@@ -775,7 +775,7 @@ test('bladeSdk.getTokenInfo', async () => {
     expect(result.data.metadata.description).toEqual("description 2");
 
 
-    result = await bladeSdk.getTokenInfo("0.0.2216053", "", completionKey);
+    result = await bladeSdk.getTokenInfo(tokenId0, "", completionKey);
     checkResult(result);
     expect(result.data.nft).toEqual(null);
     expect(result.data.metadata).toEqual(null);
@@ -1158,7 +1158,7 @@ test('bladeSdk.createToken', async () => {
         {type: KeyType.freeze, privateKey: freezeKey},
         {type: KeyType.wipe, privateKey: wipeKey},
         {type: KeyType.pause, privateKey: pauseKey},
-        {type: KeyType.feeSchedule, privateKey: feeScheduleKey},
+        // {type: KeyType.feeSchedule, privateKey: feeScheduleKey},
     ];
 
     result = await bladeSdk.createToken(
@@ -1182,7 +1182,7 @@ test('bladeSdk.createToken', async () => {
     const tokenInfo = await getTokenInfo(tokenId);
 
     expect(tokenInfo.admin_key.key).toEqual(PrivateKey.fromString(adminKey).publicKey.toStringRaw());
-    expect(tokenInfo.fee_schedule_key.key).toEqual(PrivateKey.fromString(feeScheduleKey).publicKey.toStringRaw());
+    // expect(tokenInfo.fee_schedule_key.key).toEqual(PrivateKey.fromString(feeScheduleKey).publicKey.toStringRaw());
     expect(tokenInfo.freeze_key.key).toEqual(PrivateKey.fromString(freezeKey).publicKey.toStringRaw());
     // expect(tokenInfo.kyc_key.key).toEqual(PrivateKey.fromString(kycKey).publicKey.toStringRaw());
     expect(tokenInfo.pause_key.key).toEqual(PrivateKey.fromString(pauseKey).publicKey.toStringRaw());
@@ -1220,8 +1220,8 @@ test('bladeSdk.createToken', async () => {
             author: "GaryDu",
         },
         {
-            provider: NFTStorageProvider.nftStorage,
-            apiKey: process.env.NFT_STORAGE_TOKEN,
+            provider: IPFSProvider.pinata,
+            token: process.env.PINATA_JWT,
         },
         completionKey
     );

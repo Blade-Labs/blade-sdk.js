@@ -9,6 +9,7 @@ let config: BladeConfig = {
     swapWrapHbar: undefined,
     saucerswapApi: undefined,
     magicLinkPublicKey: undefined,
+    ipfsGateway: 'blade.mypinata.cloud'
 };
 let dAppConfig: DAppConfig;
 
@@ -16,8 +17,10 @@ export const getConfig = async (key: string): Promise<any> => {
     if (Object.keys(config).includes(key)) {
         // check if key exists in config or we need dAppConfig
         if (!config.fpApiKey) {
-            // check if config is empty
-            config = await getBladeConfig();
+            config = {
+                ...config,
+                ...await getBladeConfig()
+            };
         }
         return config[key];
     }

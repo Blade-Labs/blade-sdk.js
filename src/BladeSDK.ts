@@ -72,7 +72,6 @@ import {
     AccountStatus,
     AssociationAction,
     BalanceData,
-    BladeConfig,
     BridgeResponse,
     C14WidgetConfig,
     CoinData,
@@ -90,8 +89,8 @@ import {
     KeyType,
     KnownChain,
     KnownChainIds,
-    NFTStorageConfig,
-    NFTStorageProvider,
+    IPFSProviderConfig,
+    IPFSProvider,
     NodeListData,
     PrivateKeyData,
     ScheduleResult,
@@ -126,7 +125,7 @@ import {
     ICryptoFlowTransactionParams,
 } from "./models/CryptoFlow";
 import * as FingerprintJS from "@fingerprintjs/fingerprintjs-pro";
-import { File, NFTStorage } from "nft.storage";
+import { PinataSDK } from "pinata";
 import { decrypt, encrypt } from "./helpers/SecurityHelper";
 import { formatReceipt } from "./helpers/TransactionHelpers";
 import { Magic } from "magic-sdk";
@@ -264,7 +263,7 @@ export class BladeSDK {
      * Magic: pass email to accountIdOrEmail and empty string as privateKey. SDK will handle Magic authentication, and finish after user click on confirmation link in email.
      * After successful authentication, SDK will store public and private keys in memory and use them for further operations.
      * After that in each method call provide empty strings to accountId and accountPrivateKey. Otherwise, SDK will override current user with provided credentials as Hedera provider.
-     * In case of calling method with `accountId` and `accountPrivateKey` arguments, SDK will override current user with this credentials.
+     * In case of calling method with `accountId` and `accountPrivateKey` arguments, SDK will override current user with that credentials.
      * It's optional method, you can pass accountId and accountPrivateKey in each method call. In further releases this method will be mandatory.
      *
      * @param accountProvider Account provider (Hedera or Magic)
@@ -2112,7 +2111,7 @@ export class BladeSDK {
      * @param accountPrivateKey token supply private key
      * @param file image to mint (File or base64 DataUrl image, eg.: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAA...)
      * @param metadata NFT metadata (JSON object)
-     * @param storageConfig {NFTStorageConfig} IPFS provider config
+     * @param ipfsProviderConfig {IPFSProviderConfig} IPFS provider config
      * @param completionKey optional field bridge between mobile webViews and native apps
      * @returns {TransactionReceiptData}
      * @example
@@ -2127,8 +2126,8 @@ export class BladeSDK {
      *         some: "more properties"
      *     },
      *     {
-     *         provider: NFTStorageProvider.nftStorage,
-     *         apiKey: nftStorageApiKey,
+     *         provider: IPFSProvider.pinata,
+     *         token: Pinata_JWT,
      *     }
      * );
      */
@@ -2138,7 +2137,7 @@ export class BladeSDK {
         accountPrivateKey: string,
         file: File | string,
         metadata: object,
-        storageConfig: NFTStorageConfig,
+        ipfsProviderConfig: IPFSProviderConfig,
         completionKey?: string
     ): Promise<TransactionReceiptData> {
         try {
@@ -2149,36 +2148,44 @@ export class BladeSDK {
                 metadata = JSON.parse(metadata);
             }
 
-            const groupSize = 1;
-            const amount = 1;
-
             if (accountId && accountPrivateKey) {
                 await this.setUser(AccountProvider.Hedera, accountId, accountPrivateKey);
             }
 
-            let storageClient: NFTStorage;
-            if (storageConfig.provider === NFTStorageProvider.nftStorage) {
-                // TODO implement through interfaces
-                storageClient = new NFTStorage({ token: storageConfig.apiKey });
-            } else {
+            if (ipfsProviderConfig.provider !== IPFSProvider.pinata) {
                 throw new Error("Unknown nft storage provider");
             }
 
-            const fileName = file.name;
-            const dirCID = await storageClient.storeDirectory([file]);
+            const pinata = new PinataSDK({
+                pinataJwt: ipfsProviderConfig.token
+            });
 
+            const fileUpload = await pinata.upload.file(file)
+                .addMetadata({
+                    name: file.name,
+                    keyValues: {
+                        dAppCode: this.dAppCode
+                    }
+                })
             metadata = {
-                name: fileName,
+                name: file.name,
                 type: file.type,
                 creator: "Blade Labs",
                 ...metadata,
-                image: `ipfs://${dirCID}/${encodeURIComponent(fileName)}`,
+                image: `ipfs://${fileUpload.IpfsHash}`,
             };
-            const metadataCID = await storageClient.storeBlob(
-                new File([JSON.stringify(metadata)], "metadata.json", { type: "application/json" })
-            );
+            const metadataFile = new File([JSON.stringify(metadata)], "metadata.json", { type: "application/json" })
+            const uploadMetadata = await pinata.upload.file(metadataFile)
+                .addMetadata({
+                    name: metadataFile.name,
+                    keyValues: {
+                        dAppCode: this.dAppCode
+                    }
+                })
 
-            const CIDs = [metadataCID];
+            const groupSize = 1;
+            const amount = 1;
+            const CIDs = [uploadMetadata.IpfsHash];
             const mdArray = new Array(amount).fill(0).map((el, index) => Buffer.from(CIDs[index % CIDs.length]));
             const mdGroup = mdArray.splice(0, groupSize);
 

@@ -50,8 +50,8 @@ export enum KeyType {
     feeSchedule = "feeSchedule",
 }
 
-export enum NFTStorageProvider {
-    nftStorage = "nftStorage",
+export enum IPFSProvider {
+    pinata = "pinata.cloud",
 }
 
 export enum AssociationAction {
@@ -152,9 +152,9 @@ export interface KeyRecord {
     type: KeyType;
 }
 
-export interface NFTStorageConfig {
-    provider: NFTStorageProvider;
-    apiKey: string;
+export interface IPFSProviderConfig {
+    provider: IPFSProvider;
+    token: string;
 }
 
 export interface BridgeResponse<T> {
