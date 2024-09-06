@@ -1,25 +1,21 @@
-import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
 import {ChainMap, KnownChains} from "../../models/Chain";
-import {IAuthService} from "../../strategies/AuthServiceContext";
+import {IAuthService} from "../../contexts/AuthServiceContext";
 import {AccountProvider, ActiveUser, MagicWithHedera} from "../../models/Common";
 import {Network} from "../../models/Networks";
 import {PrivateKey} from "@hashgraph/sdk";
 import * as ethers from "ethers";
+import AbstractServiceEthereum from "./AbstractServiceEthereum";
+import {getContainer} from "../../container";
 
-export default class AuthServiceEthereum implements IAuthService {
-    private readonly chain: KnownChains;
-    private readonly apiService: ApiService;
+export default class AuthServiceEthereum extends AbstractServiceEthereum implements IAuthService {
     private readonly configService: ConfigService;
 
-    constructor(
-        chain: KnownChains,
-        apiService: ApiService,
-        configService: ConfigService
-    ) {
-        this.chain = chain;
-        this.apiService = apiService;
-        this.configService = configService;
+    constructor(chain: KnownChains) {
+        super(chain);
+
+        this.container = getContainer();
+        this.configService = this.container.get<ConfigService>("configService");
     }
 
     async setUserPrivateKey(accountAddress: string, privateKey: string): Promise<ActiveUser> {

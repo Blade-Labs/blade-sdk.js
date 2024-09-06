@@ -1,18 +1,14 @@
 import {KnownChains} from "../../models/Chain";
 import {FeeManualOptions} from "../../models/Exchange";
-import ApiService from "../../services/ApiService";
-import {IFeeService} from "../FeeServiceContext";
-import ConfigService from "../../services/ConfigService";
+import {IFeeService} from "../../contexts/FeeServiceContext";
+import AbstractServiceEthereum from "./AbstractServiceEthereum";
+import {getContainer} from "../../container";
 
-export default class FeeServiceEthereum implements IFeeService {
-    private readonly chain: KnownChains;
-    private readonly apiService: ApiService;
-    private readonly configService: ConfigService;
+export default class FeeServiceEthereum extends AbstractServiceEthereum implements IFeeService {
+    constructor(chain: KnownChains) {
+        super(chain);
 
-    constructor(chain: KnownChains, apiService: ApiService, configService: ConfigService) {
-        this.chain = chain;
-        this.apiService = apiService;
-        this.configService = configService;
+        this.container = getContainer();
     }
 
     async addBladeFee<T extends any>(tx: T, chain: KnownChains, payerAccount: string, manualOptions?: FeeManualOptions | undefined): Promise<T> {

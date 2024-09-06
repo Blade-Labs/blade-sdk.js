@@ -2,7 +2,7 @@ import {AccountId} from "@hashgraph/sdk";
 import {checkResult, completionKey} from "./helpers";
 import config from "../../src/config";
 import dotenv from "dotenv";
-import fetch from "node-fetch";
+import fetch from "node-fetch-cjs";
 import {TextDecoder, TextEncoder} from "util";
 import crypto from "crypto";
 import {flatArray} from "../../src/helpers/ArrayHelpers";
@@ -28,12 +28,12 @@ describe("testing sdk CORE functionality", () => {
     const sdkVersion = `Kotlin@${config.numberVersion}`;
     const privateKey = process.env.PRIVATE_KEY || ""; // ECDSA
     const accountId = process.env.ACCOUNT_ID || "";
-    const chainId = KnownChains.HEDERA_TESTNET; // KnownChainIds.ETHEREUM_SEPOLIA
+    const chain = KnownChains.HEDERA_TESTNET; // KnownChains.ETHEREUM_SEPOLIA
 
     beforeEach(async () => {
         const result = await bladeSdk.init(
             process.env.API_KEY,
-            chainId,
+            chain,
             process.env.DAPP_CODE,
             process.env.VISITOR_ID,
             process.env.SDK_ENV,
@@ -50,7 +50,7 @@ describe("testing sdk CORE functionality", () => {
     test("bladeSdk-core.init", async () => {
         let result = await bladeSdk.init(
             process.env.API_KEY,
-            chainId,
+            chain,
             process.env.DAPP_CODE,
             "", // empty visitor id,
             process.env.SDK_ENV,
@@ -60,7 +60,7 @@ describe("testing sdk CORE functionality", () => {
         checkResult(result);
         expect(result.data).toHaveProperty("apiKey");
         expect(result.data).toHaveProperty("dAppCode");
-        expect(result.data).toHaveProperty("chainId");
+        expect(result.data).toHaveProperty("chain");
         expect(result.data).toHaveProperty("visitorId");
         expect(result.data).toHaveProperty("sdkEnvironment");
         expect(result.data).toHaveProperty("sdkVersion");
@@ -68,7 +68,7 @@ describe("testing sdk CORE functionality", () => {
 
         result = await bladeSdk.init(
             process.env.API_KEY,
-            chainId,
+            chain,
             process.env.DAPP_CODE,
             process.env.VISITOR_ID,
             SdkEnvironment.Prod,
@@ -79,7 +79,7 @@ describe("testing sdk CORE functionality", () => {
 
         result = await bladeSdk.init(
             process.env.API_KEY,
-            chainId,
+            chain,
             process.env.DAPP_CODE,
             "",
             "test",
@@ -94,7 +94,7 @@ describe("testing sdk CORE functionality", () => {
         checkResult(result);
         expect(result.data).toHaveProperty("apiKey");
         expect(result.data).toHaveProperty("dAppCode");
-        expect(result.data).toHaveProperty("chainId");
+        expect(result.data).toHaveProperty("chain");
         expect(result.data).toHaveProperty("visitorId");
         expect(result.data).toHaveProperty("sdkEnvironment");
         expect(result.data).toHaveProperty("sdkVersion");

@@ -2,11 +2,13 @@ import {CustomError} from "../models/Errors";
 
 const attemptCounters: {[key: string]: number} = {};
 
+export const MAX_ATTEMPTS = 20;
+
 export function sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-export function limitAttempts(taskId: string, maxAttempts: number = 20, message: string = ""): boolean {
+export function limitAttempts(taskId: string, maxAttempts: number = MAX_ATTEMPTS, message: string = ""): boolean {
     if (!attemptCounters.hasOwnProperty(taskId)) {
         attemptCounters[taskId] = maxAttempts;
     }

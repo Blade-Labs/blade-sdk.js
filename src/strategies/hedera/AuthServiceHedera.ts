@@ -1,22 +1,18 @@
 import {ChainMap, KnownChains} from "../../models/Chain";
-import ApiService from "../../services/ApiService";
-import ConfigService from "../../services/ConfigService";
-import {IAuthService} from "../../strategies/AuthServiceContext";
+import {IAuthService} from "../../contexts/AuthServiceContext";
 import {AccountProvider, ActiveUser, MagicWithHedera} from "../../models/Common";
 import {Network} from "../../models/Networks";
 import {Client, PrivateKey} from "@hashgraph/sdk";
 import {HederaProvider, HederaSigner} from "../../signers/hedera";
 import {MagicSigner} from "../../signers/magic/MagicSigner";
+import AbstractServiceHedera from "./AbstractServiceHedera";
+import {getContainer} from "../../container";
 
-export default class AuthServiceHedera implements IAuthService {
-    private readonly chain: KnownChains;
-    private readonly apiService: ApiService;
-    private readonly configService: ConfigService;
+export default class AuthServiceHedera extends AbstractServiceHedera implements IAuthService {
+    constructor(chain: KnownChains) {
+        super(chain);
 
-    constructor(chain: KnownChains, apiService: ApiService, configService: ConfigService) {
-        this.chain = chain;
-        this.apiService = apiService;
-        this.configService = configService;
+        this.container = getContainer();
     }
 
     async setUserPrivateKey(accountAddress: string, privateKey: string): Promise<ActiveUser> {

@@ -3,7 +3,6 @@ import {
     ContractExecuteTransaction,
     ContractFunctionResult,
     ContractId,
-    Signer,
     StatusError,
     Transaction,
     TransactionResponse
@@ -14,25 +13,26 @@ import {ContractCallQueryRecordsData, TransactionReceiptData} from "../../models
 import {KnownChains} from "../../models/Chain";
 import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
-import {IContractService} from "../ContractServiceContext";
+import {IContractService} from "../../contexts/ContractServiceContext";
 import {ParametersBuilder} from "../../ParametersBuilder";
 import {getContractFunctionBytecode, parseContractQueryResponse} from "../../helpers/ContractHelpers";
 import {getReceipt} from "../../helpers/TransactionHelpers";
 import {JobAction, JobStatus} from "../../models/BladeApi";
-import {limitAttempts, sleep} from "../../helpers/ApiHelper";
+import {limitAttempts, MAX_ATTEMPTS, sleep} from "../../helpers/ApiHelper";
 import {ethers} from "ethers";
+import {getContainer} from "../../container";
+import AbstractServiceHedera from "./AbstractServiceHedera";
 
-export default class ContractServiceHedera implements IContractService {
-    private readonly chain: KnownChains;
-    private readonly signer: Signer;
+export default class ContractServiceHedera extends AbstractServiceHedera implements IContractService {
     private readonly apiService: ApiService;
     private readonly configService: ConfigService;
 
-    constructor(chain: KnownChains, signer: Signer, apiService: ApiService, configService: ConfigService) {
-        this.chain = chain;
-        this.signer = signer;
-        this.apiService = apiService;
-        this.configService = configService;
+    constructor(chain: KnownChains) {
+        super(chain);
+
+        this.container = getContainer();
+        this.apiService = this.container.get<ApiService>("apiService");
+        this.configService = this.container.get<ConfigService>("configService");
     }
 
     async contractCallFunction(
@@ -63,7 +63,7 @@ export default class ContractServiceHedera implements IContractService {
                 if (contractCallJob.status === JobStatus.FAILED) {
                     throw new Error(contractCallJob.errorMessage);
                 }
-                limitAttempts(contractCallJob.taskId, 20, "Failed to fetch transaction bytes from backend");
+                limitAttempts(contractCallJob.taskId, MAX_ATTEMPTS, "Failed to fetch transaction bytes from backend");
                 await sleep(await this.configService.getConfig("refreshTaskPeriodSeconds") * 1000);
                 contractCallJob = await this.apiService.signContractCallTx(JobAction.CHECK, contractCallJob.taskId);
             }
@@ -142,7 +142,7 @@ export default class ContractServiceHedera implements IContractService {
                 if (contractCallQueryJob.status === JobStatus.FAILED) {
                     throw new Error(contractCallQueryJob.errorMessage);
                 }
-                limitAttempts(contractCallQueryJob.taskId, 20, "Failed to fetch transaction bytes from backend");
+                limitAttempts(contractCallQueryJob.taskId, MAX_ATTEMPTS, "Failed to fetch transaction bytes from backend");
                 await sleep(await this.configService.getConfig("refreshTaskPeriodSeconds") * 1000);
                 contractCallQueryJob = await this.apiService.apiCallContractQuery(JobAction.CHECK, contractCallQueryJob.taskId);
             }

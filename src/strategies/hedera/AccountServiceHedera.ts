@@ -6,11 +6,10 @@ import {
     Mnemonic,
     PrivateKey,
     PublicKey,
-    Signer,
     Transaction
 } from "@hashgraph/sdk";
 
-import {IAccountService} from "../AccountServiceContext";
+import {IAccountService} from "../../contexts/AccountServiceContext";
 
 import {
     AccountInfoData,
@@ -29,21 +28,22 @@ import {ethers} from "ethers";
 import StringHelpers from "../../helpers/StringHelpers";
 import {executeUpdateAccountTransactions} from "../../helpers/AccountHelpers";
 import {getReceipt} from "../../helpers/TransactionHelpers";
-import {limitAttempts, sleep} from "../../helpers/ApiHelper";
+import {limitAttempts, MAX_ATTEMPTS, sleep} from "../../helpers/ApiHelper";
 import {JobAction, JobStatus} from "../../models/BladeApi";
 import {Buffer} from "buffer";
+import AbstractServiceHedera from "./AbstractServiceHedera";
+import {getContainer} from "../../container";
 
-export default class AccountServiceHedera implements IAccountService {
-    private readonly chain: KnownChains;
-    private readonly signer: Signer | null = null;
+export default class AccountServiceHedera extends AbstractServiceHedera implements IAccountService {
     private readonly apiService: ApiService;
     private readonly configService: ConfigService;
 
-    constructor(chain: KnownChains, signer: Signer | null, apiService: ApiService, configService: ConfigService) {
-        this.chain = chain;
-        this.signer = signer;
-        this.apiService = apiService;
-        this.configService = configService;
+    constructor(chain: KnownChains) {
+        super(chain);
+
+        this.container = getContainer();
+        this.apiService = this.container.get<ApiService>("apiService");
+        this.configService = this.container.get<ConfigService>("configService");
     }
 
     async createAccount(privateKey: string, deviceId: string): Promise<CreateAccountData> {
@@ -76,7 +76,7 @@ export default class AccountServiceHedera implements IAccountService {
             if (accountCreateJob.status === JobStatus.FAILED) {
                 throw new Error(accountCreateJob.errorMessage);
             }
-            limitAttempts(accountCreateJob.taskId, 20, "Account creation failed");
+            limitAttempts(accountCreateJob.taskId, MAX_ATTEMPTS, "Account creation failed");
             await sleep((await this.configService.getConfig("refreshTaskPeriodSeconds")) * 1000);
             accountCreateJob = await this.apiService.createAccount(JobAction.CHECK, accountCreateJob.taskId);
         }
@@ -106,7 +106,7 @@ export default class AccountServiceHedera implements IAccountService {
                 if (tokenAssociationJob.status === JobStatus.FAILED) {
                     throw new Error(tokenAssociationJob.errorMessage);
                 }
-                limitAttempts(accountCreateJob.taskId, 20, "Token association failed");
+                limitAttempts(accountCreateJob.taskId, MAX_ATTEMPTS, "Token association failed");
                 await sleep((await this.configService.getConfig("refreshTaskPeriodSeconds")) * 1000);
                 tokenAssociationJob = await this.apiService.tokenAssociation(
                     JobAction.CHECK,
@@ -143,7 +143,7 @@ export default class AccountServiceHedera implements IAccountService {
                 if (kycGrantJob.status === JobStatus.FAILED) {
                     throw new Error(kycGrantJob.errorMessage);
                 }
-                limitAttempts(accountCreateJob.taskId, 20, "KYC grant failed");
+                limitAttempts(accountCreateJob.taskId, MAX_ATTEMPTS, "KYC grant failed");
                 await sleep((await this.configService.getConfig("refreshTaskPeriodSeconds")) * 1000);
                 await this.apiService.kycGrant(JobAction.CHECK, kycGrantJob.taskId);
             }
@@ -155,7 +155,7 @@ export default class AccountServiceHedera implements IAccountService {
             publicKey: key.publicKey.toStringDer(),
             privateKey: key.toStringDer(),
             accountAddress: accountId.toString(),
-            evmAddress: evmAddress.toLowerCase()
+            evmAddress
         };
     }
 
@@ -166,7 +166,7 @@ export default class AccountServiceHedera implements IAccountService {
         transferAccountId: string
     ): Promise<TransactionReceiptData> {
         // current user is operator. Account to be deleted is deleteAccountId
-        const deleteAccountKey = PrivateKey.fromString(deletePrivateKey);
+        const deleteAccountKey = PrivateKey.fromStringDer(deletePrivateKey);
 
         return new AccountDeleteTransaction()
             .setAccountId(deleteAccountId)
@@ -186,7 +186,7 @@ export default class AccountServiceHedera implements IAccountService {
                 : PublicKey.fromStringED25519(account.key.key);
         const calculatedEvmAddress =
             account.key._type === CryptoKeyType.ECDSA_SECP256K1
-                ? ethers.computeAddress(`0x${publicKey.toStringRaw()}`).toLowerCase()
+                ? ethers.computeAddress(`0x${publicKey.toStringRaw()}`)
                 : "";
         return {
             accountAddress,

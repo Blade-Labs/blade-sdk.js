@@ -4,14 +4,13 @@ import {
     PublicKey,
     ScheduleCreateTransaction,
     ScheduleSignTransaction,
-    Signer,
     SignerSignature,
     Transaction,
     TransferTransaction
 } from "@hashgraph/sdk";
 import secp256k1 from "secp256k1";
 
-import {ISignService} from "../SignServiceContext";
+import {ISignService} from "../../contexts/SignServiceContext";
 import {
     ScheduleTransactionTransfer,
     ScheduleTransactionType,
@@ -28,22 +27,23 @@ import ConfigService from "../../services/ConfigService";
 import {formatReceipt} from "../../helpers/TransactionHelpers";
 import {Buffer} from "buffer";
 import {JobAction, JobStatus} from "../../models/BladeApi";
-import {limitAttempts, sleep} from "../../helpers/ApiHelper";
+import {limitAttempts, MAX_ATTEMPTS, sleep} from "../../helpers/ApiHelper";
 import * as ethers from "ethers";
 import {ParametersBuilder} from "../../ParametersBuilder";
 import {parseContractFunctionParams} from "../../helpers/ContractHelpers";
+import AbstractServiceHedera from "./AbstractServiceHedera";
+import {getContainer} from "../../container";
 
-export default class SignServiceHedera implements ISignService {
-    private readonly chain: KnownChains;
-    private readonly signer: Signer;
+export default class SignServiceHedera extends AbstractServiceHedera implements ISignService {
     private readonly apiService: ApiService;
     private readonly configService: ConfigService;
 
-    constructor(chain: KnownChains, signer: Signer, apiService: ApiService, configService: ConfigService) {
-        this.chain = chain;
-        this.signer = signer;
-        this.apiService = apiService;
-        this.configService = configService;
+    constructor(chain: KnownChains) {
+        super(chain);
+
+        this.container = getContainer();
+        this.apiService = this.container.get<ApiService>("apiService");
+        this.configService = this.container.get<ConfigService>("configService");
     }
 
     async sign(encodedMessage: string, encoding: SupportedEncoding, likeEthers: boolean, publicKeyDer: string): Promise<SignMessageData> {
@@ -162,7 +162,7 @@ export default class SignServiceHedera implements ISignService {
                 if (createScheduleRequestJob.status === JobStatus.FAILED) {
                     throw new Error(createScheduleRequestJob.errorMessage);
                 }
-                limitAttempts(createScheduleRequestJob.taskId, 20, "Create schedule transaction failed");
+                limitAttempts(createScheduleRequestJob.taskId, MAX_ATTEMPTS, "Create schedule transaction failed");
                 await sleep((await this.configService.getConfig("refreshTaskPeriodSeconds")) * 1000);
                 createScheduleRequestJob = await this.apiService.createScheduleRequestJob(
                     JobAction.CHECK,
@@ -253,7 +253,7 @@ export default class SignServiceHedera implements ISignService {
                 if (signScheduleRequestJob.status === JobStatus.FAILED) {
                     throw new Error(signScheduleRequestJob.errorMessage);
                 }
-                limitAttempts(signScheduleRequestJob.taskId, 20, "Sign schedule transaction failed");
+                limitAttempts(signScheduleRequestJob.taskId, MAX_ATTEMPTS, "Sign schedule transaction failed");
                 await sleep((await this.configService.getConfig("refreshTaskPeriodSeconds")) * 1000);
                 signScheduleRequestJob = await this.apiService.signScheduleRequestJob(
                     JobAction.CHECK,

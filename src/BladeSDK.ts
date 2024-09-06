@@ -1,4 +1,4 @@
-import {inject, injectable} from "inversify";
+import {Container, inject, injectable} from "inversify";
 import "reflect-metadata";
 import {Buffer} from "buffer";
 import {TokenType} from "@hashgraph/sdk";
@@ -50,12 +50,14 @@ import {ParametersBuilder} from "./ParametersBuilder";
 import {ExchangeStrategy} from "./models/Exchange";
 import {NftInfo, NftMetadata} from "./models/MirrorNode";
 import {File} from "nft.storage";
-import TokenServiceContext from "./strategies/TokenServiceContext";
-import AccountServiceContext from "./strategies/AccountServiceContext";
-import SignServiceContext from "./strategies/SignServiceContext";
-import ContractServiceContext from "./strategies/ContractServiceContext";
+import TokenServiceContext from "./contexts/TokenServiceContext";
+import AccountServiceContext from "./contexts/AccountServiceContext";
+import SignServiceContext from "./contexts/SignServiceContext";
+import ContractServiceContext from "./contexts/ContractServiceContext";
 import ExchangeService from "./services/ExchangeService";
-import AuthServiceContext from "./strategies/AuthServiceContext";
+import AuthServiceContext from "./contexts/AuthServiceContext";
+import {ChainContextRegistry, ServiceContextTypes} from "./ChainContextRegistry";
+import {getContainer} from "./container";
 
 @injectable()
 export class BladeSDK {
@@ -67,30 +69,24 @@ export class BladeSDK {
     private sdkVersion: string = config.sdkVersion;
     private readonly webView: boolean = false;
     private user: ActiveUser | null = null;
+    private readonly container: Container;
 
     /**
      * BladeSDK constructor.
      * @param configService - instance of ConfigService
      * @param apiService - instance of ApiService
-     * @param authServiceContext - instance of AuthServiceContext
-     * @param accountServiceContext - instance of AccountServiceContext
-     * @param tokenServiceContext - instance of TokenServiceContext
-     * @param signServiceContext - instance of SignServiceContext
-     * @param contractServiceContext - instance of ContractServiceContext
+     * @param chainContextRegistry - instance of ChainContextRegistry
      * @param exchangeService - instance of ExchangeService
      * @param isWebView - true if you are using this SDK in webview of native app. It changes the way of communication with native app.
      */
     constructor(
         @inject("configService") private readonly configService: ConfigService,
         @inject("apiService") private readonly apiService: ApiService,
-        @inject("authServiceContext") private readonly authServiceContext: AuthServiceContext,
-        @inject("accountServiceContext") private readonly accountServiceContext: AccountServiceContext,
-        @inject("tokenServiceContext") private readonly tokenServiceContext: TokenServiceContext,
-        @inject("signServiceContext") private readonly signServiceContext: SignServiceContext,
-        @inject("contractServiceContext") private readonly contractServiceContext: ContractServiceContext,
+        @inject("chainContextRegistry") private readonly chainContextRegistry: ChainContextRegistry,
         @inject("exchangeService") private readonly exchangeService: ExchangeService,
         @inject("isWebView") private readonly isWebView: boolean
     ) {
+        this.container = getContainer();
         this.webView = isWebView;
     }
 
@@ -127,9 +123,8 @@ export class BladeSDK {
         }
 
         this.apiService.initApiService(apiKey, dAppCode, sdkEnvironment, sdkVersion, this.chain, visitorId);
-        this.visitorId = await this.authServiceContext.getVisitorId(this.visitorId, this.apiKey, this.sdkEnvironment);
-        this.accountServiceContext.init(this.chain, null); // init without signer, to be able to create account
-        this.tokenServiceContext.init(this.chain, null); // init without signer, to be able to getBalance
+        const authServiceContext = this.chainContextRegistry.getContext<AuthServiceContext>(this.chain, ServiceContextTypes.AuthServiceContext);
+        this.visitorId = await authServiceContext.getVisitorId(this.visitorId, this.apiKey, this.sdkEnvironment);
         return this.sendMessageToNative(completionKey, this.getInfoData());
     }
 
@@ -164,12 +159,9 @@ export class BladeSDK {
         completionKey?: string
     ): Promise<UserInfoData> {
         try {
-            this.user = await this.authServiceContext.setUser(this.chain, accountProvider, accountIdOrEmail, privateKey);
-
-            this.tokenServiceContext.init(this.chain, this.user.signer);
-            this.accountServiceContext.init(this.chain, this.user.signer);
-            this.signServiceContext.init(this.chain, this.user.signer, this.user.publicKey);
-            this.contractServiceContext.init(this.chain, this.user.signer);
+            const authServiceContext = this.chainContextRegistry.getContext<AuthServiceContext>(this.chain, ServiceContextTypes.AuthServiceContext);
+            this.user = await authServiceContext.setUser(this.chain, accountProvider, accountIdOrEmail, privateKey);
+            this.container.rebind("user").toConstantValue(this.user);
 
             return this.sendMessageToNative(completionKey, {
                 address: this.user.accountAddress,
@@ -192,7 +184,8 @@ export class BladeSDK {
      */
     async resetUser(completionKey?: string): Promise<UserInfoData> {
         try {
-            this.user = await this.authServiceContext.resetUser();
+            const authServiceContext = this.chainContextRegistry.getContext<AuthServiceContext>(this.chain, ServiceContextTypes.AuthServiceContext);
+            this.user = await authServiceContext.resetUser(this.chain);
 
             return this.sendMessageToNative(completionKey, {
                 address: "",
@@ -218,7 +211,8 @@ export class BladeSDK {
             if (!accountAddress) {
                 accountAddress = this.getUser().accountAddress;
             }
-            return this.sendMessageToNative(completionKey, await this.tokenServiceContext.getBalance(accountAddress));
+            const tokenService = this.chainContextRegistry.getContext<TokenServiceContext>(this.chain, ServiceContextTypes.TokenServiceContext);
+            return this.sendMessageToNative(completionKey, await tokenService.getBalance(accountAddress));
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
         }
@@ -241,7 +235,8 @@ export class BladeSDK {
         completionKey?: string
     ): Promise<TransactionResponseData> {
         try {
-            const result = await this.tokenServiceContext.transferBalance({
+            const tokenService = this.chainContextRegistry.getContext<TokenServiceContext>(this.chain, ServiceContextTypes.TokenServiceContext);
+            const result = await tokenService.transferBalance({
                 from: this.getUser().accountAddress,
                 to: receiverAddress,
                 amount,
@@ -276,7 +271,8 @@ export class BladeSDK {
     ): Promise<TransactionResponseData> {
         try {
             // TODO send NFT for Ethereum tokens
-            const result = await this.tokenServiceContext.transferToken({
+            const tokenService = this.chainContextRegistry.getContext<TokenServiceContext>(this.chain, ServiceContextTypes.TokenServiceContext);
+            const result = await tokenService.transferToken({
                 from: this.getUser().accountAddress,
                 to: receiverAddress,
                 amountOrSerial,
@@ -398,7 +394,8 @@ export class BladeSDK {
         completionKey?: string
     ): Promise<TransactionReceiptData> {
         try {
-            const result = await this.contractServiceContext.contractCallFunction(
+            const contractService = this.chainContextRegistry.getContext<ContractServiceContext>(this.chain, ServiceContextTypes.ContractServiceContext);
+            const result = await contractService.contractCallFunction(
                 contractAddress,
                 functionName,
                 paramsEncoded,
@@ -437,7 +434,8 @@ export class BladeSDK {
         completionKey?: string
     ): Promise<ContractCallQueryRecordsData> {
         try {
-            const result = await this.contractServiceContext.contractCallQueryFunction(
+            const contractService = this.chainContextRegistry.getContext<ContractServiceContext>(this.chain, ServiceContextTypes.ContractServiceContext);
+            const result = await contractService.contractCallQueryFunction(
                 contractAddress,
                 functionName,
                 paramsEncoded,
@@ -497,7 +495,8 @@ export class BladeSDK {
         completionKey?: string
     ): Promise<CreateScheduleData> {
         try {
-            const result = await this.signServiceContext.createScheduleTransaction(type, transfers, usePaymaster);
+            const signService = this.chainContextRegistry.getContext<SignServiceContext>(this.chain, ServiceContextTypes.SignServiceContext);
+            const result = await signService.createScheduleTransaction(type, transfers, usePaymaster);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -523,7 +522,8 @@ export class BladeSDK {
         completionKey?: string
     ): Promise<TransactionReceiptData> {
         try {
-            const result = await this.signServiceContext.signScheduleId(
+            const signService = this.chainContextRegistry.getContext<SignServiceContext>(this.chain, ServiceContextTypes.SignServiceContext);
+            const result = await signService.signScheduleId(
                 scheduleId,
                 receiverAccountAddress || "",
                 !!usePaymaster
@@ -545,7 +545,8 @@ export class BladeSDK {
      */
     async createAccount(privateKey?: string, deviceId?: string, completionKey?: string): Promise<CreateAccountData> {
         try {
-            const result = await this.accountServiceContext.createAccount(privateKey, deviceId);
+            const accountService = this.chainContextRegistry.getContext<AccountServiceContext>(this.chain, ServiceContextTypes.AccountServiceContext);
+            const result = await accountService.createAccount(privateKey, deviceId);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -569,7 +570,8 @@ export class BladeSDK {
         completionKey?: string
     ): Promise<TransactionReceiptData> {
         try {
-            const result = await this.accountServiceContext.deleteAccount(
+            const accountService = this.chainContextRegistry.getContext<AccountServiceContext>(this.chain, ServiceContextTypes.AccountServiceContext);
+            const result = await accountService.deleteAccount(
                 deleteAccountAddress,
                 deletePrivateKey,
                 transferAccountAddress
@@ -594,7 +596,8 @@ export class BladeSDK {
         try {
             accountAddress = accountAddress || this.getUser().accountAddress;
 
-            const result = await this.accountServiceContext.getAccountInfo(accountAddress);
+            const accountService = this.chainContextRegistry.getContext<AccountServiceContext>(this.chain, ServiceContextTypes.AccountServiceContext);
+            const result = await accountService.getAccountInfo(accountAddress);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -610,7 +613,8 @@ export class BladeSDK {
      */
     async getNodeList(completionKey?: string): Promise<NodeListData> {
         try {
-            const result = await this.accountServiceContext.getNodeList();
+            const accountService = this.chainContextRegistry.getContext<AccountServiceContext>(this.chain, ServiceContextTypes.AccountServiceContext);
+            const result = await accountService.getNodeList();
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -627,7 +631,8 @@ export class BladeSDK {
      */
     async stakeToNode(nodeId: number, completionKey?: string): Promise<TransactionReceiptData> {
         try {
-            const result = await this.accountServiceContext.stakeToNode(this.getUser().accountAddress, nodeId);
+            const accountService = this.chainContextRegistry.getContext<AccountServiceContext>(this.chain, ServiceContextTypes.AccountServiceContext);
+            const result = await accountService.stakeToNode(this.getUser().accountAddress, nodeId);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -648,7 +653,8 @@ export class BladeSDK {
      */
     async searchAccounts(keyOrMnemonic: string, completionKey?: string): Promise<AccountPrivateData> {
         try {
-            const result = await this.accountServiceContext.searchAccounts(keyOrMnemonic);
+            const accountService = this.chainContextRegistry.getContext<AccountServiceContext>(this.chain, ServiceContextTypes.AccountServiceContext);
+            const result = await accountService.searchAccounts(keyOrMnemonic);
             return this.sendMessageToNative(completionKey, result);
         } catch (error: any) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -665,7 +671,8 @@ export class BladeSDK {
      */
     async dropTokens(secretNonce: string, completionKey?: string): Promise<TokenDropData> {
         try {
-            const result = await this.tokenServiceContext.dropTokens(this.getUser().accountAddress, secretNonce);
+            const tokenService = this.chainContextRegistry.getContext<TokenServiceContext>(this.chain, ServiceContextTypes.TokenServiceContext);
+            const result = await tokenService.dropTokens(this.getUser().accountAddress, secretNonce);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -689,7 +696,8 @@ export class BladeSDK {
         completionKey?: string
     ): Promise<SignMessageData> {
         try {
-            const result = await this.signServiceContext.sign(encodedMessage, encoding, likeEthers);
+            const signService = this.chainContextRegistry.getContext<SignServiceContext>(this.chain, ServiceContextTypes.SignServiceContext);
+            const result = await signService.sign(encodedMessage, encoding, likeEthers);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -718,7 +726,8 @@ export class BladeSDK {
     ): Promise<SignVerifyMessageData> {
         try {
             addressOrPublicKey = addressOrPublicKey || this.getUser().publicKey;
-            const result = await this.signServiceContext.verify(
+            const signService = this.chainContextRegistry.getContext<SignServiceContext>(this.chain, ServiceContextTypes.SignServiceContext);
+            const result = await signService.verify(
                 encodedMessage,
                 encoding,
                 signature,
@@ -741,7 +750,8 @@ export class BladeSDK {
      */
     async splitSignature(signature: string, completionKey?: string): Promise<SplitSignatureData> {
         try {
-            return this.sendMessageToNative(completionKey, await this.signServiceContext.splitSignature(signature));
+            const signService = this.chainContextRegistry.getContext<SignServiceContext>(this.chain, ServiceContextTypes.SignServiceContext);
+            return this.sendMessageToNative(completionKey, await signService.splitSignature(signature));
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
         }
@@ -761,7 +771,8 @@ export class BladeSDK {
         completionKey?: string
     ): Promise<SplitSignatureData> {
         try {
-            const result = await this.signServiceContext.getParamsSignature(paramsEncoded);
+            const signService = this.chainContextRegistry.getContext<SignServiceContext>(this.chain, ServiceContextTypes.SignServiceContext);
+            const result = await signService.getParamsSignature(paramsEncoded);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -792,7 +803,8 @@ export class BladeSDK {
         try {
             accountAddress = accountAddress || this.getUser().accountAddress;
 
-            const result = await this.accountServiceContext.getTransactions(
+            const accountService = this.chainContextRegistry.getContext<AccountServiceContext>(this.chain, ServiceContextTypes.AccountServiceContext);
+            const result = await accountService.getTransactions(
                 accountAddress,
                 transactionType,
                 nextPage,
@@ -957,7 +969,8 @@ export class BladeSDK {
         try {
             const {accountAddress, publicKey} = this.getUser();
 
-            const result = await this.tokenServiceContext.createToken(
+            const tokenService = this.chainContextRegistry.getContext<TokenServiceContext>(this.chain, ServiceContextTypes.TokenServiceContext);
+            const result = await tokenService.createToken(
                 tokenName,
                 tokenSymbol,
                 isNft,
@@ -985,7 +998,8 @@ export class BladeSDK {
      */
     async associateToken(tokenIdOrCampaign: string, completionKey?: string): Promise<TransactionReceiptData> {
         try {
-            const result = await this.tokenServiceContext.associateToken(tokenIdOrCampaign, this.getUser().accountAddress);
+            const tokenService = this.chainContextRegistry.getContext<TokenServiceContext>(this.chain, ServiceContextTypes.TokenServiceContext);
+            const result = await tokenService.associateToken(tokenIdOrCampaign, this.getUser().accountAddress);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);
@@ -996,7 +1010,7 @@ export class BladeSDK {
      * Mint one NFT
      *
      * @param tokenAddress token id to mint NFT
-     * @param file image to mint (File or base64 DataUrl image, eg.: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAA...)
+     * @param file image to mint (File or base64 DataUrl image, eg.: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAARUlEQVR42u3PMREAAAgEIO1fzU5vBlcPGtCVTD3QIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIXCyqyi6fIALs1AAAAAElFTkSuQmCC)
      * @param metadata NFT metadata (JSON object)
      * @param storageConfig {NFTStorageConfig} IPFS provider config
      * @param completionKey optional field bridge between mobile webViews and native apps
@@ -1024,7 +1038,8 @@ export class BladeSDK {
         completionKey?: string
     ): Promise<TransactionReceiptData> {
         try {
-            const result = await this.tokenServiceContext.nftMint(tokenAddress, file, metadata, storageConfig);
+            const tokenService = this.chainContextRegistry.getContext<TokenServiceContext>(this.chain, ServiceContextTypes.TokenServiceContext);
+            const result = await tokenService.nftMint(tokenAddress, file, metadata, storageConfig);
             return this.sendMessageToNative(completionKey, result);
         } catch (error) {
             throw this.sendMessageToNative(completionKey, null, error);

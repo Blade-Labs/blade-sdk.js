@@ -3,12 +3,12 @@ import {checkResult, completionKey} from "./helpers";
 import {Buffer} from "buffer";
 import config from "../../src/config";
 import dotenv from "dotenv";
-import fetch from "node-fetch";
+import fetch from "node-fetch-cjs";
 import {ethers} from "ethers";
 import {TextDecoder, TextEncoder} from "util";
 import crypto from "crypto";
 import {KnownChains} from "../../src/models/Chain";
-const {BladeSDK, ParametersBuilder} = require("../../src/webView");
+const {BladeSDK} = require("../../src/webView");
 
 Object.defineProperty(global.self, "crypto", {
     value: {

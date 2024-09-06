@@ -1,6 +1,5 @@
 import {ChainMap, KnownChains} from "../../models/Chain";
-import ApiService from "../../services/ApiService";
-import {IFeeService} from "../FeeServiceContext";
+import {IFeeService} from "../../contexts/FeeServiceContext";
 import {
     AccountId,
     Hbar,
@@ -14,6 +13,8 @@ import {Network} from "../../models/Networks";
 import {FeatureFeeConfig, FeeType} from "../../models/Common";
 import BigNumber from "bignumber.js";
 import ConfigService from "../../services/ConfigService";
+import AbstractServiceHedera from "./AbstractServiceHedera";
+import {getContainer} from "../../container";
 
 export const HbarTokenId = "0.0.0";
 
@@ -39,9 +40,7 @@ type APIRateData = {
     timestampSecondsLastListingChange: number;
 };
 
-export default class FeeServiceHedera implements IFeeService {
-    private readonly chain: KnownChains;
-    private readonly apiService: ApiService;
+export default class FeeServiceHedera extends AbstractServiceHedera implements IFeeService {
     private readonly configService: ConfigService;
 
     private cryptoExchangeRates: Record<KnownChains, Record<string, RateData>> = Object.values(KnownChains).reduce((acc, chain) => {
@@ -49,10 +48,11 @@ export default class FeeServiceHedera implements IFeeService {
         return acc;
     }, {} as Record<KnownChains, Record<string, RateData>>);
 
-    constructor(chain: KnownChains, apiService: ApiService, configService: ConfigService) {
-        this.chain = chain;
-        this.apiService = apiService;
-        this.configService = configService;
+    constructor(chain: KnownChains) {
+        super(chain);
+
+        this.container = getContainer();
+        this.configService = this.container.get<ConfigService>("configService");
     }
 
     public async addBladeFee<T extends Transaction>(

@@ -11,15 +11,20 @@ import {
 import {ChainMap, ChainServiceStrategy, KnownChains} from "../models/Chain";
 import {IntegrationUrlData, SwapQuotesData} from "../models/Common";
 import ApiService from "../services/ApiService";
-import TokenServiceContext from "../strategies/TokenServiceContext";
+import TokenServiceContext from "../contexts/TokenServiceContext";
 import StringHelpers from "../helpers/StringHelpers";
+import {getContainer} from "../container";
+import {ChainContextRegistry, ServiceContextTypes} from "../ChainContextRegistry";
 
 @injectable()
 export default class ExchangeService {
+    private chainContextRegistry: ChainContextRegistry;
     constructor(
-        @inject("apiService") private readonly apiService: ApiService,
-        @inject("tokenServiceContext") private readonly tokenServiceContext: TokenServiceContext,
-    ) {}
+        @inject("apiService") private readonly apiService: ApiService
+    ) {
+        const container = getContainer()
+        this.chainContextRegistry = container.get<ChainContextRegistry>("chainContextRegistry");
+    }
 
     async exchangeGetQuotes(
         chain: KnownChains,
@@ -206,7 +211,7 @@ export default class ExchangeService {
             useTestnet
         })) as ExchangeTransaction;
 
-
-        return this.tokenServiceContext.swapTokens(accountAddress, selectedQuote, txData);
+        const tokenServiceContext = this.chainContextRegistry.getContext<TokenServiceContext>(chain, ServiceContextTypes.TokenServiceContext);
+        return tokenServiceContext.swapTokens(accountAddress, selectedQuote, txData);
     }
 }

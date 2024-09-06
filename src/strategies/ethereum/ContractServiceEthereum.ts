@@ -1,23 +1,17 @@
 import {ethers} from "ethers";
 import {ContractCallQueryRecordsData, TransactionReceiptData} from "../../models/Common";
 import {KnownChains} from "../../models/Chain";
-import ApiService from "../../services/ApiService";
-import ConfigService from "../../services/ConfigService";
-import {IContractService} from "../ContractServiceContext";
+import {IContractService} from "../../contexts/ContractServiceContext";
 import {ParametersBuilder} from "../../ParametersBuilder";
 import {getContractFunctionBytecode} from "../../helpers/ContractHelpers";
+import {getContainer} from "../../container";
+import AbstractServiceEthereum from "../../strategies/ethereum/AbstractServiceEthereum";
 
-export default class ContractServiceEthereum implements IContractService {
-    private readonly chain: KnownChains;
-    private readonly signer: ethers.Signer;
-    private readonly apiService: ApiService;
-    private readonly configService: ConfigService;
+export default class ContractServiceEthereum extends AbstractServiceEthereum implements IContractService {
+    constructor(chain: KnownChains) {
+        super(chain);
 
-    constructor(chain: KnownChains, signer: ethers.Signer, apiService: ApiService, configService: ConfigService) {
-        this.chain = chain;
-        this.signer = signer;
-        this.apiService = apiService;
-        this.configService = configService;
+        this.container = getContainer();
     }
 
     async contractCallFunction(

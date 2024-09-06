@@ -1,5 +1,3 @@
-import {inject, injectable} from "inversify";
-import "reflect-metadata";
 import {decrypt, encrypt} from "../helpers/SecurityHelper";
 import {AccountProvider, ActiveUser, MagicWithHedera, SdkEnvironment} from "../models/Common";
 import * as FingerprintJS from "@fingerprintjs/fingerprintjs-pro";
@@ -13,23 +11,21 @@ import {Magic, MagicSDKAdditionalConfiguration} from "magic-sdk";
 import {HederaExtension} from "@magic-ext/hedera";
 import StringHelpers from "../helpers/StringHelpers";
 import {Network} from "../models/Networks";
-import AuthServiceHedera from "./hedera/AuthServiceHedera";
-import AuthServiceEthereum from "./ethereum/AuthServiceEthereum";
+import {getContainer} from "../container";
 
 export interface IAuthService {
     setUserPrivateKey(accountAddress: string, privateKey: string): Promise<ActiveUser>;
     setUserMagic(magic: MagicWithHedera, accountAddress: string): Promise<ActiveUser>;
 }
 
-@injectable()
 export default class AuthServiceContext {
-    private strategy: IAuthService | null = null;
+    private readonly apiService: ApiService;
+    private readonly configService: ConfigService;
 
     private visitorId: string = "";
     private apiKey: string = "";
     private sdkEnvironment: SdkEnvironment = SdkEnvironment.Prod;
 
-    private chain: KnownChains = KnownChains.HEDERA_TESTNET;
     private accountProvider: AccountProvider | null = null;
     private signer: Signer | ethers.Signer | null = null;
     private magic: MagicWithHedera | null = null;
@@ -38,31 +34,11 @@ export default class AuthServiceContext {
     private userPrivateKey: string = "";
 
     constructor(
-        @inject("apiService") private readonly apiService: ApiService,
-        @inject("configService") private readonly configService: ConfigService
-    ) {}
-
-    init(chain: KnownChains) {
-        this.chain = chain;
-
-        switch (ChainMap[this.chain].serviceStrategy as ChainServiceStrategy) {
-            case ChainServiceStrategy.Hedera:
-                this.strategy = new AuthServiceHedera(
-                    chain,
-                    this.apiService,
-                    this.configService
-                );
-                break;
-            case ChainServiceStrategy.Ethereum:
-                this.strategy = new AuthServiceEthereum(
-                    chain,
-                    this.apiService,
-                    this.configService
-                );
-                break;
-            default:
-                throw new Error(`Unsupported chain: ${this.chain}`);
-        }
+        private strategy: IAuthService
+    ) {
+        const container = getContainer();
+        this.apiService = container.get<ApiService>("apiService");
+        this.configService = container.get<ConfigService>("configService");
     }
 
     async getVisitorId(visitorId: string, apiKey: string, sdkEnvironment: SdkEnvironment): Promise<string> {
@@ -115,12 +91,7 @@ export default class AuthServiceContext {
         accountIdOrEmail: string,
         privateKeyDer?: string
     ): Promise<ActiveUser> {
-        this.chain = chain;
         this.accountProvider = accountProvider;
-
-        if (!this.strategy) {
-            this.init(chain);
-        }
 
         try {
             switch (accountProvider) {
@@ -135,7 +106,7 @@ export default class AuthServiceContext {
                 case AccountProvider.Magic: {
                     let userInfo: MagicUserMetadata | undefined;
                     if (!this.magic) {
-                        await this.initMagic(this.chain);
+                        await this.initMagic(chain);
                     }
 
                     if (await this.magic?.user.isLoggedIn()) {
@@ -181,14 +152,14 @@ export default class AuthServiceContext {
         }
     }
 
-    async resetUser(): Promise<null> {
+    async resetUser(chain: KnownChains): Promise<null> {
         this.userPublicKey = "";
         this.userPrivateKey = "";
         this.userAccountAddress = "";
         this.signer = null;
         if (this.accountProvider === AccountProvider.Magic) {
             if (!this.magic) {
-                await this.initMagic(this.chain);
+                await this.initMagic(chain);
             }
             await this.magic!.user.logout();
         }
@@ -198,7 +169,7 @@ export default class AuthServiceContext {
     }
 
     private async initMagic(chain: KnownChains) {
-        const network = ChainMap[this.chain].isTestnet ? Network.Testnet : Network.Mainnet;
+        const network = ChainMap[chain].isTestnet ? Network.Testnet : Network.Mainnet;
         const options: MagicSDKAdditionalConfiguration = {};
         if (ChainMap[chain].serviceStrategy === ChainServiceStrategy.Hedera) {
             options.extensions = [

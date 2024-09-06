@@ -1,7 +1,7 @@
 import {checkResult, completionKey, sleep} from "./helpers";
 import config from "../../src/config";
 import dotenv from "dotenv";
-import fetch from "node-fetch";
+import fetch from "node-fetch-cjs";
 import {TextDecoder, TextEncoder} from "util";
 import crypto from "crypto";
 import {AccountProvider, BalanceData, BridgeResponse} from "../../src/models/Common";

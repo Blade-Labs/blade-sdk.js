@@ -1,5 +1,5 @@
 import {ethers} from "ethers";
-import {ITokenService, TransferInitData, TransferTokenInitData} from "../TokenServiceContext";
+import {ITokenService, TransferInitData, TransferTokenInitData} from "../../contexts/TokenServiceContext";
 import {
     BalanceData,
     TokenDropData,
@@ -7,7 +7,6 @@ import {
     TransactionResponseData
 } from "../../models/Common";
 import {KnownChains} from "../../models/Chain";
-import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
 import {Alchemy, Contract} from "alchemy-sdk";
 import StringHelpers from "../../helpers/StringHelpers";
@@ -16,28 +15,18 @@ import BigNumber from "bignumber.js";
 import {Signer} from "@ethersproject/abstract-signer";
 import {ExchangeQuote, ExchangeTransaction} from "../../models/Exchange";
 import {getAlchemyInstance} from "../../helpers/InitHelpers";
-import FeeServiceContext from "../../strategies/FeeServiceContext";
+import AbstractServiceEthereum from "./AbstractServiceEthereum";
+import {getContainer} from "../../container";
 
-export default class TokenServiceEthereum implements ITokenService {
-    private readonly chain: KnownChains;
-    private readonly signer: ethers.Signer | null;
-    private readonly apiService: ApiService;
+export default class TokenServiceEthereum extends AbstractServiceEthereum implements ITokenService {
     private readonly configService: ConfigService;
-    private readonly feeServiceContext: FeeServiceContext;
     private alchemy: Alchemy | null = null;
 
-    constructor(
-        chain: KnownChains,
-        signer: ethers.Signer | null,
-        apiService: ApiService,
-        configService: ConfigService,
-        feeServiceContext: FeeServiceContext
-    ) {
-        this.chain = chain;
-        this.signer = signer;
-        this.apiService = apiService;
-        this.configService = configService;
-        this.feeServiceContext = feeServiceContext;
+    constructor(chain: KnownChains) {
+        super(chain);
+
+        this.container = getContainer();
+        this.configService = this.container.get<ConfigService>("configService");
     }
 
     async getBalance(address: string): Promise<BalanceData> {

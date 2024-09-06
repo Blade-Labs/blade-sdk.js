@@ -1,5 +1,5 @@
 import {ethers} from "ethers";
-import {ISignService} from "../SignServiceContext";
+import {ISignService} from "../../contexts/SignServiceContext";
 import {
     SignMessageData,
     SignVerifyMessageData,
@@ -8,24 +8,18 @@ import {
     TransactionReceiptData
 } from "../../models/Common";
 import {KnownChains} from "../../models/Chain";
-import ApiService from "../../services/ApiService";
-import ConfigService from "../../services/ConfigService";
 import StringHelpers from "../../helpers/StringHelpers";
 import {ParametersBuilder} from "../../ParametersBuilder";
 import {parseContractFunctionParams} from "../../helpers/ContractHelpers";
 import {Buffer} from "buffer";
+import AbstractServiceEthereum from "./AbstractServiceEthereum";
+import {getContainer} from "../../container";
 
-export default class SignServiceEthereum implements ISignService {
-    private readonly chain: KnownChains;
-    private readonly signer: ethers.Signer;
-    private readonly apiService: ApiService;
-    private readonly configService: ConfigService;
+export default class SignServiceEthereum extends AbstractServiceEthereum implements ISignService {
+    constructor(chain: KnownChains) {
+        super(chain);
 
-    constructor(chain: KnownChains, signer: ethers.Signer, apiService: ApiService, configService: ConfigService) {
-        this.chain = chain;
-        this.signer = signer;
-        this.apiService = apiService;
-        this.configService = configService;
+        this.container = getContainer();
     }
 
     async sign(encodedMessage: string, encoding: SupportedEncoding): Promise<SignMessageData> {

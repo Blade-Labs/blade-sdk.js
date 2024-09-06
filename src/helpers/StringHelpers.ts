@@ -3,12 +3,8 @@ import {KnownChains} from "../models/Chain";
 import {EthNetworkConfiguration} from "magic-sdk";
 
 export default class StringHelpers {
-    static stringToNetwork(str: string): Network {
-        const network = (str[0].toUpperCase() + str.slice(1).toLowerCase()) as Network;
-        if (!Network[network]) {
-            throw new Error(`Invalid network: ${str}`);
-        }
-        return network;
+    static capitalizeFirstChar(str: string): string {
+        return str[0].toUpperCase() + str.slice(1).toLowerCase();
     }
 
     static stringToChain(chain: string): KnownChains {

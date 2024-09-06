@@ -17,7 +17,7 @@ import {
 } from "@hashgraph/sdk";
 import {Buffer} from "buffer";
 
-import {ITokenService, TransferInitData, TransferTokenInitData} from "../TokenServiceContext";
+import {ITokenService, TransferInitData, TransferTokenInitData} from "../../contexts/TokenServiceContext";
 import {
     AssociationAction,
     BalanceData,
@@ -37,27 +37,27 @@ import {dataURLtoFile} from "../../helpers/FileHelper";
 import {NFTStorage} from "nft.storage";
 import {ChainMap, KnownChains} from "../../models/Chain";
 import {JobAction, JobStatus} from "../../models/BladeApi";
-import {limitAttempts, sleep} from "../../helpers/ApiHelper";
+import {limitAttempts, MAX_ATTEMPTS, sleep} from "../../helpers/ApiHelper";
 import {FeeManualOptions, ExchangeQuote, ExchangeTransaction} from "../../models/Exchange";
 import {Network} from "../../models/Networks";
 import BigNumber from "bignumber.js";
 import {flatArray} from "../../helpers/ArrayHelpers";
 import {HbarTokenId} from "./FeeServiceHedera";
-import FeeServiceContext from "../FeeServiceContext";
+import FeeServiceContext from "../../contexts/FeeServiceContext";
+import AbstractServiceHedera from "./AbstractServiceHedera";
+import {getContainer} from "../../container";
+import {ChainContextRegistry, ServiceContextTypes} from "../../ChainContextRegistry";
 
-export default class TokenServiceHedera implements ITokenService {
-    private readonly chain: KnownChains;
-    private readonly signer: Signer | null;
+export default class TokenServiceHedera extends AbstractServiceHedera implements ITokenService {
     private readonly apiService: ApiService;
     private readonly configService: ConfigService;
-    private readonly feeServiceContext: FeeServiceContext;
 
-    constructor(chain: KnownChains, signer: Signer | null, apiService: ApiService, configService: ConfigService, feeServiceContext: FeeServiceContext) {
-        this.chain = chain;
-        this.signer = signer;
-        this.apiService = apiService;
-        this.configService = configService;
-        this.feeServiceContext = feeServiceContext;
+    constructor(chain: KnownChains) {
+        super(chain);
+
+        this.container = getContainer();
+        this.apiService = this.container.get<ApiService>("apiService");
+        this.configService = this.container.get<ConfigService>("configService");
     }
 
     async getBalance(address: string): Promise<BalanceData> {
@@ -129,7 +129,7 @@ export default class TokenServiceHedera implements ITokenService {
                 if (transferTokenJob.status === JobStatus.FAILED) {
                     throw new Error(transferTokenJob.errorMessage);
                 }
-                limitAttempts(transferTokenJob.taskId, 20, "Failed to fetch transaction bytes from backend");
+                limitAttempts(transferTokenJob.taskId, MAX_ATTEMPTS, "Failed to fetch transaction bytes from backend");
                 await sleep((await this.configService.getConfig("refreshTaskPeriodSeconds")) * 1000);
                 transferTokenJob = await this.apiService.transferTokens(JobAction.CHECK, transferTokenJob.taskId);
             }
@@ -203,7 +203,7 @@ export default class TokenServiceHedera implements ITokenService {
                 if (tokenAssociationJob.status === JobStatus.FAILED) {
                     throw new Error(tokenAssociationJob.errorMessage);
                 }
-                limitAttempts(tokenAssociationJob.taskId, 20, "Failed to fetch transaction bytes from backend");
+                limitAttempts(tokenAssociationJob.taskId, MAX_ATTEMPTS, "Failed to fetch transaction bytes from backend");
                 await sleep((await this.configService.getConfig("refreshTaskPeriodSeconds")) * 1000);
                 tokenAssociationJob = await this.apiService.tokenAssociation(
                     JobAction.CHECK,
@@ -405,7 +405,7 @@ export default class TokenServiceHedera implements ITokenService {
             if (dropJob.status === JobStatus.FAILED) {
                 throw new Error(dropJob.errorMessage);
             }
-            limitAttempts(dropJob.taskId, 20, "Failed to drop tokens on backend");
+            limitAttempts(dropJob.taskId, MAX_ATTEMPTS, "Failed to drop tokens on backend");
             await sleep((await this.configService.getConfig("refreshTaskPeriodSeconds")) * 1000);
             dropJob = await this.apiService.dropTokens(JobAction.CHECK, dropJob.taskId);
         }
@@ -543,7 +543,10 @@ export default class TokenServiceHedera implements ITokenService {
             amount: BigNumber(selectedQuote.source.amountExpected),
             amountTokenId: selectedQuote.source.asset.address || ""
         };
-        let transaction = await this.feeServiceContext.createFeeTransaction<TransferTransaction>(chain, activeAccount, feeOptions);
+
+        const chainContextRegistry = this.container.get<ChainContextRegistry>("chainContextRegistry");
+        const feeServiceContext = chainContextRegistry.getContext<FeeServiceContext>(chain, ServiceContextTypes.FeeServiceContext)
+        let transaction = await feeServiceContext.createFeeTransaction<TransferTransaction>(chain, activeAccount, feeOptions);
         if (!transaction) {
             return;
         }

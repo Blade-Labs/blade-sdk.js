@@ -2,7 +2,7 @@ import {associateToken, checkResult, completionKey, createToken, sleep} from "./
 import ApiService from "../../src/services/ApiService";
 import config from "../../src/config";
 import dotenv from "dotenv";
-import fetch from "node-fetch";
+import fetch from "node-fetch-cjs";
 import {TextDecoder, TextEncoder} from "util";
 import crypto from "crypto";
 import {
@@ -261,7 +261,7 @@ describe("testing methods related to HEDERA", () => {
             accountId2,
             amount.toString(),
             "transfer memo",
-            true,
+            false,
             completionKey
         );
         checkResult(result);
@@ -310,7 +310,7 @@ describe("testing methods related to HEDERA", () => {
         const publicKey = PrivateKey.fromStringDer(result.data.privateKey).publicKey.toStringRaw();
         const evmAddress = ethers.computeAddress(`0x${publicKey}`);
 
-        expect(result.data.evmAddress).toEqual(evmAddress.toLowerCase());
+        expect(result.data.evmAddress).toEqual(evmAddress);
 
         result = await bladeSdk.init(
             "wrong api key",
@@ -336,7 +336,7 @@ describe("testing methods related to HEDERA", () => {
         let result;
         const account = await bladeSdk.createAccount("", "device-id", completionKey);
         checkResult(account);
-        const newAccountId = account.data.accountId;
+        const newAccountId = account.data.accountAddress;
 
         await sleep(15_000);
 
@@ -404,13 +404,7 @@ describe("testing methods related to HEDERA", () => {
         result = await bladeSdk.createAccount("", "device-id", completionKey);
         checkResult(result);
 
-        const accountSample = {
-            accountId: result.data.accountId,
-            privateKey: result.data.privateKey,
-            publicKey: result.data.publicKey,
-            seedPhrase: result.data.seedPhrase,
-            evmAddress: result.data.evmAddress
-        };
+        const accountSample = result.data;
 
         result = await bladeSdk.searchAccounts(accountSample.seedPhrase, completionKey);
         checkResult(result);
@@ -426,7 +420,7 @@ describe("testing methods related to HEDERA", () => {
         expect(result.data.accounts[0]).toHaveProperty("evmAddress");
         expect(result.data.accounts[0]).toHaveProperty("path");
         expect(result.data.accounts[0]).toHaveProperty("keyType");
-        expect(result.data.accounts[0].address).toEqual(accountSample.accountId);
+        expect(result.data.accounts[0].address).toEqual(accountSample.accountAddress);
         expect(result.data.accounts[0].privateKey).toEqual(accountSample.privateKey);
         expect(result.data.accounts[0].publicKey).toEqual(accountSample.publicKey);
         expect(result.data.accounts[0].evmAddress).toEqual(accountSample.evmAddress);

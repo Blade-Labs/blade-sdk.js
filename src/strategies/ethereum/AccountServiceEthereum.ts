@@ -1,4 +1,4 @@
-import {IAccountService} from "../AccountServiceContext";
+import {IAccountService} from "../../contexts/AccountServiceContext";
 
 import {
     AccountInfoData,
@@ -8,7 +8,6 @@ import {
     TransactionReceiptData,
     TransactionsHistoryData
 } from "../../models/Common";
-import ApiService from "../../services/ApiService";
 import ConfigService from "../../services/ConfigService";
 import {NodeInfo, MirrorNodeTransactionType} from "../../models/MirrorNode";
 import {ethers} from "ethers";
@@ -23,24 +22,18 @@ import {
 } from "alchemy-sdk";
 import {JobStatus} from "../../models/BladeApi";
 import {getAlchemyInstance} from "../../helpers/InitHelpers";
+import AbstractServiceEthereum from "./AbstractServiceEthereum";
+import {getContainer} from "../../container";
 
-export default class AccountServiceEthereum implements IAccountService {
-    private readonly chain: KnownChains;
-    private readonly signer: ethers.Signer | null = null;
-    private readonly apiService: ApiService;
+export default class AccountServiceEthereum extends AbstractServiceEthereum implements IAccountService {
     private readonly configService: ConfigService;
     private alchemy: Alchemy | null = null;
 
-    constructor(
-        chain: KnownChains,
-        signer: ethers.Signer | null,
-        apiService: ApiService,
-        configService: ConfigService
-    ) {
-        this.chain = chain;
-        this.signer = signer;
-        this.apiService = apiService;
-        this.configService = configService;
+    constructor(chain: KnownChains) {
+        super(chain);
+
+        this.container = getContainer();
+        this.configService = this.container.get<ConfigService>("configService");
     }
 
     async createAccount(privateKey: string): Promise<CreateAccountData> {

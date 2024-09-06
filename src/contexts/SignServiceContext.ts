@@ -1,8 +1,7 @@
-import {injectable, inject} from "inversify";
-import "reflect-metadata";
+import {Container} from "inversify";
 
-import {Signer} from "@hashgraph/sdk";
 import {
+    ActiveUser,
     ScheduleTransactionTransfer,
     ScheduleTransactionType,
     SignMessageData,
@@ -11,14 +10,9 @@ import {
     SupportedEncoding,
     TransactionReceiptData
 } from "../models/Common";
-import {ChainMap, ChainServiceStrategy, KnownChains} from "../models/Chain";
-import SignServiceHedera from "./hedera/SignServiceHedera";
-import SignServiceEthereum from "./ethereum/SignServiceEthereum";
-import {ethers} from "ethers";
-import ApiService from "../services/ApiService";
-import ConfigService from "../services/ConfigService";
 import {ParametersBuilder} from "../ParametersBuilder";
 import SignService from "../services/SignService";
+import {getContainer} from "../container";
 
 export interface ISignService {
     sign(encodedMessage: string, encoding: SupportedEncoding, likeEthers: boolean, publicKey: string): Promise<SignMessageData>;
@@ -41,39 +35,26 @@ export interface ISignService {
     getParamsSignature(paramsEncoded: string | ParametersBuilder, publicKey: string): Promise<SplitSignatureData>;
 }
 
-@injectable()
 export default class SignServiceContext implements ISignService {
-    private chain: KnownChains | null = null;
-    private signer: Signer | ethers.Signer | null = null;
-    private strategy: ISignService | null = null;
-    private publicKey: string = "";
+    private readonly signService: SignService;
+    private readonly container: Container;
 
     constructor(
-        @inject("apiService") private readonly apiService: ApiService,
-        @inject("configService") private readonly configService: ConfigService,
-        @inject("signService") private readonly signService: SignService
-    ) {}
+        private strategy: ISignService
+    ) {
+        this.container = getContainer();
+        this.signService = this.container.get<SignService>("signService");
+    }
 
-    init(chain: KnownChains, signer: Signer | ethers.Signer, publicKey: string) {
-        this.chain = chain;
-        this.signer = signer;
-        this.publicKey = publicKey;
-
-        switch (ChainMap[this.chain].serviceStrategy) {
-            case ChainServiceStrategy.Hedera:
-                this.strategy = new SignServiceHedera(chain, signer as Signer, this.apiService, this.configService);
-                break;
-            case ChainServiceStrategy.Ethereum:
-                this.strategy = new SignServiceEthereum(
-                    chain,
-                    signer as ethers.Signer,
-                    this.apiService,
-                    this.configService
-                );
-                break;
-            default:
-                throw new Error(`Unsupported chain id: ${this.chain}`);
+    get publicKey(): string {
+        if (!this.container) {
+            throw new Error(`Container not set in ${this.constructor.name} class`);
         }
+        const user = this.container.get<ActiveUser>("user");
+        if (!user) {
+            throw new Error("No Active user found. Call setUser() first");
+        }
+        return user.publicKey;
     }
 
     splitSignature(signature: string): Promise<SplitSignatureData> {
@@ -81,12 +62,10 @@ export default class SignServiceContext implements ISignService {
     }
 
     getParamsSignature(paramsEncoded: string | ParametersBuilder): Promise<SplitSignatureData> {
-        this.checkInit();
         return this.strategy!.getParamsSignature(paramsEncoded, this.publicKey);
     }
 
     sign(encodedMessage: string, encoding: SupportedEncoding, likeEthers: boolean): Promise<SignMessageData> {
-        this.checkInit();
         return this.strategy!.sign(encodedMessage, encoding, likeEthers, this.publicKey);
     }
 
@@ -104,8 +83,7 @@ export default class SignServiceContext implements ISignService {
         transfers: ScheduleTransactionTransfer[],
         usePaymaster: boolean,
     ): Promise<{scheduleId: string}> {
-        this.checkInit();
-        return this.strategy!.createScheduleTransaction(type, transfers, usePaymaster);
+        return this.strategy.createScheduleTransaction(type, transfers, usePaymaster);
     }
 
     signScheduleId(
@@ -113,13 +91,6 @@ export default class SignServiceContext implements ISignService {
         receiverAccountId: string,
         usePaymaster: boolean,
     ): Promise<TransactionReceiptData> {
-        this.checkInit();
-        return this.strategy!.signScheduleId(scheduleId, receiverAccountId, usePaymaster);
-    }
-
-    private checkInit() {
-        if (!this.strategy) {
-            throw new Error("SignService not initialized (no signer, call setUser() first)");
-        }
+        return this.strategy.signScheduleId(scheduleId, receiverAccountId, usePaymaster);
     }
 }
