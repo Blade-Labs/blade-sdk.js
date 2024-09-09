@@ -9,12 +9,14 @@ const sdkConfigs = [
     {
         sdkName: "kotlin",
         repoUrl: "git@github.com:Blade-Labs/kotlin-blade.git",
-        destinationPath: "BladeSDK/src/main/assets"
+        destinationPath: "BladeSDK/src/main/assets",
+        sourceBranch: "main"
     },
     {
         sdkName: "swift",
         repoUrl: "git@github.com:Blade-Labs/swift-blade.git",
-        destinationPath: "Sources/SwiftBlade/JS"
+        destinationPath: "Sources/SwiftBlade/JS",
+        sourceBranch: "develop"
     }
 ];
 
@@ -23,10 +25,11 @@ if (!shell.which("git")) {
     shell.exit(1);
 }
 
-for (const {destinationPath, repoUrl, sdkName} of sdkConfigs) {
+for (const {destinationPath, repoUrl, sdkName, sourceBranch} of sdkConfigs) {
     shell.rm("-rf", `${dir}/${sdkName}`);
     shell.exec(`git clone ${repoUrl} ${dir}/${sdkName}`);
     shell.cd(`${dir}/${sdkName}`);
+    shell.exec(`git checkout ${sourceBranch}`);
     shell.exec(`git checkout -b ${branch}`);
 
     for (const sourcePath of sourcePaths) {
