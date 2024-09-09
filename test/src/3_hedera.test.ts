@@ -370,11 +370,11 @@ describe("testing methods related to HEDERA", () => {
 
         result = await bladeSdk.createAccount("", "device-id", completionKey);
         checkResult(result);
-        const newAccountId = result.data.accountId;
+        const newAccountAddress = result.data.accountAddress;
         const newPrivateKey = result.data.privateKey;
 
         try {
-            result = await bladeSdk.deleteAccount(newAccountId, newPrivateKey, accountId, completionKey);
+            result = await bladeSdk.deleteAccount(newAccountAddress, newPrivateKey, accountId, completionKey);
             expect("Code should not reach here").toEqual(result);
         } catch (result) {
             checkResult(result, false);
@@ -383,16 +383,16 @@ describe("testing methods related to HEDERA", () => {
         result = await bladeSdk.setUser(AccountProvider.PrivateKey, accountId, privateKey, completionKey);
         checkResult(result);
 
-        result = await bladeSdk.deleteAccount(newAccountId, newPrivateKey, accountId, completionKey);
+        result = await bladeSdk.deleteAccount(newAccountAddress, newPrivateKey, accountId, completionKey);
         checkResult(result);
 
         await sleep(15_000);
-        result = await apiService.GET(Network.Testnet, `/accounts/${newAccountId}`);
+        result = await apiService.GET(Network.Testnet, `/accounts/${newAccountAddress}`);
         expect(result.deleted).toEqual(true);
 
         // invalid request (already deleted)
         try {
-            result = await bladeSdk.deleteAccount(newAccountId, newPrivateKey, accountId, completionKey);
+            result = await bladeSdk.deleteAccount(newAccountAddress, newPrivateKey, accountId, completionKey);
             expect("Code should not reach here").toEqual(result);
         } catch (result) {
             checkResult(result, false);
@@ -723,7 +723,7 @@ describe("testing methods related to HEDERA", () => {
                 false,
                 completionKey
             );
-            expect("Code should not reach here1").toEqual(result);
+            expect("Code should not reach here").toEqual(result);
         } catch (result) {
             checkResult(result, false);
         }
