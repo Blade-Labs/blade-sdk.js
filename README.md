@@ -22,18 +22,18 @@ npm i @bladelabs/blade-sdk.js
 ## Usage
 
 ```
-import {bladeContainer, BladeSDK, SdkEnvironment, KnownChainIds} from '@bladelabs/blade-sdk.js';
+import {BladeSDK, SdkEnvironment, KnownChains} from '@bladelabs/blade-sdk.js';
 
 ...
 
 const apiKey ="ygUgCzRrsvhWmb3dsLcApGnApSZ4tk8hBCmZqg9BngpuQYKsnD5m9FjfPV3tVBeB" // provided by BladeLabs team
-const chainId = KnownChainIds.HEDERA_TESTNET; // or HEDERA_MAINNET, ETHEREUM_SEPOLIA, ETHEREUM_MAINNET
+const chain = KnownChains.HEDERA_TESTNET; // or HEDERA_MAINNET, ETHEREUM_SEPOLIA, ETHEREUM_MAINNET
 const dAppCode = "your-dApp-code"; // provided by BladeLabs team
 const visitorId = ""; // provide empty string and SDK will generate a new one. Otherwise consult with BladeLabs team first
 const environment = SdkEnvironment.Prod; // or SdkEnvironment.CI
 
-const bladeSdk = bladeContainer.get(BladeSDK);
-await bladeSDK.init(apiKey, chainId, dAppCode, visitorId, environment);
+const bladeSdk = BladeSDK();
+await bladeSDK.init(apiKey, chain, dAppCode, visitorId, environment);
 await bladeSdk.setUser(AccountProvider.PrivateKey, "0.0.454464", "302e020100300506032b6570042204204323472EA5374E80B07346243234DEADBEEF25235235...")
 const balance = await bladeSdk.getBalance("0.0.8235");
 console.log(balance);

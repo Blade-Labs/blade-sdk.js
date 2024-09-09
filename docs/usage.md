@@ -41,7 +41,7 @@ Init instance of BladeSDK for correct work with Blade API and other endpoints.
 
 `init(
         apiKey: string, 
-        chainId: string | KnownChainIds, 
+        chain: string | KnownChains, 
         dAppCode: string, 
         visitorId: string, 
         sdkEnvironment: SdkEnvironment = SdkEnvironment.Prod, 
@@ -53,7 +53,7 @@ Init instance of BladeSDK for correct work with Blade API and other endpoints.
 | Name | Type | Description |
 |------|------| ----------- |
 | `apiKey` | `string` | Unique key for API provided by Blade team. |
-| `chainId` | `string \| KnownChainIds` | one of supported chains from KnownChainIds |
+| `chain` | `string \| KnownChains` | one of supported chains from KnownChains |
 | `dAppCode` | `string` | your dAppCode - request specific one by contacting BladeLabs team |
 | `visitorId` | `string` | client unique id. If not provided, SDK will try to get it using fingerprintjs-pro library |
 | `sdkEnvironment` | `SdkEnvironment` | environment to choose BladeAPI server (Prod, CI). Prod used by default. |
@@ -67,7 +67,7 @@ Init instance of BladeSDK for correct work with Blade API and other endpoints.
 #### Example
 
 ```javascript
-const info = await bladeSdk.init("apiKey", KnownChainIds.HEDERA_MAINNET, "dAppCode");
+const info = await bladeSdk.init("apiKey", KnownChains.HEDERA_MAINNET, "dAppCode");
 ```
 
 ## getInfo
@@ -107,7 +107,7 @@ Set active user for further operations.
 | Name | Type | Description |
 |------|------| ----------- |
 | `accountProvider` | `AccountProvider` | one of supported providers: PrivateKey or Magic |
-| `accountIdOrEmail` | `string` | account id (0.0.xxxxx, 0xABCDEF..., EMAIL) or empty string for some ChainId |
+| `accountIdOrEmail` | `string` | account id (0.0.xxxxx, 0xABCDEF..., EMAIL) or empty string for some chains |
 | `privateKey` | `string` | private key for account (hex encoded privateKey with DER-prefix or 0xABCDEF...) In case of Magic provider - empty string |
 | `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
 
@@ -780,7 +780,7 @@ Get quotes from different services for buy, sell or swap
         sourceCode: string, 
         sourceAmount: number, 
         targetCode: string, 
-        strategy: CryptoFlowServiceStrategy, 
+        strategy: ExchangeStrategy, 
         completionKey?: string): Promise<SwapQuotesData>`
 
 #### Parameters
@@ -790,7 +790,7 @@ Get quotes from different services for buy, sell or swap
 | `sourceCode` | `string` | name (HBAR, KARATE, other token code) |
 | `sourceAmount` | `number` | amount to swap, buy or sell |
 | `targetCode` | `string` | name (HBAR, KARATE, USDC, other token code) |
-| `strategy` | `CryptoFlowServiceStrategy` | one of enum CryptoFlowServiceStrategy (Buy, Sell, Swap) |
+| `strategy` | `ExchangeStrategy` | one of enum ExchangeStrategy (Buy, Sell, Swap) |
 | `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
 
 #### Returns
@@ -800,7 +800,7 @@ Get quotes from different services for buy, sell or swap
 #### Example
 
 ```javascript
-const quotes = await bladeSdk.exchangeGetQuotes("EUR", 100, "HBAR", CryptoFlowServiceStrategy.BUY);
+const quotes = await bladeSdk.exchangeGetQuotes("EUR", 100, "HBAR", ExchangeStrategy.BUY);
 ```
 
 ## getTradeUrl
@@ -808,7 +808,7 @@ const quotes = await bladeSdk.exchangeGetQuotes("EUR", 100, "HBAR", CryptoFlowSe
 Get configured url to buy or sell tokens or fiat
 
 `getTradeUrl(
-        strategy: CryptoFlowServiceStrategy, 
+        strategy: ExchangeStrategy, 
         accountAddress: string, 
         sourceCode: string, 
         sourceAmount: number, 
@@ -822,7 +822,7 @@ Get configured url to buy or sell tokens or fiat
 
 | Name | Type | Description |
 |------|------| ----------- |
-| `strategy` | `CryptoFlowServiceStrategy` | Buy / Sell |
+| `strategy` | `ExchangeStrategy` | Buy / Sell |
 | `accountAddress` | `string` | account address (0.0.xxxxx or 0x123456789abcdef...) or empty string for current user |
 | `sourceCode` | `string` | name (HBAR, KARATE, USDC, other token code) |
 | `sourceAmount` | `number` | amount to buy/sell |
@@ -839,7 +839,7 @@ Get configured url to buy or sell tokens or fiat
 #### Example
 
 ```javascript
-const {url} = await bladeSdk.getTradeUrl(CryptoFlowServiceStrategy.BUY, "0.0.10001", "EUR", 50, "HBAR", 0.5, "saucerswapV2", redirectUrl);
+const {url} = await bladeSdk.getTradeUrl(ExchangeStrategy.BUY, "0.0.10001", "EUR", 50, "HBAR", 0.5, "saucerswapV2", redirectUrl);
 ```
 
 ## swapTokens
@@ -965,7 +965,7 @@ Mint one NFT
 | Name | Type | Description |
 |------|------| ----------- |
 | `tokenAddress` | `string` | token id to mint NFT |
-| `file` | `File \| string` | image to mint (File or base64 DataUrl image, eg.: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAA...) |
+| `file` | `File \| string` | image to mint (File or base64 DataUrl image, eg.: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAARUlEQVR42u3PMREAAAgEIO1fzU5vBlcPGtCVTD3QIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIXCyqyi6fIALs1AAAAAElFTkSuQmCC) |
 | `metadata` | `object` | NFT metadata (JSON object) |
 | `storageConfig` | `NFTStorageConfig` | IPFS provider config |
 | `completionKey` | `string` | optional field bridge between mobile webViews and native apps |

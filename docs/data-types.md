@@ -11,23 +11,23 @@ export enum AccountProvider {
 ```
 
 
-### CryptoFlowServiceStrategy
-
-```typescript
-export enum CryptoFlowServiceStrategy {
-    BUY = "Buy",
-    SELL = "Sell",
-    SWAP = "Swap"
-}
-```
-
-
 ### CryptoKeyType
 
 ```typescript
 export enum CryptoKeyType {
     ECDSA_SECP256K1 = "ECDSA_SECP256K1",
     ED25519 = "ED25519"
+}
+```
+
+
+### ExchangeStrategy
+
+```typescript
+export enum ExchangeStrategy {
+    BUY = "Buy",
+    SELL = "Sell",
+    SWAP = "Swap"
 }
 ```
 
@@ -59,14 +59,14 @@ export enum KeyType {
 ```
 
 
-### KnownChainIds
+### KnownChains
 
 ```typescript
-export enum KnownChainIds {
-    ETHEREUM_MAINNET = "1",
-    ETHEREUM_SEPOLIA = "11155111",
-    HEDERA_MAINNET = "295",
-    HEDERA_TESTNET = "296"
+export enum KnownChains { // namespace : chainId
+    ETHEREUM_MAINNET = "eip155:1",
+    ETHEREUM_SEPOLIA = "eip155:11155111",
+    HEDERA_MAINNET = "hedera:295",
+    HEDERA_TESTNET = "hedera:296"
 }
 ```
 
@@ -341,21 +341,10 @@ export interface CreateTokenData {
 ```
 
 
-### IAssetQuote
+### ExchangeAsset
 
 ```typescript
-export interface IAssetQuote {
-    asset: ICryptoFlowAsset;
-    amountExpected: number;
-    totalFee: number | null;
-}
-```
-
-
-### ICryptoFlowAsset
-
-```typescript
-export interface ICryptoFlowAsset {
+export interface ExchangeAsset {
     name: string;
     code: string;
     type: string;
@@ -373,10 +362,10 @@ export interface ICryptoFlowAsset {
 ```
 
 
-### ICryptoFlowQuote
+### ExchangeQuote
 
 ```typescript
-export interface ICryptoFlowQuote {
+export interface ExchangeQuote {
     service: {
         id: string;
         name: string;
@@ -396,6 +385,17 @@ export interface ICryptoFlowQuote {
 ```
 
 
+### IAssetQuote
+
+```typescript
+export interface IAssetQuote {
+    asset: ExchangeAsset;
+    amountExpected: number;
+    totalFee: number | null;
+}
+```
+
+
 ### InfoData
 
 ```typescript
@@ -403,7 +403,7 @@ export interface InfoData {
     apiKey: string;
     dAppCode: string;
     isTestnet: boolean;
-    chainId: KnownChainIds;
+    chain: KnownChains;
     visitorId: string;
     sdkEnvironment: SdkEnvironment;
     sdkVersion: string;
@@ -519,7 +519,7 @@ export interface SplitSignatureData {
 
 ```typescript
 export interface SwapQuotesData {
-    quotes: ICryptoFlowQuote[];
+    quotes: ExchangeQuote[];
 }
 ```
 
@@ -630,10 +630,10 @@ export interface TransferData {
 
 ```typescript
 export interface UserInfoData {
-    accountId: string;
+    address: string;
     accountProvider: AccountProvider | null;
-    userPrivateKey: string;
-    userPublicKey: string;
+    privateKey: string;
+    publicKey: string;
 }
 ```
 
