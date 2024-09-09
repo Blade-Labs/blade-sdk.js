@@ -2290,8 +2290,11 @@ export class BladeSDK {
                 for (const tokenId of tokenList.slice(0, 9)) {
                     const tokenBalance = accountBalance.tokens.find((t) => t.tokenId === tokenId)
                     if (tokenBalance) {
-                        tx.addTokenTransfer(tokenId, accountId, -1 * tokenBalance.balance)
-                        tx.addTokenTransfer(tokenId, receiverId, tokenBalance.balance)
+                        const meta = await requestTokenInfo(this.network, tokenId);
+                        const correctedAmount = tokenBalance.balance * 10 ** parseInt(meta.decimals, 10);
+
+                        tx.addTokenTransfer(tokenId, accountId, -1 * correctedAmount)
+                        tx.addTokenTransfer(tokenId, receiverId, correctedAmount)
                     }
                 }
             }
