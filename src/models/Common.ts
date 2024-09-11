@@ -51,7 +51,7 @@ export enum KeyType {
 }
 
 export enum IPFSProvider {
-    pinata = "pinata.cloud",
+    pinata = "pinata",
 }
 
 export enum AssociationAction {
