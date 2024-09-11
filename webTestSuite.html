@@ -75,6 +75,7 @@
                 // "associateToken", // ok
                 // "getTokenInfo", // ok
                 // "mintNFT",
+                "brokenMnemonicEmergencyTransfer",
             ]);
 
             function addTest(name, test) {
@@ -324,12 +325,21 @@
                                     ]
                                 },
                                 {
-                                    provider: "pinata.cloud",
+                                    provider: "pinata",
                                     token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiIwYzJiMGM2Yi0zNzI2LTQ5YmMtYjgxZi0yOGIxMjViM2EzMTYiLCJlbWFpbCI6InRoZS5nYXJ5LmR1QGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJwaW5fcG9saWN5Ijp7InJlZ2lvbnMiOlt7ImRlc2lyZWRSZXBsaWNhdGlvbkNvdW50IjoxLCJpZCI6IkZSQTEifSx7ImRlc2lyZWRSZXBsaWNhdGlvbkNvdW50IjoxLCJpZCI6Ik5ZQzEifV0sInZlcnNpb24iOjF9LCJtZmFfZW5hYmxlZCI6ZmFsc2UsInN0YXR1cyI6IkFDVElWRSJ9LCJhdXRoZW50aWNhdGlvblR5cGUiOiJzY29wZWRLZXkiLCJzY29wZWRLZXlLZXkiOiI0NjZjZDlkMDUwNWUzNDAyYjk2YSIsInNjb3BlZEtleVNlY3JldCI6IjY0ODM1MDhlM2Q3OTgzNDlkYzUzNWJiMDRkYWViMWFlZmU4NjdlZjJiMDhhNjhhNzlkNWYwZDRlOTU5YTUxZTciLCJleHAiOjE3NTYzMTQ5MjJ9.yK8QpXW4aVIwCGOfVwbSlNM4GVHcGdH1W8YD3adGua4",
                                 },
                                 completionKey
                             )
                         )
+                    }
+                });
+
+                addTest("brokenMnemonicEmergencyTransfer", async (completionKey) => {
+                    for await (const { userProvider, accountIdOrEmail, accountPrivateKey } of userProviders) {
+                        log(await bladeSdk.init(apiKeyTestnet, "Testnet", dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
+                        // const { accountId, privateKey } = await customSetUser(userProvider, accountIdOrEmail, accountPrivateKey, completionKey);
+
+                        log(await bladeSdk.brokenMnemonicEmergencyTransfer("detail latin artwork hint example city potato need female doll glare wine", "0.0.4819865", "0.0.1443", "0", ["0.0.4422289"], false));
                     }
                 });
 
