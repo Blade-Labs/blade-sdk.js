@@ -568,16 +568,16 @@ export class BladeSDK {
                 const { transactionBytes } = await signContractCallTx(this.network, options);
                 transaction = Transaction.fromBytes(Buffer.from(transactionBytes, "base64"));
             } else {
-                transaction = new ContractExecuteTransaction()
+                transaction = await new ContractExecuteTransaction()
                     .setContractId(contractId)
                     .setGas(gas)
                     .setFunction(functionName)
-                    .setFunctionParameters(contractFunctionParameters);
+                    .setFunctionParameters(contractFunctionParameters)
+                    .freezeWithSigner(this.signer)
             }
 
             return transaction
-                .freezeWithSigner(this.signer)
-                .then((tx) => tx.signWithSigner(this.signer))
+                .signWithSigner(this.signer)
                 .then((tx) => tx.executeWithSigner(this.signer))
                 .then((result) => result.getReceiptWithSigner(this.signer))
                 .then((data) => {
@@ -754,8 +754,7 @@ export class BladeSDK {
                 const transaction = Transaction.fromBytes(buffer);
 
                 return transaction
-                    .freezeWithSigner(this.signer)
-                    .then((tx) => tx.signWithSigner(this.signer))
+                    .signWithSigner(this.signer)
                     .then((tx) => tx.executeWithSigner(this.signer))
                     .then((result) => result.getReceiptWithSigner(this.signer))
                     .then((data) => {
@@ -2076,9 +2075,7 @@ export class BladeSDK {
                 }
 
                 const buffer = Buffer.from(result.transactionBytes, "base64");
-                transaction = await Transaction.fromBytes(buffer)
-                    .signWithSigner(this.signer)
-                    .then((tx) => tx.freezeWithSigner(this.signer));
+                transaction = Transaction.fromBytes(buffer)
             } else {
                 transaction = await new TokenAssociateTransaction()
                     .setAccountId(accountId)
