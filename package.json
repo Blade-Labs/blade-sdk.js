@@ -14,8 +14,7 @@
     "publish:web-view": "npm run clean && cross-env SDK_VERSION=$npm_package_version NODE_ENV=production node utils/fixConfig.js && npm run build:web-view && node utils/publish-sdk-bundle.js --platforms=kotlin,swift",
     "publish:unity": "npm run clean && cross-env SDK_VERSION=$npm_package_version NODE_ENV=production node utils/fixConfig.js && npm run build:unity && node utils/publish-sdk-bundle.js --platforms=unity",
     "test": "cross-env SDK_VERSION=$npm_package_version NODE_ENV=test node utils/fixConfig.js && jest --coverage",
-    "deploy-test-contract": "solcjs --bin --abi test/contract/TestContract.sol -o ./test/contract && node test/contract/deploy.js",
-    "postinstall": "patch-package"
+    "deploy-test-contract": "solcjs --bin --abi test/contract/TestContract.sol -o ./test/contract && node test/contract/deploy.js"
   },
   "keywords": [
     "hedera",
@@ -57,9 +56,9 @@
   ],
   "license": "Apache-2.0",
   "dependencies": {
-    "@hashgraph/hethers": "^1.2.2",
+    "ethers": "^5.7.2",
     "@hashgraph/sdk": "^2.19.2",
-    "buffer": "^6.0.3"
+    "buffer": "6.0.2"
   },
   "devDependencies": {
     "@babel/preset-typescript": "^7.18.6",

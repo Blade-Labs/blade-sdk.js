@@ -24,7 +24,8 @@ module.exports = {
         filename: "[name].txt",
         library: "[name]",
         libraryTarget: "var",
-        chunkFormat: "module"
+        chunkFormat: "module",
+        publicPath: "/",
     },
     resolve: {
         extensions: ['.tsx', '.ts', '.js'],
@@ -34,6 +35,7 @@ module.exports = {
             crypto: require.resolve('crypto-browserify'),
             buffer: require.resolve('buffer'),
             stream: require.resolve("stream-browserify"),
+            //"vm": false,
         },
         alias: {
             process: "process/browser",

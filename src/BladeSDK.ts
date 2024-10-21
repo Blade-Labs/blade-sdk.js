@@ -14,7 +14,7 @@ import {
     TransferTransaction
 } from "@hashgraph/sdk";
 import {Buffer} from "buffer";
-import {hethers} from "@hashgraph/hethers";
+import {ethers} from "ethers";
 import {
     accountInfo,
     apiCallContractQuery,
@@ -452,7 +452,7 @@ export class BladeSDK {
                 });
             }
 
-            const evmAddress = hethers.utils.computeAddress(`0x${privateKey.publicKey.toStringRaw()}`);
+            const evmAddress = ethers.utils.computeAddress(`0x${privateKey.publicKey.toStringRaw()}`);
 
             const result = {
                 transactionId,
@@ -483,7 +483,7 @@ export class BladeSDK {
             const seedPhrase = await Mnemonic.fromString(mnemonic);
             const privateKey = await seedPhrase.toEcdsaPrivateKey();
             const publicKey = privateKey.publicKey.toStringDer();
-            let evmAddress = hethers.utils.computeAddress(`0x${privateKey.publicKey.toStringRaw()}`);
+            let evmAddress = ethers.utils.computeAddress(`0x${privateKey.publicKey.toStringRaw()}`);
 
             const result = {
                 transactionId: transactionId || null,
@@ -519,7 +519,7 @@ export class BladeSDK {
                     dAppCode: this.dAppCode
                 });
 
-                evmAddress = hethers.utils.computeAddress(`0x${originalPublicKey ? originalPublicKey.slice(-66) : privateKey.publicKey.toStringRaw()}`);
+                evmAddress = ethers.utils.computeAddress(`0x${originalPublicKey ? originalPublicKey.slice(-66) : privateKey.publicKey.toStringRaw()}`);
 
                 result.transactionId = null;
                 result.status = status;
@@ -591,7 +591,7 @@ export class BladeSDK {
             return this.sendMessageToNative(completionKey, {
                 accountId,
                 evmAddress,
-                calculatedEvmAddress: hethers.utils.computeAddress(`0x${publicKey}`).toLowerCase()
+                calculatedEvmAddress: ethers.utils.computeAddress(`0x${publicKey}`).toLowerCase()
             });
         } catch (error) {
             return this.sendMessageToNative(completionKey, null, error);
@@ -622,7 +622,7 @@ export class BladeSDK {
                 privateKey: privateKey.toStringDer(),
                 publicKey: publicKey.toStringDer(),
                 accounts,
-                evmAddress: hethers.utils.computeAddress(`0x${publicKey.toStringRaw()}`).toLowerCase()
+                evmAddress: ethers.utils.computeAddress(`0x${publicKey.toStringRaw()}`).toLowerCase()
             });
         } catch (error) {
             return this.sendMessageToNative(completionKey, null, error);
@@ -670,7 +670,7 @@ export class BladeSDK {
     }
 
     /**
-     * Sign base64-encoded message with private key using hethers lib. Returns hex-encoded signature.
+     * Sign base64-encoded message with private key using ethers lib. Returns hex-encoded signature.
      * @param messageString base64-encoded message to sign
      * @param privateKey hex-encoded private key with DER header
      * @param completionKey optional field bridge between mobile webViews and native apps
@@ -678,7 +678,7 @@ export class BladeSDK {
      */
     hethersSign(messageString: string, privateKey: string, completionKey?: string): Promise<SignMessageData> {
         try {
-            const wallet = new hethers.Wallet(privateKey);
+            const wallet = new ethers.Wallet(privateKey);
             return wallet
                 .signMessage(Buffer.from(messageString, "base64"))
                 .then(signedMessage => {
@@ -700,7 +700,7 @@ export class BladeSDK {
      */
     splitSignature(signature: string, completionKey?: string): Promise<SplitSignatureData> {
         try {
-            const {v, r, s} = hethers.utils.splitSignature(signature);
+            const {v, r, s} = ethers.utils.splitSignature(signature);
             return this.sendMessageToNative(completionKey, {v, r, s});
         } catch (error) {
             return this.sendMessageToNative(completionKey, null, error);
@@ -717,15 +717,15 @@ export class BladeSDK {
     async getParamsSignature(paramsEncoded: string | ParametersBuilder, privateKey: string, completionKey?: string): Promise<SplitSignatureData> {
         try {
             const {types, values} = await parseContractFunctionParams(paramsEncoded);
-            const hash = hethers.utils.keccak256(
-                hethers.utils.defaultAbiCoder.encode(types, values)
+            const hash = ethers.utils.keccak256(
+                ethers.utils.defaultAbiCoder.encode(types, values)
             );
-            const messageHashBytes = hethers.utils.arrayify(hash);
+            const messageHashBytes = ethers.utils.arrayify(hash);
 
-            const wallet = new hethers.Wallet(privateKey);
+            const wallet = new ethers.Wallet(privateKey);
             const signed = await wallet.signMessage(messageHashBytes);
 
-            const {v, r, s} = hethers.utils.splitSignature(signed);
+            const {v, r, s} = ethers.utils.splitSignature(signed);
             return this.sendMessageToNative(completionKey, {v, r, s});
         } catch (error) {
             return this.sendMessageToNative(completionKey, null, error);

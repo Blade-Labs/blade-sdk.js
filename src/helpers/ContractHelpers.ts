@@ -1,5 +1,5 @@
 import {AccountId, ContractFunctionResult} from "@hashgraph/sdk";
-import {hethers} from "@hashgraph/hethers";
+import {ethers} from "ethers";
 import {Buffer} from "buffer";
 import {ParametersBuilder} from "../ParametersBuilder";
 
@@ -8,16 +8,16 @@ export const getContractFunctionBytecode = async (functionName: string, paramsEn
 
     // get func identifier
     const functionSignature = `${functionName}(${types.join(",")})`;
-    const functionIdentifier = new hethers.utils.Interface([
-        hethers.utils.FunctionFragment.from(functionSignature)
+    const functionIdentifier = new ethers.utils.Interface([
+        ethers.utils.FunctionFragment.from(functionSignature)
     ]).getSighash(functionName);
 
-    const abiCoder = new hethers.utils.AbiCoder();
+    const abiCoder = new ethers.utils.AbiCoder();
     const encodedBytes = abiCoder.encode(types, values);
 
     return Buffer.concat([
-        hethers.utils.arrayify(functionIdentifier),
-        hethers.utils.arrayify(encodedBytes)
+        ethers.utils.arrayify(functionIdentifier),
+        ethers.utils.arrayify(encodedBytes)
     ]);
 }
 

@@ -23,7 +23,7 @@ import {Network} from "./models/Networks";
 import config from "./config";
 import StringHelpers from "./helpers/StringHelpers";
 import {getEncryptedHeader, initApiService} from "./ApiService";
-import {hethers} from "@hashgraph/hethers";
+import {ethers} from "ethers";
 import {
     getContractFunctionBytecode,
     parseContractFunctionParams,
@@ -161,7 +161,7 @@ export class BladeUnitySDK {
             const result: AccountInfoData = {
                 accountId,
                 evmAddress: (evmAddress ? evmAddress : `0x${AccountId.fromString(accountId).toSolidityAddress()}`),
-                calculatedEvmAddress: hethers.utils.computeAddress(`0x${publicKey}`).toLowerCase()
+                calculatedEvmAddress: ethers.utils.computeAddress(`0x${publicKey}`).toLowerCase()
             }
             return this.sendMessageToNative(result);
         } catch (error) {
@@ -176,7 +176,7 @@ export class BladeUnitySDK {
             return this.sendMessageToNative({
                 privateKey: privateKey.toStringDer(),
                 publicKey,
-                evmAddress: hethers.utils.computeAddress(`0x${privateKey.publicKey.toStringRaw()}`)
+                evmAddress: ethers.utils.computeAddress(`0x${privateKey.publicKey.toStringRaw()}`)
             });
         } catch (error) {
             return this.sendMessageToNative(null, error);
@@ -376,7 +376,7 @@ export class BladeUnitySDK {
 
     async hethersSign(messageString: string, privateKey: string, encoding: "hex"|"base64"|"utf8"): Promise<string> {
         try {
-            const wallet = new hethers.Wallet(privateKey);
+            const wallet = new ethers.Wallet(privateKey);
             const signedMessage = wallet.signMessage(Buffer.from(messageString, encoding));
             return this.sendMessageToNative({
                 signedMessage
@@ -388,7 +388,7 @@ export class BladeUnitySDK {
 
     async splitSignature(signature: string): Promise<string> {
         try {
-            const {v, r, s} = hethers.utils.splitSignature(signature);
+            const {v, r, s} = ethers.utils.splitSignature(signature);
             return this.sendMessageToNative({v, r, s});
         } catch (error) {
             return this.sendMessageToNative(null, error);
@@ -398,14 +398,14 @@ export class BladeUnitySDK {
     async getParamsSignature(paramsEncoded: string, privateKey: string): Promise<string> {
         try {
             const {types, values} = await parseContractFunctionParams(paramsEncoded);
-            const hash = hethers.utils.keccak256(
-                hethers.utils.defaultAbiCoder.encode(types, values)
+            const hash = ethers.utils.keccak256(
+                ethers.utils.defaultAbiCoder.encode(types, values)
             );
-            const messageHashBytes = hethers.utils.arrayify(hash);
-            const wallet = new hethers.Wallet(privateKey);
+            const messageHashBytes = ethers.utils.arrayify(hash);
+            const wallet = new ethers.Wallet(privateKey);
 
             const signed = await wallet.signMessage(messageHashBytes);
-            const {v, r, s} = hethers.utils.splitSignature(signed);
+            const {v, r, s} = ethers.utils.splitSignature(signed);
             return this.sendMessageToNative({v, r, s});
         } catch (error) {
             return this.sendMessageToNative(null, error);
