@@ -299,6 +299,8 @@ export class BladeSDK {
                     const {contractFunctionResult, rawResult} = await apiCallContractQuery(this.network, options);
 
                     response = new ContractFunctionResult({
+                        contractNonces: [],
+                        signerNonce: undefined,
                         _createResult: false,
                         contractId: contractFunctionResult?.contractId,
                         errorMessage: "",
@@ -312,7 +314,7 @@ export class BladeSDK {
                         amount: contractFunctionResult?.gasUsed,
                         functionParameters: Uint8Array.from([]),
                         senderAccountId: null,
-                        stateChanges: [],
+                        stateChanges: []
                     });
                 } else {
                     response = await new ContractCallQuery()

@@ -7,7 +7,7 @@
     "build:esm": "tsc -p config/tsconfig.esm.json",
     "build:cjs": "tsc -p config/tsconfig.cjs.json",
     "build:web-view": "webpack --progress --color --mode production",
-    "build:unity": "cross-env SDK_VERSION=$npm_package_version NODE_ENV=production node utils/fixConfig.js && webpack build --progress --color --config config/webpack.unity.js --mode development",
+    "build:unity": "cross-env SDK_VERSION=$npm_package_version NODE_ENV=production node utils/fixConfig.js && webpack build --progress --color --config config/webpack.unity.js --mode production",
     "dev": "cross-env SDK_VERSION=$npm_package_version NODE_ENV=development node utils/fixConfig.js && webpack --progress --color --watch --mode development",
     "prepack": "npm run build",
     "clean": "rimraf lib dist",
@@ -56,9 +56,9 @@
   ],
   "license": "Apache-2.0",
   "dependencies": {
-    "ethers": "^5.7.2",
-    "@hashgraph/sdk": "^2.19.2",
-    "buffer": "6.0.2"
+    "@hashgraph/sdk": "^2.52.0",
+    "buffer": "6.0.2",
+    "ethers": "^5.7.2"
   },
   "devDependencies": {
     "@babel/preset-typescript": "^7.18.6",
@@ -90,6 +90,7 @@
     "typedoc-plugin-markdown": "^3.14.0",
     "typescript": "^4.7.4",
     "util": "^0.12.5",
+    "vm-browserify": "^1.1.2",
     "webpack": "^5.76.3",
     "webpack-cli": "^4.10.0",
     "whatwg-fetch": "^3.6.2"

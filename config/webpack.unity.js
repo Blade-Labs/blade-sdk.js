@@ -20,7 +20,7 @@ module.exports = {
         ]
     },
     output: {
-        // path: '/Users/gary/dev/unity/io.bladelabs.unity-sdk/Resources',
+        path: '/Users/gary/dev/unity/io.bladelabs.unity-sdk/Resources',
         filename: "[name].txt",
         library: "[name]",
         libraryTarget: "var",
@@ -35,7 +35,7 @@ module.exports = {
             crypto: require.resolve('crypto-browserify'),
             buffer: require.resolve('buffer'),
             stream: require.resolve("stream-browserify"),
-            //"vm": false,
+            vm: require.resolve('vm-browserify'),
         },
         alias: {
             process: "process/browser",
