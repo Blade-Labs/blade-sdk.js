@@ -379,7 +379,7 @@ export class BladeUnitySDK {
     async hethersSign(messageString: string, privateKey: string, encoding: "hex"|"base64"|"utf8"): Promise<string> {
         try {
             const wallet = new ethers.Wallet(PrivateKey.fromStringDer(privateKey).toStringRaw());
-            const signedMessage = wallet.signMessage(Buffer.from(messageString, encoding));
+            const signedMessage = await wallet.signMessage(Buffer.from(messageString, encoding));
             return this.sendMessageToNative({
                 signedMessage
             });
