@@ -1,4 +1,5 @@
 import {
+    AccountBalanceQuery,
     AccountDeleteTransaction,
     AccountUpdateTransaction,
     Client,
@@ -34,7 +35,6 @@ import {
     getAccountBalance,
     getAccountInfo,
     getApiUrl,
-    getBladeConfig,
     getC14token,
     getCoinInfo,
     getCoins,
@@ -108,7 +108,7 @@ import {
     TransactionReceiptData,
     TransactionsHistoryData,
     UserInfo,
-    UserInfoData,
+    UserInfoData, MagicWithHedera, SwapResult,
 } from "./models/Common";
 import config from "./config";
 import { executeUpdateAccountTransactions } from "./helpers/AccountHelpers";
@@ -128,7 +128,7 @@ import * as FingerprintJS from "@fingerprintjs/fingerprintjs-pro";
 import { PinataSDK } from "pinata";
 import { decrypt, encrypt } from "./helpers/SecurityHelper";
 import { formatReceipt } from "./helpers/TransactionHelpers";
-import { Magic } from "magic-sdk";
+import {Magic, MagicUserMetadata} from "magic-sdk";
 import { HederaExtension } from "@magic-ext/hedera";
 import { MagicSigner } from "./signers/magic/MagicSigner";
 import { HederaProvider, HederaSigner } from "./signers/hedera";
@@ -144,7 +144,7 @@ export class BladeSDK {
     private readonly webView: boolean = false;
     private accountProvider: AccountProvider | null = null;
     private signer: Signer = null!;
-    private magic: any;
+    private magic: MagicWithHedera | null = null;
     private userAccountId: string = "";
     private userPublicKey: string = "";
     private userPrivateKey: string = "";
@@ -295,17 +295,17 @@ export class BladeSDK {
                     this.signer = new HederaSigner(this.userAccountId, key, provider);
                     break;
                 case AccountProvider.Magic:
-                    let userInfo;
+                    let userInfo: MagicUserMetadata | undefined;
                     if (!this.magic) {
                         await this.initMagic();
                     }
 
                     if (await this.magic?.user.isLoggedIn()) {
-                        userInfo = await this.magic.user.getInfo();
-                        if (userInfo.email !== accountIdOrEmail) {
-                            this.magic.user.logout();
-                            await this.magic.auth.loginWithMagicLink({ email: accountIdOrEmail, showUI: false });
-                            userInfo = await this.magic.user.getInfo();
+                        userInfo = await this.magic?.user.getInfo();
+                        if (userInfo?.email !== accountIdOrEmail) {
+                            await this.magic?.user.logout();
+                            await this.magic?.auth.loginWithMagicLink({ email: accountIdOrEmail, showUI: false });
+                            userInfo = await this.magic?.user.getInfo();
                         }
                     } else {
                         await this.magic?.auth.loginWithMagicLink({ email: accountIdOrEmail, showUI: false });
@@ -316,10 +316,13 @@ export class BladeSDK {
                         throw new Error("Not logged in Magic. Please call magicLogin() first");
                     }
 
-                    this.userAccountId = userInfo.publicAddress;
-                    const { publicKeyDer } = await this.magic.hedera.getPublicKey();
+                    this.userAccountId = userInfo?.publicAddress || "";
+                    const { publicKeyDer } = await this.magic?.hedera.getPublicKey();
                     this.userPublicKey = publicKeyDer;
-                    const magicSign = (message: any) => this.magic.hedera.sign(message);
+                    if (!this.userPublicKey) {
+                        throw new Error("Failed to get public key from Magic");
+                    }
+                    const magicSign = (message: any) => this.magic!.hedera.sign(message);
                     this.signer = new MagicSigner(this.userAccountId, this.network, publicKeyDer, magicSign);
                     break;
                 default:
@@ -360,7 +363,7 @@ export class BladeSDK {
                 if (!this.magic) {
                     await this.initMagic();
                 }
-                await this.magic.user.logout();
+                await this.magic?.user.logout();
             }
             this.accountProvider = null;
 
@@ -898,7 +901,7 @@ export class BladeSDK {
                                 .then((result) => result.getReceiptWithSigner(this.signer))
                                 .then((data) => {
                                     return this.sendMessageToNative(completionKey, {
-                                        scheduleId: `${data.scheduleId}`,
+                                        scheduleId: data?.scheduleId?.toString() || ""
                                     });
                                 })
                                 .catch((error) => {
@@ -1717,7 +1720,7 @@ export class BladeSDK {
      * @param slippage slippage in percents. Transaction will revert if the price changes unfavorably by more than this percentage.
      * @param serviceId service id to use for swap (saucerswap, etc)
      * @param completionKey optional field bridge between mobile webViews and native apps
-     * @returns {StatusResult}
+     * @returns {SwapResult}
      * @example
      * const result = await bladeSdk.swapTokens("0.0.10001", "302e020100300506032b65700422042043234DEADBEEF255...", "HBAR", 1, "SAUCE", 0.5, "saucerswapV2");
      */
@@ -1730,7 +1733,7 @@ export class BladeSDK {
         slippage: number,
         serviceId: string,
         completionKey?: string
-    ): Promise<StatusResult> {
+    ): Promise<SwapResult> {
         try {
             if (accountId && accountPrivateKey) {
                 await this.setUser(AccountProvider.Hedera, accountId, accountPrivateKey);
@@ -1824,7 +1827,33 @@ export class BladeSDK {
             } else {
                 throw new Error("Invalid signature of txData");
             }
-            return this.sendMessageToNative(completionKey, { success: true });
+
+            const balanceQuery = await new AccountBalanceQuery().setAccountId(accountId).execute(this.getClient());
+
+
+
+            const tokens = [];
+            if (balanceQuery.tokens && balanceQuery.tokenDecimals) {
+                for (const key of balanceQuery.tokens.keys()) {
+                    if (key) {
+                        tokens.push({
+                            tokenId: key.toString(),
+                            balance: balanceQuery.tokens.get(key).toNumber() / 10 ** (balanceQuery.tokenDecimals.get(key) || 0),
+                        });
+                    }
+                }
+            }
+
+            return this.sendMessageToNative(completionKey, {
+                success: true,
+                sourceAddress: sourceAddress || "",
+                targetAddress: targetAddress || "",
+                balance: {
+                    hbars: parseFloat(balanceQuery.hbars.toString()),
+                    tokens
+                }
+
+            });
         } catch (error: any) {
             throw this.sendMessageToNative(completionKey, null, error);
         }
@@ -2320,7 +2349,7 @@ export class BladeSDK {
                     network: this.network.toLowerCase(),
                 }),
             ],
-        });
+        }) as unknown as MagicWithHedera;
     }
 
     private getUser(): UserInfo {
