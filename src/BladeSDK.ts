@@ -1,4 +1,5 @@
 import {
+    AccountBalanceQuery,
     AccountDeleteTransaction,
     AccountUpdateTransaction,
     Client,
@@ -107,7 +108,7 @@ import {
     TransactionReceiptData,
     TransactionsHistoryData,
     UserInfo,
-    UserInfoData, MagicWithHedera,
+    UserInfoData, MagicWithHedera, SwapResult,
 } from "./models/Common";
 import config from "./config";
 import { executeUpdateAccountTransactions } from "./helpers/AccountHelpers";
@@ -1719,7 +1720,7 @@ export class BladeSDK {
      * @param slippage slippage in percents. Transaction will revert if the price changes unfavorably by more than this percentage.
      * @param serviceId service id to use for swap (saucerswap, etc)
      * @param completionKey optional field bridge between mobile webViews and native apps
-     * @returns {StatusResult}
+     * @returns {SwapResult}
      * @example
      * const result = await bladeSdk.swapTokens("0.0.10001", "302e020100300506032b65700422042043234DEADBEEF255...", "HBAR", 1, "SAUCE", 0.5, "saucerswapV2");
      */
@@ -1732,7 +1733,7 @@ export class BladeSDK {
         slippage: number,
         serviceId: string,
         completionKey?: string
-    ): Promise<StatusResult> {
+    ): Promise<SwapResult> {
         try {
             if (accountId && accountPrivateKey) {
                 await this.setUser(AccountProvider.Hedera, accountId, accountPrivateKey);
@@ -1826,7 +1827,33 @@ export class BladeSDK {
             } else {
                 throw new Error("Invalid signature of txData");
             }
-            return this.sendMessageToNative(completionKey, { success: true });
+
+            const balanceQuery = await new AccountBalanceQuery().setAccountId(accountId).execute(this.getClient());
+
+
+
+            const tokens = [];
+            if (balanceQuery.tokens && balanceQuery.tokenDecimals) {
+                for (const key of balanceQuery.tokens.keys()) {
+                    if (key) {
+                        tokens.push({
+                            tokenId: key.toString(),
+                            balance: balanceQuery.tokens.get(key).toNumber() / 10 ** (balanceQuery.tokenDecimals.get(key) || 0),
+                        });
+                    }
+                }
+            }
+
+            return this.sendMessageToNative(completionKey, {
+                success: true,
+                sourceAddress: sourceAddress || "",
+                targetAddress: targetAddress || "",
+                balance: {
+                    hbars: parseFloat(balanceQuery.hbars.toString()),
+                    tokens
+                }
+
+            });
         } catch (error: any) {
             throw this.sendMessageToNative(completionKey, null, error);
         }

@@ -231,6 +231,13 @@ export interface StatusResult {
     success: boolean
 }
 
+export interface SwapResult {
+    success: boolean;
+    sourceAddress: string;
+    targetAddress: string;
+    balance: BalanceData;
+}
+
 export interface ScheduleResult {
     scheduleId: string;
 }
