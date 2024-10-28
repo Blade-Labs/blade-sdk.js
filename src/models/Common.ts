@@ -3,6 +3,8 @@ import { Network } from "./Networks";
 import { ICryptoFlowQuote } from "./CryptoFlow";
 import {NftInfo, NftMetadata, NodeInfo, TokenInfo} from "./MirrorNode";
 import { Signer } from "@hashgraph/sdk";
+import {HederaExtension} from "@magic-ext/hedera";
+import {Magic} from "magic-sdk";
 
 export enum SdkEnvironment {
     Prod = "Prod",
@@ -443,4 +445,8 @@ export enum ScheduleTransferType {
     HBAR = "HBAR",
     FT = "FT",
     NFT = "NFT"
+}
+
+export interface MagicWithHedera extends Magic {
+    hedera: HederaExtension;
 }

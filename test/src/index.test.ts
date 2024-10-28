@@ -796,13 +796,13 @@ test('bladeSdk.sign + signVerify', async () => {
     checkResult(result);
 
     expect(result.data).toHaveProperty("signedMessage");
-    expect(result.data.signedMessage).toEqual(Buffer.from(PrivateKey.fromString(privateKey).sign(Buffer.from(message))).toString("hex"));
+    expect(result.data.signedMessage).toEqual(Buffer.from(PrivateKey.fromStringDer(privateKey).sign(Buffer.from(message))).toString("hex"));
 
-    const validationResult = bladeSdk.signVerify(messageString, result.data.signedMessage, PrivateKey.fromString(privateKey).publicKey.toStringRaw(), completionKey);
+    const validationResult = bladeSdk.signVerify(messageString, result.data.signedMessage, PrivateKey.fromStringDer(privateKey).publicKey.toStringRaw(), completionKey);
     checkResult(validationResult);
     expect(validationResult.data.valid).toEqual(true);
 
-    expect(PrivateKey.fromString(privateKey).publicKey.verify(
+    expect(PrivateKey.fromStringDer(privateKey).publicKey.verify(
         Buffer.from(message),
         Buffer.from(result.data.signedMessage, "hex")
     )).toEqual(true);
