@@ -1,6 +1,6 @@
 {
   "name": "@bladelabs/blade-sdk.js",
-  "version": "0.6.35",
+  "version": "0.6.36",
   "description": "Hedera SDK wrapper with Blade features",
   "scripts": {
     "build": "cross-env SDK_VERSION=$npm_package_version NODE_ENV=production node utils/fixConfig.js && npm run clean && npm run build:esm && npm run build:cjs && npm run build:web-view",
@@ -63,7 +63,7 @@
     "@types/shelljs": "^0.8.15",
     "buffer": "6.0.3",
     "ethers": "^6.13.1",
-    "magic-sdk": "^21.5.0",
+    "magic-sdk": "^28.17.0",
     "pinata": "^0.4.0"
   },
   "devDependencies": {
