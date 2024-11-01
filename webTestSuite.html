@@ -75,7 +75,8 @@
                 // "associateToken", // ok
                 // "getTokenInfo", // ok
                 // "mintNFT",
-                "brokenMnemonicEmergencyTransfer",
+                // "getExchangeStatus",
+                // "brokenMnemonicEmergencyTransfer",
             ]);
 
             function addTest(name, test) {
@@ -331,6 +332,15 @@
                                 completionKey
                             )
                         )
+                    }
+                });
+
+                addTest("getExchangeStatus", async (completionKey) => {
+                    for await (const { userProvider, accountIdOrEmail, accountPrivateKey } of userProviders) {
+                        log(await bladeSdk.init(apiKeyTestnet, "Testnet", dAppCode, visitorId, bladeEnv, sdkVersion, completionKey));
+                        // const { accountId, privateKey } = await customSetUser(userProvider, accountIdOrEmail, accountPrivateKey, completionKey);
+
+                        log(await bladeSdk.getExchangeStatus("transak", "abaf28be-609f-49f4-a09a-e8e7ea7c8bd9"));
                     }
                 });
 

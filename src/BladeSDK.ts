@@ -51,7 +51,8 @@ import {
     signScheduleRequest,
     transferTokens,
     getContractErrorMessage,
-    getTokenAssociateTransaction
+    getTokenAssociateTransaction,
+    getExchangeStatus,
 } from "./services/ApiService";
 import {checkSeedPhrase, getAccountsFromMnemonic, getAccountsFromPrivateKey} from "./services/AccountService";
 import CryptoFlowService from "./services/CryptoFlowService";
@@ -123,6 +124,7 @@ import {
     ICryptoFlowQuoteParams,
     ICryptoFlowTransaction,
     ICryptoFlowTransactionParams,
+    TransakOrderInfo,
 } from "./models/CryptoFlow";
 import * as FingerprintJS from "@fingerprintjs/fingerprintjs-pro";
 import { PinataSDK } from "pinata";
@@ -1854,6 +1856,24 @@ export class BladeSDK {
                 }
 
             });
+        } catch (error: any) {
+            throw this.sendMessageToNative(completionKey, null, error);
+        }
+    }
+
+    /**
+     * Get exchange order status
+     * @param serviceId service id to use for swap (saucerswap, onmeta, etc)
+     * @param orderId order id of operation
+     * @param completionKey optional field bridge between mobile webViews and native apps
+     * @returns {TransakOrderInfo}
+     * @example
+     * const orderInfo = await bladeSdk.getExchangeStatus("transak", "abaf28be-609f-49f4-a09a-e8e7ea7c8bd9");
+     */
+    async getExchangeStatus(serviceId: string, orderId: string, completionKey?: string): Promise<TransakOrderInfo> {
+        try {
+            const orderInfo = await getExchangeStatus(serviceId, orderId);
+            return this.sendMessageToNative(completionKey, orderInfo);
         } catch (error: any) {
             throw this.sendMessageToNative(completionKey, null, error);
         }
