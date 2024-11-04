@@ -155,79 +155,20 @@ export enum FeeType {
 }
 
 export interface TransakOrderInfo {
-    meta: {
-        orderId: string;
-    };
-    data: {
-        id: string;
-        createdAt: string;
-        status: string;
-        fiatCurrency: string;
-        cryptoCurrency: string;
-        isBuyOrSell: string;
-        fiatAmount: number;
-        amountPaid: number;
-        paymentOptionId: string;
-        quoteId: string;
-        network: string;
-        conversionPriceData: {
-            conversionPrice: number;
-            cryptoAmount: number;
-            fiatAmountInUsd: number;
-            id: string;
-            createdAt: string;
-            fiatCurrency: string;
-            cryptoCurrency: string;
-            paymentMethod: string;
-            fiatAmount: number;
-            network: string;
-            isBuyOrSell: string;
-            marketConversionPrice: number;
-            slippage: number;
-            cryptoLiquidityProvider:  string;
-            sourceTokenAmount: number;
-            sourceToken: string;
-            fiatFeeAmount: number;
-            feeDecimal: number;
-            internalFees: {
-                name: string;
-                id: string;
-                value: number;
-            }[];
-        };
-        autoExpiresAt: string;
-        stateCode: string;
-        orderChannelType: string;
-        userKycType: string;
-        cardId: string;
-        conversionPrice: number;
-        cryptoAmount: number;
-        totalFeeInFiat: number;
-        fiatAmountInUsd: number;
-        countryCode: string;
-        cryptoPaymentData: {
-            paymentAddress: string;
-        },
-        cardDetails: {
-            _id: string;
-            userId: string;
-            id: string;
-            issuer: string;
-            issuer_country: string;
-            scheme: string;
-            last4: string;
-            card_type: string;
-            expiry_month: number;
-            expiry_year: number;
-            moneyTransferType: string;
-            isPayoutAllowed: boolean;
-        };
-        statusHistories: {
-            status: string;
-            createdAt: string;
-            message: string;
-            isEmailSentToUser: boolean;
-            partnerEventId: string;
-        }[];
-    };
+    orderId: string;
+    status: string;
+    walletAddress?: string;
+    createdAt: string;
+    autoExpiresAt: string;
+    isBuyOrSell: string;
+    network: string;
+    notes?: string[];
+    fiatCurrency: string;
+    fiatAmount: number;
+    cryptoCurrency: string;
+    cryptoAmount: number;
+    conversionPrice?: number;
+    slippage?: number;
+    totalFeeInFiat: number;
+    totalFee?: number;
 }
