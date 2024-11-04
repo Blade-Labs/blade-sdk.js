@@ -31,11 +31,13 @@
 * [getC14url](usage.md#getc14url)
 * [exchangeGetQuotes](usage.md#exchangegetquotes)
 * [swapTokens](usage.md#swaptokens)
+* [getExchangeStatus](usage.md#getexchangestatus)
 * [getTradeUrl](usage.md#gettradeurl)
 * [createToken](usage.md#createtoken)
 * [associateToken](usage.md#associatetoken)
 * [nftMint](usage.md#nftmint)
 * [getTokenInfo](usage.md#gettokeninfo)
+* [brokenMnemonicEmergencyTransfer](usage.md#brokenmnemonicemergencytransfer)
 
 # Methods
 
@@ -114,7 +116,7 @@ After successful authentication, SDK will store public and private keys in memor
 
 After that in each method call provide empty strings to accountId and accountPrivateKey. Otherwise, SDK will override current user with provided credentials as Hedera provider.
 
-In case of calling method with `accountId` and `accountPrivateKey` arguments, SDK will override current user with this credentials.
+In case of calling method with `accountId` and `accountPrivateKey` arguments, SDK will override current user with that credentials.
 
 It's optional method, you can pass accountId and accountPrivateKey in each method call. In further releases this method will be mandatory.
 
@@ -992,7 +994,7 @@ Swap tokens
         targetCode: string, 
         slippage: number, 
         serviceId: string, 
-        completionKey?: string): Promise<StatusResult>`
+        completionKey?: string): Promise<SwapResult>`
 
 #### Parameters
 
@@ -1009,12 +1011,36 @@ Swap tokens
 
 #### Returns
 
-`Promise<StatusResult>`
+`Promise<SwapResult>`
 
 #### Example
 
 ```javascript
 const result = await bladeSdk.swapTokens("0.0.10001", "302e020100300506032b65700422042043234DEADBEEF255...", "HBAR", 1, "SAUCE", 0.5, "saucerswapV2");
+```
+
+## getExchangeStatus
+
+Get exchange order status
+
+`getExchangeStatus(serviceId: string,  orderId: string,  completionKey?: string): Promise<TransakOrderInfo>`
+
+#### Parameters
+
+| Name | Type | Description |
+|------|------| ----------- |
+| `serviceId` | `string` | service id to use for swap (saucerswap, onmeta, etc) |
+| `orderId` | `string` | order id of operation |
+| `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
+
+#### Returns
+
+`Promise<TransakOrderInfo>`
+
+#### Example
+
+```javascript
+const orderInfo = await bladeSdk.getExchangeStatus("transak", "abaf28be-609f-49f4-a09a-e8e7ea7c8bd9");
 ```
 
 ## getTradeUrl
@@ -1119,7 +1145,7 @@ const result = await bladeSdk.createToken(
 Associate token to account. Association fee will be covered by PayMaster, if tokenId configured in dApp
 
 `associateToken(
-        tokenId: string, 
+        tokenIdOrCampaign: string, 
         accountId: string, 
         accountPrivateKey: string, 
         completionKey?: string): Promise<TransactionReceiptData>`
@@ -1128,7 +1154,7 @@ Associate token to account. Association fee will be covered by PayMaster, if tok
 
 | Name | Type | Description |
 |------|------| ----------- |
-| `tokenId` | `string` | token id to associate. Empty to associate all tokens configured in dApp |
+| `tokenIdOrCampaign` | `string` | token id to associate. Empty to associate all tokens configured in dApp. Campaign name to associate on demand |
 | `accountId` | `string` | account id to associate token |
 | `accountPrivateKey` | `string` | account private key |
 | `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
@@ -1141,6 +1167,7 @@ Associate token to account. Association fee will be covered by PayMaster, if tok
 
 ```javascript
 const result = await bladeSdk.associateToken("0.0.1337", "0.0.10001", "302e020100300506032b65700422042043234DEADBEEF255...");
+const result = await bladeSdk.associateToken("CampaignName", "0.0.10001", "302e020100300506032b65700422042043234DEADBEEF255...");
 ```
 
 ## nftMint
@@ -1153,7 +1180,7 @@ Mint one NFT
         accountPrivateKey: string, 
         file: File | string, 
         metadata: object, 
-        storageConfig: NFTStorageConfig, 
+        ipfsProviderConfig: IPFSProviderConfig, 
         completionKey?: string): Promise<TransactionReceiptData>`
 
 #### Parameters
@@ -1165,7 +1192,7 @@ Mint one NFT
 | `accountPrivateKey` | `string` | token supply private key |
 | `file` | `File \| string` | image to mint (File or base64 DataUrl image, eg.: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAA...) |
 | `metadata` | `object` | NFT metadata (JSON object) |
-| `storageConfig` | `NFTStorageConfig` | IPFS provider config |
+| `ipfsProviderConfig` | `IPFSProviderConfig` | IPFS provider config |
 | `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
 
 #### Returns
@@ -1186,8 +1213,8 @@ const receipt = await bladeSdk.nftMint(
         some: "more properties"
     },
     {
-        provider: NFTStorageProvider.nftStorage,
-        apiKey: nftStorageApiKey,
+        provider: IPFSProvider.pinata,
+        token: Pinata_JWT,
     }
 );
 ```
@@ -1214,5 +1241,45 @@ Get token info. Fungible or NFT. Also get NFT metadata if serial provided
 
 ```javascript
 const tokenInfo = await bladeSdk.getTokenInfo("0.0.1234", "3");
+```
+
+## brokenMnemonicEmergencyTransfer
+
+Emergency balance transfer from broken mnemonic account to new account
+
+Accounts with broken mnemonic sometimes were created because of hedera-sdk issue
+
+To transfer funds from broken mnemonic account to new account a couple of steps required:
+
+1. Create new account
+
+2. Associate all tokens with new account that you want to transfer
+
+3. Call this method to transfer funds to new account
+
+4. Send some HBAR to broken mnemonic account to cover fees if needed
+
+`brokenMnemonicEmergencyTransfer(seedPhrase: string,  accountId: string,  receiverId: string,  hbarAmount: string,  tokenList: string[],  checkOnly: boolean,  completionKey?: string): Promise<EmergencyTransferData>`
+
+#### Parameters
+
+| Name | Type | Description |
+|------|------| ----------- |
+| `seedPhrase` | `string` | mnemonic from account |
+| `accountId` | `string` | account id (broken) |
+| `receiverId` | `string` | new account id |
+| `hbarAmount` | `string` | amount of HBAR to resque. Can be 0 |
+| `tokenList` | `string[]` | list of token ids to transfer all tokens. Up to 9 at once. Can be empty |
+| `checkOnly` | `boolean` | if true, will only check if mnemonic is broken. No transfer will be made |
+| `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
+
+#### Returns
+
+`Promise<EmergencyTransferData>`
+
+#### Example
+
+```javascript
+const receipt = await bladeSdk.brokenMnemonicEmergencyTransfer(brokenSeed, resqueAccountId, newAccountId, "0.5", ["0.0.1337"], false);
 ```
 
