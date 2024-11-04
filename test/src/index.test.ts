@@ -1128,6 +1128,11 @@ test('bladeSdk.getTradeUrl', async () => {
     }
 }, 30_000);
 
+test('bladeSdk.getExchangeStatus', async () => {
+    let result = await bladeSdk.getExchangeStatus("transak", 'abaf28be-609f-49f4-a09a-e8e7ea7c8bd9', completionKey);
+    checkResult(result);
+}, 30_000);
+
 // create token
 test('bladeSdk.createToken', async () => {
     const treasuryAccountId = accountId;

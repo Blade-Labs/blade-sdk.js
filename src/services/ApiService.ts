@@ -625,6 +625,23 @@ export const getC14token = async (params: { network: Network; visitorId: string;
         .then((x) => x.json());
 };
 
+export const getExchangeStatus = async(serviceId: string, orderId: string) => {
+    const url = new URL(`${getApiUrl()}/exchange/${serviceId}/order/${orderId}`);
+
+    const options = {
+        method: "GET",
+        headers: new Headers({
+            "X-NETWORK": network.toUpperCase(),
+            "X-VISITOR-ID": visitorId,
+            "Content-Type": "application/json",
+        }),
+    };
+
+    return fetch(url, options)
+        .then(statusCheck)
+        .then((x) => x.json());
+}
+
 export const getCryptoFlowData = async (
     network: Network,
     visitorId: string,

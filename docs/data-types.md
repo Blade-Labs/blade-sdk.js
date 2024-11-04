@@ -32,6 +32,15 @@ export enum CryptoKeyType {
 ```
 
 
+### IPFSProvider
+
+```typescript
+export enum IPFSProvider {
+    pinata = "pinata",
+}
+```
+
+
 ### KeyType
 
 ```typescript
@@ -90,15 +99,6 @@ export enum MirrorNodeTransactionType {
     TOKENUPDATE = "TOKENUPDATE",
     TOKENWIPE = "TOKENWIPE",
     UNCHECKEDSUBMIT = "UNCHECKEDSUBMIT",
-}
-```
-
-
-### NFTStorageProvider
-
-```typescript
-export enum NFTStorageProvider {
-    nftStorage = "nftStorage",
 }
 ```
 
@@ -299,6 +299,16 @@ export interface CreateTokenResult {
 ```
 
 
+### EmergencyTransferData
+
+```typescript
+export interface EmergencyTransferData {
+    isValid: boolean,
+    transferStatus: string
+}
+```
+
+
 ### IAssetQuote
 
 ```typescript
@@ -375,22 +385,22 @@ export interface IntegrationUrlData {
 ```
 
 
+### IPFSProviderConfig
+
+```typescript
+export interface IPFSProviderConfig {
+    provider: IPFSProvider;
+    token: string;
+}
+```
+
+
 ### KeyRecord
 
 ```typescript
 export interface KeyRecord {
     privateKey: string;
     type: KeyType;
-}
-```
-
-
-### NFTStorageConfig
-
-```typescript
-export interface NFTStorageConfig {
-    provider: NFTStorageProvider;
-    apiKey: string;
 }
 ```
 
@@ -486,6 +496,18 @@ export interface SwapQuotesData {
 ```
 
 
+### SwapResult
+
+```typescript
+export interface SwapResult {
+    success: boolean;
+    sourceAddress: string;
+    targetAddress: string;
+    balance: BalanceData;
+}
+```
+
+
 ### TokenDropData
 
 ```typescript
@@ -549,6 +571,30 @@ export interface TransactionReceiptData {
 export interface TransactionsHistoryData {
     transactions: TransactionData[];
     nextPage: string | null;
+}
+```
+
+
+### TransakOrderInfo
+
+```typescript
+export interface TransakOrderInfo {
+    orderId: string;
+    status: string;
+    walletAddress?: string;
+    createdAt: string;
+    autoExpiresAt: string;
+    isBuyOrSell: string;
+    network: string;
+    notes?: string[];
+    fiatCurrency: string;
+    fiatAmount: number;
+    cryptoCurrency: string;
+    cryptoAmount: number;
+    conversionPrice?: number;
+    slippage?: number;
+    totalFeeInFiat: number;
+    totalFee?: number;
 }
 ```
 

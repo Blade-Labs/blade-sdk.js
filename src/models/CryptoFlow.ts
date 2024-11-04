@@ -153,3 +153,22 @@ export enum FeeType {
     AccountCreate = "AccountCreate",
     Default = "Default",
 }
+
+export interface TransakOrderInfo {
+    orderId: string;
+    status: string;
+    walletAddress?: string;
+    createdAt: string;
+    autoExpiresAt: string;
+    isBuyOrSell: string;
+    network: string;
+    notes?: string[];
+    fiatCurrency: string;
+    fiatAmount: number;
+    cryptoCurrency: string;
+    cryptoAmount: number;
+    conversionPrice?: number;
+    slippage?: number;
+    totalFeeInFiat: number;
+    totalFee?: number;
+}
