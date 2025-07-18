@@ -679,6 +679,7 @@ export class BladeSDK {
                         senderAccountId: null,
                         stateChanges: [],
                         contractNonces: [],
+                        signerNonce: null
                     });
                 } else {
                     response = await new ContractCallQuery()
@@ -1840,7 +1841,7 @@ export class BladeSDK {
                     if (key) {
                         tokens.push({
                             tokenId: key.toString(),
-                            balance: balanceQuery.tokens.get(key).toNumber() / 10 ** (balanceQuery.tokenDecimals.get(key) || 0),
+                            balance: (balanceQuery.tokens.get(key)?.toNumber() || 0) / 10 ** (balanceQuery.tokenDecimals.get(key) || 0),
                         });
                     }
                 }

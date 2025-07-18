@@ -1,5 +1,6 @@
 import type { Config } from "@jest/types";
 import { FormData, File, Blob } from 'formdata-node';
+import { TextEncoder, TextDecoder } from 'util';
 // Sync object
 const config: Config.InitialOptions = {
     verbose: true,
@@ -14,7 +15,8 @@ const config: Config.InitialOptions = {
         Uint8Array,
         ArrayBuffer,
         Request,
-        FormData, File, Blob
+        FormData, File, Blob,
+        TextEncoder, TextDecoder
     },
 };
 export default config;

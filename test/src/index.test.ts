@@ -227,7 +227,7 @@ test('bladeSdk.transferHbars', async () => {
     let result = await bladeSdk.getBalance(accountId, completionKey);
     checkResult(result);
     const hbars = result.data.hbars;
-    result = await bladeSdk.transferHbars(accountId, privateKey, accountId2, "1.5", "custom memo text", completionKey);
+    result = await bladeSdk.transferHbars(accountId, privateKey, accountId2, "0.05", "custom memo text", completionKey);
     checkResult(result);
 
     expect(result.data).toHaveProperty("status");
@@ -245,12 +245,12 @@ test('bladeSdk.transferHbars', async () => {
 
     result = await bladeSdk.setUser(AccountProvider.Hedera, accountId, privateKey, completionKey);
     checkResult(result);
-    result = await bladeSdk.transferHbars("", "", accountId2, "1.5", "custom memo text", completionKey);
+    result = await bladeSdk.transferHbars("", "", accountId2, "0.05", "custom memo text", completionKey);
     checkResult(result);
 
     try {
         // invalid signature
-        await bladeSdk.transferHbars(accountId2, privateKey, accountId, "1.5", "custom memo text", completionKey);
+        await bladeSdk.transferHbars(accountId2, privateKey, accountId, "0.05", "custom memo text", completionKey);
         expect("Code should not reach here").toBeNull();
     } catch (result) {
         checkResult(result, false);
@@ -263,7 +263,7 @@ test('bladeSdk.transferHbars', async () => {
     } catch (result) {
         checkResult(result, false);
     }
-}, 60_000);
+}, 120_000);
 
 test('bladeSdk.contractCallFunction', async () => {
     const contractId = process.env.CONTRACT_ID || "";
