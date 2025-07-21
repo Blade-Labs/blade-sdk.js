@@ -37,7 +37,6 @@
 * [associateToken](usage.md#associatetoken)
 * [nftMint](usage.md#nftmint)
 * [getTokenInfo](usage.md#gettokeninfo)
-* [brokenMnemonicEmergencyTransfer](usage.md#brokenmnemonicemergencytransfer)
 
 # Methods
 
@@ -1242,44 +1241,3 @@ Get token info. Fungible or NFT. Also get NFT metadata if serial provided
 ```javascript
 const tokenInfo = await bladeSdk.getTokenInfo("0.0.1234", "3");
 ```
-
-## brokenMnemonicEmergencyTransfer
-
-Emergency balance transfer from broken mnemonic account to new account
-
-Accounts with broken mnemonic sometimes were created because of hedera-sdk issue
-
-To transfer funds from broken mnemonic account to new account a couple of steps required:
-
-1. Create new account
-
-2. Associate all tokens with new account that you want to transfer
-
-3. Call this method to transfer funds to new account
-
-4. Send some HBAR to broken mnemonic account to cover fees if needed
-
-`brokenMnemonicEmergencyTransfer(seedPhrase: string,  accountId: string,  receiverId: string,  hbarAmount: string,  tokenList: string[],  checkOnly: boolean,  completionKey?: string): Promise<EmergencyTransferData>`
-
-#### Parameters
-
-| Name | Type | Description |
-|------|------| ----------- |
-| `seedPhrase` | `string` | mnemonic from account |
-| `accountId` | `string` | account id (broken) |
-| `receiverId` | `string` | new account id |
-| `hbarAmount` | `string` | amount of HBAR to resque. Can be 0 |
-| `tokenList` | `string[]` | list of token ids to transfer all tokens. Up to 9 at once. Can be empty |
-| `checkOnly` | `boolean` | if true, will only check if mnemonic is broken. No transfer will be made |
-| `completionKey` | `string` | optional field bridge between mobile webViews and native apps |
-
-#### Returns
-
-`Promise<EmergencyTransferData>`
-
-#### Example
-
-```javascript
-const receipt = await bladeSdk.brokenMnemonicEmergencyTransfer(brokenSeed, resqueAccountId, newAccountId, "0.5", ["0.0.1337"], false);
-```
-
