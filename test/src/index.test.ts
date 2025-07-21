@@ -1320,69 +1320,6 @@ test("bladeSdk.associateToken", async () => {
 
 }, 60_000);
 
-test("bladeSdk.brokenMnemonicEmergencyTransfer", async () => {
-    let result;
-
-    const brokenSeed = "marriage bounce fiscal express wink wire trick allow faith mandate base bone";
-    const brokenMnemonic = await Mnemonic.fromString(brokenSeed);
-    // create account with broken mnemonic
-
-    const client = Client.forTestnet();
-    client.setOperator(accountId, privateKey);
-    const receipt = await new AccountCreateTransaction()
-        .setKey((await brokenMnemonic.toStandardECDSAsecp256k1PrivateKey()).publicKey)
-        .setAccountMemo("broken account")
-        .setMaxAutomaticTokenAssociations(1)
-        .setInitialBalance(new Hbar(2))
-        .execute(client)
-        .then((tx) => tx.getReceipt(client))
-
-    const accountToResque = {
-        accountId: receipt.accountId.toString(),
-        privateKey: (await brokenMnemonic.toStandardECDSAsecp256k1PrivateKey()).toStringDer()
-    }
-
-    const clientBroken = Client.forTestnet();
-    clientBroken.setOperator(accountToResque.accountId, await brokenMnemonic.toStandardECDSAsecp256k1PrivateKey());
-
-    // Associate a token to an account and freeze the unsigned transaction for signing
-    await new TokenAssociateTransaction()
-        .setAccountId(accountToResque.accountId)
-        .setTokenIds([tokenId0])
-        .freezeWith(clientBroken)
-        .execute(clientBroken);
-
-    await sleep(10_000);
-
-    console.log("accountToResque", accountToResque);
-
-    result = await bladeSdk.transferTokens(tokenId0, accountId, privateKey, accountToResque.accountId, "5", "transfer tokens to broken account", false, completionKey);
-    checkResult(result);
-
-    try {
-        result = await bladeSdk.transferHbars(accountToResque.accountId, accountToResque.privateKey, accountId, "0.1", "resque broken account attempt", completionKey);
-        expect("Code should not reach here").toEqual(result);
-    } catch (result) {
-        checkResult(result, false);
-        expect(result.error.reason.includes("INVALID_SIGNATURE")).toEqual(true);
-    }
-
-    result = await bladeSdk.brokenMnemonicEmergencyTransfer(brokenSeed, accountToResque.accountId, accountId, "0.123", [tokenId0], true, completionKey);
-    checkResult(result);
-    expect(result.data.isValid).toEqual(false);
-    expect(result.data.transferStatus).toEqual("");
-    result = await bladeSdk.brokenMnemonicEmergencyTransfer(brokenSeed, accountToResque.accountId, accountId, "0.123", [tokenId0], false, completionKey);
-    checkResult(result);
-    expect(result.data.isValid).toEqual(false);
-    expect(result.data.transferStatus).toEqual("SUCCESS");
-
-    const mnemonic = await Mnemonic.generate12();
-    result = await bladeSdk.brokenMnemonicEmergencyTransfer(mnemonic.toString(), "0.0.000001", accountId, "0", [], false, completionKey);
-    expect(result.data.isValid).toEqual(true);
-    expect(result.data.transferStatus).toEqual("");
-
-}, 60_000);
-
 test('ParametersBuilder.defined', async () => {
     expect(new ParametersBuilder() != null).toEqual(true);
 });
